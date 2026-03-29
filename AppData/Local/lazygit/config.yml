@@ -1,0 +1,8 @@
+os:
+  edit: 'pwsh -NoProfile -File "$env:LOCALAPPDATA\lazygit\edit_nvim_remote.ps1" {{filename}} '
+  editAtLine: 'pwsh -NoProfile -File "$env:LOCALAPPDATA\lazygit\edit_nvim_remote.ps1" {{filename}} {{line}} '
+  openDirInEditor: 'pwsh -NoProfile -File "$env:LOCALAPPDATA\lazygit\edit_nvim_remote.ps1" {{dir}}'
+  editPreset: nvim
+git:
+  pagers:
+    - externalDiffCommand: '$env:LOCALAPPDATA\lazygit\lazygit-pager.ps1'

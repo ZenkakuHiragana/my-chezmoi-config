@@ -1,0 +1,7 @@
+private_dot_config/opencode/.chezmoiignore
+node_modules/
+bun.lock
+package.json
+oh-my-opencode.json
+opencode-notifier-state.json
+plugins/executable_plugin-dev.js
