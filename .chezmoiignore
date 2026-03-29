@@ -1,7 +1,7 @@
 {{- if eq .chezmoi.os "windows" }}
-dot_config/nvim/**
-dot_config/lazygit/
+.config/nvim/**
+.config/lazygit/
 {{- else if eq .chezmoi.os "linux" }}
 AppData/
-readonly_Documents/
+Documents/
 {{- end }}

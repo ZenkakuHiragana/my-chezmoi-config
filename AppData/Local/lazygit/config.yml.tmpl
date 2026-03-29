@@ -1,0 +1,13 @@
+{{- $pager := joinPath .chezmoi.homeDir "AppData" "Local" "lazygit" "lazygit-pager.ps1" -}}
+{{- $editor := joinPath .chezmoi.homeDir "AppData" "Local" "lazygit" "edit-nvim-remote.ps1" -}}
+
+git:
+  promptToReturnFromSubprocess: false
+  pagers:
+    - externalDiffCommand: "$LOCALAPPDATA/lazygit/lazygit-pager.bat"
+os:
+  edit: 'pwsh -NoProfile -File "{{ $editor }}" "{{`{{filename}}`}}"'
+  editAtLine: 'pwsh -NoProfile -File "{{ $editor }}" "{{`{{filename}}`}}" "{{`{{line}}`}}"'
+  openDirInEditor: 'pwsh -NoProfile -File "{{ $editor }}" "{{`{{dir}}`}}"'
+  editInTerminal: false
+  editPreset: nvim
