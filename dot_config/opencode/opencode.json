@@ -1,6 +1,31 @@
 {
   "$schema": "https://opencode.ai/config.json",
   "share": "disabled",
+  "provider": {
+    "openai": {
+      "models": {
+        "gpt-5.4": {
+          "options": {
+            "textVerbosity": "low"
+          }
+        },
+        "gpt-5.4-mini": {
+          "options": {
+            "textVerbosity": "low"
+          }
+        }
+      }
+    },
+    "azure": {
+      "models": {
+        "gpt-5.1": {
+          "options": {
+            "textVerbosity": "low"
+          }
+        }
+      }
+    }
+  },
   "tools": {
     "bash": true,
     "edit": true,
