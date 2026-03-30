@@ -1,0 +1,25 @@
+customCommands:
+  containers:
+    - name: Open-WebUI
+      shell: true
+      command: >
+        docker run -d -p 8002:8080
+        -e ALL_PROXY="$HTTP_PROXY"
+        -e all_proxy="$http_proxy"
+        -e NO_PROXY="searxng,host.docker.internal,localhost,127.0.0.1,::1"
+        -e no_proxy="searxng,host.docker.internal,localhost,127.0.0.1,::1"
+        -e ENABLE_RAG_WEB_SEARCH=True
+        -e WEB_SEARCH_TRUST_ENV=True
+        -e RAG_WEB_SEARCH_ENGINE="searxng"
+        -e RAG_WEB_SEARCH_RESULT_COUNT=3
+        -e RAG_WEB_SEARCH_CONCURRENT_REQUESTS=10
+        -e 'SEARXNG_QUERY_URL=http://host.docker.internal:8888/search?q=<query>'
+        --add-host=host.docker.internal:host-gateway
+        -v open-webui:/app/backend/data
+        --name open-webui
+        --network userdefined
+        --restart always
+        ghcr.io/open-webui/open-webui:main
+    - name: SearXNG
+      shell: true
+      command: ~/searxng/launch.sh

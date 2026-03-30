@@ -1,0 +1,6 @@
+{{- $baseCommands := (include ".chezmoitemplates/lazydocker/config.yml" | fromYaml).customCommands.containers -}}
+{{- $extraCommands := (include ".chezmoitemplates/lazydocker/lazydocker-specific.yml" | fromYaml).customCommands.containers -}}
+{{- $allCommands := concat $baseCommands $extraCommands -}}
+customCommands:
+  containers:
+{{- $allCommands | toYaml | nindent 2 }}
