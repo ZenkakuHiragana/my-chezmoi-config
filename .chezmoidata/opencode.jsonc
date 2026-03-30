@@ -1,0 +1,182 @@
+{
+  "opencode": {
+    "$schema": "https://opencode.ai/config.json",
+    "share": "disabled",
+    "provider": {
+      "openai": {
+        "models": {
+          "gpt-5.4": {
+            "options": {
+              "textVerbosity": "low"
+            }
+          },
+          "gpt-5.4-mini": {
+            "options": {
+              "textVerbosity": "low"
+            }
+          }
+        }
+      }
+    },
+    "tools": {
+      "bash": true,
+      "edit": true,
+      "glob": true,
+      "grep": true,
+      "list": true,
+      "lsp": true,
+      "patch": true,
+      "question": true,
+      "read": true,
+      "skill": true,
+      "todoread": true,
+      "todowrite": true,
+      "webfetch": true,
+      "websearch": true,
+      "write": true
+    },
+    "permission": {
+      "bash": {
+        "*": "ask",
+        // git 操作系統（読み取り専用: 許可）
+        "git status": "allow",
+        "git status *": "allow",
+        "git diff": "allow",
+        "git diff *": "allow",
+        "git show": "allow",
+        "git show *": "allow",
+        "git log": "allow",
+        "git log *": "allow",
+        "git rev-parse *": "allow",
+        "git remote -v": "allow",
+        "git branch": "allow",
+        "git branch -v*": "allow",
+        "git branch --show-current": "allow",
+        "git tag": "allow",
+        "git tag *": "allow",
+        "git ls-files": "allow",
+        "git ls-files *": "allow",
+        "git cat-file *": "allow",
+        "git describe *": "allow",
+        "git fetch": "allow",
+        "git fetch *": "allow",
+        // git 操作系統（書き込み: 拒否）
+        "git add *": "deny",
+        "git commit": "deny",
+        "git commit *": "deny",
+        "git restore *": "deny",
+        "git checkout": "deny",
+        "git checkout *": "deny",
+        "git switch": "deny",
+        "git switch *": "deny",
+        "git merge": "deny",
+        "git merge *": "deny",
+        "git rebase": "deny",
+        "git rebase *": "deny",
+        "git stash": "deny",
+        "git stash *": "deny",
+        "git pull": "deny",
+        "git pull *": "deny",
+        "git cherry-pick": "deny",
+        "git cherry-pick *": "deny",
+        "git revert": "deny",
+        "git revert *": "deny",
+        "git reset --hard": "deny",
+        "git reset --hard *": "deny",
+        "git clean -fd": "deny",
+        "git clean -fd *": "deny",
+        "git clean -fdx": "deny",
+        "git clean -fdx *": "deny",
+        "git filter-branch": "deny",
+        "git filter-branch *": "deny",
+        "git push": "deny",
+        "git push *": "deny",
+        // ファイル削除禁止
+        "rm *": "deny",
+        // 標準入出力の操作とファイル探索
+        "ls": "allow",
+        "ls *": "allow",
+        "mkdir *": "allow",
+        "jq *": "allow",
+        "rg": "allow",
+        "rg *": "allow",
+        "sed -n *": "allow",
+        "echo *": "allow",
+        "grep *": "allow",
+        "head *": "allow",
+        "tail *": "allow",
+        "sort": "allow",
+        "cat": "allow",
+        "cat *": "allow",
+        "cut": "allow",
+        "cut *": "allow",
+        "uniq": "allow",
+        "uniq *": "allow",
+        "tr": "allow",
+        "tr *": "allow",
+        "nl": "allow",
+        "nl *": "allow",
+        // シェルスクリプト補助コマンド
+        "true": "allow",
+        "true *": "allow",
+        "false": "allow",
+        "false *": "allow",
+        "command": "allow",
+        "command *": "allow",
+        "which *": "allow",
+        "test": "allow",
+        "test *": "allow",
+        "[": "allow",
+        "[ *": "allow",
+        "bash -n *": "allow",
+        // ビルドツール（Python, 部分的に許可）
+        "pytest": "allow",
+        "pytest *": "allow",
+        "python --version": "allow",
+        "python -m pytest*": "allow",
+        "python3 --version": "allow",
+        "python3 -m pytest*": "allow",
+        // ビルドツール（Node.js, 部分的に許可）
+        "npm test": "allow",
+        "npm test *": "allow",
+        "npm run build": "allow",
+        "npm run build *": "allow",
+        "npx opencode-orchestrator *": "allow",
+        "npx vitest": "allow",
+        "npx vitest *": "allow",
+        // ビルドツール: Cargo（公開のみ禁止）
+        "cargo *": "allow",
+        "cargo login": "deny",
+        "cargo login *": "deny",
+        "cargo publish": "deny",
+        "cargo publish *": "deny",
+        "cargo publish --dry-run": "allow",
+        "rustc show*": "allow",
+        "rustc target list*": "allow",
+        "rustc toolchain list*": "allow",
+        // ビルドツール: Protocol Buffer
+        "buf *": "allow",
+        "grpcurl *": "allow",
+        "protoc *": "allow",
+        // ビルドツール（dotnet CLI, 公開禁止）
+        "dotnet *": "allow",
+        "dotnet push": "deny",
+        "dotnet push *": "deny",
+        "/mnt/c/Program\\ Files/dotnet/dotnet.exe *": "allow",
+        "/mnt/c/Program\\ Files/dotnet/dotnet.exe push": "deny",
+        "/mnt/c/Program\\ Files/dotnet/dotnet.exe push *": "deny",
+        "\"/mnt/c/Program Files/dotnet/dotnet.exe\" *": "allow",
+        "\"/mnt/c/Program Files/dotnet/dotnet.exe\" push": "deny",
+        "\"/mnt/c/Program Files/dotnet/dotnet.exe\" push *": "deny"
+      },
+      "external_directory": "ask",
+      "orchestrator": {
+        "orch-local-investigator": "allow",
+        "orch-public-researcher": "allow"
+      }
+    },
+    "plugin": [
+      "@mohak34/opencode-notifier@latest"
+    ]
+  }
+}
