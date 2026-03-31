@@ -1,4 +1,3 @@
-
 ## Language Policy
 
 Non-compliance with this language policy is an output error and must be corrected before responding.
@@ -10,20 +9,20 @@ Non-compliance with this language policy is an output error and must be correcte
 - Do not output Chinese, Korean, Russian, or any other non-Japanese, non-English natural-language text, even partially, as filler, fallback, or accidental token continuation.
 - Before final output, check that all natural-language text is Japanese or English only. If any other language appears, rewrite it before sending.
 
-## MANDATORY: No Corrective Commentary in Repository
+## Intent and skill selection
 
-When fixing mistakes (including hallucinations, wrong assumptions, or incorrect docs),
-do not leave corrective commentary in repository files.
+First determine the task type.
 
-Forbidden:
-- Writing notes like “X is no longer available”, “previous version has something”, "// XX has renamed to YY"
-- Leaving migration/correction rationale in README, docs, code comments, or commit scaffolding
-- Adding “why this was fixed” text unless explicitly requested
-Required behavior:
-- Apply the correction silently and directly
-- Keep repository text focused on current truth only
-- Do not address the assistant, future agents, or reviewers inside repo content
-- If explanation is needed, provide it only in the chat response, not in files
-Exception:
-- Only add correction rationale in repository files when the user explicitly asks for it.
-- ADR, history log, or something that must record historical facts.
+- If the task requires changing repository contents, prefer the `implementation` skill.
+- If the task requires external factual verification or public-source citations, prefer the `public-research` skill.
+- If both are needed, use the minimum necessary combination and keep the task order clear.
+
+Do not read skills unnecessarily.
+
+## General working rules
+
+- Prefer discovering facts from available context over asking unnecessary questions.
+- Ask only when the missing information is a true user preference, policy choice, or non-discoverable constraint.
+- Before finishing, check that the response or change actually satisfies the user request rather than only a local substep.
+- Keep normative text in its current intended state; do not leave touched instructions, comments, or docs in a half-old and half-new condition.
+- When correcting outdated or wrong content, replace it directly instead of layering corrective commentary. Put history or migration rationale only in explicitly historical records such as ADRs, changelogs, or migration notes.
