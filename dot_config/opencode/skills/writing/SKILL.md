@@ -8,5 +8,5 @@ description: |
 
 # Natural Language Writing Policy
 
-- Do not include unnecessary parentheses or meaningless parenthetical annotations (applies to both Japanese and English).
-- Keep outputs concise and clear. Avoid redundant annotations or meaningless parenthetical supplements.
+- Keep prose concise and clear.
+- Do not add unnecessary parentheses or parenthetical annotations.
