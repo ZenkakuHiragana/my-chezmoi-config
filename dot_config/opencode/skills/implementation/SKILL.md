@@ -258,3 +258,4 @@ Before finishing, verify all of the following:
 - no stale normative text remains in touched areas
 - no unnecessary compatibility layer was introduced
 - success is not being claimed on the basis of a partial edit
+- for non-trivial tasks, produce a `completion-review` statement before finishing

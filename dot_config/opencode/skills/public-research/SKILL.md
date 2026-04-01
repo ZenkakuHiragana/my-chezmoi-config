@@ -174,3 +174,4 @@ Before finishing, verify all of the following:
 - important claims are supported by citations
 - recency-sensitive claims were verified
 - uncertainty or source disagreement is stated clearly
+- for non-trivial research, produce a `completion-review` statement before finishing

@@ -55,3 +55,7 @@ Return:
 6. Check public issue trackers or docs when local evidence does not explain the behavior.
 7. Stop once the likely cause is narrow enough to hand off to implementation.
 8. Remove or clearly isolate temporary diagnostics before finishing if they are no longer needed.
+
+## Before finishing
+
+For non-trivial investigations, produce a `completion-review` statement.

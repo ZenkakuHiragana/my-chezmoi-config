@@ -60,3 +60,7 @@ A refactor is ready only when:
 5. Re-read changed surfaces for stale names, duplicate paths, or contradictions.
 6. Validate with the most direct checks available.
 7. If a behavior change is unavoidable, isolate it and treat it as a separate verified step.
+
+## Before finishing
+
+For non-trivial refactors, produce a `completion-review` statement.
