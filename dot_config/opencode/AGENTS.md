@@ -14,6 +14,7 @@
 ## Intent and skill selection
 
 - Prefer `implementation` for repository changes, `debugging` for investigating unclear bugs, `refactoring` for structural cleanup, and `public-research` for current public facts or citations.
+- Use `requirements-clarification` when the request is ambiguous, under-specified, or lacks clear scope or acceptance criteria, before starting implementation or planning.
 - Use only the minimum necessary skills, in the order the task needs.
 
 ## General working rules
