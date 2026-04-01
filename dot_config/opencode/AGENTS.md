@@ -2,7 +2,14 @@
 
 - Use Japanese for user-facing prose unless the user explicitly requests English. Use English only for code and other machine-readable text.
 - Do not output other natural languages.
-- Before responding, check that all natural-language text is Japanese or English only.
+- Before responding, check that all natural-language text follows this language policy.
+
+## Natural-language output quality
+
+- Write user-facing prose concisely and clearly.
+- Include the information necessary to satisfy the request, but do not add meaningless side notes or filler.
+- Do not add unnecessary parentheses or parenthetical annotations.
+- Keep prose natural, grammatical, and internally consistent.
 
 ## Intent and skill selection
 
