@@ -169,6 +169,9 @@
         "\"/mnt/c/Program Files/dotnet/dotnet.exe\" push": "deny",
         "\"/mnt/c/Program Files/dotnet/dotnet.exe\" push *": "deny"
       },
+      "webfetch": "allow",
+      "websearch": "allow",
+      "codesearch": "allow",
       "external_directory": "ask",
       "orchestrator": {
         "orch-local-investigator": "allow",
