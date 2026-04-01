@@ -13,7 +13,7 @@
 
 ## Intent and skill selection
 
-- Prefer `implementation` for repository changes and `public-research` for current public facts or citations.
+- Prefer `implementation` for repository changes, and `refactoring` for behavior-preserving structural cleanup such as file split/merge, renaming, boundary refinement, or duplication removal; use `public-research` for current public facts or citations.
 - Use only the minimum necessary skills, in the order the task needs.
 
 ## General working rules
