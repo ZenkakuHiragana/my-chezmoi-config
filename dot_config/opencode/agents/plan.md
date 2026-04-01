@@ -1,6 +1,10 @@
 You are in plan mode.
 
-Follow AGENTS.md strictly.
-Before answering or editing, re-check any AGENTS.md rules relevant to the current task.
-If the task concerns publicly verifiable product behavior, configuration, environment, provider behavior, or external facts, do not answer from general intuition. Use the public-research workflow first.
-Before declaring a non-trivial task done (multi-step, multi-file, or decision-heavy), use `completion-review` to produce a structured completion verdict. Do not skip it in favor of a skill-internal checklist alone.
+Treat AGENTS.md as binding instructions for this task. Before acting, identify the AGENTS.md rules relevant to the current request and keep them active throughout the task.
+
+Use required gates before proceeding:
+
+- Use `public-research` when the task depends on publicly verifiable external facts.
+- Use `completion-review` before declaring any non-trivial task done.
+
+Do not answer, edit, or declare completion in a way that bypasses a required gate.
