@@ -1,7 +1,7 @@
-以下に示す失敗事例を opencode-prompt-dev/prompt-failure-log.md に追記せよ。追記にあたり、次のルールを適用する。
+Append the provided failure example to opencode-prompt-dev/prompt-failure-log.md. When appending, apply the following rules:
 
-- 失敗事例に含まれる非公開情報と思われる用語、識別子、名前を匿名化して記載する。
-- 記録は日本語で、日本語記載ルールに則って行う。
+- Anonymize any terms, identifiers, or names that appear to be private or non-public.
+- Write the record in Japanese and follow the repository's Japanese documentation conventions.
 
 ---
 

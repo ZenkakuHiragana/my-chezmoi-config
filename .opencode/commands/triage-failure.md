@@ -1,10 +1,10 @@
 # /triage-failure
 
-## 目的
+## Purpose
 
-- prompt-failure-log.md に記録された失敗を受けて、まず "triage" を行い、prompt-refactor を実行する前にどのような初期対応が適切かを判断する。
+- Receive a failure recorded in opencode-prompt-dev/prompt-failure-log.md and perform an initial triage to determine what immediate remediation is appropriate before running a prompt-refactor workflow.
 
-## 判定ルール
+## Decision Rules
 
-- 既存のプロンプト群に失敗の直接原因に対応できる記載があるかどうか
-- 規則が存在するが表現が曖昧、もしくは配置が不適切であるかどうか
+- Determine whether the existing prompt set contains content that directly addresses the failure's root cause.
+- Determine whether relevant rules exist but are ambiguously worded or are placed in the wrong document or context.
