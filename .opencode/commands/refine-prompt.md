@@ -162,15 +162,19 @@ If an element is missing and the task type cannot be performed reliably without 
 
 Before editing, decide whether local prompt files are enough, or whether additional research is needed.
 
-Research is needed when any of the following are true:
+Additional research is needed when any of the following are true:
 
 - current public facts matter
 - external best practices are central to the refactor
-- the affected capability changes search policy, source policy, or evidence standards
+- the affected skill, prompt, or capability defines a reusable process, workflow, review framework, quality checklist, validation standard, or writing/research/debugging methodology
+- the affected capability changes search policy, source policy, evidence standards, or citation expectations
 - the affected capability touches privacy, disclosure, or security-sensitive behavior
-- the affected capability changes validation strategy or tool choice
+- the affected capability changes validation strategy, completion criteria, or tool choice
 - an important term, practice, or policy is ambiguous, unfamiliar, or likely to have multiple interpretations
-- the affected task archetype depends on current external practice, such as public research norms, refactoring standards, technical writing norms, or verification procedure
+- the affected task archetype depends on established external practice, such as public research norms, refactoring standards, technical writing norms, code review norms, debugging procedure, or verification procedure
+- relying only on local prompt wording would likely produce incomplete review dimensions, weak decision criteria, or missing constraints
+
+Do not treat “no current facts are required” as sufficient reason to skip research when the skill or prompt being edited depends on external best practices or established quality criteria.
 
 If research is needed:
 
