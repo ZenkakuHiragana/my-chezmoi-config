@@ -13,7 +13,7 @@
 
 ## Intent and skill selection
 
-- Prefer `implementation` for repository changes, `refactoring` for structural cleanup, and `public-research` for current public facts or citations.
+- Prefer `implementation` for repository changes, `debugging` for investigating unclear bugs, `refactoring` for structural cleanup, and `public-research` for current public facts or citations.
 - Use only the minimum necessary skills, in the order the task needs.
 
 ## General working rules

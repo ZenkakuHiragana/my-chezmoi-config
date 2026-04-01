@@ -29,6 +29,7 @@ Do not use this skill when the task is primarily:
 - open-ended external research
 - broad requirements exploration with no concrete change target
 - local investigation only, where the deliverable is analysis rather than edits
+- investigating an unclear bug, reproducing unexpected behavior, or gathering diagnostic evidence; use `debugging` instead
 
 If the task is mainly external fact-finding, use `public-research` instead.
 
