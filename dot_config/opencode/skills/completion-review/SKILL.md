@@ -25,6 +25,8 @@ Do not use this skill when:
 
 - the task was a trivial single-step action with an obvious outcome
 - the response is purely conversational or informational with no deliverable
+- you are providing a mid-progress status update, not a final deliverable
+- the output is a failure triage entry where the corrective action is still pending
 
 ## Completion statement structure
 
