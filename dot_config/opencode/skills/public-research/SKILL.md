@@ -146,6 +146,125 @@ Include citations for important claims, especially when:
 - the user asked for verification
 - the answer depends on a specific document
 
+## Mandatory fallback when `websearch` or `codesearch` is unavailable
+
+If external research is required and `websearch` or `codesearch` is unavailable, do not skip research by default.
+Follow this procedure in order.
+
+1. If an obvious authoritative URL is already known, fetch it directly with `webfetch`.
+2. If discovery is still needed, switch to fallback discovery with `webfetch`.
+3. Use DuckDuckGo fallback for general public-web discovery.
+4. Use GitHub fallback for repository, code, issue, pull request, discussion, or release discovery.
+5. From fetched results pages, identify candidate URLs.
+6. Fetch the candidate source pages themselves with `webfetch`.
+7. Prefer primary sources once discovered.
+8. If fallback discovery remains weak or inconclusive, state that explicitly and separate verified facts from inference.
+
+Use the existing search-safety and public-query rules already defined in this skill.
+Do not duplicate or weaken them here.
+
+### DuckDuckGo fallback
+
+Use this when:
+
+- the likely source is on the public web but not yet known
+- `websearch` is unavailable
+- the query can be expressed safely without non-public information
+
+Procedure:
+
+1. Construct a public-safe DuckDuckGo search query.
+2. Fetch a DuckDuckGo HTML search-results page with `webfetch`.
+3. Read the results page and extract the most relevant candidate URLs.
+4. Fetch the candidate URLs themselves with `webfetch`.
+5. Prefer official documentation, standards, upstream repositories, release notes, official issue trackers, and vendor documentation when they appear in results.
+
+### GitHub fallback
+
+Use this when:
+
+- the likely source is GitHub
+- `codesearch` is unavailable
+- you need to find upstream implementation, issues, pull requests, discussions, or release evidence
+
+Procedure:
+
+1. Decide which GitHub search type is needed:
+   - code search
+   - issues search
+   - pull requests search
+   - repository-wide issue or pull request search
+2. Construct a public-safe GitHub search query.
+3. Fetch the appropriate GitHub search-results page with `webfetch`.
+4. Read the results page and identify the most relevant candidate URLs.
+5. Fetch the candidate pages themselves with `webfetch`.
+6. Use the fetched source pages, not the search-results snippets, as evidence.
+
+#### GitHub code search fallback
+
+Use a GitHub code-search query when you need repository or upstream implementation evidence.
+
+Typical query structure:
+
+- bare search terms for identifiers or strings
+- qualifiers such as `repo:`, `org:`, `path:`, `language:`, `symbol:`, or `content:`
+
+Typical result-page URL shape:
+
+- `https://github.com/search?q=<query>&type=code`
+
+Prefer this for:
+
+- upstream implementation behavior
+- exact strings, symbols, option names, config keys, or filenames
+- finding code locations in public repositories
+
+#### GitHub issues / pull requests fallback
+
+Use GitHub issue or pull-request search when you need design discussion, bug reports, regressions, feature requests, or release-adjacent evidence.
+
+Typical query structure:
+
+- issue or PR terms plus qualifiers such as `is:issue`, `is:pr`, `repo:`, `org:`, `label:`, `author:`, `state:`, or milestone-related filters where useful
+
+Typical result-page URL shape:
+
+- `https://github.com/search?q=<query>&type=issues`
+- or a repository-scoped issues URL with a query parameter when the repository is already known
+
+Prefer this for:
+
+- bug history
+- design rationale discussed in issues or pull requests
+- references to configuration flags, migrations, regressions, or known limitations
+
+#### GitHub releases fallback
+
+Use direct release pages or release-related search when you need versioned release evidence.
+
+Prefer this for:
+
+- release notes
+- changelog confirmation
+- when feature availability or behavior may have changed across versions
+
+### Reporting requirements in fallback mode
+
+When using fallback discovery:
+
+- say that discovery tooling was unavailable if that materially limited confidence
+- state which results pages were fetched
+- state which source pages were fetched
+- distinguish verified facts from inference
+- explicitly say when primary sources could not be found or confirmed
+
+### Prohibition
+
+Do not answer from general intuition alone when the task depends on publicly verifiable facts, unless:
+
+- this fallback procedure has been attempted, or
+- an explicit discovery limitation has been stated.
+
 ## Output style
 
 Be direct and evidence-based.
