@@ -97,11 +97,11 @@ Research is needed when any of the following are true:
 
 - current public facts matter
 - external best practices are central to the capability
-- the capability changes search policy, source policy, or evidence standards
+- the capability defines a reusable process, workflow, review framework, or quality checklist
+- the task archetype has established quality criteria outside the repository
+- the capability changes search policy, source policy, evidence standards, or validation strategy
 - the capability affects privacy, disclosure, or security-sensitive behavior
-- the capability affects validation strategy or tool choice
 - the request uses a term, practice, or policy that is ambiguous, unfamiliar, or likely to have multiple interpretations
-- the request is about a discipline where current practice matters, such as web research, refactoring standards, technical writing norms, or verification procedure
 
 If research is needed:
 
