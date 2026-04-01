@@ -1,76 +1,212 @@
 ---
-description: Record a prompt failure and apply the smallest provisional patch
+description: Record one prompt failure using evidence, define current vs target condition, and apply the smallest safe containment if needed
 agent: build
 ---
 
-Your task is to record one newly observed prompt failure and apply the smallest safe provisional patch that reduces immediate recurrence.
+Your task is to record one prompt failure as a quality incident.
 
-User input:
+User request:
 $ARGUMENTS
 
 ---
 
+This command is for:
+
+- collecting facts
+- defining the gap between current condition and target condition
+- applying the smallest safe immediate containment when justified
+
+This command is not for:
+
+- full root-cause analysis
+- hierarchy-wide refactoring
+- broad consolidation across multiple failures
+
+If the request is mainly about broad cleanup or consolidation, recommend `/triage-failure` or `/refine-prompt` instead.
+
 Follow this workflow exactly.
 
-1. Read these files first:
-   - `AGENTS.md`
-   - `opencode-prompt-dev/prompt-principles.md`
-   - `opencode-prompt-dev/prompt-failure-log.md`
+## 1. Read the control documents first
 
-2. Identify the narrowest affected layer in the prompt hierarchy.
-   Consider at least:
-   - global rules such as `AGENTS.md`
-   - role-specific prompt files such as `build.md`, `plan.md`, or equivalent
-   - skill descriptions
-   - `SKILL.md` files
+Read these files before doing anything else:
 
-3. Understand the failure precisely.
-   Determine:
-   - what the model did wrong
-   - what behavior should have happened instead
-   - whether the failure is caused by missing instruction, unclear instruction, misplaced instruction, or instruction conflict
+- `AGENTS.md`
+- `opencode-prompt-dev/prompt-principles.md`
+- `opencode-prompt-dev/prompt-failure-log.md`
 
-4. Append exactly one new failure entry to `opencode-prompt-dev/prompt-failure-log.md`.
-   Follow the existing file format exactly.
-   Use these semantics when filling fields:
-   - `status: provisionally_addressed` if you can safely apply a small patch now
-   - `status: open` if no safe immediate patch is possible
-   - keep the entry concise and specific
-   - do not rewrite old log entries unless the file format explicitly requires it
+## 2. Collect raw evidence first
 
-5. Apply the smallest safe provisional patch now.
-   Rules:
-   - prefer rewording an existing instruction over adding a new sentence
-   - prefer modifying the narrowest layer that can stop the recurrence
-   - prefer one short sentence over a large paragraph
-   - do not perform broad refactors
-   - do not reorganize unrelated sections
-   - do not add a generalized rule unless it is clearly needed for this exact failure
-   - do not create new tracking files
-   - do not edit `prompt-principles.md` unless the failure is explicitly about the principles file itself
+Before writing any interpretation, collect the raw evidence for this failure.
 
-6. When deciding where to patch:
-   - use the global layer only for short shared rules that should apply broadly
-   - use role-specific prompt files for role-specific behavior
-   - use skill descriptions only for discovery guidance such as when to use, when not to use, and expected outcome
-   - use `SKILL.md` for detailed procedure
+Evidence may include:
 
-7. After patching, briefly re-read the touched files and check:
-   - the patch is short
-   - it does not duplicate an obvious nearby rule
-   - it matches the intended layer
-   - it does not introduce historical commentary or migration notes into normative prompt text
+- exact response snippets
+- prompt text excerpts
+- file diffs
+- edited file paths
+- missing actions
+- tool-use traces
+- absence of expected citations, searches, validations, or checks
 
-8. Final response requirements:
-   - name the newly logged failure entry in a short human-readable way
-   - state the chosen status
-   - list the files changed
-   - explain in 2 to 5 sentences why this was the narrowest acceptable provisional patch
-   - state whether this failure should later be grouped with similar failures during triage
+Do not summarize yet.
+Do not infer intent yet.
 
-Important constraints:
+## 3. Write the current condition from evidence only
 
-- This command is for immediate containment, not full consolidation.
-- Do not try to solve all related failures at once.
-- Do not perform hierarchy-wide optimization here.
-- Keep the patch minimal even if you can imagine a cleaner global redesign.
+From the evidence, write a short current condition.
+
+Rules:
+
+- write only what is directly supported by the evidence
+- do not use judgmental words such as “careless”, “bad”, “wrong”, “redundant”, or “misunderstood”
+- do not infer motive or intent
+- if evidence is too weak, say so and lower confidence
+
+## 4. Write the target condition
+
+State what should have happened instead.
+
+If possible, identify the expectation source:
+
+- explicit_user_request
+- existing_prompt_text
+- accepted_prior_behavior
+- inferred_from_context
+- unknown
+
+If the expectation source is weak or inferred, say so clearly in notes.
+
+## 5. Identify affected scope
+
+Determine the affected prompt layers and task archetypes.
+
+Possible layers:
+
+- global_rules
+- role_prompt
+- skill_description
+- skill_body
+
+Possible archetypes:
+
+- implementation
+- refactoring
+- public_research
+- local_investigation
+- planning
+- verification
+- writing
+- other
+
+## 6. Decide whether immediate containment is needed
+
+Ask:
+
+- Is this failure likely to recur soon?
+- Is there a small safe patch that can reduce recurrence now?
+- Can that patch be applied without broad redesign?
+
+If yes:
+
+- apply the smallest safe containment
+- prefer a narrow rewording or local patch
+- do not perform broad refactoring
+- do not generalize more than needed
+- set status to `contained`
+
+If no:
+
+- do not patch
+- set status to `observed`
+
+Immediate containment is temporary.
+Do not confuse it with permanent corrective action.
+
+## 7. Assign only an initial cause category
+
+Do not perform full root-cause analysis here.
+
+Assign one or more initial cause categories from:
+
+- missing_rule
+- weak_wording
+- wrong_layer
+- duplicated_or_conflicting_rules
+- missing_validation
+- missing_research_gate
+- incomplete_task_contract
+- unknown
+
+This is provisional classification only.
+
+## 8. Define a minimal verification plan
+
+Write a short verification plan for the containment or for the recorded issue.
+
+The plan must answer:
+
+- what future sign would show that the failure is no longer recurring
+- what file, behavior, or output should be checked next
+
+## 9. Append one failure entry to the failure log
+
+Append exactly one new entry to `opencode-prompt-dev/prompt-failure-log.md`.
+
+Follow the file’s existing template and conventions exactly.
+
+Required fields:
+
+- id
+- status
+- date
+- title
+- short summary
+- current_condition
+- target_condition
+- evidence
+- observation_confidence
+- scope
+- immediate_containment
+- suspected_cause_category
+- root_cause_notes
+- corrective_action
+- verification_plan
+- verification_result
+- notes
+
+Use:
+
+- `root_cause_notes: pending`
+- `corrective_action: pending`
+- `verification_result: pending`
+
+unless the file format explicitly requires something else.
+
+## 10. Final response format
+
+Provide these sections in order.
+
+## Recorded failure
+
+- title
+- id
+- status
+
+## Current vs target condition
+
+- current condition
+- target condition
+- expectation source
+
+## Evidence used
+
+- short list of the evidence items used
+
+## Immediate containment
+
+- what was done, or `none`
+- why this was or was not justified
+
+## Next step
+
+- say whether this should later go to `/triage-failure`

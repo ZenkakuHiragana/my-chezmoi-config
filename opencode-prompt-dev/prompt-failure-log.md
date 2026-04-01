@@ -1,64 +1,138 @@
-# Prompt 失敗ログ (prompt-failure-log.md)
+# prompt-failure-log.md
 
-## 目的
+このファイルは、prompt failure の記録、暫定封じ込め、原因解析、恒久対策、有効性確認を管理するための軽量な台帳である。
 
-- プロンプト運用で発生した「失敗」「意図しない出力」「誤った決定」を記録し、再発防止とリファクタリングの素材にする。
-- 再発防止とは、その失敗を起こしたエージェントやコマンドを定義するプロンプトへの変更を指す。失敗そのものへの対応は再発防止とは言わない。
-  - 良い例: プロンプト整理コマンドにより必要以上に削れすぎたので、コマンドの定義に品質ゲートを追加した。
-  - 悪い例: プロンプト整理コマンドにより必要以上に削れすぎたので、削れた分を復元した。
+## 基本方針
 
-## 運用ルール
+- まず事実を集める。
+- 「観測されたこと」と「なぜ問題か」を分ける。
+- 恒久対策の前に、必要なら暫定封じ込めを行う。
+- 根本原因は後続の triage で分析する。
+- failure は closed loop で管理し、最終的に verification result まで記録する。
 
-- 失敗が確認されたらすぐにこのファイルへ項目を追記する。
-- 記入は簡潔に。後で詳細を補える形式にすること。
-- 各エントリは少なくとも 1) 日付 2) 対象 agent/skill 3) 入力の要約 4) 期待した出力 5) 発生した出力 6) 根本原因の仮説 7) 推奨対応（移設/言い換え/新規追加） を含む。
-- ステータスは `open` / `provisionally_addressed` / `consolidated` / `closed` を使う。
-  - `open`: 記録済みで未対応
-  - `provisionally_addressed`: narrow stopgap を入れた
-  - `consolidated`: 暫定対応を、よりきれいな階層ルールへ吸収した
-  - `closed`: もう追加の統合が不要
+## 記入ルール
 
-## エントリテンプレート
+### Current condition
+
+- 実際に起きたことを、証拠ベースで書く。
+- 評価語や意図推定は入れない。
+- 「何が証拠として確認できるか」を短く書く。
+
+### Target condition
+
+- 本来どうあるべきだったかを書く。
+- 期待挙動の根拠が明示できるなら notes に書く。
+- 根拠が弱い場合は、その旨を notes に書く。
+
+### Evidence
+
+- 応答断片、差分、編集ファイル、未実行の行動、ログなどを記録する。
+- 可能なら箇条書きで具体的に書く。
+
+### Immediate containment
+
+- いま再発を止めるための最小の暫定対応を書く。
+- 恒久対策とは分ける。
+- 暫定対応がない場合は `none` と書く。
+
+### Suspected cause category
+
+- 初期段階では原因を断定しない。
+- 以下から最も近いものを選ぶ。
+  - missing_rule
+  - weak_wording
+  - wrong_layer
+  - duplicated_or_conflicting_rules
+  - missing_validation
+  - missing_research_gate
+  - incomplete_task_contract
+  - unknown
+
+### Corrective action
+
+- triage 後に書く。
+- 以下の型を優先する。
+  - reword
+  - move_layer
+  - merge_rules
+  - split_rule
+  - restore_missing_essential
+  - add_minimal_new_rule
+
+### Verification plan
+
+- 何を見ればこの issue が解消されたと判断できるかを書く。
+
+### Verification result
+
+- pending / passed / failed のいずれかを書く。
+
+## Status
+
+- `observed`
+  - failure を観測し、まだ封じ込めしていない
+- `contained`
+  - 暫定封じ込めを入れた
+- `under_rca`
+  - triage で原因解析中
+- `corrective_action_defined`
+  - 恒久対策が定義された
+- `verified_closed`
+  - 検証で解消が確認された
+
+## Failure entry template
 
 ---
 
-日付: YYYY-MM-DD
-対象: (agent 名 / skill 名 / ワークフロー)
-ユーザーの報告:
-期待される挙動:
-実際の挙動:
-既存規則で防げたか: (はい / いいえ / 不明) と簡単な理由
-推定される原因:
-ステータス: open
-補足: (任意)
+id: F-YYYYMMDD-001
+status: observed
+date: YYYY-MM-DD
 
----
+title:
+short summary:
 
-日付: 2026-04-01
-対象: general-assistant
-ユーザーの報告: 出力に不要な括弧や無意味な補足が入る。例として短い指示にも冗長な注釈や括弧が付加され、読みづらくなる。
-期待される挙動: 指示の意図を正確に反映した簡潔な日本語で出力する。不要な括弧や冗長な補足は行わない。
-実際の挙動: 短い命令文や注記に対して、説明的だが意味のない括弧表現や補足を付け加えた応答を返した。
-既存規則で防げたか: はい — 日本語出力や簡潔性に関する規則が存在するため、優先度を明確にすれば防げた可能性が高い。
-推定される原因: 出力スタイルのルールが曖昧で、補助的表現（括弧での注釈など）の使用条件が定義されていない。生成モデルが冗長性を避けるための優先順位を参照できなかった。
-推奨対応（移設/言い換え/新規追加）:
+current_condition:
 
-- 既存の日本語出力ルールに「不要な括弧や無意味な補足を付けない」ことを明確に追記（優先度高）。
-- 出力例を追加して良い/悪い例を示す（良い例: 簡潔な応答、悪い例: 不要な括弧を使った冗長な応答）。
-- ルール実行時のチェックポイント（post-process）を追加し、括弧の過剰使用を検出して除去する処理を検討する。
-  ステータス: closed
-  補足: writing skill に集約して簡潔性ルールへ統合した。
+-
 
----
+target_condition:
 
-日付: 2026-04-01
-対象: general-assistant
-ユーザーの報告: 出力が正しい日本語になってない。
-期待される挙動: 日本語での返答。中国語やハングル文字などが混ざらない。
-実際の挙動: 中国語の語彙が含まれる、日本語としては読解不能な応答が返った
-既存規則で防げたか: いいえ — 規則自体は存在したが優先順位と表現が曖昧だった
-推定される原因: 規則の表現が長く分散しており、agent は具体的な処理順序を決められなかった
-ステータス: closed
-補足: global AGENTS の言語ルールへ整理した。
+-
+
+evidence:
+
+-
+
+observation_confidence: high
+
+scope:
+layers: - global_rules - role_prompt - skill_description - skill_body
+archetypes: - implementation
+
+immediate_containment:
+
+- none
+
+suspected_cause_category:
+
+- unknown
+
+root_cause_notes:
+
+- pending
+
+corrective_action:
+
+- pending
+
+verification_plan:
+
+- pending
+
+verification_result: pending
+
+notes:
+
+-
 
 ---
