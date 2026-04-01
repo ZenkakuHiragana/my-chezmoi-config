@@ -1,6 +1,6 @@
 ---
 name: implementation
-description: Use this skill when the task requires making or updating files to satisfy a concrete request, including feature implementation, bug fixing, refactoring, and code/document changes tied to repository contents. Do not use for pure fact lookup, broad ideation, or open-ended external research unless implementation is blocked by missing external facts.
+description: Use this skill when the task requires making or updating files to satisfy a concrete request, including feature implementation, bug fixing, and code/document changes tied to repository contents. Do not use for refactoring, pure fact lookup, broad ideation, or open-ended external research unless implementation is blocked by missing external facts.
 ---
 
 # Implementation
@@ -18,7 +18,6 @@ Use this skill when the user asks for any of the following:
 - implement a feature
 - fix a bug
 - modify existing behavior
-- refactor code while preserving intended behavior
 - update documentation, configuration, prompts, or scripts as part of a concrete repository change
 - make repository changes and verify that they are coherent
 

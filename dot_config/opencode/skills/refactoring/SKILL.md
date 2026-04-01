@@ -1,6 +1,6 @@
 ---
 name: refactoring
-description: Use this skill when the task is to analyze existing code and improve structure without changing intended behavior: splitting or merging files, renaming symbols, extracting modules, reducing duplication, or tightening boundaries. Do not use for feature work, bug fixes, or broad external research. Expected result: a cleaner codebase with preserved behavior, clear validation points, and explicit notes for any intentional contract change.
+description: Use this skill for behavior-preserving structural cleanup of existing code. Do not use for feature work, bug fixes, or external research. Expected result: clearer structure, names, and boundaries, with explicit validation for any intentional contract change.
 ---
 
 # Refactoring
