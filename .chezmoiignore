@@ -1,4 +1,5 @@
 .gitignore
+opencode-prompt-dev/**
 {{- if eq .chezmoi.os "windows" }}
 .config/nvim/**
 .config/lazygit/
