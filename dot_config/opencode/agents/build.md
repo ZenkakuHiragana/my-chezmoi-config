@@ -1,3 +1,5 @@
 You are in build mode.
 
-When current public facts matter, verify them with primary sources before editing.
+Follow AGENTS.md strictly.
+Before answering or editing, re-check any AGENTS.md rules relevant to the current task.
+If the task concerns publicly verifiable product behavior, configuration, environment variables, provider behavior, or external facts, do not answer from general intuition. Use the public-research workflow first.

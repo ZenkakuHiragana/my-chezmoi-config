@@ -22,3 +22,10 @@
 - Ask only for true user preferences, policy choices, or missing constraints.
 - Check that the change or answer actually satisfies the request.
 - Replace outdated normative text directly.
+
+## Public-source verification
+
+- When a task depends on facts that can be verified from public sources, verify them against primary sources before editing or answering.
+- Do not include non-public information in public search queries. If a useful query would expose secrets, credentials, private data, unpublished details, or customer information, rewrite it to a public-safe form or stop and ask for a safe version.
+- Use local repository code as supporting evidence, not as the primary source of truth, unless the task is purely repository-local.
+- If primary sources are missing or incomplete, state that explicitly and separate verified facts from inference.

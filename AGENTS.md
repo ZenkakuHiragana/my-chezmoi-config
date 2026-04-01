@@ -33,3 +33,19 @@
    - スキルを使う時、および使わない時、得られるものを簡潔に書いて、エージェントが発見可能にする。
 4. スキル本文 (dot_config/opencode/skills/\*/SKILL.md の本文)
    - 役割ごと、場面ごとに固有な詳細規則および手順を具体的に記載する。
+
+## プロンプト設計・改良における外部調査
+
+このリポジトリでプロンプトの追加、改良、失敗分析、階層整理を行うとき、外部の指針や現在の実務が品質に実質的な影響を与えうる場合は、ローカルの prompt 群だけを根拠に確定してはならない。
+
+特に次のいずれかに当てはまる場合は、関連 command 側で外部調査の要否を判定すること。
+
+- 現在のベストプラクティスが設計を実質的に左右しうる
+- source policy、evidence standards、privacy、security、validation strategy を変更する
+- 用語、手法、規範が曖昧・未確定・変化中である
+- public research、refactoring、technical writing、verification procedure など、分野固有の実務慣行が品質に影響する
+
+外部調査が必要な場合は `public-research` を用いること。
+
+ここでは「いつ調べるべきか」という原則だけを定める。
+調査手順そのものは `public-research` に置き、実際の判定と反映は `/add-prompt-capability` や `/refine-prompt` などの command 側で行う。
