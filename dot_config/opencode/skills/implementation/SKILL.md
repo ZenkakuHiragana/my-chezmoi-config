@@ -86,7 +86,6 @@ Before editing, classify the task internally as one of:
 - new_feature
 - modify_existing
 - bugfix
-- refactor
 
 This classification affects what to inspect.
 
@@ -118,15 +117,6 @@ Give extra attention to:
 - confirming the real cause
 - preventing nearby regressions
 - preserving intended behavior outside the fix
-
-#### refactor
-
-Give extra attention to:
-
-- preserved behavior
-- unchanged external contract unless explicitly requested
-- removal of stale paths after restructuring
-- equivalent coverage after the change
 
 ### 4. Read before you write
 
