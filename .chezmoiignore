@@ -1,4 +1,5 @@
 .gitignore
+AGENTS.md
 opencode-prompt-dev/**
 {{- if eq .chezmoi.os "windows" }}
 .config/nvim/**
