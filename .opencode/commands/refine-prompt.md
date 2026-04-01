@@ -8,6 +8,8 @@ Your task is to refactor the prompt hierarchy, not just one file.
 User input:
 $ARGUMENTS
 
+---
+
 You are performing hierarchy-aware prompt maintenance across:
 
 - global rules such as `AGENTS.md`

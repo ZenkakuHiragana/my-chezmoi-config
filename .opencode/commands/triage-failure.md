@@ -8,6 +8,8 @@ Your task is to analyze accumulated prompt failures and identify the best consol
 User input:
 $ARGUMENTS
 
+---
+
 This command is analysis-only.
 Do not edit prompt files.
 Do not edit the failure log unless the user explicitly asks for log maintenance only.

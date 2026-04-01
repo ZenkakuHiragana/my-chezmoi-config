@@ -8,6 +8,8 @@ Your task is to record one newly observed prompt failure and apply the smallest 
 User input:
 $ARGUMENTS
 
+---
+
 Follow this workflow exactly.
 
 1. Read these files first:
