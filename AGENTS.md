@@ -28,8 +28,8 @@
    - Build モード、および読み取り専用の Plan モードに対応したシステムプロンプト。
    - 要求の分類やエージェント固有の規則を書く。
    - 具体的な作業内容については言及してはいけない。スキルへの誘導はよい。
-3. - skill descriptions (dot_config/opencode/skills/\*/SKILL.md のフロントマターに書く descriptions フィールド)
+3. skill descriptions (dot_config/opencode/skills/\*/SKILL.md のフロントマターに書く descriptions フィールド)
    - **1024文字以内で書く。**
    - スキルを使う時、および使わない時、得られるものを簡潔に書いて、エージェントが発見可能にする。
-4. - スキル本文 (dot_config/opencode/skills/\*/SKILL.md の本文)
+4. スキル本文 (dot_config/opencode/skills/\*/SKILL.md の本文)
    - 役割ごと、場面ごとに固有な詳細規則および手順を具体的に記載する。
