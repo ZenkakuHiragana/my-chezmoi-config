@@ -1,6 +1,6 @@
 ---
 name: public-research
-description: Use this skill when the task requires external factual research on public information, especially when accuracy, recency, source quality, or direct citation matters. Do not use for repository-only implementation tasks unless external facts are actually needed.
+description: Use this skill when public facts, primary sources, or citations matter. Do not use it for repository-only tasks. Expected result: a source-backed answer that separates confirmed facts, caveats, and inference.
 ---
 
 # Public Research
@@ -11,7 +11,7 @@ This skill is for answering questions that depend on public information outside 
 
 Use it when correctness depends on checking current facts, official documentation, standards, policies, releases, APIs, or other externally published material.
 
-The aim is not merely to search, but to produce a grounded answer based on appropriate public sources.
+The aim is not merely to search, but to produce a grounded answer based on primary sources when available.
 
 ## When to use
 
@@ -47,8 +47,9 @@ Prefer sources in this order when applicable:
 1. official documentation
 2. original specifications or standards
 3. first-party release notes or vendor documentation
-4. original papers or canonical technical references
-5. reputable secondary summaries only when primary sources are insufficient
+4. upstream repositories or official issue trackers
+5. original papers or canonical technical references
+6. reputable secondary summaries only when primary sources are insufficient
 
 If reliable sources disagree, state the disagreement clearly and distinguish observation from inference.
 
@@ -90,6 +91,18 @@ When giving recommendations or comparisons:
 If the evidence is incomplete, say so plainly.
 
 If you infer a conclusion from the sources, label it as an inference.
+
+## Tool use
+
+- Use `websearch` to discover candidate public sources.
+- Use `webfetch` to read the most relevant URLs.
+- Use `codesearch` when upstream implementation or repository evidence is the best source.
+
+## Source handling rules
+
+- Prefer public evidence over local code when both are available.
+- Use local code only as supporting evidence unless the task is strictly repository-local.
+- If primary sources are missing or incomplete, say so explicitly and separate documented facts from inference.
 
 ## Research flow
 
