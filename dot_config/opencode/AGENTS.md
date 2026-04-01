@@ -15,6 +15,7 @@
 
 - Prefer `implementation` for repository changes, `debugging` for investigating unclear bugs, `refactoring` for structural cleanup, and `public-research` for current public facts or citations.
 - Use `requirements-clarification` when the request is ambiguous, under-specified, or lacks clear scope or acceptance criteria, before starting implementation or planning.
+- Use `task-planning` when requirements are clear but the task is large enough to benefit from decomposition into ordered work items with dependencies and verification checkpoints, before starting `implementation`.
 - Use only the minimum necessary skills, in the order the task needs.
 
 ## General working rules
