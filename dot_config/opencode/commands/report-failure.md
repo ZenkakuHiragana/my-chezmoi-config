@@ -30,9 +30,9 @@ Follow this workflow exactly.
 
 Read these files before doing anything else:
 
-- `AGENTS.md`
-- `opencode-prompt-dev/prompt-principles.md`
-- `opencode-prompt-dev/prompt-failure-log.md`
+- `~/.local/share/chezmoi/AGENTS.md`
+- `~/.local/share/chezmoi/opencode-prompt-dev/prompt-principles.md`
+- `~/.local/share/chezmoi/opencode-prompt-dev/prompt-failure-log.md`
 
 ## 2. Collect raw evidence first
 
@@ -150,7 +150,7 @@ The plan must answer:
 
 ## 9. Append one failure entry to the failure log
 
-Append exactly one new entry to `opencode-prompt-dev/prompt-failure-log.md`.
+Append exactly one new entry to `~/.local/share/chezmoi/opencode-prompt-dev/prompt-failure-log.md`.
 
 Follow the file’s existing template and conventions exactly.
 
