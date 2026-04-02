@@ -29,25 +29,47 @@ If the request is mainly about adding one new capability with minimal scope, rec
 
 Follow this workflow exactly.
 
+## 0. Detect available prompt surfaces
+
+Before reading or editing any files, determine which prompt layers and control documents actually exist in this environment.
+
+Check for:
+
+- global rules files (for example `AGENTS.md` at the repository root or under a config directory)
+- role- or mode-specific prompt files (for example `build.md`, `plan.md`, or other agent prompt files)
+- skill descriptions and corresponding `SKILL.md` files
+- prompt management documents such as principles, refactor checklists, or failure logs
+
+Rules:
+
+- Treat any missing category as "not available" for this run. Do not assume that every environment has all layers or documents.
+- In a single system-prompt environment with no clear separation between global rules, role prompts, and skills, treat that one prompt file as the main prompt surface. Still apply the hierarchy concepts (shared rules vs task-specific behavior vs detailed procedure) within that file.
+- When a repository provides additional control documents, prefer using them, but this command must remain usable even when only a single system prompt is available.
+
 ## 1. Read the control documents first
 
-Read these files before doing anything else:
+When they exist in this environment, read the control documents before doing anything else:
 
-- `AGENTS.md`
-- `opencode-prompt-dev/prompt-principles.md`
-- `opencode-prompt-dev/prompt-refactor-checklist.md`
+- any global rules file you found in step 0 (for example `AGENTS.md`)
+- any prompt-management principles document (for example `prompt-principles.md`)
+- any refactor checklist (for example `prompt-refactor-checklist.md`)
 
-If they exist and are relevant, also read:
+If a dedicated failure log exists (for example `opencode-prompt-dev/prompt-failure-log.md`), read it as well.
 
-- `opencode-prompt-dev/prompt-failure-log.md`
+If no separate principles or checklists exist, still apply at least these minimal principles while using this command:
+
+- prefer rewording, consolidating, or moving existing rules over adding brand-new ones
+- add a new rule only when clarifying, relocating, or merging existing rules is insufficient and the new wording is short and precise
+- keep shared or global rules short and stable, and move detailed, task-specific procedure into the most local appropriate layer
+- avoid leaving the same principle expressed in multiple places in slightly different wording
 
 ## 2. Build a hierarchy inventory
 
-Before editing, identify all relevant prompt surfaces involved in the current scope.
+Before editing, identify all relevant prompt surfaces involved in the current scope that actually exist in this environment.
 
-At minimum, inspect:
+Based on step 0, inspect as many of the following as are available:
 
-- the global rules file
+- the global rules file or files
 - the role-specific prompt files relevant to the request
 - the relevant skill descriptions
 - the corresponding `SKILL.md` files
@@ -59,7 +81,9 @@ Explicitly determine:
 - which behaviors are shared across layers
 - which behaviors are local to one role or one skill
 
-Do not optimize a single file in isolation if the behavior spans multiple prompt surfaces.
+In a single system-prompt environment, perform the same classification within that one file instead of across multiple files.
+
+Do not optimize a single file in isolation if the behavior spans multiple conceptual prompt surfaces, even when those surfaces live in one physical file.
 
 ## 3. Determine the optimization scope
 
@@ -313,7 +337,7 @@ You may edit:
 - the relevant skill descriptions
 - the relevant `SKILL.md` files
 
-You may also update `opencode-prompt-dev/prompt-failure-log.md` only when both conditions are true:
+If a dedicated failure log exists in this environment (for example `opencode-prompt-dev/prompt-failure-log.md`), you may also update it only when both conditions are true:
 
 - the edited hierarchy clearly addresses a logged failure
 - the log update is only a status or short follow-up note

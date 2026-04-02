@@ -178,8 +178,6 @@
         "orch-public-researcher": "allow"
       }
     },
-    "plugin": [
-      "@mohak34/opencode-notifier@latest"
-    ]
+    "plugin": []
   }
 }
