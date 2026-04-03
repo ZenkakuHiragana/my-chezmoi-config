@@ -33,7 +33,7 @@ Read these files before doing anything else:
 
 If relevant, also read:
 
-- `opencode-prompt-dev/prompt-failure-log.md`
+- `~/.local/share/chezmoi/.opencode/local-failure-logs/`
 - `opencode-prompt-dev/prompt-refactor-checklist.md`
 
 ## 2. Read the relevant prompt surfaces
@@ -198,7 +198,7 @@ Do not create new tracking files.
 Do not perform hierarchy-wide cleanup here.
 Do not convert this into a broad refactor.
 
-Do not edit `opencode-prompt-dev/prompt-failure-log.md` unless the user explicitly wants this capability linked to an already logged failure.
+Do not edit incident files under `~/.local/share/chezmoi/.opencode/local-failure-logs/` unless the user explicitly wants this capability linked to an already logged failure.
 
 ## 10. Run the capability-preservation audit
 

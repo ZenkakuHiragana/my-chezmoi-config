@@ -2,7 +2,7 @@
 
 - プロンプト運用の正本と運用テンプレートはリポジトリ内に分離して管理しています。
   - プロンプト運用原則: opencode-prompt-dev/prompt-principles.md
-  - 失敗記録テンプレート: opencode-prompt-dev/prompt-failure-log.md
+  - 失敗記録テンプレート: `dot_config/opencode/commands/report-failure.md` に埋め込まれたテンプレートと `~/.local/share/chezmoi/.opencode/local-failure-logs/` 配下の事例ファイル
   - リファクタチェックリスト等: opencode-prompt-dev/prompt-refactor-checklist.md
 - 失敗や改善案はまず上記の failure-log に記録し、その後リファクタワークフローで差分を適用してください。
 

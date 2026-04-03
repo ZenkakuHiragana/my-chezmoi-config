@@ -54,7 +54,7 @@ When they exist in this environment, read the control documents before doing any
 - any prompt-management principles document (for example `prompt-principles.md`)
 - any refactor checklist (for example `prompt-refactor-checklist.md`)
 
-If a dedicated failure log exists (for example `opencode-prompt-dev/prompt-failure-log.md`), read it as well.
+If dedicated local failure logs exist (for example files under `~/.local/share/chezmoi/.opencode/local-failure-logs/`), read them as well.
 
 If no separate principles or checklists exist, still apply at least these minimal principles while using this command:
 
@@ -338,7 +338,7 @@ You may edit:
 - the relevant skill descriptions
 - the relevant `SKILL.md` files
 
-If a dedicated failure log exists in this environment (for example `opencode-prompt-dev/prompt-failure-log.md`), you may also update it only when both conditions are true:
+If dedicated local failure logs exist in this environment (for example files under `~/.local/share/chezmoi/.opencode/local-failure-logs/`), you may also update the relevant incident file only when both conditions are true:
 
 - the edited hierarchy clearly addresses a logged failure
 - the log update is only a status or short follow-up note

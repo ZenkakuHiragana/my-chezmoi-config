@@ -35,7 +35,7 @@ Read these files before doing anything else:
 - `AGENTS.md`
 - `opencode-prompt-dev/prompt-principles.md`
 - `opencode-prompt-dev/prompt-refactor-checklist.md`
-- `opencode-prompt-dev/prompt-failure-log.md`
+- `~/.local/share/chezmoi/.opencode/local-failure-logs/`
 
 ## 2. Select the relevant incidents
 
@@ -135,7 +135,7 @@ Do not close the loop without an effectiveness check.
 
 ## 8. Update failure-log statuses if justified
 
-You may update `opencode-prompt-dev/prompt-failure-log.md` only in these limited ways:
+You may update incident files under `~/.local/share/chezmoi/.opencode/local-failure-logs/` only in these limited ways:
 
 - move `observed` or `contained` to `under_rca` when triage has actually begun
 - move to `corrective_action_defined` when a permanent corrective action and effectiveness check have been clearly defined

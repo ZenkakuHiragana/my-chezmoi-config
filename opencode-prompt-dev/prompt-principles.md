@@ -6,7 +6,7 @@
 
 ## 新規規則追加ポリシー
 
-- 新しい失敗が見つかったら、まずは prompt-failure-log.md に記録すること。
+- 新しい失敗が見つかったら、まずは `~/.local/share/chezmoi/.opencode/local-failure-logs/` に事例ごとの Markdown ファイルとして記録すること。
 - デフォルトの対応: 既存規則の言い換え・統合、または skill への移設。
 - 新規ルールを追加してよいのは以下をすべて満たす場合だけ：
   1. 既存規則で包含できない
@@ -24,20 +24,20 @@
 ## 運用フロー
 
 - 新しい失敗が起きたとき
-  1. prompt-failure-log.md に記録する（必須）
-  2. 既存規則で説明できるか判定する（担当者）
-  3. できるなら配置や表現を修正する（追加禁止を遵守）
-  4. できないなら新規規則候補を作る（追加条件を満たすか検証）
-- 一定量たまったら（自動 or 定期）
+  1. `~/.local/share/chezmoi/.opencode/local-failure-logs/` に事例ごとのファイルとして記録する
+  2. 既存規則で説明できるか判定する
+  3. できるなら配置や表現を修正する
+  4. できないなら新規規則候補を作る
+- 一定量たまったら
   1. 重複候補を抽出し、上位原則へ統合する
   2. 常設 / skill / agent prompt を再配置する
-  3. 差分レビューを行い、必要な補足は prompt-failure-log.md に残す
+  3. 差分レビューを行い、必要な補足は local failure log directory の該当ファイルに残す
 
 ## 関連ファイル
 
 - opencode-prompt-dev/prompt-principles.md
   - このファイル。プロンプト改善のための管理方法を示す。
-- opencode-prompt-dev/prompt-failure-log.md
-  - 失敗の記録。改善されて欲しい内容を見つけたらまずはここに記載する。
+- `~/.local/share/chezmoi/.opencode/local-failure-logs/`
+  - 失敗の記録。改善されて欲しい内容を見つけたらまずはここに事例ごとに記載する。
 - opencode-prompt-dev/prompt-refactor-checklist.md
   - 冗長な記載、曖昧なルールを避けるためのプロンプト再編・リファクタリングチェックリスト。
