@@ -204,7 +204,7 @@ notes:
 ---
 
 id: F-20260402-001
-status: observed
+status: corrective_action_defined
 date: 2026-04-02
 
 title: ローカルのスライド変換ツール改善相談に対して実装を読まずに一般論だけで回答した
@@ -257,16 +257,15 @@ suspected_cause_category:
 
 root_cause_notes:
 
-- pending
+- Repository-local requests could be answered from general design intuition without first reading the local implementation.
 
 corrective_action:
 
-- pending
+- Add a short local-evidence rule to `AGENTS.md` and the implementation/debugging skills.
 
 verification_plan:
 
-- 将来、ユーザーが「現在のツール」「このリポジトリの実装」などローカル実装に紐づく相談を行った際に、アシスタントが必ずローカルコード／スクリプトを参照する（read / glob / grep など）か、「実装を読まずに一般論で回答する」ことを明示し、ユーザーに選択肢を提示していることが会話ログ 10 件中 9 件以上で確認できること。
-- 次に確認すべき対象: 類似の相談ケースにおけるツール利用履歴（read / glob / grep などのローカル調査ツール呼び出し）および、今後の prompt triage の中でこの failure entry が参照されていること。
+- Future repository-local requests should read the relevant files first and avoid generalizing from external patterns alone.
 
 verification_result: pending
 
@@ -277,7 +276,7 @@ notes:
 ---
 
 id: F-20260402-002
-status: observed
+status: corrective_action_defined
 date: 2026-04-02
 
 title: ローカル実装に関する相談中に関係ないパスへ Glob を仕掛けた
@@ -330,16 +329,16 @@ suspected_cause_category:
 
 root_cause_notes:
 
-- pending
+- Search scope for local investigation was not constrained tightly enough, so globbing expanded beyond the active repository.
 
 corrective_action:
 
-- pending
+- Add scoped-search guidance to the implementation/debugging skills and keep local searches inside the current repository or explicit paths.
 
 verification_plan:
 
-- 将来、ローカル実装に関する相談（特に特定リポジトリ配下のコード変更）に対して、アシスタントが `glob` / `read` / `grep` などを使う場合、原則として対象リポジトリ配下にスコープされたパスに対してのみ実行していること、およびユーザーが明示的に指定した別パスがある場合も、その範囲に限定していることが会話ログとツール履歴から 10 件中 9 件以上で確認できること。
-- 次に確認すべき対象: 類似の相談ケースにおける `glob` ツール呼び出しの対象パス（特に `/home/$USER` 直下や関係ないリポジトリに対して無差別に検索していないか）と、今後の prompt triage の中で本エントリが参照されていること。
+- Future local-investigation tasks should keep `glob` / `read` / `grep` inside the current repository or explicit paths, with no broad parent-directory or unrelated-repo searches.
+- Evidence of success is the absence of broad-scoped search calls in similar tasks.
 
 verification_result: pending
 
@@ -418,7 +417,7 @@ notes:
 ---
 
 id: F-20260402-004
-status: observed
+status: corrective_action_defined
 date: 2026-04-02
 
 title: Prompt 階層の論理チェック依頼に対し、Planner/Spec-Checker/Preflight の矛盾を見落とし「破綻はない」と誤って判断した
@@ -469,16 +468,16 @@ suspected_cause_category:
 
 root_cause_notes:
 
-- pending
+- The hierarchy review workflow checked files in isolation and did not force an explicit cross-layer contradiction check.
 
 corrective_action:
 
-- pending
+- Add explicit cross-layer consistency checks to the build/plan role prompts and the refine-prompt command.
 
 verification_plan:
 
-- 今後、類似の「プロンプト階層全体の矛盾がないか」を確認する依頼に対して、階層リファクタ担当エージェントが Planner / Spec-Checker / Preflight 等の multi-agent ゲート構造を明示的にチェックし、少なくとも 10 件中 9 件以上のケースで「gate の順序と各 agent の前提が整合しているか」「構造的に必ず失敗するフローがないか」を検査した形跡（回答中の記述）が残っていることを確認する。
-- 代表的な orchestrator タスクについて、preflight 実行後の command-policy.json と acceptance-index/spec を用いて Spec-Checker を走らせた結果、must_exec コマンドが available な場合には `status: ok` / `feasible_for_loop: true` となる一方で、preflight 未実行状態では「availability 未確定」として扱われ、単純な「不合格」ではなく「Preflight 実行が必要」というシグナルになっていることを仕様および挙動の両方から確認する。
+- Future prompt-hierarchy reviews should explicitly compare connected layers, call out gate-order contradictions, and avoid concluding "no major breakage" when a cross-layer dependency is unverified.
+- Success is visible when those reviews mention cross-layer checks in the result and flag contradictions before editing.
 
 verification_result: pending
 

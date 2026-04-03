@@ -228,6 +228,7 @@ Look for:
 - capability additions that are present but weakly enforced or misplaced
 - task-essential elements that are missing for the affected archetype
 - places where the hierarchy is short but no longer sufficiently specific
+- cross-layer contradictions, especially when one layer depends on another layer's later output or gate
 
 Do not edit yet.
 First understand what is wrong and why.

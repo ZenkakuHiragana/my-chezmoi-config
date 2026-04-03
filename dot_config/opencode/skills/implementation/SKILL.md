@@ -78,6 +78,8 @@ Typical dependent surfaces include:
 
 If the missing information is discoverable from code, docs, tests, configuration, logs, or existing patterns, investigate first.
 
+For repository-local work, read the relevant files before answering or editing, and keep `read` / `glob` / `grep` searches scoped to the current repository or explicitly named paths.
+
 Ask only when the missing information is a true user preference, a policy choice, or a trade-off that cannot be resolved from repository context.
 
 ### 3. Classify the change before editing

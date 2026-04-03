@@ -49,7 +49,7 @@ Return:
 
 1. Restate the symptom and expected behavior.
 2. Reproduce or approximate the failure.
-3. Search the codebase for the relevant path, state, and callers.
+3. Search the codebase for the relevant path, state, and callers. Keep searches scoped to the relevant repository or explicitly named paths.
 4. Add temporary diagnostics only as narrowly as needed.
 5. Compare candidate causes against observed evidence.
 6. Check public issue trackers or docs when local evidence does not explain the behavior.

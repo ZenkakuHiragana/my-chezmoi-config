@@ -24,6 +24,7 @@
 - Ask only for true user preferences, policy choices, or missing constraints.
 - Check that the change or answer actually satisfies the request.
 - Replace outdated normative text directly.
+- For repository-local requests, inspect the relevant local files before answering; do not rely on intuition when the repository can be read.
 
 ## Public-source verification
 
