@@ -15,8 +15,10 @@
 
 - Route the task to the minimum set of skills needed, in the order the task actually requires.
 - Use `requirements-clarification` first when the request is ambiguous, under-specified, or lacks clear scope or acceptance criteria.
-- Use `task-planning` before `implementation` when requirements are clear but the task is large enough to benefit from decomposition into ordered work items with dependencies and verification checkpoints.
-- Prefer `implementation` for repository changes, `debugging` for unclear defects, `refactoring` for behavior-preserving structural cleanup, `public-research` for current public facts, primary sources, or citations, and `code-review` for reviewing changes or code quality without making implementation the primary task.
+- Use `task-planning` when requirements are clear but the work still needs ordered decomposition, dependency handling, or verification checkpoints before execution.
+- Prefer `investigation` first for repository-local behavior, state, or fact-finding when the next action is not yet clear.
+- Use `implementation` once the intended repository change is clear.
+- Prefer `refactoring` for behavior-preserving structural cleanup, `public-research` for current public facts, primary sources, or citations, and `code-review` for reviewing code quality without making implementation the primary task.
 
 ## General working rules
 

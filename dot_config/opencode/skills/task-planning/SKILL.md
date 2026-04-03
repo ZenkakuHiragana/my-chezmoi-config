@@ -1,15 +1,15 @@
 ---
 name: task-planning
-description: Use this skill when requirements are clear but the task is large enough to benefit from structured decomposition into an executable work plan. Produces an ordered breakdown of work items with dependencies, required research, deliverables, and verification checkpoints. Use before `implementation` for multi-step, multi-file, or multi-phase tasks. Do not use for trivial tasks, for tasks where requirements are still ambiguous, or when a single implementation step is sufficient. Expected result: a written execution plan with ordered work items and a handoff-ready state for downstream skills.
+description: Use this skill when requirements are clear but the work still needs structured decomposition into ordered investigation, implementation, research, or verification steps. Use it before downstream execution when dependencies, sequencing, or checkpoints matter. Do not use for trivial tasks, unresolved requirements, or tasks already fully structured by a command workflow. Expected result: a written execution plan with ordered work items, dependencies, deliverables, and verification checkpoints.
 ---
 
 # Task Planning
 
 ## Purpose
 
-This skill decomposes a well-defined task or requirement into an ordered, dependency-aware execution plan. Use it for larger tasks where jumping directly into `implementation` risks missing dependencies, ordering mistakes, or verification gaps.
+This skill decomposes a well-defined task or requirement into an ordered, dependency-aware execution plan. Use it for larger tasks where jumping directly into downstream execution risks missing dependencies, ordering mistakes, or verification gaps.
 
-The goal is to produce a written, reviewable plan that makes the investigation-implementation-verification flow explicit before any code changes begin.
+The goal is to produce a written, reviewable plan that makes the work sequence explicit before execution begins.
 
 ## When to use
 
@@ -27,7 +27,7 @@ Do not use this skill when:
 
 - the task is trivial or can be completed in a single focused edit
 - the requirements are still ambiguous or under-specified; use `requirements-clarification` first
-- the task is purely investigative with no implementation intent; use `debugging` or `public-research`
+- the task is purely investigative with no implementation intent; use `investigation` or `public-research`
 - the task is already structured by a command workflow (e.g. `/add-prompt-capability`)
 
 ## Expected inputs
@@ -198,7 +198,7 @@ Recommend the appropriate downstream skill:
 - If the plan's first items are implementation, recommend `implementation` with the plan file path.
 - If the plan's first items require external research, recommend `public-research` for those items first.
 - If the plan reveals a structural problem that should be resolved first, recommend `refactoring`.
-- If the plan reveals a defect to investigate first, recommend `debugging`.
+- If the plan reveals behavior, state, or facts that must be investigated first, recommend `investigation`.
 
 ## Quick checklist
 

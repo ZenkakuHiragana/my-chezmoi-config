@@ -1,6 +1,6 @@
 ---
 name: requirements-clarification
-description: Use this skill when the user request is ambiguous, under-specified, or lacks clear scope or completion criteria. Structures the request into objective, scope, constraints, assumptions, open questions, and acceptance-criteria draft. Generates targeted follow-up questions when genuine gaps remain after repository discovery. Writes the structured requirements to an external file for downstream use. Do not use when the request is already concrete enough to proceed directly to implementation or another skill. Expected result: a clear, written requirements document and a handoff-ready state for planning or implementation.
+description: Use this skill when the user request is ambiguous, under-specified, or lacks clear scope or completion criteria. It structures the request into objective, scope, constraints, assumptions, open questions, and acceptance criteria, then hands off to planning or an execution skill. Do not use when the request is already concrete enough for `investigation`, `implementation`, `refactoring`, or `public-research`. Expected result: a written requirements document and a clear next-skill recommendation.
 ---
 
 # Requirements Clarification
@@ -25,7 +25,7 @@ Use this skill when the user request meets any of these conditions:
 
 Do not use this skill when:
 
-- the request is concrete enough to proceed directly to `implementation`, `debugging`, `refactoring`, or `public-research`
+- the request is concrete enough to proceed directly to `implementation`, `investigation`, `refactoring`, or `public-research`
 - the user is asking a factual question that does not require structural clarification
 - the task is already structured by a command workflow (e.g. `/add-prompt-capability`)
 
@@ -165,7 +165,7 @@ State which downstream skill should handle the request next and why. Include the
 - If the requirements are now concrete enough for implementation, recommend `implementation` with the requirements file path.
 - If the requirements reveal a need for external research before proceeding, recommend `public-research` for the research portion first.
 - If the requirements reveal a structural problem in existing code, recommend `refactoring` as a prerequisite.
-- If the requirements reveal a defect to investigate, recommend `debugging` first.
+- If the requirements reveal behavior, state, or facts to investigate, recommend `investigation` first.
 
 ## Quick checklist
 

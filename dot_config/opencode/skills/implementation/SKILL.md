@@ -1,6 +1,6 @@
 ---
 name: implementation
-description: Use this skill when the task requires making or updating files to satisfy a concrete request, including feature implementation, bug fixing, and code/document changes tied to repository contents. Do not use for refactoring, pure fact lookup, broad ideation, or open-ended external research unless implementation is blocked by missing external facts.
+description: Use this skill when the requested repository change is already clear and the task is to make or update files to satisfy it, including feature work, known bug fixes, and coherent code, documentation, configuration, prompt, or script changes. Do not use when the main task is to investigate observed behavior, gather diagnostic evidence, or decide whether any real change is needed.
 ---
 
 # Implementation
@@ -16,7 +16,7 @@ Use this skill to improve self-propelled execution quality for implementation wo
 Use this skill when the user asks for any of the following:
 
 - implement a feature
-- fix a bug
+- apply a known bug fix or behavior change whose intended edit is already clear
 - modify existing behavior
 - update documentation, configuration, prompts, or scripts as part of a concrete repository change
 - make repository changes and verify that they are coherent
@@ -29,7 +29,7 @@ Do not use this skill when the task is primarily:
 - open-ended external research
 - broad requirements exploration with no concrete change target
 - local investigation only, where the deliverable is analysis rather than edits
-- investigating an unclear bug, reproducing unexpected behavior, or gathering diagnostic evidence; use `debugging` instead
+- investigating unclear behavior, confirming observed facts, or gathering diagnostic evidence before deciding on a real change; use `investigation` instead
 
 If the task is mainly external fact-finding, use `public-research` instead.
 
@@ -116,8 +116,8 @@ Give extra attention to:
 
 Give extra attention to:
 
-- reproducing or locating the faulty path
-- confirming the real cause
+- confirming the affected path, inputs, or configuration that the known fix must address
+- verifying that the intended change actually addresses the observed failure
 - preventing nearby regressions
 - preserving intended behavior outside the fix
 

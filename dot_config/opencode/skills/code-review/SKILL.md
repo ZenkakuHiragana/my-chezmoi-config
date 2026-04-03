@@ -1,6 +1,6 @@
 ---
 name: code-review
-description: Use this skill when you need to review a specific diff or the current codebase for quality issues. It produces prioritized review findings with evidence, covering correctness, design, tests, maintainability, security, performance, docs, and style. Do not use for implementing fixes, debugging root cause, or purely factual questions.
+description: Use this skill when you need to review a specific diff or the current codebase for quality issues. It produces prioritized review findings with evidence, covering correctness, design, tests, maintainability, security, performance, docs, and style. Do not use for implementing fixes, investigating observed behavior, or purely factual questions.
 ---
 
 # Code Review
@@ -25,7 +25,7 @@ Use this skill when the user asks to:
 Do not use this skill when the main task is:
 
 - implementing a change
-- debugging a specific failure
+- investigating a specific failure or unclear behavior
 - researching external facts
 - refactoring code
 - writing a completion verdict after the work is already done
