@@ -94,9 +94,9 @@ If you infer a conclusion from the sources, label it as an inference.
 
 ## Tool use
 
-- Use `websearch` to discover candidate public sources.
-- Use `webfetch` to read the most relevant URLs.
-- Use `codesearch` when upstream implementation or repository evidence is the best source.
+- Use `websearch` for public-web discovery when it is working and the query can be expressed safely.
+- Use `codesearch` when upstream implementation or repository evidence is the best source and the tool is working.
+- Use `webfetch` to read source pages, and to perform fallback discovery when `websearch` or `codesearch` is unavailable, errors, is rate-limited, hits an authentication wall, or returns results too weak to support the claim.
 
 ## Source handling rules
 
@@ -146,19 +146,20 @@ Include citations for important claims, especially when:
 - the user asked for verification
 - the answer depends on a specific document
 
-## Mandatory fallback when `websearch` or `codesearch` is unavailable
+## Mandatory fallback when discovery tools cannot complete the job
 
-If external research is required and `websearch` or `codesearch` is unavailable, do not skip research by default.
+If external research is required and `websearch` or `codesearch` is unavailable, failing, rate-limited, blocked by unavailable authentication, or returning results too weak to support the answer, do not skip research by default.
+Treat those cases as discovery-tool unavailability for this workflow and switch to `webfetch` fallback.
 Follow this procedure in order.
 
 1. If an obvious authoritative URL is already known, fetch it directly with `webfetch`.
-2. If discovery is still needed, switch to fallback discovery with `webfetch`.
-3. Use DuckDuckGo fallback for general public-web discovery.
-4. Use GitHub fallback for repository, code, issue, pull request, discussion, or release discovery.
-5. From fetched results pages, identify candidate URLs.
-6. Fetch the candidate source pages themselves with `webfetch`.
+2. If discovery is still needed, choose DuckDuckGo or GitHub fallback based on the likely source.
+3. Fetch the relevant results or repository page with `webfetch`.
+4. Identify candidate source URLs from that page.
+5. Fetch the candidate source pages themselves with `webfetch`.
+6. Use the source pages, not results snippets, as evidence.
 7. Prefer primary sources once discovered.
-8. If fallback discovery remains weak or inconclusive, state that explicitly and separate verified facts from inference.
+8. If fallback discovery remains weak, blocked, or inconclusive, state that explicitly and separate verified facts from inference.
 
 Use the existing search-safety and public-query rules already defined in this skill.
 Do not duplicate or weaken them here.
@@ -197,7 +198,7 @@ When only `webfetch` is available for discovery, treat query design as an iterat
 Use this when:
 
 - the likely source is on the public web but not yet known
-- `websearch` is unavailable
+- `websearch` is unavailable or unusable
 - the query can be expressed safely without non-public information
 
 Procedure:
@@ -209,7 +210,7 @@ Procedure:
    - `filetype:` for likely document formats
    - `intitle:` or `inurl:` when titles or URL paths are likely signals
 3. Fetch a DuckDuckGo HTML search-results page with `webfetch`.
-4. Read the results page and extract the most relevant candidate URLs.
+4. Read the results page and extract the most relevant candidate URLs. Use the results page only for discovery, not as evidence.
 5. If results are weak, refine the query with one stronger constraint rather than adding many loose keywords.
 6. Fetch the candidate URLs themselves with `webfetch`.
 7. Prefer official documentation, standards, upstream repositories, release notes, official issue trackers, and vendor documentation when they appear in results.
@@ -218,28 +219,30 @@ Procedure:
 
 Use this when:
 
-- the likely source is GitHub
-- `codesearch` is unavailable
+- the likely source is GitHub, or DuckDuckGo results consistently point to GitHub
+- `codesearch` is unavailable or unusable
 - you need to find upstream implementation, issues, pull requests, discussions, or release evidence
 
 Procedure:
 
-1. Decide which GitHub search type is needed:
-   - code search
-   - issues search
-   - pull requests search
-   - repository-wide issue or pull request search
-2. Start with the fallback query-design method above, then construct a public-safe GitHub query that matches the chosen search type.
-3. Prefer exact quotes for multi-word strings and add GitHub qualifiers that narrow to the expected evidence instead of stacking more bare keywords.
-4. Fetch the appropriate GitHub search-results page with `webfetch`.
-5. Read the results page and identify the most relevant candidate URLs.
-6. If results are weak, change search type or qualifier strategy before repeating the same query pattern.
-7. Fetch the candidate pages themselves with `webfetch`.
-8. Use the fetched source pages, not the search-results snippets, as evidence.
+1. Decide which GitHub evidence type is needed:
+   - repository-scoped issues, pull requests, discussions, or releases
+   - direct docs, file, or raw-file pages in a known repository
+   - broader GitHub search when the repository is not yet known
+2. If the repository is already known, prefer repository-scoped pages or direct docs, file, and raw-file URLs before global GitHub search.
+3. Start with the fallback query-design method above, then construct a public-safe GitHub query or direct URL that matches the chosen evidence type.
+4. Prefer exact quotes for multi-word strings and add GitHub qualifiers that narrow to the expected evidence instead of stacking more bare keywords.
+5. Fetch the appropriate GitHub page with `webfetch`.
+6. Read the page and identify the most relevant candidate URLs.
+7. If the page is blocked by sign-in, missing usable results, or otherwise weak, do not repeat the same query pattern. Pivot to repository-scoped pages, direct docs or raw-file URLs, or DuckDuckGo discovery constrained to GitHub.
+8. Fetch the candidate pages themselves with `webfetch`.
+9. Use the fetched source pages, not the search-results snippets, as evidence.
 
 #### GitHub code search fallback
 
 Use a GitHub code-search query when you need repository or upstream implementation evidence.
+Use it only when the results page is publicly readable enough to yield candidate URLs.
+If code-search pages show a sign-in wall or no usable results, pivot to repository-scoped pages, direct file or raw-file URLs, or DuckDuckGo discovery constrained to GitHub.
 
 Typical query structure:
 
@@ -289,7 +292,7 @@ Prefer this for:
 
 When using fallback discovery:
 
-- say that discovery tooling was unavailable if that materially limited confidence
+- say whether confidence was limited by tool failure, rate limit, auth wall, or weak public discovery
 - state which results pages were fetched
 - state which source pages were fetched
 - distinguish verified facts from inference
@@ -304,7 +307,7 @@ Before stopping fallback discovery, either:
 - attempt this fallback procedure, or
 - state an explicit discovery limitation.
 
-Do not stop after a single vague discovery query if the information need is still unresolved.
+Do not stop after a single vague discovery query or a single failing tool call if the information need is still unresolved.
 
 ## Output style
 
