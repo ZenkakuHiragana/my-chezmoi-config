@@ -163,6 +163,35 @@ Follow this procedure in order.
 Use the existing search-safety and public-query rules already defined in this skill.
 Do not duplicate or weaken them here.
 
+### Fallback query-design method
+
+When only `webfetch` is available for discovery, treat query design as an iterative search task rather than a one-shot lookup.
+
+1. Classify the missing evidence first:
+   - official docs or specification
+   - release notes or changelog
+   - issue, discussion, or pull request
+   - upstream code or configuration example
+   - background only needed to locate a primary source
+2. Build the query from public-safe components:
+   - the public product, project, standard, vendor, or repository name
+   - the exact phrase, identifier, error text, config key, or feature name when known
+   - the expected evidence type such as `docs`, `spec`, `release notes`, `issue`, `migration`, or `API`
+   - a version, release name, or date window when recency matters
+   - one or two exclusions for common noise when needed
+3. Use a two-pass ladder:
+   - reconnaissance pass: broad query to discover canonical terminology, official domains, or repository owners
+   - targeting pass: narrow to the best source with exact quotes, `site:`, or source-specific qualifiers
+4. Refine based on result quality:
+   - if results are too broad, add an exact quote or a stronger scope qualifier such as `site:`, `intitle:`, `inurl:`, `filetype:`, `repo:`, `org:`, `path:`, `language:`, `is:`, `label:`, or `state:`
+   - if results are too narrow, remove one constraint at a time, replace an exact quote with looser terms, or search for the surrounding concept instead of the exact identifier
+   - if terminology is ambiguous, add the vendor, standard, repository, version, or an adjacent term that disambiguates the topic
+   - if results mix versions, add a version number, release name, or date filter and prefer versioned docs or release notes
+5. Change lanes when the evidence points elsewhere:
+   - if general-web results consistently identify one repository, switch to GitHub fallback
+   - if GitHub results consistently point to docs, releases, or standards, fetch those primary pages
+   - do not repeat near-identical low-yield queries; change the query shape
+
 ### DuckDuckGo fallback
 
 Use this when:
@@ -173,11 +202,17 @@ Use this when:
 
 Procedure:
 
-1. Construct a public-safe DuckDuckGo search query.
-2. Fetch a DuckDuckGo HTML search-results page with `webfetch`.
-3. Read the results page and extract the most relevant candidate URLs.
-4. Fetch the candidate URLs themselves with `webfetch`.
-5. Prefer official documentation, standards, upstream repositories, release notes, official issue trackers, and vendor documentation when they appear in results.
+1. Start with the fallback query-design method above.
+2. Construct a public-safe DuckDuckGo query using supported operators when useful:
+   - quotes for exact strings
+   - `site:` or `-site:` for domain control
+   - `filetype:` for likely document formats
+   - `intitle:` or `inurl:` when titles or URL paths are likely signals
+3. Fetch a DuckDuckGo HTML search-results page with `webfetch`.
+4. Read the results page and extract the most relevant candidate URLs.
+5. If results are weak, refine the query with one stronger constraint rather than adding many loose keywords.
+6. Fetch the candidate URLs themselves with `webfetch`.
+7. Prefer official documentation, standards, upstream repositories, release notes, official issue trackers, and vendor documentation when they appear in results.
 
 ### GitHub fallback
 
@@ -194,11 +229,13 @@ Procedure:
    - issues search
    - pull requests search
    - repository-wide issue or pull request search
-2. Construct a public-safe GitHub search query.
-3. Fetch the appropriate GitHub search-results page with `webfetch`.
-4. Read the results page and identify the most relevant candidate URLs.
-5. Fetch the candidate pages themselves with `webfetch`.
-6. Use the fetched source pages, not the search-results snippets, as evidence.
+2. Start with the fallback query-design method above, then construct a public-safe GitHub query that matches the chosen search type.
+3. Prefer exact quotes for multi-word strings and add GitHub qualifiers that narrow to the expected evidence instead of stacking more bare keywords.
+4. Fetch the appropriate GitHub search-results page with `webfetch`.
+5. Read the results page and identify the most relevant candidate URLs.
+6. If results are weak, change search type or qualifier strategy before repeating the same query pattern.
+7. Fetch the candidate pages themselves with `webfetch`.
+8. Use the fetched source pages, not the search-results snippets, as evidence.
 
 #### GitHub code search fallback
 
@@ -260,10 +297,14 @@ When using fallback discovery:
 
 ### Prohibition
 
-Do not answer from general intuition alone when the task depends on publicly verifiable facts, unless:
+Do not answer from general intuition alone when the task depends on publicly verifiable facts.
 
-- this fallback procedure has been attempted, or
-- an explicit discovery limitation has been stated.
+Before stopping fallback discovery, either:
+
+- attempt this fallback procedure, or
+- state an explicit discovery limitation.
+
+Do not stop after a single vague discovery query if the information need is still unresolved.
 
 ## Output style
 
