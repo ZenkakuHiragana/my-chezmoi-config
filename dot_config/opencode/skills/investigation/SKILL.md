@@ -35,6 +35,7 @@ Assess the work against:
 - which code paths, inputs, state, configuration, data, or environment factors are confirmed in play
 - what has been ruled out by evidence
 - strongest remaining explanations ranked by evidence
+- whether explicit user constraints remained intact while evidence was gathered
 - whether added diagnostics are temporary and narrowly targeted
 
 ## Output expectations
@@ -55,11 +56,11 @@ Return:
 1. Restate the observed behavior, factual question, and expected behavior if it is known.
 2. Reproduce or approximate the behavior when possible.
 3. Gather direct evidence from the relevant repository paths, logs, state, callers, configuration, environment, inputs, or outputs. Keep searches scoped to the relevant repository or explicitly named paths.
-4. Add temporary diagnostics only as narrowly as needed.
+4. Keep explicit user constraints active while gathering evidence. Add temporary diagnostics only as narrowly as needed, and do not turn them into new supported control surfaces, runtime branches, or compatibility paths unless the request or an existing contract requires that.
 5. Compare plausible explanations against the observed evidence and rule out what you can.
 6. Check public issue trackers or docs when local evidence does not sufficiently explain the behavior.
 7. Stop once the next action is clear enough to recommend, whether that is implementation, more targeted investigation, a user question, or no repository change.
-8. Remove or clearly isolate temporary diagnostics before finishing if they are no longer needed.
+8. Remove, disable, or clearly isolate temporary diagnostics before finishing if they are no longer needed.
 
 ## Before finishing
 

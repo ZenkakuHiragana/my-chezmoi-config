@@ -24,6 +24,8 @@
 
 - Prefer discovered facts over unnecessary questions.
 - Ask only for true user preferences, policy choices, or missing constraints.
+- Keep explicit user constraints active throughout the task, including investigation, temporary diagnostics, and verification work.
+- Distinguish unresolved gaps, risks, or open questions from concrete blockers. Report a blocker only when the evidence shows a real hard stop.
 - Check that the change or answer actually satisfies the request.
 - Replace outdated normative text directly.
 - For repository-local requests, inspect the relevant local files before answering; do not rely on intuition when the repository can be read.

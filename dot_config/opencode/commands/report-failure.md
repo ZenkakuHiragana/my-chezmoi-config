@@ -3,7 +3,7 @@ description: Record one prompt failure using evidence, define current vs target 
 agent: build
 ---
 
-Your task is to record one prompt failure as a quality incident.
+Your task is to record one real prompt failure as a quality incident.
 
 User request:
 $ARGUMENTS
@@ -21,6 +21,7 @@ This command is not for:
 - full root-cause analysis
 - hierarchy-wide refactoring
 - broad consolidation across multiple failures
+- logging an exercise, drill, or verification-only artifact as if it were a real failure
 
 If the request is mainly about broad cleanup or consolidation, recommend `/triage-failure` or `/refine-prompt` instead.
 
@@ -29,6 +30,8 @@ Follow this workflow exactly.
 The canonical failure-log is local only. Store each incident as its own Markdown file under `~/.local/share/chezmoi/.opencode/local-failure-logs/`. If the directory does not exist, create it. Use the embedded template below to create a new file for each incident. Do not write raw evidence or unredacted entries into any repository-tracked file.
 
 For local-only operation, confirm that `~/.local/share/chezmoi/.opencode/local-failure-logs/` is listed in `.gitignore` and that no files created there will be committed. Always require the user to confirm that raw evidence has been saved locally and will not be pushed.
+
+If the input is primarily an exercise, drill, or verification artifact and it did not expose an actual failure, stop and say that it should not be recorded as a failure incident.
 
 ## Embedded failure-log template
 

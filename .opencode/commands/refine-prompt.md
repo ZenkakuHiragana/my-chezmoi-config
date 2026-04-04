@@ -133,6 +133,7 @@ Include items such as:
 - privacy restrictions on search queries
 - validation obligations
 - role boundaries
+- shared states, status vocabularies, storage models, or workflow contracts used across multiple prompt surfaces
 - hierarchy responsibilities
 - writing or editing constraints
 - conditions for when a skill should or should not be used
@@ -190,12 +191,12 @@ Additional research is needed when any of the following are true:
 
 - current public facts matter
 - external best practices are central to the refactor
-- the affected skill, prompt, or capability defines a reusable process, workflow, review framework, quality checklist, validation standard, or writing/research/debugging methodology
+- the affected skill, prompt, or capability defines a reusable process, workflow, review framework, quality checklist, validation standard, or writing/research/investigation methodology
 - the affected capability changes search policy, source policy, evidence standards, or citation expectations
 - the affected capability touches privacy, disclosure, or security-sensitive behavior
 - the affected capability changes validation strategy, completion criteria, or tool choice
 - an important term, practice, or policy is ambiguous, unfamiliar, or likely to have multiple interpretations
-- the affected task archetype depends on established external practice, such as public research norms, refactoring standards, technical writing norms, code review norms, debugging procedure, or verification procedure
+- the affected task archetype depends on established external practice, such as public research norms, refactoring standards, technical writing norms, code review norms, investigation procedure, or verification procedure
 - relying only on local prompt wording would likely produce incomplete review dimensions, weak decision criteria, or missing constraints
 
 Do not treat “no current facts are required” as sufficient reason to skip research when the skill or prompt being edited depends on external best practices or established quality criteria.
@@ -228,7 +229,7 @@ Look for:
 - capability additions that are present but weakly enforced or misplaced
 - task-essential elements that are missing for the affected archetype
 - places where the hierarchy is short but no longer sufficiently specific
-- cross-layer contradictions, especially when one layer depends on another layer's later output or gate
+- cross-layer contradictions, especially when one layer depends on another layer's later output or gate, or when a shared status, storage model, or workflow contract changed in one surface but not the others
 
 Do not edit yet.
 First understand what is wrong and why.
@@ -240,6 +241,7 @@ For each meaningful change you plan to make, decide all of the following:
 - what behavior is being preserved
 - what missing or weak element is being repaired, if any
 - what problem in the current hierarchy is being fixed
+- which other surfaces depend on any shared status vocabulary, storage model, or workflow contract you are changing
 - which layer should own the rule after refactoring
 - why that layer is better than nearby alternatives
 - whether the change is:

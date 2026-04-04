@@ -45,6 +45,8 @@ Focus primarily on failure entries whose status is one of:
 - `contained`
 - `under_rca`
 
+Exclude entries that are primarily exercises, drills, or verification-only artifacts unless they document an actual failure pattern.
+
 If the user specified particular ids, prioritize them.
 
 ## 3. Build failure clusters

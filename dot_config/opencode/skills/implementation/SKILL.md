@@ -40,9 +40,10 @@ You should already have, or first derive, the following:
 - the concrete user request
 - the relevant files or directories
 - the expected outcome
-- any explicit constraints given by the user
+- any explicit constraints given by the user and any supported contract that limits how you may implement or inspect the change
 
 If these are not fully explicit but can be discovered from the repository, prefer reading the repository over asking unnecessary questions.
+Keep these constraints active throughout implementation, temporary diagnostics, and validation.
 
 ## Expected outputs
 
@@ -145,7 +146,9 @@ Do not create documents that read as half-old and half-new.
 
 ### 6. Do not add unnecessary compatibility work
 
-Do not invent migration layers, fallback behavior, compatibility shims, comments about former behavior, or extra abstractions unless they are required by the request or by an existing supported contract.
+Do not invent migration layers, runtime switches, fallback behavior, compatibility shims, comments about former behavior, or extra abstractions unless they are required by the request or by an existing supported contract.
+
+If temporary diagnostics are needed, keep them narrow and remove or isolate them before finishing instead of turning them into new supported behavior.
 
 ### 7. Avoid fake completion
 
