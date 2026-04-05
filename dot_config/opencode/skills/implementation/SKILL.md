@@ -35,15 +35,15 @@ If the task is mainly external fact-finding, use `public-research` instead.
 
 ## Expected inputs
 
-You should already have, or first derive, the following:
+You should already have, or first establish, a task contract that identifies:
 
-- the concrete user request
+- the requested outcome
 - the relevant files or directories
 - the expected outcome
-- any explicit constraints given by the user and any supported contract that limits how you may implement or inspect the change
-
-If these are not fully explicit but can be discovered from the repository, prefer reading the repository over asking unnecessary questions.
-Keep these constraints active throughout implementation, temporary diagnostics, and validation.
+- explicit user constraints
+- required facts
+- candidate dependent surfaces
+- required checks before completion
 
 ## Expected outputs
 
@@ -239,6 +239,9 @@ Ask:
 - are there stale comments, examples, or prompts that still describe the old state?
 - for modify_existing or bugfix, was regression risk checked at least locally?
 
+Also compare the final result against the task contract.
+Do not finish if any required fact, dependent surface, or required check remains unaddressed.
+
 ## Output style
 
 Be concise and concrete.
@@ -263,4 +266,3 @@ Before finishing, verify all of the following:
 - no stale normative text remains in touched areas
 - no unnecessary compatibility layer was introduced
 - success is not being claimed on the basis of a partial edit
-- for non-trivial tasks, produce a `completion-review` statement before finishing

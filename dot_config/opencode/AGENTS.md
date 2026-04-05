@@ -36,3 +36,37 @@
 - Do not include non-public information in public search queries. If a useful query would expose secrets, credentials, private data, unpublished details, or customer information, rewrite it to a public-safe form or stop and ask for a safe version.
 - Use local repository code as supporting evidence, not as the primary source of truth, unless the task is purely repository-local.
 - If primary sources are missing or incomplete, state that explicitly and separate verified facts from inference.
+
+## Optional recovery hint
+
+When resuming after interruption or compaction, if `.opencode/work/current-task.md` exists,
+you may read it and then read the referenced task file under `.opencode/work/<slug>.md` before continuing.
+
+Treat it as a recovery hint, not as a mandatory workflow.
+If it does not exist, rely on the current conversation context.
+
+## Task contract and completion discipline
+
+For any non-trivial task, establish a task contract before substantial editing, answering, or claiming completion.
+
+The task contract must record:
+
+- the requested outcome
+- the constraints that must stay true
+- the facts that must be gathered before acting
+- the surfaces that may need to change or be checked
+- the checks required before the task can be treated as done
+
+Keep this contract active throughout investigation, research, implementation, and verification.
+
+Do not treat a task as done merely because one plausible local change was made.
+
+Before finishing, compare:
+
+- the original request
+- the facts actually gathered
+- the artifacts actually changed or produced
+- the checks actually performed and their concrete results
+
+If any required fact, required surface, or required check is missing, do not present the task as complete.
+State what remains missing.

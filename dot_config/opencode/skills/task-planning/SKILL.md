@@ -1,94 +1,153 @@
 ---
 name: task-planning
-description: Use this skill when requirements are clear but the work still needs structured decomposition into ordered investigation, implementation, research, or verification steps. Use it before downstream execution when dependencies, sequencing, or checkpoints matter. Do not use for trivial tasks, unresolved requirements, or tasks already fully structured by a command workflow. Expected result: a written execution plan with ordered work items, dependencies, deliverables, and verification checkpoints.
+description: >
+  Use this skill when requirements are clear but the work still needs structured
+  decomposition into ordered investigation, implementation, research, or verification steps.
+  Use it before downstream execution when dependencies, sequencing, or checkpoints matter.
+  Expected result: A single written task file saved under .opencode/work/ that captures the requested outcome,
+  constraints, facts to gather, ordered work items, and checks before completion.
 ---
 
 # Task Planning
 
 ## Purpose
 
-This skill decomposes a well-defined task or requirement into an ordered, dependency-aware execution plan. Use it for larger tasks where jumping directly into downstream execution risks missing dependencies, ordering mistakes, or verification gaps.
+This skill prepares a written task file for non-trivial work.
 
-The goal is to produce a written, reviewable plan that makes the work sequence explicit before execution begins.
+Use it when jumping directly into downstream execution would risk missing dependencies,
+required research, execution order, or completion checks.
+
+This skill does not implement the task.
+It defines the task in a form that downstream execution can follow reliably.
 
 ## When to use
 
-Use this skill when the task meets any of these conditions:
+Use this skill when one or more of the following are true:
 
-- the task spans multiple files, modules, or systems
-- the task has multiple phases (investigate, then implement, then verify)
-- the order of operations matters and wrong ordering could cause wasted work or regressions
-- some work items depend on research or decisions that must happen first
-- the task is large enough that tracking progress without a plan would be error-prone
+- the task spans multiple files, modules, systems, or documents
+- the task has multiple phases such as investigation, implementation, and verification
+- the order of operations matters
+- local investigation, external research, or experiments must happen before implementation
+- the task is large enough that relying only on conversational context would be error-prone
+- the task needs explicit completion checks before execution begins
 
 ## When not to use
 
 Do not use this skill when:
 
-- the task is trivial or can be completed in a single focused edit
+- the task is trivial and can be completed in one focused pass
 - the requirements are still ambiguous or under-specified; use `requirements-clarification` first
 - the task is purely investigative with no implementation intent; use `investigation` or `public-research`
-- the task is already structured by a command workflow (e.g. `/add-prompt-capability`)
+- the task is already fully structured by a command workflow
 
 ## Expected inputs
 
-- a clear task description or requirement (from the user directly, or from a `requirements-clarification` output)
-- repository context discoverable from the codebase
-- any explicit constraints, preferences, or prior decisions the user has stated
+- a clear task description or requirement
+- repository context discoverable from the codebase, when the task is repository-local
+- any explicit user constraints, preferences, or prior decisions already stated
 
 ## Expected outputs
 
-- a written execution plan document saved to an external file
-- a handoff recommendation naming the appropriate downstream skill and the plan file path
+When this skill is used:
+
+- a single task file at `.opencode/work/<slug>.md`
+- `.opencode/work/current-task.md` containing the slug only
+- a recommendation for the next appropriate downstream skill
 
 ## Core rules
 
-### 1. Do not start implementation
+### 1. Produce a task file only
 
-This skill produces a plan only. Do not edit code, create implementation files, or make design decisions that belong to implementation.
+This skill produces a task file only.
 
-### 2. Base the plan on repository evidence
+Do not start implementation, edit code, create implementation artifacts, or make
+execution-time decisions that belong to downstream work.
 
-Read the actual codebase to understand the current structure, call paths, and conventions. Do not invent file names, module boundaries, or dependency relationships from assumptions.
+### 2. Base the task file on evidence
 
-### 3. Make dependencies explicit
+Read the actual repository when the task is repository-local.
 
-Every work item must state what it depends on. If two items are independent, say so explicitly rather than leaving the relationship implicit.
+Do not invent file names, module boundaries, dependency relationships, conventions,
+tests, or verification mechanisms from assumptions.
 
-### 4. Classify each work item by phase
+If external facts are required before execution, state that explicitly.
 
-Assign each work item one of these phases:
+### 3. Keep everything in one task file
 
-- **investigate**: research, explore, or gather information needed before acting
-- **implement**: make concrete changes to files, configuration, or structure
-- **verify**: run checks, tests, or inspections to confirm correctness
+Write one task file only.
 
-A single work item can span multiple phases if the scope is small enough that splitting it would be artificial, but state which phases it covers.
+Do not split task contract content and plan content into separate files.
+Do not create additional task-state files beyond `.opencode/work/current-task.md`.
 
-### 5. Define concrete verification checkpoints
+### 4. Keep the current-task pointer minimal
 
-After each logical group of implementation items, define what must be true before proceeding. Avoid vague checkpoints like "make sure it works." Prefer specific checks such as "type checker passes on affected module" or "test suite for package X passes."
+Write only the slug to `.opencode/work/current-task.md`.
 
-### 6. Keep the plan actionable
+Do not write summaries, timestamps, or additional metadata there.
 
-Each work item should be small enough that a downstream skill can execute it in one focused pass. If an item is too large, split it.
+### 5. Make work items concrete
 
-### 7. Write the plan to an external file
+Each work item must be specific enough that a downstream skill can execute it
+without reconstructing the whole task from scratch.
 
-The plan must be written to a file so that downstream skills can reference it. The default location is `docs/plans/<slug>.md` where `<slug>` is a short kebab-case identifier derived from the task title.
+Avoid vague items such as "update code as needed" or "verify everything."
 
-If the `docs/plans/` directory does not exist, create it.
+### 6. Make dependencies explicit
 
-## Plan document template
+If a work item depends on another item, state that dependency directly.
+
+Do not rely on implied order when the dependency affects correctness.
+
+### 7. Define research before execution
+
+If a work item requires local investigation, external research, or experiments before action,
+state that in `Research needed`.
+
+Do not assume that downstream execution will infer missing facts automatically.
+
+### 8. Define verification before execution
+
+State how each work item will be checked.
+
+Also state the cross-item checks required before the whole task can be treated as done.
+
+Avoid vague checks such as "make sure it works."
+Prefer checks tied to files, commands, outputs, behavior, or cited sources.
+
+## Output location
+
+Write the task file to:
+
+`.opencode/work/<slug>.md`
+
+Where `<slug>` is a short kebab-case identifier derived from the task title.
+
+If `.opencode/work/` does not exist, create it.
+
+Also write the slug only to:
+
+`.opencode/work/current-task.md`
+
+## Task file template
 
 Use this structure for the output file:
 
 ```markdown
-# Task Plan: <title>
+# Task: <title>
 
-## Context
+## Requested outcome
 
-<One or two sentences summarizing the task and its origin. Reference the requirements file if one exists.>
+- <what must be achieved>
+
+## Constraints
+
+- <what must remain true>
+- None identified.
+
+## Facts to gather
+
+- <task-level facts that must be confirmed before acting>
+- None identified.
 
 ## Work items
 
@@ -103,114 +162,91 @@ Use this structure for the output file:
 
 ### W-2: ...
 
-## Execution order
+## Checks before completion
 
-<Numbered list reflecting dependency-respecting topological order.
-State parallel opportunities where items are independent.>
-
-1. W-1
-2. W-2, W-3 (parallel)
-4. W-4
-
-## Verification checkpoints
-
-- **After W-x**: <what must be true before starting the next group>
-- **Final checkpoint**: <what must be true before declaring the overall task done>
-
-## Open risks
-
-- <risk or unknown that could affect the plan>
+- <cross-item checks needed before the task can be treated as done>
 - None identified.
 ```
 
-Fill in each section based on what is known. If a section has no content after analysis, write `None identified.` rather than leaving it blank.
+If a section has no content after analysis, write `None identified.` rather than leaving it blank.
 
 ## Procedure
 
-### Step 1: Restate the task
+### Step 1: Confirm the task is clear enough to plan
 
-State the task in your own words internally. Confirm that the requirements are clear enough to plan around. If they are not, stop and recommend `requirements-clarification` instead.
+Restate the task internally.
 
-### Step 2: Survey the repository
+If the task is still ambiguous, stop and recommend `requirements-clarification` instead.
 
-Read the relevant code, configuration, tests, and documentation to understand:
+### Step 2: Survey the relevant context
 
-- the current structure and conventions
-- the files and modules likely affected by the task
-- existing tests and verification mechanisms
-- patterns and constraints the plan must respect
+For repository-local work, read the relevant code, configuration, tests, and documentation.
 
-Do not skip this step even if you think you already know the codebase. The plan must be grounded in current reality.
+For externally grounded work, identify what facts must be gathered before execution.
 
-### Step 3: Decompose into work items
+Do not skip this step.
 
-Break the task into the smallest coherent units that can each be executed independently.
+### Step 3: Write requested outcome and constraints
 
-For each item, determine:
+Record what must be achieved and what must remain true.
 
-- what phase it belongs to
-- what it depends on
-- what it produces
-- how to verify it
+Do not expand the task beyond what the user asked for.
 
-### Step 4: Analyze dependencies
+### Step 4: Identify facts to gather
 
-Map the dependency graph across work items. Identify:
+List the task-level facts that must be confirmed before implementation or final judgment.
 
-- strict ordering requirements (A must finish before B can start)
-- items that can run in parallel
-- items that gate later phases (e.g. research must complete before implementation begins)
+These are cross-cutting facts for the whole task, not per-item details.
 
-### Step 5: Define verification checkpoints
+### Step 5: Build concrete work items
 
-Place checkpoints at natural phase boundaries:
+Decompose the task into ordered work items.
 
-- after investigation items, before implementation begins
-- between implementation groups when later groups depend on earlier ones
-- at the end, before the task is declared done
+Each work item must identify:
 
-### Step 6: Write the plan document
+- its phase
+- its dependencies
+- its concrete description
+- any research needed before action
+- its deliverables
+- its verification method
 
-Fill in the plan template using the information gathered.
+Use as many items as needed, but keep them meaningful.
+Do not split work into tiny procedural noise.
 
-Ensure:
+### Step 6: Define checks before completion
 
-- every work item has all six fields filled in
-- the execution order reflects the dependency graph
-- verification checkpoints are concrete and checkable
-- open risks are stated honestly
+List the cross-item checks needed before the whole task can be treated as done.
 
-### Step 7: Review the plan for completeness
+These should cover overall requested outcome, not just individual items.
 
-Before finalizing, check:
+### Step 7: Write the files
 
-- does the plan cover everything the task requires?
-- are there any implicit dependencies that were not written down?
-- are verification checkpoints sufficient to catch common failure modes?
-- is each work item small enough to be actionable?
+Write the task file to `.opencode/work/<slug>.md`.
 
-### Step 8: Write the file and recommend handoff
+Write the slug only to `.opencode/work/current-task.md`.
 
-Write the plan to the output file. Confirm the file path to the user.
+### Step 8: Recommend the next skill
 
-Recommend the appropriate downstream skill:
+Recommend the next downstream skill based on the first real execution need:
 
-- If the plan's first items are implementation, recommend `implementation` with the plan file path.
-- If the plan's first items require external research, recommend `public-research` for those items first.
-- If the plan reveals a structural problem that should be resolved first, recommend `refactoring`.
-- If the plan reveals behavior, state, or facts that must be investigated first, recommend `investigation`.
+- use `implementation` when the task is ready for repository changes
+- use `investigation` when repository-local facts still need to be gathered first
+- use `public-research` when external facts must be verified first
+- use `refactoring` when the next step is behavior-preserving structural cleanup
 
 ## Quick checklist
 
 Before finishing, verify all of the following:
 
-- the task requirements were clear enough to plan (if not, `requirements-clarification` should have been used instead)
-- the repository was actually surveyed, not assumed
-- every work item has phase, dependencies, description, research needed, deliverables, and verification
-- the execution order respects all stated dependencies
-- verification checkpoints are concrete and specific
-- open risks are listed
-- the plan was written to an external file
-- the file path was communicated to the user
-- a handoff recommendation was given
-- for non-trivial planning work, produce a `completion-review` statement before finishing
+- the task was clear enough to plan
+- the repository or other relevant context was actually inspected when needed
+- the task file contains requested outcome, constraints, facts to gather, work items, and checks before completion
+- each work item is concrete
+- dependencies are explicit where needed
+- research needs are stated where needed
+- verification is defined for each work item
+- completion checks are specific
+- the file was written to `.opencode/work/<slug>.md`
+- `.opencode/work/current-task.md` contains only the slug
+- a next-skill recommendation was given
