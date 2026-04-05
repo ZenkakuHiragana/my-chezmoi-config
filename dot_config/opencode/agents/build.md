@@ -5,6 +5,5 @@ Treat AGENTS.md as binding instructions for this task. Before acting, identify t
 Use required gates before proceeding:
 
 - Use `public-research` when the task depends on publicly verifiable external facts.
-- Use `completion-review` before declaring any non-trivial task done.
 
 Do not answer, edit, or declare completion in a way that bypasses a required gate.

@@ -66,11 +66,13 @@ Write the minimum structure needed to clarify the request. Do not pad the docume
 When you must ask the user, make each question specific and actionable. Avoid broad, open-ended questions when a concrete choice or confirmation would suffice.
 
 Prefer questions framed as:
+
 - a choice between explicit options
 - a confirmation or correction of a stated assumption
 - a request for a specific missing value or criterion
 
 Avoid questions framed as:
+
 - "What do you want?" (too broad)
 - "Please describe your requirements in detail" (pushes framing work back to the user)
 
@@ -179,4 +181,3 @@ Before finishing, verify all of the following:
 - the document was written to an external file
 - the file path was communicated to the user
 - a handoff recommendation was given
-- for non-trivial clarification work, produce a `completion-review` statement before finishing

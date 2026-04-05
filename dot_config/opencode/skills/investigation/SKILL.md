@@ -61,7 +61,3 @@ Return:
 6. Check public issue trackers or docs when local evidence does not sufficiently explain the behavior.
 7. Stop once the next action is clear enough to recommend, whether that is implementation, more targeted investigation, a user question, or no repository change.
 8. Remove, disable, or clearly isolate temporary diagnostics before finishing if they are no longer needed.
-
-## Before finishing
-
-For non-trivial investigations, produce a `completion-review` statement.
