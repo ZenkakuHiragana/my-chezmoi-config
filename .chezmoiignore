@@ -2,6 +2,7 @@
 AGENTS.md
 .opencode/**
 opencode-prompt-dev/**
+packages/**
 {{- if eq .chezmoi.os "windows" }}
 .config/nvim/**
 .config/lazygit/

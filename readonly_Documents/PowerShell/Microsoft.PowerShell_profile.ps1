@@ -98,6 +98,7 @@ $null = Register-EngineEvent -SourceIdentifier 'PowerShell.OnIdle' -MaxTriggerCo
     # 入力補完をリスト表示する
     Set-PSReadLineOption -PredictionViewStyle ListView
     Set-PSReadLineOption -PredictionSource HistoryAndPlugin
+    Set-PSReadLineKeyHandler -Key Tab -Function MenuComplete
 }
 
 # chcp 65001

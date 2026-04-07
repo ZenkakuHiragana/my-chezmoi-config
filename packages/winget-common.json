@@ -1,0 +1,126 @@
+{
+  "$schema": "https://aka.ms/winget-packages.schema.2.0.json",
+  "CreationDate": "2026-04-08T04:33:02.672-00:00",
+  "Sources": [
+    {
+      "Packages": [
+        {
+          "PackageIdentifier": "7zip.7zip"
+        },
+        {
+          "PackageIdentifier": "Git.Git"
+        },
+        {
+          "PackageIdentifier": "ImageMagick.ImageMagick"
+        },
+        {
+          "PackageIdentifier": "Kitware.CMake"
+        },
+        {
+          "PackageIdentifier": "Microsoft.PowerShell"
+        },
+        {
+          "PackageIdentifier": "GoLang.Go"
+        },
+        {
+          "PackageIdentifier": "gerardog.gsudo"
+        },
+        {
+          "PackageIdentifier": "OpenJS.NodeJS"
+        },
+        {
+          "PackageIdentifier": "Neovim.Neovim"
+        },
+        {
+          "PackageIdentifier": "DEVCOM.LuaJIT"
+        },
+        {
+          "PackageIdentifier": "Microsoft.VisualStudio.BuildTools"
+        },
+        {
+          "PackageIdentifier": "LLVM.LLVM"
+        },
+        {
+          "PackageIdentifier": "Microsoft.DotNet.SDK.10"
+        },
+        {
+          "PackageIdentifier": "BrechtSanders.WinLibs.POSIX.UCRT"
+        },
+        {
+          "PackageIdentifier": "BurntSushi.ripgrep.GNU"
+        },
+        {
+          "PackageIdentifier": "GNU.Wget2"
+        },
+        {
+          "PackageIdentifier": "Gyan.FFmpeg"
+        },
+        {
+          "PackageIdentifier": "JesseDuffield.lazygit"
+        },
+        {
+          "PackageIdentifier": "LLVM.clangd"
+        },
+        {
+          "PackageIdentifier": "Ninja-build.Ninja"
+        },
+        {
+          "PackageIdentifier": "Rustlang.Rustup"
+        },
+        {
+          "PackageIdentifier": "SST.opencode"
+        },
+        {
+          "PackageIdentifier": "ast-grep.ast-grep"
+        },
+        {
+          "PackageIdentifier": "astral-sh.uv"
+        },
+        {
+          "PackageIdentifier": "dandavison.delta"
+        },
+        {
+          "PackageIdentifier": "jqlang.jq"
+        },
+        {
+          "PackageIdentifier": "junegunn.fzf"
+        },
+        {
+          "PackageIdentifier": "marlocarlo.psmux"
+        },
+        {
+          "PackageIdentifier": "sharkdp.fd"
+        },
+        {
+          "PackageIdentifier": "twpayne.chezmoi"
+        },
+        {
+          "PackageIdentifier": "Microsoft.WindowsTerminal"
+        },
+        {
+          "PackageIdentifier": "Microsoft.WSL"
+        }
+      ],
+      "SourceDetails": {
+        "Argument": "https://cdn.winget.microsoft.com/cache",
+        "Identifier": "Microsoft.Winget.Source_8wekyb3d8bbwe",
+        "Name": "winget",
+        "Type": "Microsoft.PreIndexed.Package"
+      }
+    },
+    {
+      "Packages": [
+        {
+          "PackageIdentifier": "XP89DCGQ3K6VLD"
+        }
+      ],
+      "SourceDetails": {
+        "Argument": "https://storeedgefd.dsx.mp.microsoft.com/v9.0",
+        "Identifier": "StoreEdgeFD",
+        "Name": "msstore",
+        "Type": "Microsoft.Rest"
+      }
+    }
+  ],
+  "WinGetVersion": "1.28.220"
+}
