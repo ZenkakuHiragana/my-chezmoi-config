@@ -55,7 +55,7 @@ Return:
 
 1. Restate the observed behavior, factual question, and expected behavior if it is known.
 2. Reproduce or approximate the behavior when possible.
-3. Gather direct evidence from the relevant repository paths, logs, state, callers, configuration, environment, inputs, or outputs. Keep searches scoped to the relevant repository or explicitly named paths.
+3. Gather direct evidence from the relevant repository paths, logs, state, callers, configuration, environment, inputs, or outputs. Keep searches scoped to the relevant repository or to the smallest necessary, explicitly named directories, and do not use the filesystem root `/` or other very broad top-level directories as search roots.
 4. Keep explicit user constraints active while gathering evidence. Add temporary diagnostics only as narrowly as needed, and do not turn them into new supported control surfaces, runtime branches, or compatibility paths unless the request or an existing contract requires that.
 5. Compare plausible explanations against the observed evidence and rule out what you can.
 6. Check public issue trackers or docs when local evidence does not sufficiently explain the behavior.

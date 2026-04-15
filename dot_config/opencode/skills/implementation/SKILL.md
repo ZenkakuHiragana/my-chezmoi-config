@@ -79,7 +79,7 @@ Typical dependent surfaces include:
 
 If the missing information is discoverable from code, docs, tests, configuration, logs, or existing patterns, investigate first.
 
-For repository-local work, read the relevant files before answering or editing, and keep `read` / `glob` / `grep` searches scoped to the current repository or explicitly named paths.
+For repository-local work, read the relevant files before answering or editing, and keep `read` / `glob` / `grep` searches scoped to the current repository or to the smallest necessary, explicitly named directories outside it. Do not use the filesystem root `/` or other very broad top-level directories as search roots.
 
 Ask only when the missing information is a true user preference, a policy choice, or a trade-off that cannot be resolved from repository context.
 

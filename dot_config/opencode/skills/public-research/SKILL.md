@@ -1,6 +1,6 @@
 ---
 name: public-research
-description: Use this skill when public facts, primary sources, or citations matter. Do not use it for repository-only tasks. Expected result: a source-backed answer that separates confirmed facts, caveats, and inference.
+description: Use this skill when public facts, primary sources, or citations matter, or when the user explicitly asks you to consult primary sources or official documentation. Do not use it for repository-only tasks. Expected result: a source-backed answer that separates confirmed facts, caveats, and inference.
 ---
 
 # Public Research
@@ -23,6 +23,7 @@ Use this skill when the task requires any of the following:
 - comparing public options or technical approaches using external evidence
 - answering questions where direct citations are important
 - verifying a term, phrase, feature name, or concept that may be unclear, niche, or recent
+- the user explicitly asks you to check primary sources or official documentation for the behavior of a public tool, library, or platform, especially when their observation conflicts with your general knowledge
 
 ## When not to use
 
@@ -337,3 +338,4 @@ Before finishing, verify all of the following:
 - important claims are supported by citations
 - recency-sensitive claims were verified
 - uncertainty or source disagreement is stated clearly
+- if the user requested primary-source verification, the answer either cites those primary sources or explicitly states that they could not be found and treats any remaining claims as inference
