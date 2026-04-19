@@ -216,7 +216,10 @@
         "/mnt/c/Program\\ Files/dotnet/dotnet.exe push *": "deny",
         "\"/mnt/c/Program Files/dotnet/dotnet.exe\" *": "allow",
         "\"/mnt/c/Program Files/dotnet/dotnet.exe\" push": "deny",
-        "\"/mnt/c/Program Files/dotnet/dotnet.exe\" push *": "deny"
+        "\"/mnt/c/Program Files/dotnet/dotnet.exe\" push *": "deny",
+        // ビルドツール（CMake, CTest）
+        "cmake *": "allow",
+        "ctest *": "allow"
       },
       "webfetch": "allow",
       "websearch": "allow",
