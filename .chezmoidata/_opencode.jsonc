@@ -219,7 +219,11 @@
         "\"/mnt/c/Program Files/dotnet/dotnet.exe\" push *": "deny",
         // ビルドツール（CMake, CTest）
         "cmake *": "allow",
-        "ctest *": "allow"
+        "ctest *": "allow",
+        // Lua
+        "lua *": "allow",
+        "luajit *": "allow",
+        "luals *": "allow"
       },
       "webfetch": "allow",
       "websearch": "allow",
