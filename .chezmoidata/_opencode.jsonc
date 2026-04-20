@@ -235,6 +235,8 @@
         "orch-public-researcher": "allow"
       }
     },
-    "plugin": []
+    "plugin": [
+      "superpowers@git+https://github.com/obra/superpowers.git"
+    ]
   }
 }

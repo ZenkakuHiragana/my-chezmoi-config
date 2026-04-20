@@ -1,6 +1,7 @@
 ---
 name: requirements-clarification
-description: Use this skill when the user request is ambiguous, under-specified, or lacks clear scope or completion criteria. It structures the request into objective, scope, constraints, assumptions, open questions, and acceptance criteria, then hands off to planning or an execution skill. Do not use when the request is already concrete enough for `investigation`, `implementation`, `refactoring`, or `public-research`. Expected result: a written requirements document and a clear next-skill recommendation.
+description: >
+  Use this skill when the user request is ambiguous, under-specified, or lacks clear scope or completion criteria. It structures the request into objective, scope, constraints, assumptions, open questions, and acceptance criteria, then hands off to planning or an execution skill. Do not use when the request is already concrete enough for `investigation`, `implementation`, `refactoring`, or `public-research`. Expected result: a written requirements document and a clear next-skill recommendation.
 ---
 
 # Requirements Clarification
