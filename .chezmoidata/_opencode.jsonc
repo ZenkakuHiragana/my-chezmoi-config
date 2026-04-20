@@ -190,6 +190,7 @@
         "npm test *": "allow",
         "npm run build": "allow",
         "npm run build *": "allow",
+        "npx ococ *": "allow",
         "npx opencode-orchestrator *": "allow",
         "npx vitest": "allow",
         "npx vitest *": "allow",
