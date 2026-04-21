@@ -229,7 +229,10 @@
       "webfetch": "allow",
       "websearch": "allow",
       "codesearch": "allow",
-      "external_directory": "ask",
+      "external_directory": {
+        "*": "ask",
+        "/*": "deny"
+      },
       "orchestrator": {
         "orch-local-investigator": "allow",
         "orch-public-researcher": "allow"
