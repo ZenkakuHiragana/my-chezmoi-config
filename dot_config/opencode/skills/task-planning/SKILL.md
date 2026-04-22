@@ -54,6 +54,10 @@ When this skill is used:
 - `.opencode/work/current-task.md` containing the slug only
 - a recommendation for the next appropriate downstream skill
 
+Before reading `.opencode/work/current-task.md`, first decide from the current conversation context alone whether this is a compaction recovery case.
+If the request is already clear without it, ignore the file.
+If the context indicates a continuation but the task identifier is missing, the file may be consulted only to recover that identifier, not to redefine the request.
+
 ## Core rules
 
 ### 1. Produce a task file only

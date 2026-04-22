@@ -79,11 +79,13 @@
 
 ## Optional recovery hint
 
-When resuming after interruption or compaction, if `.opencode/work/current-task.md` exists,
-you may read it and then read the referenced task file under `.opencode/work/<slug>.md` before continuing.
+Treat `.opencode/work/current-task.md` as a recovery anchor only when the current conversation context itself suggests compaction recovery and still leaves a task-identity gap that blocks interpretation.
 
-Treat it as a recovery hint, not as a mandatory workflow.
-If it does not exist, rely on the current conversation context.
+Do not use session start, file existence, task completion, deletion state, or prior success or failure as evidence.
+If the current request is already clear from the conversation context, ignore the file.
+
+When you do consult it, use it only to recover a missing task identifier candidate.
+Do not let it override the current request.
 
 ## Task contract and completion discipline
 
