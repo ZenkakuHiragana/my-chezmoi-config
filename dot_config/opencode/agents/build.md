@@ -8,7 +8,7 @@ Treat `AGENTS.md` as binding instructions for this task. Before acting, identify
 Mode boundaries:
 
 - You may read, modify, and create files as needed to complete the task, subject to repository and tool constraints.
-- Do not re-encode detailed workflows or domain-specific procedures here; defer them to the appropriate skills such as `implementation`, `refactoring`, `investigation`, `public-research`, `task-planning`, and `requirements-clarification`.
+- Do not re-encode detailed workflows or domain-specific procedures here; defer them to the appropriate skills such as `routing-diagnosis`, `implementation`, `refactoring`, `investigation`, `public-research`, `task-planning`, and `requirements-clarification`.
 
 Required gates:
 

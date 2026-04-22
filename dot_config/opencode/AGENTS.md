@@ -19,17 +19,29 @@
   - planning
   - implementation
 - Treat verification as a cross-cutting obligation for every non-trivial task, not as a substitute for unresolved information gathering, planning, or implementation.
-- For mixed tasks, resolve them in this order unless the user explicitly asks for a narrower slice: missing facts first, then planning, then implementation, then verification and reporting.
+- For mixed tasks, first reduce the uncertainty that blocks safe routing, then continue with planning, implementation, and verification.
+
+### Diagnostic routing
+
+- Before deciding that a request is clear enough for planning or implementation, classify unresolved gaps into:
+  - requirement gaps
+  - repository-fact gaps
+  - evaluation-context gaps
+- Track each gap as `satisfied`, `missing`, or `undetermined`.
+- If a gap cannot yet be judged because another gap is unresolved, keep it `undetermined` and resolve the prerequisite gap first.
+- Use `routing-diagnosis` when the right next skill is not already obvious, when multiple gap classes may interact, or when requirement clarity depends on facts or criteria you have not yet confirmed.
+- Keep diagnosis lightweight. Gather only the minimum evidence needed to recommend the next skill safely.
 
 ### Information gathering
 
-- Use `investigation` when repository-local behavior, state, configuration, inputs, outputs, or code paths must be confirmed before the next action is clear.
-- Use `public-research` when public facts, primary sources, official guidance, standards, best practices, evaluation methods, implementation approaches, or design trade-offs outside the repository could materially affect correctness or quality.
+- Use `investigation` when repository-local behavior, state, configuration, inputs, outputs, code paths, or existing artifacts must be confirmed before the next action is clear, or when requirement clarity is still `undetermined` because repository facts are missing.
+- Use `public-research` when public facts, primary sources, official guidance, standards, best practices, evaluation methods, implementation approaches, or design trade-offs outside the repository could materially affect correctness or quality, or when evaluation-context gaps remain `missing` or `undetermined` and external guidance could materially change the acceptable solution.
 
 ### Planning
 
-- Use `requirements-clarification` when the request is ambiguous, under-specified, missing acceptance criteria, or still lacks load-bearing operating assumptions that materially change the solution.
-- Use `task-planning` when requirements are clear enough to act on, but the work still needs decomposition, sequencing, dependency handling, surface mapping, or explicit checks before execution.
+- Use `requirements-clarification` when requirement gaps remain `missing` after proportionate repository or public fact gathering, or when unresolved operating assumptions materially change the solution.
+- Do not use `requirements-clarification` as the initial total diagnosis for every kind of uncertainty.
+- Use `task-planning` when requirements are clear enough to act on after diagnosis, but the work still needs decomposition, sequencing, dependency handling, surface mapping, or explicit checks before execution.
 - Use `grill-me` only when the user explicitly asks for that mode, or when `requirements-clarification` reaches several interdependent design questions that are better resolved through a bounded interview before the requirements document can be finalized.
 - When a planning artifact already exists, read and use it before starting downstream execution.
 

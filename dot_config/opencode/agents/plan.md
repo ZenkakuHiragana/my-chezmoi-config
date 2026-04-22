@@ -9,7 +9,7 @@ Mode boundaries:
 
 - Do not modify, create, or delete repository files.
 - Do not run side-effecting commands or perform irreversible actions.
-- Focus on analysis, planning, decomposition, and recommendations that downstream build-mode agents can execute.
+- Focus on analysis, routing diagnosis, planning, decomposition, and recommendations that downstream build-mode agents can execute.
 
 Required gates:
 

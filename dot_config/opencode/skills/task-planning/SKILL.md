@@ -1,12 +1,7 @@
 ---
 name: task-planning
 description: >
-  Use this skill when requirements are clear but the work still needs structured
-  decomposition into ordered investigation, implementation, research, or verification steps.
-  Use it before downstream execution when dependencies, sequencing, or checkpoints matter.
-  Expected result: A single written task file saved under .opencode/work/ that captures the requested outcome,
-  constraints, inputs, facts to gather, relevant surfaces, chosen approach, ordered work items,
-  and checks before completion.
+  Use this skill when requirements are clear enough after diagnosis, but the work still needs structured decomposition into ordered investigation, implementation, research, or verification steps. Use it before downstream execution when dependencies, sequencing, or checkpoints matter. Do not use it when requirement clarity is still missing or `undetermined`; resolve those gaps first with `routing-diagnosis`, `investigation`, `public-research`, or `requirements-clarification` as appropriate. Expected result: A single written task file saved under .opencode/work/ that captures the requested outcome, constraints, inputs, facts to gather, relevant surfaces, chosen approach, ordered work items, and checks before completion.
 ---
 
 # Task Planning
@@ -17,6 +12,8 @@ This skill prepares a written task file for non-trivial work.
 
 Use it when jumping directly into downstream execution would risk missing dependencies,
 required research, execution order, or completion checks.
+
+Use it after routing diagnosis has established that the task is clear enough to plan.
 
 This skill does not implement the task.
 It defines the task in a form that downstream execution can follow reliably.
@@ -38,6 +35,7 @@ Do not use this skill when:
 
 - the task is trivial and can be completed in one focused pass
 - the requirements are still ambiguous or under-specified; use `requirements-clarification` first
+- requirement clarity is still `undetermined` because prerequisite repository facts or evaluation-context gaps remain unresolved; use `routing-diagnosis` or the prerequisite skill first
 - the task is purely investigative with no implementation intent; use `investigation` or `public-research`
 - the task is already fully structured by a command workflow
 
@@ -209,7 +207,7 @@ If a section has no content after analysis, write `None identified.` rather than
 
 Restate the task internally.
 
-If the task is still ambiguous, stop and recommend `requirements-clarification` instead.
+If the task is still ambiguous, or if it is still `undetermined` whether the requirements are clear because prerequisite repository facts or evaluation-context gaps remain unresolved, stop and recommend `routing-diagnosis` or the appropriate prerequisite skill instead.
 
 ### Step 2: Survey the relevant context
 

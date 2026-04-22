@@ -1,7 +1,7 @@
 ---
 name: requirements-clarification
 description: >
-  Use this skill when the request is ambiguous, under-specified, missing acceptance criteria, or still lacks the load-bearing operating assumptions that would materially change the solution. It turns the request into a written requirements document with objective, scope, constraints, assumptions, open questions, and acceptance criteria, and may use bounded escalation such as `grill-me` only for interdependent design questions. Do not use when the task is already concrete enough for `investigation`, `implementation`, `refactoring`, or `public-research`. Expected result: a written requirements document and a clear next-step recommendation.
+  Use this skill when requirement gaps remain after proportionate discovery: the objective, scope, constraints, acceptance criteria, or load-bearing operating assumptions are still ambiguous or missing in ways that materially change the solution. It turns those requirement gaps into a written requirements document with objective, scope, constraints, assumptions, open questions, and acceptance criteria, and may use bounded escalation such as `grill-me` only for interdependent design questions. Do not use it as a substitute for repository-local fact-finding or external evaluation-context verification; if requirement clarity is still `undetermined` because facts or criteria are missing, resolve those first or use `routing-diagnosis`. Expected result: a written requirements document and a clear next-step recommendation.
 ---
 
 # Requirements Clarification
@@ -12,9 +12,11 @@ This skill structures vague, ambiguous, or under-specified user requests into a 
 
 The goal is to turn an unclear request into a written, reviewable artifact with explicit gaps identified and resolved where possible.
 
+This skill handles requirement gaps. It is not the initial total diagnosis for every kind of uncertainty.
+
 ## When to use
 
-Use this skill when the user request meets any of these conditions:
+Use this skill when, after proportionate discovery, the user request meets any of these conditions:
 
 - the objective is vague or can be interpreted in multiple ways
 - the scope is undefined or unclear
@@ -29,6 +31,8 @@ Use this skill when the user request meets any of these conditions:
 Do not use this skill when:
 
 - the request is concrete enough to proceed directly to `implementation`, `investigation`, `refactoring`, or `public-research`
+- it is still `undetermined` whether a requirement gap exists because repository facts have not yet been confirmed; use `routing-diagnosis` or `investigation` first
+- it is still `undetermined` whether a requirement gap exists because external evaluation criteria or public guidance may materially change the acceptable solution; use `routing-diagnosis` or `public-research` first
 - the user is asking a factual question that does not require structural clarification
 - the task is already structured by a command workflow (e.g. `/add-prompt-capability`)
 
@@ -45,6 +49,12 @@ Do not use this skill when:
 - a handoff recommendation naming the appropriate downstream skill
 
 ## Core rules
+
+### 0. Confirm that the unresolved gap is actually about requirements
+
+This skill handles missing or ambiguous objectives, scope, constraints, acceptance criteria, and load-bearing operating assumptions.
+
+If the real blocker may instead be missing repository facts or missing evaluation-context criteria, stop and recommend `routing-diagnosis`, `investigation`, or `public-research` rather than asking the user prematurely.
 
 ### 1. Discover before asking
 
@@ -156,7 +166,7 @@ Fill in each section based on what is known. If a section has no content after d
 
 ### Step 1: Receive and restate
 
-Restate the user's request in your own words internally. Identify which parts are concrete and which are ambiguous.
+Restate the user's request in your own words internally. Separate potential requirement gaps from repository-fact gaps and evaluation-context gaps.
 
 ### Step 2: Discover from context
 
@@ -165,6 +175,8 @@ Read relevant repository files, configuration, code patterns, and documentation 
 If public facts, official guidance, or current best practices could materially affect the acceptable solution, use `public-research` before deciding that the gap must be pushed to the user.
 
 Also identify whether any load-bearing operating assumptions must be clarified, such as local-only versus externally used, sensitive data exposure, cost sensitivity, compliance constraints, or durability expectations.
+
+If a supposed requirement gap cannot yet be judged because repository facts or external criteria are still missing, keep it `undetermined` and stop to recommend `routing-diagnosis` or the prerequisite skill instead of inventing user questions.
 
 ### Step 3: Structure into the template
 
