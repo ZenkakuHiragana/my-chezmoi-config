@@ -36,6 +36,7 @@ Do not use this skill when:
 - the task is trivial and can be completed in one focused pass
 - the requirements are still ambiguous or under-specified; use `requirements-clarification` first
 - requirement clarity is still `undetermined` because prerequisite repository facts or evaluation-context gaps remain unresolved; use `routing-diagnosis` or the prerequisite skill first
+- the first meaningful work item would mostly be to discover missing facts or criteria; use `routing-diagnosis`, `investigation`, `public-research`, or `requirements-clarification` first
 - the task is purely investigative with no implementation intent; use `investigation` or `public-research`
 - the task is already fully structured by a command workflow
 

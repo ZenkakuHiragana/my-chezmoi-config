@@ -29,7 +29,11 @@
   - evaluation-context gaps
 - Track each gap as `satisfied`, `missing`, or `undetermined`.
 - If a gap cannot yet be judged because another gap is unresolved, keep it `undetermined` and resolve the prerequisite gap first.
-- Use `routing-diagnosis` when the right next skill is not already obvious, when multiple gap classes may interact, or when requirement clarity depends on facts or criteria you have not yet confirmed.
+- Use `routing-diagnosis` when the right next skill is not already obvious, especially when:
+  - the request mixes current-state inspection, scope decisions, and planning
+  - requirement, repository-fact, or evaluation-context gaps may interact
+  - the task depends on existing surfaces or artifacts before scope or completion can be judged
+  - external criteria or current practice may materially change the acceptable solution
 - Keep diagnosis lightweight. Gather only the minimum evidence needed to recommend the next skill safely.
 
 ### Information gathering
@@ -39,8 +43,9 @@
 
 ### Planning
 
-- Use `requirements-clarification` when requirement gaps remain `missing` after proportionate repository or public fact gathering, or when unresolved operating assumptions materially change the solution.
+- Use `requirements-clarification` when requirement gaps remain `missing` after proportionate repository or public fact gathering, or when the user still has to choose objective, scope, acceptance criteria, or load-bearing operating assumptions for the solution.
 - Do not use `requirements-clarification` as the initial total diagnosis for every kind of uncertainty.
+- Do not use `requirements-clarification` when the main uncertainty is whether repository facts or external evaluation criteria are missing; use `routing-diagnosis`, `investigation`, or `public-research` first.
 - Use `task-planning` when requirements are clear enough to act on after diagnosis, but the work still needs decomposition, sequencing, dependency handling, surface mapping, or explicit checks before execution.
 - Use `grill-me` only when the user explicitly asks for that mode, or when `requirements-clarification` reaches several interdependent design questions that are better resolved through a bounded interview before the requirements document can be finalized.
 - When a planning artifact already exists, read and use it before starting downstream execution.

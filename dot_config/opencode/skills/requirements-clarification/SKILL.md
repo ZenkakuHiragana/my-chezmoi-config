@@ -24,7 +24,8 @@ Use this skill when, after proportionate discovery, the user request meets any o
 - critical terms or concepts in the request are ambiguous
 - the request could be satisfied at very different levels of effort or complexity
 - the request may mean different things depending on whether it is a local experiment, internal tooling, or something used by other people
-- security, privacy, cost, compliance, durability, or performance assumptions could materially change the acceptable solution
+- the user still needs to choose solution constraints or operating targets, such as local-only versus externally used, strict versus relaxed privacy, or minimum durability or performance
+- security, privacy, cost, compliance, durability, or performance requirements are part of the solution choice rather than something that must first be verified from external guidance
 
 ## When not to use
 
@@ -33,6 +34,7 @@ Do not use this skill when:
 - the request is concrete enough to proceed directly to `implementation`, `investigation`, `refactoring`, or `public-research`
 - it is still `undetermined` whether a requirement gap exists because repository facts have not yet been confirmed; use `routing-diagnosis` or `investigation` first
 - it is still `undetermined` whether a requirement gap exists because external evaluation criteria or public guidance may materially change the acceptable solution; use `routing-diagnosis` or `public-research` first
+- the main uncertainty is whether current practice, external standards, or a public source changes the acceptable answer; use `public-research` or `routing-diagnosis` first
 - the user is asking a factual question that does not require structural clarification
 - the task is already structured by a command workflow (e.g. `/add-prompt-capability`)
 
