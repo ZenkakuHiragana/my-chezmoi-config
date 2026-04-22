@@ -1,14 +1,14 @@
 ---
 name: requirements-clarification
 description: >
-  Use this skill when the user request is ambiguous, under-specified, or lacks clear scope or completion criteria. It structures the request into objective, scope, constraints, assumptions, open questions, and acceptance criteria, then hands off to planning or an execution skill. Do not use when the request is already concrete enough for `investigation`, `implementation`, `refactoring`, or `public-research`. Expected result: a written requirements document and a clear next-skill recommendation.
+  Use this skill when the request is ambiguous, under-specified, missing acceptance criteria, or still lacks the load-bearing operating assumptions that would materially change the solution. It turns the request into a written requirements document with objective, scope, constraints, assumptions, open questions, and acceptance criteria, and may use bounded escalation such as `grill-me` only for interdependent design questions. Do not use when the task is already concrete enough for `investigation`, `implementation`, `refactoring`, or `public-research`. Expected result: a written requirements document and a clear next-step recommendation.
 ---
 
 # Requirements Clarification
 
 ## Purpose
 
-This skill structures vague, ambiguous, or under-specified user requests into a formal requirements document. Use it before `implementation` or planning when the request is not yet clear enough to act on directly.
+This skill structures vague, ambiguous, or under-specified user requests into a formal requirements document. Use it before `implementation` or detailed planning when the request is not yet execution-ready.
 
 The goal is to turn an unclear request into a written, reviewable artifact with explicit gaps identified and resolved where possible.
 
@@ -21,6 +21,8 @@ Use this skill when the user request meets any of these conditions:
 - no explicit constraints or acceptance criteria are given
 - critical terms or concepts in the request are ambiguous
 - the request could be satisfied at very different levels of effort or complexity
+- the request may mean different things depending on whether it is a local experiment, internal tooling, or something used by other people
+- security, privacy, cost, compliance, durability, or performance assumptions could materially change the acceptable solution
 
 ## When not to use
 
@@ -54,6 +56,20 @@ This aligns with the global rule: prefer discovered facts over unnecessary quest
 
 This skill produces requirements only. Do not begin editing code, creating files beyond the requirements document, or making design decisions that belong to implementation.
 
+### 2a. Clarify only the assumptions that matter
+
+Do not turn this skill into a fixed questionnaire.
+
+When operational assumptions matter, identify only the one to three that materially affect scope, constraints, or acceptance criteria for this request.
+
+Typical examples include:
+
+- whether the result is for a local experiment or for other users
+- whether secrets, authentication, authorization, PII, or other sensitive data are involved
+- whether cost, legal constraints, licenses, data durability, or performance realism materially affect the solution
+
+Capture the result in `Constraints`, `Assumptions`, `Open questions`, or `Acceptance criteria` rather than inventing a separate permanent checklist section.
+
 ### 3. Distinguish assumptions from facts
 
 When you fill in a section based on inference rather than explicit user statement or repository evidence, label it as an assumption. Do not present assumptions as confirmed requirements.
@@ -76,6 +92,22 @@ Avoid questions framed as:
 
 - "What do you want?" (too broad)
 - "Please describe your requirements in detail" (pushes framing work back to the user)
+
+For genuine user decisions, prefer structured choices and use the `question` tool when available.
+
+### 5a. Escalate only when design questions are interdependent
+
+If one or two direct clarification questions will resolve the remaining gaps, ask them here.
+
+If the remaining open questions form a branching design tree where each answer changes several downstream choices, you may use `grill-me` as a bounded escalation step.
+
+Do this only when all of the following are true:
+
+- repository discovery and proportionate public research have already resolved the factual gaps they can resolve
+- the remaining uncertainty is primarily design- or preference-shaped
+- the decisions are interdependent enough that isolated questions would be confusing or inefficient
+
+After that escalation, return to this skill's output contract and finalize the written requirements document.
 
 ### 6. Write to an external file
 
@@ -130,6 +162,10 @@ Restate the user's request in your own words internally. Identify which parts ar
 
 Read relevant repository files, configuration, code patterns, and documentation to answer as many requirement questions as possible without asking the user.
 
+If public facts, official guidance, or current best practices could materially affect the acceptable solution, use `public-research` before deciding that the gap must be pushed to the user.
+
+Also identify whether any load-bearing operating assumptions must be clarified, such as local-only versus externally used, sensitive data exposure, cost sensitivity, compliance constraints, or durability expectations.
+
 ### Step 3: Structure into the template
 
 Fill in each section of the requirements template:
@@ -146,6 +182,8 @@ Fill in each section of the requirements template:
 Check whether the structured requirements are clear enough for a downstream skill to act on. If yes, proceed to Step 6.
 
 If not, identify the minimum set of questions needed to fill the critical gaps.
+
+If the remaining critical gaps are mostly interdependent design questions, consider the bounded `grill-me` escalation described above before returning to the user.
 
 ### Step 5: Ask the user
 
@@ -166,6 +204,7 @@ State which downstream skill should handle the request next and why. Include the
 ## Handoff rules
 
 - If the requirements are now concrete enough for implementation, recommend `implementation` with the requirements file path.
+- If the requirements are concrete enough but the work still needs ordered decomposition, recommend `task-planning` with the requirements file path.
 - If the requirements reveal a need for external research before proceeding, recommend `public-research` for the research portion first.
 - If the requirements reveal a structural problem in existing code, recommend `refactoring` as a prerequisite.
 - If the requirements reveal behavior, state, or facts to investigate, recommend `investigation` first.
@@ -179,6 +218,7 @@ Before finishing, verify all of the following:
 - open questions are formatted as checkboxes
 - acceptance criteria are measurable
 - no question was asked that could have been answered from repository context
+- operating assumptions were clarified only where they materially affected the request
 - the document was written to an external file
 - the file path was communicated to the user
 - a handoff recommendation was given

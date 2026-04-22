@@ -1,6 +1,6 @@
 ---
 name: code-review
-description: Use this skill when you need to review a specific diff or the current codebase for quality issues. It produces prioritized review findings with evidence, covering correctness, design, tests, maintainability, security, performance, docs, and style. Do not use for implementing fixes, investigating observed behavior, or purely factual questions.
+description: Use this skill when you need to review a specific diff or the current codebase for quality issues. It produces prioritized findings with severity, evidence, impact, and next-step guidance across correctness, design, tests, maintainability, security, performance, docs, and style. Do not use for implementing fixes, investigating observed behavior, or purely factual questions.
 ---
 
 # Code Review
@@ -63,7 +63,14 @@ Treat minor polish as nits.
 
 ### 3. Separate blocking findings from polish
 
-Mark issues by severity or priority so the user can tell what must be fixed before merge.
+Mark issues by severity so the user can tell what must be fixed before merge.
+
+Use these severity labels:
+
+- `Blocker`: correctness, regression, security, privacy, or contract issues that should block landing
+- `Major`: serious design, maintainability, or test-quality concerns that are not immediate blockers but are likely to cause trouble soon
+- `Minor`: readability, naming, documentation, or consistency issues
+- `Uncertain`: plausible concern with incomplete evidence; state what extra context would confirm or dismiss it
 
 ### 4. Avoid out-of-scope drift
 
@@ -100,10 +107,13 @@ Present results in this order:
 
 For each finding, include:
 
+- severity
 - location
-- issue
-- why it matters
-- suggested fix or next step
+- claim
+- evidence
+- impact
+- suggested next step
+- confidence
 
 If there are no findings, say so explicitly and mention the scope you reviewed.
 

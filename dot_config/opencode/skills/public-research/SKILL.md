@@ -1,6 +1,6 @@
 ---
 name: public-research
-description: Use this skill when public facts, primary sources, or citations matter, or when the user explicitly asks you to consult primary sources or official documentation. Do not use it for repository-only tasks. Expected result: a source-backed answer that separates confirmed facts, caveats, and inference.
+description: Use this skill when public facts, primary sources, official guidance, or externally grounded best practices could materially affect correctness or quality, or when the user explicitly asks for primary-source verification. Do not use it for repository-only tasks. Expected result: a source-backed answer that separates confirmed facts, caveats, and inference.
 ---
 
 # Public Research
@@ -21,6 +21,8 @@ Use this skill when the task requires any of the following:
 - confirming product, library, tool, or platform behavior from public documentation
 - finding official guidance, standards, or specifications
 - comparing public options or technical approaches using external evidence
+- selecting or validating an implementation approach when external guidance or current practice could materially improve the result
+- choosing or validating an evaluation, verification, or review method when external guidance could materially improve quality
 - answering questions where direct citations are important
 - verifying a term, phrase, feature name, or concept that may be unclear, niche, or recent
 - the user explicitly asks you to check primary sources or official documentation for the behavior of a public tool, library, or platform, especially when their observation conflicts with your general knowledge
@@ -34,6 +36,8 @@ Do not use this skill when the task can be answered from:
 - stable knowledge already present in the current task context
 
 Do not use public research as a substitute for local investigation when the real question is about the user's repository.
+
+Do not perform token research just to look busy. Use enough external evidence to support the material claim or design choice, then stop.
 
 ## High-priority safety and privacy rule
 
@@ -86,6 +90,18 @@ When giving recommendations or comparisons:
 - identify the factual basis
 - state the comparison criteria
 - separate measured facts from your interpretation
+
+### 4a. Research before locking in externally dependent prompt guidance
+
+When revising prompts, workflows, review rules, or verification procedures, treat public guidance as relevant when current practice or official recommendations could materially affect quality.
+
+Examples include:
+
+- prompt-engineering or evaluation methods
+- source or evidence standards
+- technical writing conventions for instructions
+- security, privacy, and validation guidance
+- review, testing, or verification procedures
 
 ### 5. Do not overstate certainty
 

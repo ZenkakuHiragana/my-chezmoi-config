@@ -5,7 +5,8 @@ description: >
   decomposition into ordered investigation, implementation, research, or verification steps.
   Use it before downstream execution when dependencies, sequencing, or checkpoints matter.
   Expected result: A single written task file saved under .opencode/work/ that captures the requested outcome,
-  constraints, facts to gather, ordered work items, and checks before completion.
+  constraints, inputs, facts to gather, relevant surfaces, chosen approach, ordered work items,
+  and checks before completion.
 ---
 
 # Task Planning
@@ -114,6 +115,18 @@ Also state the cross-item checks required before the whole task can be treated a
 Avoid vague checks such as "make sure it works."
 Prefer checks tied to files, commands, outputs, behavior, or cited sources.
 
+### 9. Preserve resume-critical context
+
+The task file must contain enough information for a downstream agent to resume after compaction without reconstructing the work from chat history alone.
+
+At minimum, capture:
+
+- concrete input artifacts
+- relevant surfaces to change or inspect
+- the chosen approach
+- blocking unknowns that gate execution
+- evidence-oriented verification expectations
+
 ## Output location
 
 Write the task file to:
@@ -144,9 +157,29 @@ Use this structure for the output file:
 - <what must remain true>
 - None identified.
 
+## Inputs
+
+- <requirements file, research note, issue, or explicit user decision this plan depends on>
+- None identified.
+
+## Relevant surfaces
+
+- <files, directories, commands, outputs, or artifacts to change or inspect>
+- None identified.
+
+## Chosen approach
+
+- <brief explanation of the intended execution shape>
+- None identified.
+
 ## Facts to gather
 
 - <task-level facts that must be confirmed before acting>
+- None identified.
+
+## Blocking unknowns
+
+- <unknown that must be resolved before a dependent work item can proceed>
 - None identified.
 
 ## Work items
@@ -186,19 +219,27 @@ For externally grounded work, identify what facts must be gathered before execut
 
 Do not skip this step.
 
-### Step 3: Write requested outcome and constraints
+### Step 3: Write requested outcome, constraints, and inputs
 
-Record what must be achieved and what must remain true.
+Record what must be achieved, what must remain true, and which concrete upstream artifacts or user decisions this plan depends on.
 
 Do not expand the task beyond what the user asked for.
 
-### Step 4: Identify facts to gather
+### Step 4: Identify relevant surfaces and chosen approach
+
+List the concrete surfaces that may need to change or be checked.
+
+Also record the chosen approach in a short form so downstream execution can resume without rediscovering the high-level shape of the task.
+
+### Step 5: Identify facts to gather and blocking unknowns
 
 List the task-level facts that must be confirmed before implementation or final judgment.
 
 These are cross-cutting facts for the whole task, not per-item details.
 
-### Step 5: Build concrete work items
+Separate unknowns that merely need investigation from unknowns that block execution order or make later work items unreliable until they are resolved.
+
+### Step 6: Build concrete work items
 
 Decompose the task into ordered work items.
 
@@ -214,19 +255,19 @@ Each work item must identify:
 Use as many items as needed, but keep them meaningful.
 Do not split work into tiny procedural noise.
 
-### Step 6: Define checks before completion
+### Step 7: Define checks before completion
 
 List the cross-item checks needed before the whole task can be treated as done.
 
 These should cover overall requested outcome, not just individual items.
 
-### Step 7: Write the files
+### Step 8: Write the files
 
 Write the task file to `.opencode/work/<slug>.md`.
 
 Write the slug only to `.opencode/work/current-task.md`.
 
-### Step 8: Recommend the next skill
+### Step 9: Recommend the next skill
 
 Recommend the next downstream skill based on the first real execution need:
 
@@ -241,7 +282,7 @@ Before finishing, verify all of the following:
 
 - the task was clear enough to plan
 - the repository or other relevant context was actually inspected when needed
-- the task file contains requested outcome, constraints, facts to gather, work items, and checks before completion
+- the task file contains requested outcome, constraints, inputs, relevant surfaces, chosen approach, facts to gather, blocking unknowns, work items, and checks before completion
 - each work item is concrete
 - dependencies are explicit where needed
 - research needs are stated where needed

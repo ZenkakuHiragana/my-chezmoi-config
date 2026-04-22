@@ -1,5 +1,6 @@
 .gitignore
 AGENTS.md
+.opencode/work/
 .opencode/**
 opencode-prompt-dev/**
 packages/**

@@ -11,23 +11,44 @@
 - Do not add unnecessary parentheses or parenthetical annotations.
 - Keep prose natural, grammatical, and internally consistent.
 
-## Intent and skill selection
+## Intent gate and skill selection
 
 - Route the task to the minimum set of skills needed, in the order the task actually requires.
-- Use `requirements-clarification` first when the request is ambiguous, under-specified, or lacks clear scope or acceptance criteria.
-- Use `task-planning` when requirements are clear but the work still needs ordered decomposition, dependency handling, or verification checkpoints before execution.
-- Prefer `investigation` first for repository-local behavior, state, or fact-finding when the next action is not yet clear.
-- Use `implementation` once the intended repository change is clear.
-- Prefer `refactoring` for behavior-preserving structural cleanup, `public-research` for current public facts, primary sources, or citations, and `code-review` for reviewing code quality without making implementation the primary task.
+- First identify the smallest unresolved core intent:
+  - information gathering
+  - planning
+  - implementation
+- Treat verification as a cross-cutting obligation for every non-trivial task, not as a substitute for unresolved information gathering, planning, or implementation.
+- For mixed tasks, resolve them in this order unless the user explicitly asks for a narrower slice: missing facts first, then planning, then implementation, then verification and reporting.
+
+### Information gathering
+
+- Use `investigation` when repository-local behavior, state, configuration, inputs, outputs, or code paths must be confirmed before the next action is clear.
+- Use `public-research` when public facts, primary sources, official guidance, standards, best practices, evaluation methods, implementation approaches, or design trade-offs outside the repository could materially affect correctness or quality.
+
+### Planning
+
+- Use `requirements-clarification` when the request is ambiguous, under-specified, missing acceptance criteria, or still lacks load-bearing operating assumptions that materially change the solution.
+- Use `task-planning` when requirements are clear enough to act on, but the work still needs decomposition, sequencing, dependency handling, surface mapping, or explicit checks before execution.
+- Use `grill-me` only when the user explicitly asks for that mode, or when `requirements-clarification` reaches several interdependent design questions that are better resolved through a bounded interview before the requirements document can be finalized.
+- When a planning artifact already exists, read and use it before starting downstream execution.
+
+### Implementation
+
+- Use `implementation` once the intended repository change is clear and enough facts are known to act.
+- Prefer `refactoring` for behavior-preserving structural cleanup rather than feature delivery or bug fixes.
+- Prefer `code-review` for reviewing code quality without making implementation the primary task.
 
 ## General working rules
 
 - Prefer discovered facts over unnecessary questions.
 - Ask only for true user preferences, policy choices, or missing constraints.
+- For genuine user questions, prefer structured choice questions and use the `question` tool when available instead of burying key decisions in long free-form chat.
 - Keep explicit user constraints active throughout the task, including investigation, temporary diagnostics, and verification work.
 - Distinguish unresolved gaps, risks, or open questions from concrete blockers. Report a blocker only when the evidence shows a real hard stop.
 - Check that the change or answer actually satisfies the request.
 - Replace outdated normative text directly.
+- When revising prompt workflows, commands, or skills in a non-trivial way, prefer validating the new wording with `empirical-prompt-tuning` after the first coherent draft when dispatch is available and the evaluation cost is justified.
 - For repository-local requests, inspect the relevant local files before answering, and keep local tool use (such as `read`, `glob`, and `grep`) scoped to the workspace or narrower paths. Do not run wide file-system scans from the OS root `/` or similarly broad directories.
 
 ## Public-source verification
