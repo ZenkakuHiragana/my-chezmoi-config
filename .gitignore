@@ -1,3 +1,4 @@
 .chezmoidata/opencode-specific.json
 .chezmoitemplates/lazydocker/lazydocker-specific.yml
-/.opencode/local-failure-logs/
+.opencode/local-failure-logs/
+.opencode/package-lock.json
