@@ -1,6 +1,6 @@
 ---
 name: public-research
-description: Use this skill when public facts, primary sources, official guidance, or externally grounded best practices could materially affect correctness or quality, or when the user explicitly asks for primary-source verification. Do not use it for repository-only tasks. Expected result: a source-backed answer that separates confirmed facts, caveats, and inference.
+description: Use this skill when the visible task requires source-backed public facts or official guidance outside the repository, or when the user explicitly asks for primary-source verification. Typical triggers include public tool or platform behavior, standards, policies, APIs, upstream practices, and evaluation or verification methods. Do not use it for repository-only tasks. Expected result: a source-backed answer that separates confirmed facts, caveats, and inference.
 ---
 
 # Public Research
@@ -21,19 +21,21 @@ Use this skill when the task requires any of the following:
 - confirming product, library, tool, or platform behavior from public documentation
 - finding official guidance, standards, or specifications
 - comparing public options or technical approaches using external evidence
-- selecting or validating an implementation approach when external guidance or current practice could materially improve the result
-- choosing or validating an evaluation, verification, or review method when external guidance could materially improve quality
+- selecting or validating an implementation approach because the task depends on public technologies, standards, upstream practices, or source-backed trade-offs
+- choosing or validating an evaluation, verification, or review method because the task depends on current official guidance, documented best practice, or public scoring criteria
 - answering questions where direct citations are important
 - verifying a term, phrase, feature name, or concept that may be unclear, niche, or recent
 - the user explicitly asks you to check primary sources or official documentation for the behavior of a public tool, library, or platform, especially when their observation conflicts with your general knowledge
 
+Do not trigger this skill solely from vague value judgments such as "use research if it helps quality." Use it only when the visible task details or a prior diagnosis establish a concrete external evidence need.
+
 ## When not to use
 
-Do not use this skill when the task can be answered from:
+Do not use this skill when the answer is already fully supported by:
 
 - the repository itself
 - user-provided files
-- stable knowledge already present in the current task context
+- public sources already cited or quoted in the current task context, and no new public-fact claim still needs to be established
 
 Do not use public research as a substitute for local investigation when the real question is about the user's repository.
 
@@ -93,7 +95,7 @@ When giving recommendations or comparisons:
 
 ### 4a. Research before locking in externally dependent prompt guidance
 
-When revising prompts, workflows, review rules, or verification procedures, treat public guidance as relevant when current practice or official recommendations could materially affect quality.
+When revising prompts, workflows, review rules, or verification procedures, treat public guidance as relevant when the visible task depends on current official recommendations, public evaluation methods, source policy, evidence standards, or established review or verification practice.
 
 Examples include:
 

@@ -39,7 +39,7 @@
 ### Information gathering
 
 - Use `investigation` when repository-local behavior, state, configuration, inputs, outputs, code paths, or existing artifacts must be confirmed before the next action is clear, or when requirement clarity is still `undetermined` because repository facts are missing.
-- Use `public-research` when public facts, primary sources, official guidance, standards, best practices, evaluation methods, implementation approaches, or design trade-offs outside the repository could materially affect correctness or quality, or when evaluation-context gaps remain `missing` or `undetermined` and external guidance could materially change the acceptable solution.
+- Use `public-research` when the visible task requires source-backed public facts or official guidance outside the repository, such as checking tool or platform behavior, standards, policies, APIs, upstream practices, or evaluation methods, or when `routing-diagnosis` identifies an evaluation-context gap that needs external evidence.
 
 ### Planning
 
@@ -48,7 +48,7 @@
 - Do not use `requirements-clarification` when the main uncertainty is whether repository facts or external evaluation criteria are missing; use `routing-diagnosis`, `investigation`, or `public-research` first.
 - Use `task-planning` when requirements are clear enough to act on after diagnosis, but the work still needs decomposition, sequencing, dependency handling, surface mapping, or explicit checks before execution.
 - Use `grill-me` only when the user explicitly asks for that mode, or when `requirements-clarification` reaches several interdependent design questions that are better resolved through a bounded interview before the requirements document can be finalized.
-- When a planning artifact already exists, read and use it before starting downstream execution.
+- When a planning artifact for the current request is already identified from the conversation or from an allowed recovery step, read and use it before starting downstream execution.
 
 ### Implementation
 
@@ -79,9 +79,9 @@
 
 ## Optional recovery hint
 
-Treat `.opencode/work/current-task.md` as a recovery anchor only when the current conversation context itself suggests compaction recovery and still leaves a task-identity gap that blocks interpretation.
+Treat `.opencode/work/current-task.md` as a recovery anchor only when the current conversation itself shows a continuation request but still leaves a task-identity gap that blocks interpretation.
 
-Do not use session start, file existence, task completion, deletion state, or prior success or failure as evidence.
+Do not infer recovery from hidden session state or local file state. In particular, do not use session start, file existence, task completion, deletion state, or prior success or failure as evidence.
 If the current request is already clear from the conversation context, ignore the file.
 
 When you do consult it, use it only to recover a missing task identifier candidate.

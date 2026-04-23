@@ -1,6 +1,6 @@
 ---
 name: grill-me
-description: Use this skill only when the user explicitly wants a plan or design grilled, or when `requirements-clarification` reaches several interdependent design questions that are better resolved through a bounded interview. It asks targeted questions, gives recommended answers, and returns clarified decisions that must be folded back into a written requirements artifact.
+description: Use this skill only when the user explicitly wants a plan or design grilled, or when `requirements-clarification` already has a draft requirements artifact but one answer would still change multiple sections or several downstream design choices. It asks targeted questions, gives recommended answers, and returns clarified decisions that must be folded back into a written requirements artifact.
 ---
 
 # Grill Me
@@ -14,14 +14,14 @@ Its job is to resolve interdependent design questions through a directed intervi
 ## When to use
 
 - the user explicitly asks to be grilled on a plan or design
-- `requirements-clarification` has already discovered what it can, but several open questions still depend on one another and would be awkward to resolve as isolated prompts
+- `requirements-clarification` has already discovered what it can, but one answer would still change multiple sections of the requirements artifact or several downstream design choices
 
 ## When not to use
 
 - the gaps are simple missing values or one-off confirmations
 - the answer can be discovered from the repository
 - the next need is factual research rather than a design interview
-- the task already has a complete requirements artifact and is ready for `task-planning` or `implementation`
+- the task already has a requirements artifact that points to `task-planning` or `implementation` without another branching interview
 
 ## Rules
 
@@ -29,7 +29,7 @@ Its job is to resolve interdependent design questions through a directed intervi
 2. For genuine user decisions, prefer the `question` tool when available.
 3. Ask at most five questions at a time.
 4. For each question, provide a recommended answer and a short reason.
-5. Keep the interview bounded. Stop once the remaining decisions are clear enough to return to a written requirements artifact.
+5. Keep the interview bounded. Stop once the clarified decisions can be written back into the active requirements document without another branching interview.
 6. Do not leave the result as chat-only state. Summarize the clarified decisions, remaining open questions, and the recommendation to fold them back into the active requirements document.
 
 ## Expected output

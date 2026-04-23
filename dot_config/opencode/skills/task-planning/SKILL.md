@@ -1,19 +1,19 @@
 ---
 name: task-planning
 description: >
-  Use this skill when requirements are clear enough after diagnosis, but the work still needs structured decomposition into ordered investigation, implementation, research, or verification steps. Use it before downstream execution when dependencies, sequencing, or checkpoints matter. Do not use it when requirement clarity is still missing or `undetermined`; resolve those gaps first with `routing-diagnosis`, `investigation`, `public-research`, or `requirements-clarification` as appropriate. Expected result: A single written task file saved under .opencode/work/ that captures the requested outcome, constraints, inputs, facts to gather, relevant surfaces, chosen approach, ordered work items, and checks before completion.
+  Use this skill when diagnosis or an existing requirements artifact has already made the requested outcome, constraints, and prerequisite facts concrete enough to write a task file, but the work still needs ordered investigation, implementation, research, or verification steps. Use it before downstream execution when the task spans multiple files or phases, depends on sequencing, or needs an explicit resume-safe plan. Do not use it when requirement clarity is still missing or `undetermined`; resolve those gaps first with `routing-diagnosis`, `investigation`, `public-research`, or `requirements-clarification` as appropriate. Expected result: A single written task file saved under .opencode/work/ that captures the requested outcome, constraints, inputs, facts to gather, relevant surfaces, chosen approach, ordered work items, and checks before completion.
 ---
 
 # Task Planning
 
 ## Purpose
 
-This skill prepares a written task file for non-trivial work.
+This skill prepares a written task file for multi-step work.
 
 Use it when jumping directly into downstream execution would risk missing dependencies,
 required research, execution order, or completion checks.
 
-Use it after routing diagnosis has established that the task is clear enough to plan.
+Use it after routing diagnosis or another existing artifact has already made the requested outcome, constraints, and prerequisite facts concrete enough to fill the task file.
 
 This skill does not implement the task.
 It defines the task in a form that downstream execution can follow reliably.
@@ -26,7 +26,7 @@ Use this skill when one or more of the following are true:
 - the task has multiple phases such as investigation, implementation, and verification
 - the order of operations matters
 - local investigation, external research, or experiments must happen before implementation
-- the task is large enough that relying only on conversational context would be error-prone
+- the task needs a written artifact because it spans multiple files or phases, or because a downstream agent may need to resume without chat history
 - the task needs explicit completion checks before execution begins
 
 ## When not to use
@@ -54,9 +54,9 @@ When this skill is used:
 - `.opencode/work/current-task.md` containing the slug only
 - a recommendation for the next appropriate downstream skill
 
-Before reading `.opencode/work/current-task.md`, first decide from the current conversation context alone whether this is a compaction recovery case.
+Before reading `.opencode/work/current-task.md`, decide from the current conversation alone whether the user is continuing a prior task and whether a missing task identifier blocks interpretation.
 If the request is already clear without it, ignore the file.
-If the context indicates a continuation but the task identifier is missing, the file may be consulted only to recover that identifier, not to redefine the request.
+If the conversation shows a continuation request but the task identifier is still missing, the file may be consulted only to recover that identifier, not to redefine the request.
 
 ## Core rules
 
@@ -208,11 +208,11 @@ If a section has no content after analysis, write `None identified.` rather than
 
 ## Procedure
 
-### Step 1: Confirm the task is clear enough to plan
+### Step 1: Confirm that the task file can be filled from known requirements and facts
 
 Restate the task internally.
 
-If the task is still ambiguous, or if it is still `undetermined` whether the requirements are clear because prerequisite repository facts or evaluation-context gaps remain unresolved, stop and recommend `routing-diagnosis` or the appropriate prerequisite skill instead.
+If the requested outcome, constraints, prerequisite facts, or blocking unknowns still cannot be filled without guessing, stop and recommend `routing-diagnosis` or the appropriate prerequisite skill instead.
 
 ### Step 2: Survey the relevant context
 
@@ -274,7 +274,7 @@ Write the slug only to `.opencode/work/current-task.md`.
 
 Recommend the next downstream skill based on the first real execution need:
 
-- use `implementation` when the task is ready for repository changes
+- use `implementation` when the requested repository changes, target surfaces, and required checks are already concrete enough to execute
 - use `investigation` when repository-local facts still need to be gathered first
 - use `public-research` when external facts must be verified first
 - use `refactoring` when the next step is behavior-preserving structural cleanup
@@ -283,7 +283,7 @@ Recommend the next downstream skill based on the first real execution need:
 
 Before finishing, verify all of the following:
 
-- the task was clear enough to plan
+- the task file could be filled without inventing missing requirements or prerequisite facts
 - the repository or other relevant context was actually inspected when needed
 - the task file contains requested outcome, constraints, inputs, relevant surfaces, chosen approach, facts to gather, blocking unknowns, work items, and checks before completion
 - each work item is concrete

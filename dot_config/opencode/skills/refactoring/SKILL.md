@@ -49,7 +49,7 @@ A refactor is ready only when:
 - stale references to renamed or moved items are removed
 - targeted tests for affected paths pass
 - available static checks or linters for touched code pass
-- the final diff shows no accidental broad logic change
+- the final diff and validation checks can account for each behavior-affecting change, and any intentional behavior change is isolated and explained
 
 ## Procedure
 

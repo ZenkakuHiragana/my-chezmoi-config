@@ -1,7 +1,7 @@
 ---
 name: routing-diagnosis
 description: >
-  Use this skill when it is not yet clear whether the next step should be `investigation`, `requirements-clarification`, `public-research`, `task-planning`, `implementation`, or `refactoring`, especially when requirement gaps, repository-fact gaps, and evaluation-context gaps interact. It classifies each gap as `satisfied`, `missing`, or `undetermined`, records dependency order between gaps, and recommends the cheapest safe next skill. Do not use when the correct next skill is already obvious or when a command workflow already performs this diagnosis. Expected result: a concise diagnosis with blocker gaps, the next-skill recommendation, and the minimum evidence or question needed next.
+  Use this skill when it is not yet clear whether the next step should be `investigation`, `requirements-clarification`, `public-research`, `task-planning`, `implementation`, or `refactoring`, especially when requirement gaps, repository-fact gaps, and evaluation-context gaps interact. It classifies each gap as `satisfied`, `missing`, or `undetermined`, records dependency order between gaps, and recommends the cheapest safe next skill. Do not use when the three gap classes can already be classified with no blocking `undetermined` state and they already point to one next skill, or when a command workflow already performs this diagnosis. Expected result: a concise diagnosis with blocker gaps, the next-skill recommendation, and the minimum evidence or question needed next.
 ---
 
 # Routing Diagnosis
@@ -28,8 +28,8 @@ The goal is not to solve the task. The goal is to identify the cheapest safe nex
 
 ## When not to use
 
-- the correct next skill is already obvious
-- the task is already clearly inside one downstream skill's entry conditions
+- the three gap classes can already be classified with no blocking `undetermined` state and they already point to one next skill
+- the task already has a concrete next step because the requested outcome, known facts, and required checks match one downstream skill's entry conditions
 - a command workflow already performs this diagnosis
 
 ## Expected inputs
@@ -86,10 +86,10 @@ Recommend the next skill that is most likely to change the routing decision with
 Use this default mapping unless evidence clearly points elsewhere:
 
 - choose `investigation` when repository-fact gaps are `missing`, or when requirement clarity remains `undetermined` because repository facts are missing
-- choose `public-research` when evaluation-context gaps are `missing`, or when requirement clarity remains `undetermined` because external guidance or public facts could materially change the acceptable solution
+- choose `public-research` when evaluation-context gaps are `missing`, or when requirement clarity remains `undetermined` because visible task details show that external guidance or public facts must be checked before the next skill can be chosen safely
 - choose `requirements-clarification` when requirement gaps remain `missing` after proportionate factual and evaluation-context gathering
 - choose `task-planning` when all material gaps are `satisfied` and the work still needs ordered decomposition
-- choose `implementation` when all material gaps are `satisfied` and the intended change is already clear
+- choose `implementation` when all material gaps are `satisfied` and the requested repository change, target surfaces, and required checks are already identified
 - choose `refactoring` when the next step is behavior-preserving structural cleanup rather than feature delivery or bug fixing
 
 ### 5. Keep diagnosis lightweight
@@ -114,7 +114,7 @@ Restate the user's request internally and identify the plausible downstream skil
 
 Read the minimum relevant repository files when the task is repository-local.
 
-If external guidance could materially affect the acceptable solution, use `public-research` before finalizing the diagnosis.
+If visible task details already show that official docs, public standards, or current guidance must be checked to fill an evaluation-context gap, use `public-research` before finalizing the diagnosis.
 
 ### Step 3: Fill the gap table
 

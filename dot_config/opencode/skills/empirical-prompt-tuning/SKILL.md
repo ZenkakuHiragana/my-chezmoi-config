@@ -17,8 +17,8 @@ Keep iterating until the prompt stops producing meaningful gains.
 ## When to use
 
 - right after creating or heavily revising a skill, slash command, task prompt, AGENTS section, or code-generation prompt
-- when an agent is not behaving as expected and ambiguous instructions are a plausible cause
-- when a high-leverage prompt needs to be made more robust before wider use
+- when fresh-executor reports, retries, or discretionary fill-ins suggest instruction ambiguity
+- when a prompt is reused across multiple tasks or agents, or when failures in that prompt are costly enough to justify measured evaluation
 
 ## When not to use
 

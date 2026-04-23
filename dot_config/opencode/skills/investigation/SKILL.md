@@ -1,6 +1,6 @@
 ---
 name: investigation
-description: Use this skill when you need to investigate repository-local behavior, state, or facts before deciding on a real fix or implementation change. Use it for reproduction, evidence gathering, code-path confirmation, temporary instrumentation, and configuration, environment, or data inspection. Do not use when the intended repository change is already clear or the task is mainly public fact-finding. Expected result: confirmed observations, reproduction status, narrowed scope, ranked explanations, remaining unknowns, and the recommended next action.
+description: Use this skill when you need to investigate repository-local behavior, state, or facts before deciding on a real fix or implementation change. Use it for reproduction, evidence gathering, code-path confirmation, temporary instrumentation, and configuration, environment, or data inspection. Do not use when the current request or task contract already identifies a concrete repository change and required checks, or when the task is mainly public fact-finding. Expected result: confirmed observations, reproduction status, narrowed scope, ranked explanations, remaining unknowns, and the recommended next action.
 ---
 
 # Investigation
@@ -21,7 +21,7 @@ This skill is for investigating repository-local observed behavior, system state
 
 ## When not to use
 
-- the intended repository change is already clear and the main task is to implement it
+- the current request or task contract already identifies a concrete repository change and required checks, and the main task is to implement it
 - the main work is feature delivery, refactoring, or documentation updates rather than investigation
 - the task is repository-independent fact finding with no repository-local behavior or state to inspect
 
@@ -59,5 +59,5 @@ Return:
 4. Keep explicit user constraints active while gathering evidence. Add temporary diagnostics only as narrowly as needed, and do not turn them into new supported control surfaces, runtime branches, or compatibility paths unless the request or an existing contract requires that.
 5. Compare plausible explanations against the observed evidence and rule out what you can.
 6. Check public issue trackers or docs when local evidence does not sufficiently explain the behavior.
-7. Stop once the next action is clear enough to recommend, whether that is implementation, more targeted investigation, a user question, or no repository change.
+7. Stop once you can report confirmed observations, remaining unknowns, and exactly one recommended next action, whether that is implementation, more targeted investigation, a user question, or no repository change.
 8. Remove, disable, or clearly isolate temporary diagnostics before finishing if they are no longer needed.

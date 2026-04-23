@@ -67,8 +67,8 @@ Mark issues by severity so the user can tell what must be fixed before merge.
 
 Use these severity labels:
 
-- `Blocker`: correctness, regression, security, privacy, or contract issues that should block landing
-- `Major`: serious design, maintainability, or test-quality concerns that are not immediate blockers but are likely to cause trouble soon
+- `Blocker`: confirmed correctness, regression, security, privacy, or contract issues that would make landing unsafe
+- `Major`: serious design, maintainability, or test-quality concerns supported by concrete evidence and likely to create near-term trouble
 - `Minor`: readability, naming, documentation, or consistency issues
 - `Uncertain`: plausible concern with incomplete evidence; state what extra context would confirm or dismiss it
 

@@ -1,6 +1,6 @@
 ---
 name: implementation
-description: Use this skill when the requested repository change is already clear and the task is to make or update files to satisfy it, including feature work, known bug fixes, and coherent code, documentation, configuration, prompt, or script changes. Do not use when the main task is to investigate observed behavior, gather diagnostic evidence, or decide whether any real change is needed.
+description: Use this skill when the requested repository change, target surfaces, and required checks are already identified in the current request or task contract, and the task is to make or update files to satisfy it, including feature work, known bug fixes, and coherent code, documentation, configuration, prompt, or script changes. Do not use when the main task is to investigate observed behavior, gather diagnostic evidence, or decide whether any real change is needed.
 ---
 
 # Implementation
@@ -16,7 +16,7 @@ Use this skill to improve self-propelled execution quality for implementation wo
 Use this skill when the user asks for any of the following:
 
 - implement a feature
-- apply a known bug fix or behavior change whose intended edit is already clear
+- apply a known bug fix or behavior change whose affected behavior, target surfaces, and required checks are already identified
 - modify existing behavior
 - update documentation, configuration, prompts, or scripts as part of a concrete repository change
 - make repository changes and verify that they are coherent
@@ -32,6 +32,8 @@ Do not use this skill when the task is primarily:
 - investigating unclear behavior, confirming observed facts, or gathering diagnostic evidence before deciding on a real change; use `investigation` instead
 
 If the task is mainly external fact-finding, use `public-research` instead.
+
+If the request or task contract does not yet identify the needed facts, target surfaces, or required checks, stop and use the prerequisite skill instead of guessing.
 
 ## Expected inputs
 
@@ -154,7 +156,7 @@ If temporary diagnostics are needed, keep them narrow and remove or isolate them
 
 Do not declare success merely because a local edit was made.
 
-The task is complete only when the requested outcome and its obvious supporting updates are done, or when a real blocker prevents completion.
+The task is complete only when the requested outcome, the dependent surfaces named by the task contract or repository survey, and the required checks are done, or when a real blocker prevents completion.
 
 A blocker must be concrete, such as:
 
@@ -230,7 +232,7 @@ Before finishing, compare the result against:
 
 - the original request
 - the current behavior implied by the changed files
-- obvious dependent surfaces
+- dependent surfaces named by the task contract or discovered during the repository survey
 
 Ask:
 
@@ -260,7 +262,7 @@ Avoid long self-justification or process narration.
 Before finishing, verify all of the following:
 
 - the repository change matches the user request
-- obvious dependent surfaces were checked
+- dependent surfaces named by the task contract or discovered during the repository survey were checked
 - changed files were re-read
 - validation was attempted at an appropriate level
 - no stale normative text remains in touched areas
