@@ -218,7 +218,7 @@ State which downstream skill should handle the request next and why. Include the
 ## Handoff rules
 
 - If the requirements now identify a concrete repository change, target surfaces or contracts, and required checks with no blocking unknowns, recommend `implementation` with the requirements file path.
-- If the requirements are concrete but execution still needs ordered decomposition, dependencies, or explicit resume-safe checks, recommend `task-planning` with the requirements file path.
+- If the requirements are concrete but execution still needs ordered decomposition, dependencies, explicit resume-safe checks, or a durable task artifact because important execution guidance currently exists only in conversation, recommend `task-planning` with the requirements file path.
 - If open questions or acceptance criteria still depend on public facts or official guidance, recommend `public-research` for that portion first.
 - If the chosen work is behavior-preserving structural cleanup of existing code, recommend `refactoring` as a prerequisite.
 - If the remaining open questions concern repository-local behavior, state, or facts to confirm, recommend `investigation` first.

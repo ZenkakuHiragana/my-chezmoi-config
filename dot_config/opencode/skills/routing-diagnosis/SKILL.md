@@ -88,7 +88,7 @@ Use this default mapping unless evidence clearly points elsewhere:
 - choose `investigation` when repository-fact gaps are `missing`, or when requirement clarity remains `undetermined` because repository facts are missing
 - choose `public-research` when evaluation-context gaps are `missing`, or when requirement clarity remains `undetermined` because visible task details show that external guidance or public facts must be checked before the next skill can be chosen safely
 - choose `requirements-clarification` when requirement gaps remain `missing` after proportionate factual and evaluation-context gathering
-- choose `task-planning` when all material gaps are `satisfied` and the work still needs ordered decomposition
+- choose `task-planning` when all material gaps are `satisfied` and the work still needs ordered decomposition or a durable task artifact to preserve conversation-only instructions, constraints, dependencies, or checks
 - choose `implementation` when all material gaps are `satisfied` and the requested repository change, target surfaces, and required checks are already identified
 - choose `refactoring` when the next step is behavior-preserving structural cleanup rather than feature delivery or bug fixing
 

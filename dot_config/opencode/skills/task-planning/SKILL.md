@@ -1,7 +1,7 @@
 ---
 name: task-planning
 description: >
-  Use this skill when diagnosis or an existing requirements artifact has already made the requested outcome, constraints, and prerequisite facts concrete enough to write a task file, but the work still needs ordered investigation, implementation, research, or verification steps. Use it before downstream execution when the task spans multiple files or phases, depends on sequencing, or needs an explicit resume-safe plan. Do not use it when requirement clarity is still missing or `undetermined`; resolve those gaps first with `routing-diagnosis`, `investigation`, `public-research`, or `requirements-clarification` as appropriate. Expected result: A single written task file saved under .opencode/work/ that captures the requested outcome, constraints, inputs, facts to gather, relevant surfaces, chosen approach, ordered work items, and checks before completion.
+  Use this skill when diagnosis or an existing requirements artifact has already made the requested outcome, constraints, and prerequisite facts concrete enough to write a task file, but the work still needs ordered investigation, implementation, research, or verification steps, or when long conversation-only instructions should be normalized into a durable artifact before downstream work. Use it before downstream execution when the task spans multiple files or phases, depends on sequencing, or needs a resume-safe plan that reduces compaction or omission risk. Do not use it when requirement clarity is still missing or `undetermined`; resolve those gaps first with `routing-diagnosis`, `investigation`, `public-research`, or `requirements-clarification`. Expected result: One task file under `.opencode/work/` with the outcome, constraints, relevant surfaces, ordered work items, and completion checks.
 ---
 
 # Task Planning
@@ -10,8 +10,12 @@ description: >
 
 This skill prepares a written task file for multi-step work.
 
+It can either create an execution plan from clear requirements or normalize an important conversation-only procedure into a durable task artifact.
+
 Use it when jumping directly into downstream execution would risk missing dependencies,
 required research, execution order, or completion checks.
+
+Also use it when the user already provided a long or multi-part procedure, but reliable execution would still depend on preserving that procedure, its dependencies, or its checks outside transient chat state.
 
 Use it after routing diagnosis or another existing artifact has already made the requested outcome, constraints, and prerequisite facts concrete enough to fill the task file.
 
@@ -27,13 +31,15 @@ Use this skill when one or more of the following are true:
 - the order of operations matters
 - local investigation, external research, or experiments must happen before implementation
 - the task needs a written artifact because it spans multiple files or phases, or because a downstream agent may need to resume without chat history
+- the user already provided a long or multi-part procedure, but important instructions, constraints, dependencies, or checks still exist only in conversation and should be normalized into a durable task file before downstream execution
+- reliable execution would otherwise depend on preserving conversation-only details across a long session, resume, or compaction boundary
 - the task needs explicit completion checks before execution begins
 
 ## When not to use
 
 Do not use this skill when:
 
-- the task is trivial and can be completed in one focused pass
+- the task is short enough that all required steps, constraints, and checks can be executed reliably in one focused pass without creating a durable task artifact
 - the requirements are still ambiguous or under-specified; use `requirements-clarification` first
 - requirement clarity is still `undetermined` because prerequisite repository facts or evaluation-context gaps remain unresolved; use `routing-diagnosis` or the prerequisite skill first
 - the first meaningful work item would mostly be to discover missing facts or criteria; use `routing-diagnosis`, `investigation`, `public-research`, or `requirements-clarification` first
@@ -63,6 +69,8 @@ If the conversation shows a continuation request but the task identifier is stil
 ### 1. Produce a task file only
 
 This skill produces a task file only.
+
+When the user already supplied an execution procedure in conversation, convert that procedure into the task file instead of relying on chat history as the durable source of truth.
 
 Do not start implementation, edit code, create implementation artifacts, or make
 execution-time decisions that belong to downstream work.
@@ -122,9 +130,13 @@ Prefer checks tied to files, commands, outputs, behavior, or cited sources.
 
 The task file must contain enough information for a downstream agent to resume after compaction without reconstructing the work from chat history alone.
 
+Do not assume that a detailed user-authored procedure can remain chat-only just because it already specifies order or dependencies.
+If later execution still depends on that procedure, normalize it into the task file.
+
 At minimum, capture:
 
 - concrete input artifacts
+- conversation-provided instructions, constraints, checks, and dependency notes that execution would otherwise need to remember
 - relevant surfaces to change or inspect
 - the chosen approach
 - blocking unknowns that gate execution
@@ -206,6 +218,8 @@ Use this structure for the output file:
 
 If a section has no content after analysis, write `None identified.` rather than leaving it blank.
 
+When upstream conversation contains long procedural guidance, capture the durable substance of that guidance in the task file instead of referring vaguely to “the steps above” or “the user plan.”
+
 ## Procedure
 
 ### Step 1: Confirm that the task file can be filled from known requirements and facts
@@ -225,6 +239,8 @@ Do not skip this step.
 ### Step 3: Write requested outcome, constraints, and inputs
 
 Record what must be achieved, what must remain true, and which concrete upstream artifacts or user decisions this plan depends on.
+
+If the user already gave an ordered procedure, capture the durable instructions, constraints, and checks from that procedure in these sections and in later work items.
 
 Do not expand the task beyond what the user asked for.
 
@@ -258,6 +274,8 @@ Each work item must identify:
 Use as many items as needed, but keep them meaningful.
 Do not split work into tiny procedural noise.
 
+If the procedure already exists in conversation, translate it into concrete work items rather than merely pointing downstream execution back to chat history.
+
 ### Step 7: Define checks before completion
 
 List the cross-item checks needed before the whole task can be treated as done.
@@ -286,6 +304,7 @@ Before finishing, verify all of the following:
 - the task file could be filled without inventing missing requirements or prerequisite facts
 - the repository or other relevant context was actually inspected when needed
 - the task file contains requested outcome, constraints, inputs, relevant surfaces, chosen approach, facts to gather, blocking unknowns, work items, and checks before completion
+- any long or dependency-rich conversation-only procedure needed for execution was normalized into the task file
 - each work item is concrete
 - dependencies are explicit where needed
 - research needs are stated where needed

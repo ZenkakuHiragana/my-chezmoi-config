@@ -46,7 +46,7 @@
 - Use `requirements-clarification` when requirement gaps remain `missing` after proportionate repository or public fact gathering, or when the user still has to choose objective, scope, acceptance criteria, or load-bearing operating assumptions for the solution.
 - Do not use `requirements-clarification` as the initial total diagnosis for every kind of uncertainty.
 - Do not use `requirements-clarification` when the main uncertainty is whether repository facts or external evaluation criteria are missing; use `routing-diagnosis`, `investigation`, or `public-research` first.
-- Use `task-planning` when requirements are clear enough to act on after diagnosis, but the work still needs decomposition, sequencing, dependency handling, surface mapping, or explicit checks before execution.
+- Use `task-planning` when requirements are clear enough to act on after diagnosis, but the work still needs decomposition, sequencing, dependency handling, surface mapping, explicit checks before execution, or a durable task artifact because important instructions, constraints, or checks currently exist only in conversation and should not be left vulnerable to resume, compaction, or omission risk.
 - Use `grill-me` only when the user explicitly asks for that mode, or when `requirements-clarification` reaches several interdependent design questions that are better resolved through a bounded interview before the requirements document can be finalized.
 - When a planning artifact for the current request is already identified from the conversation or from an allowed recovery step, read and use it before starting downstream execution.
 
