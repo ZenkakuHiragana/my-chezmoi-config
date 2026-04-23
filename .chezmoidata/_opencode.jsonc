@@ -2,16 +2,41 @@
   "opencode_agent": {
     "general_fast": {
       "model": "openai/gpt-5.4-mini",
-      "reasoningEffort": "high"
+      "reasoningEffort": "medium"
     },
     "general_strong": {
       "model": "openai/gpt-5.4",
-      "reasoningEffort": "high"
+      "reasoningEffort": "medium"
     }
   },
   "opencode": {
     "$schema": "https://opencode.ai/config.json",
     "share": "disabled",
+    "formatter": {
+      "prettier": {
+        "command": [
+          "npx",
+          "prettier",
+          "--write",
+          "$FILE"
+        ],
+        "extensions": [
+          ".md",
+          ".markdown",
+          ".yaml",
+          ".yml",
+          ".json",
+          ".jsonc",
+          ".js",
+          ".mjs",
+          ".cjs",
+          ".ts",
+          ".css",
+          ".html",
+          ".htm"
+        ]
+      }
+    },
     "provider": {
       "github-copilot": {
         "models": {
