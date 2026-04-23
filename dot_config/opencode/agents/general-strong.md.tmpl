@@ -2,6 +2,6 @@
 description: Strong general-purpose subagent
 mode: subagent
 model: {{ .opencode_agent.general_strong.model | default .opencode.small_model | quote }}
-reasoningEffort: {{ .opencode_agent.general_fast.reasoningEffort | default "medium" }}
+reasoningEffort: {{ .opencode_agent.general_strong.reasoningEffort | default "medium" }}
 textVerbosity: low
 ---

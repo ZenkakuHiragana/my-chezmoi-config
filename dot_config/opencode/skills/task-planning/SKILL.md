@@ -79,7 +79,7 @@ execution-time decisions that belong to downstream work.
 
 Read the actual repository when the task is repository-local.
 
-When a normalized requirements artifact exists, use it as the primary source for the requested outcome, invariants, acceptance criteria, verification method, and affected tests or docs.
+When a normalized requirements artifact exists, use it as the primary source only when it is explicitly tied to the current task by the user, by `.opencode/work/current-task.md`, or by a matching `task_slug`, and the artifact passes these binding rules: candidate primary source first, then primary only when `status` is not `superseded`, `base_commit` is valid for the current repository state, and `superseded_by` is `none` or absent. Otherwise treat it as reference material only.
 
 Do not invent file names, module boundaries, dependency relationships, conventions,
 tests, or verification mechanisms from assumptions.
@@ -184,6 +184,32 @@ Use this structure for the output file:
 
 - <files, directories, commands, outputs, or artifacts to change or inspect>
 - None identified.
+
+## Binding metadata
+
+- task_slug: <slug>
+- source request summary: <brief summary>
+- target repository or path: <repo or path>
+- base_commit: <commit hash or `unknown`>
+- status: draft | active | superseded | done
+- superseded_by: <slug or `none`>
+
+## Binding rules
+
+- Binding rules:
+  - A requirements artifact is a candidate primary source only when one of these holds:
+    - the user explicitly names the artifact
+    - `.opencode/work/current-task.md` points to it
+    - `task_slug` matches the current task
+  - A candidate primary source becomes primary only when `status` is not `superseded`,
+    `base_commit` is valid for the current repository state, and `superseded_by` is `none`
+    or absent.
+  - If `status` is `superseded` or `base_commit` is unknown or stale, do not use the file as
+    primary source.
+  - If `superseded_by` is present, inspect that artifact next as the preferred candidate
+    source.
+  - If none of the explicit binding conditions hold, treat the file as reference material
+    only.
 
 ## Chosen approach
 

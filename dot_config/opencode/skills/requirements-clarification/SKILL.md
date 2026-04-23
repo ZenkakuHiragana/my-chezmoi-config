@@ -51,7 +51,7 @@ Do not use this skill when:
 
 ## Expected outputs
 
-- a structured requirements document written to an external file
+- a structured requirements document written to `.opencode/work/req-<slug>.md`
 - atomic requirement records with explicit attribute status
 - targeted user questions only for remaining `unknown` attributes
 - exactly one handoff recommendation
@@ -149,7 +149,7 @@ leaving the field blank.
 
 ### 8. Write the artifact
 
-Write the requirements document to `docs/requirements/<slug>.md` unless the user asked
+Write the requirements document to `.opencode/work/req-<slug>.md` unless the user asked
 for another location.
 
 If the directory does not exist, create it.
@@ -171,6 +171,32 @@ Use this structure:
   - <item>
 - Out of scope:
   - <item>
+
+## Binding metadata
+
+- task_slug: <slug>
+- source request summary: <brief summary>
+- target repository or path: <repo or path>
+- base_commit: <commit hash or `unknown`>
+- status: draft | active | superseded | done
+- superseded_by: <slug or `none`>
+
+## Binding rules
+
+- Binding rules:
+  - A requirements artifact is a candidate primary source only when one of these holds:
+    - the user explicitly names the artifact
+    - `.opencode/work/current-task.md` points to it
+    - `task_slug` matches the current task
+  - A candidate primary source becomes primary only when `status` is not `superseded`,
+    `base_commit` is valid for the current repository state, and `superseded_by` is `none`
+    or absent.
+  - If `status` is `superseded` or `base_commit` is unknown or stale, do not use the file as
+    primary source.
+  - If `superseded_by` is present, inspect that artifact next as the preferred candidate
+    source.
+  - If none of the explicit binding conditions hold, treat the file as reference material
+    only.
 
 ## Atomic requirements
 
