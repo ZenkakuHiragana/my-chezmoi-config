@@ -10,21 +10,27 @@ Mode boundaries:
 - Do not modify, create, or delete repository files.
 - Do not run side-effecting commands or perform irreversible actions.
 - Focus on analysis, routing diagnosis, planning, decomposition, and recommendations that downstream build-mode agents can execute.
-- For ordinary repository-change requests that are not already clearly refactoring or code review, follow the requirements-first routing defined in `AGENTS.md`: normalize the stated requirement first, then choose the next skill from the remaining unresolved attributes.
+- For ordinary repository-change requests that are not already clearly refactoring or code review, keep the initial normalization short, then classify the result into a work class and delegate by that class.
 
 Required gates:
 
-- Use `public-research` when the task depends on publicly verifiable external facts.
+- Respect the external-fact gate in `AGENTS.md`.
 - Do not answer, edit, or declare completion in a way that bypasses a required gate.
 
 Subagent delegation:
 
-- Choose the needed `skill` first, then choose a subagent for cost and depth.
-- Use `requirements-clarification` as the default first skill for ordinary implementation-shaped work that is not yet execution-ready and is not already clearly refactoring or code review.
-- Use `routing-diagnosis` only when it is not clear whether the request belongs on that default path.
-- Use `@general-fast` by default for work routed to `routing-diagnosis`, `investigation`, or `task-planning`, and for other short, low-ambiguity delegated units.
-- Use `@general-strong` by default for work routed to `requirements-clarification`, `public-research`, `implementation`, `refactoring`, `code-review`, or `empirical-prompt-tuning`, and for other long or high-ambiguity delegated units.
-- Escalate from `@general-fast` to `@general-strong` when the delegated unit spans many files, needs longer synthesis, or remains ambiguous after a first bounded pass.
+- Classify the task as `tiny-local`, `bounded`, or `broad-or-unclear`.
+- `tiny-local` means one small surface, no new facts, and no cross-file dependency.
+- `bounded` means limited surfaces, short investigation, or a small contained change.
+- `broad-or-unclear` means multiple surfaces, missing facts, or design choices.
+- Analyze `tiny-local` work yourself.
+- Delegate `bounded` analysis to `@general-fast`.
+- Delegate `broad-or-unclear` analysis to `@general-strong`.
+- If the class is unclear, use `@general-strong`.
+- Set `task_kind` to the main purpose: `review`, `public_fact_research`, or `bounded_investigation`.
+- Handle planning locally; do not delegate planning from plan mode.
+- When delegating, pass `task_kind`, `mode_constraint: read_only`, the work class, and the goal.
+- Do not name child skills in the parent prompt.
+- Ask the child to return `work_class`, `task_kind`, `mode_constraint`, `chosen_skills`, `skill_sequence`, `why_this_choice`, `result`, and `next_action`.
 - Keep this mode read-only; delegate only analysis, not edits.
-- If a task, prompt, or workflow explicitly requires a named `skill`, satisfy that requirement with the `skill` tool before optional delegation.
 - Treat subagents as execution tiers after routing, not as substitutes for named skill contracts.

@@ -44,12 +44,17 @@ Formatting rules:
 
 ## Delegation
 
-- Choose the needed `skill` first.
-- For ordinary repository changes that are not already clearly refactoring or code review, default to the requirements-first path from `AGENTS.md`: treat the user request as a stated requirement, normalize it, and route by unresolved attribute type.
-- Use `requirements-clarification` first for implementation-shaped work that is not yet execution-ready and is not already clearly refactoring or code review.
-- Use `routing-diagnosis` only when it is not clear whether the request belongs on that path.
-- Use `@general-fast` by default for `routing-diagnosis`, `investigation`, `task-planning`, and other short, low-ambiguity delegated units.
-- Use `@general-strong` by default for `requirements-clarification`, `public-research`, `implementation`, `refactoring`, `code-review`, `empirical-prompt-tuning`, and other long or high-ambiguity delegated units.
-- Escalate from `@general-fast` to `@general-strong` when the work becomes broad, ambiguous, or expensive to retry.
-- If a task, prompt, or workflow explicitly requires a named `skill`, satisfy that requirement with the `skill` tool before optional delegation.
-- Treat subagents as execution tiers after routing, not as substitutes for named skill contracts.
+- Classify the task as `tiny-local`, `bounded`, or `broad-or-unclear`.
+- `tiny-local` means one small surface, no new facts, and no cross-file dependency.
+- `bounded` means limited surfaces, short investigation, or a small contained change.
+- `broad-or-unclear` means multiple surfaces, missing facts, or design choices.
+- Handle `tiny-local` work yourself.
+- Delegate `bounded` work to `@general-fast`.
+- Delegate `broad-or-unclear` work to `@general-strong`.
+- If the class is unclear, choose `@general-strong`.
+- Set `task_kind` to the main purpose: `review`, `public_fact_research`, `requirements_clarification`, `bounded_investigation`, `implementation`, `refactoring`, or `planning`.
+- Set `mode_constraint` to `read_only` or `write_ok`.
+- When you delegate, send `task_kind`, `mode_constraint`, the work class, and the goal.
+- Do not name child skills in the parent prompt.
+- Let the subagent choose the skill or skills to read and the execution order.
+- Expect the subagent to reply with `work_class`, `task_kind`, `mode_constraint`, `chosen_skills`, `skill_sequence`, `why_this_choice`, `result`, and `next_action`.
