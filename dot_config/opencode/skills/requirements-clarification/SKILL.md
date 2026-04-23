@@ -1,135 +1,162 @@
 ---
 name: requirements-clarification
 description: >
-  Use this skill when repository discovery and any already-identified public-fact checks are no longer the main blockers, but requirement gaps still remain: the objective, scope, constraints, acceptance criteria, or load-bearing operating assumptions are still missing or ambiguous enough to block a written requirements artifact or downstream skill choice. It writes a requirements document with objective, scope, constraints, assumptions, open questions, and acceptance criteria, and may use bounded escalation such as `grill-me` when one answer would change several downstream design choices. Do not use it as a substitute for repository-local fact-finding or external evaluation-context verification; if requirement clarity is still `undetermined` because facts or criteria are missing, resolve those first or use `routing-diagnosis`. Expected result: a written requirements document and a clear next-step recommendation.
+  Use this skill as the default first step for ordinary implementation-shaped requests that are not yet execution-ready. It treats the user's initial instruction as a stated requirement, decomposes it into atomic requirements, normalizes each one into a fixed record, marks each required attribute as `user_provided`, `repo_derivable`, `public_fact`, or `unknown`, and determines the next skill from the remaining unresolved attributes. Do not use it for purely factual questions, pure local investigation, or pure public research with no implementation intent. Expected result: a written requirements artifact plus one next-step recommendation.
 ---
 
 # Requirements Clarification
 
 ## Purpose
 
-This skill structures vague, ambiguous, or under-specified user requests into a formal requirements document. Use it before `implementation` or detailed planning when the request is not yet execution-ready.
+This skill turns a raw implementation request into an execution-ready requirements
+artifact.
 
-The goal is to turn an unclear request into a written, reviewable artifact with explicit gaps identified and resolved where possible.
+Its starting assumption is that the user's initial instruction is a `stated requirement`:
+useful, but not yet analyzed, verified, or validated enough for direct execution.
 
-This skill handles requirement gaps. It is not the initial total diagnosis for every kind of uncertainty.
+The goal is to reduce routing ambiguity for smaller models by replacing
+"does this feel specific enough?" with a fixed requirements record and explicit
+attribute status.
 
 ## When to use
 
-Use this skill when repository discovery and any already-identified public-fact checks are no longer the main blockers, and the user request still meets any of these conditions:
+Use this skill as the default first step when the request is an ordinary
+implementation-shaped task and one or more of these are true:
 
-- the objective is vague or can be interpreted in multiple ways
-- the scope is undefined or unclear
-- no explicit constraints or acceptance criteria are given
-- critical terms or concepts in the request are ambiguous
-- the request still leaves multiple plausible objectives, scopes, or acceptance criteria open
-- the request may mean different things depending on visible operating assumptions such as local experiment, internal tooling, or something used by other people
-- the user still needs to choose solution constraints or operating targets, such as local-only versus externally used, strict versus relaxed privacy, or minimum durability or performance
-- the user still needs to choose security, privacy, cost, compliance, durability, or performance targets after any required external verification has already been done
+- the request names a change but not the full execution-ready requirement set
+- the request implies invariants, tests, docs, or verification work that are not yet
+  explicit
+- the request may hide multiple atomic requirements inside one instruction
+- the request needs a normalized artifact before planning or implementation
+- the request looks specific but still relies on unstated assumptions about scope,
+  constraints, or acceptance criteria
 
 ## When not to use
 
 Do not use this skill when:
 
-- the request already identifies a concrete next step such as a repository change, local investigation, structural cleanup, or public-fact check
-- it is still `undetermined` whether a requirement gap exists because repository facts have not yet been confirmed; use `routing-diagnosis` or `investigation` first
-- it is still `undetermined` whether a requirement gap exists because external evaluation criteria or public guidance may materially change the acceptable solution; use `routing-diagnosis` or `public-research` first
-- the main uncertainty is whether current practice, external standards, or a public source changes the acceptable answer; use `public-research` or `routing-diagnosis` first
-- the user is asking a factual question that does not require structural clarification
-- the task is already structured by a command workflow (e.g. `/add-prompt-capability`)
+- the request is a purely factual question with no implementation intent
+- the request is clearly pure public research
+- the request is clearly pure repository-local investigation
+- the request is clearly behavior-preserving refactoring and already execution-ready
+- the request already has a written requirements artifact or task file that is good
+  enough for the next downstream skill
 
 ## Expected inputs
 
 - the raw user request
-- any context the user provides (background, preferences, constraints)
-- information discoverable from the repository
+- any explicit user constraints, preferences, or prior decisions
+- relevant repository context discoverable from local files
+- public sources when externally grounded facts are needed for the requirement record
 
 ## Expected outputs
 
 - a structured requirements document written to an external file
-- targeted follow-up questions for the user when genuine gaps remain
-- a handoff recommendation naming the appropriate downstream skill
+- atomic requirement records with explicit attribute status
+- targeted user questions only for remaining `unknown` attributes
+- exactly one handoff recommendation
 
 ## Core rules
 
-### 0. Confirm that the unresolved gap is actually about requirements
+### 1. Start from stated requirements
 
-This skill handles missing or ambiguous objectives, scope, constraints, acceptance criteria, and load-bearing operating assumptions.
+Do not treat the user's first wording as automatically execution-ready.
 
-If the real blocker may instead be missing repository facts or missing evaluation-context criteria, stop and recommend `routing-diagnosis`, `investigation`, or `public-research` rather than asking the user prematurely.
+Instead, convert it into one or more atomic requirements.
 
-### 1. Discover before asking
+### 2. Split into atomic requirements
 
-Before generating questions, check what the repository, existing files, configuration, and code patterns already reveal. Ask only about genuine gaps that cannot be resolved from available context.
+Each atomic requirement should express one of:
 
-This aligns with the global rule: prefer discovered facts over unnecessary questions.
+- a capability
+- a constraint
+- a quality expectation
 
-### 2. Do not start implementation
+Do not leave several independently verifiable changes fused into one record.
 
-This skill produces requirements only. Do not begin editing code, creating files beyond the requirements document, or making design decisions that belong to implementation.
+### 3. Normalize every atomic requirement
 
-### 2a. Clarify only the assumptions that matter
+For each atomic requirement, fill a fixed record.
 
-Do not turn this skill into a fixed questionnaire.
+Use an EARS-style statement when practical, but prefer a precise fixed structure over
+free-form prose.
 
-When operational assumptions would change `Scope`, `Constraints`, `Open questions`, or `Acceptance criteria`, identify only the one to three that matter most for this request.
+Each record must contain at least:
 
-Typical examples include:
+- `Type`
+- `Normalized statement`
+- `Source`
+- `Target`
+- `Desired change`
+- `Invariants`
+- `Constraints`
+- `Acceptance criteria`
+- `Verification method`
+- `Affected tests`
+- `Affected docs`
 
-- whether the result is for a local experiment or for other users
-- whether secrets, authentication, authorization, PII, or other sensitive data are involved
-- whether cost, legal constraints, licenses, data durability, or performance realism materially affect the solution
+### 4. Track attribute status explicitly
 
-Capture the result in `Constraints`, `Assumptions`, `Open questions`, or `Acceptance criteria` rather than inventing a separate permanent checklist section.
+For every required attribute, record exactly one of:
 
-### 3. Distinguish assumptions from facts
+- `user_provided`
+- `repo_derivable`
+- `public_fact`
+- `unknown`
 
-When you fill in a section based on inference rather than explicit user statement or repository evidence, label it as an assumption. Do not present assumptions as confirmed requirements.
+Use these meanings:
 
-### 4. Keep the document concise
+- `user_provided`: the user already gave the value clearly enough
+- `repo_derivable`: the value should be determined from repository context
+- `public_fact`: the value depends on externally verifiable public information
+- `unknown`: the value still requires a real user decision or remains unresolved after
+  proportionate discovery
 
-Write the minimum structure needed to clarify the request. Do not pad the document with boilerplate, generic advice, or obvious statements.
+Do not collapse these statuses into a vague statement such as "unclear."
 
-### 5. Generate targeted questions
+### 5. Discover before asking
 
-When you must ask the user, make each question specific and actionable. Avoid broad, open-ended questions when a concrete choice or confirmation would suffice.
+Before asking the user, inspect the repository and use public research when needed.
 
-Prefer questions framed as:
+Ask only about attributes that remain `unknown` after proportionate discovery.
 
-- a choice between explicit options
-- a confirmation or correction of a stated assumption
-- a request for a specific missing value or criterion
+### 6. Route from unresolved attributes, not intuition
 
-Avoid questions framed as:
+Use this mapping:
 
-- "What do you want?" (too broad)
-- "Please describe your requirements in detail" (pushes framing work back to the user)
+- unresolved required `repo_derivable` attributes -> recommend `investigation`
+- unresolved required `public_fact` attributes -> recommend `public-research`
+- unresolved required `unknown` attributes -> stay in this skill and ask targeted
+  questions, or use `grill-me` only if the remaining decisions are interdependent
+- no unresolved required attributes -> recommend `task-planning`, `implementation`,
+  `refactoring`, or `code-review` as appropriate
 
-For genuine user decisions, prefer structured choices and use the `question` tool when available.
+Do not hand off to implementation while a required attribute is still `unknown`.
 
-### 5a. Escalate only when design questions are interdependent
+### 7. Make change obligations explicit
 
-If one or two direct clarification questions will resolve the remaining gaps, ask them here.
+The requirement record must surface change obligations that small models often miss.
 
-If the remaining open questions form a branching design tree where one answer would update multiple sections of the requirements document or change several downstream choices, you may use `grill-me` as a bounded escalation step.
+At minimum, make explicit:
 
-Do this only when all of the following are true:
+- what existing behavior must remain true
+- what new behavior must be verified
+- which tests are affected
+- which docs are affected
 
-- repository discovery and proportionate public research have already resolved the factual gaps they can resolve
-- the remaining uncertainty is primarily design- or preference-shaped
-- the decisions are interdependent enough that isolated questions would be confusing or inefficient
+If you determine that no test or doc update is needed, say so explicitly instead of
+leaving the field blank.
 
-After that escalation, return to this skill's output contract and finalize the written requirements document.
+### 8. Write the artifact
 
-### 6. Write to an external file
+Write the requirements document to `docs/requirements/<slug>.md` unless the user asked
+for another location.
 
-After structuring, write the requirements document to a file. The default location is `docs/requirements/<slug>.md` where `<slug>` is a short kebab-case identifier derived from the objective. If the user specifies a different location, use that instead.
-
-If the `docs/requirements/` directory does not exist, create it.
+If the directory does not exist, create it.
 
 ## Requirements document template
 
-Use this structure for the output file:
+Use this structure:
 
 ```markdown
 # Requirements: <title>
@@ -145,94 +172,112 @@ Use this structure for the output file:
 - Out of scope:
   - <item>
 
-## Constraints
+## Atomic requirements
 
-- <constraint>
+### R-1: <short label>
 
-## Assumptions
-
-- [ASSUMPTION] <assumed fact not yet confirmed by user>
+- Type: capability | constraint | quality
+- Normalized statement: <EARS-style statement or precise equivalent>
+- Source: <where the requirement comes from>
+- Target: <system, file, behavior, or artifact being changed>
+- Desired change: <what must change>
+- Invariants: <what must remain true>
+- Constraints: <boundaries on the solution>
+- Acceptance criteria: <measurable done conditions>
+- Verification method: <how to confirm the requirement>
+- Affected tests: <tests to add, update, check, or `None identified.`>
+- Affected docs: <docs to add, update, check, or `None identified.`>
+- Attribute status:
+  - source: user_provided | repo_derivable | public_fact | unknown
+  - target: user_provided | repo_derivable | public_fact | unknown
+  - desired change: user_provided | repo_derivable | public_fact | unknown
+  - invariants: user_provided | repo_derivable | public_fact | unknown
+  - constraints: user_provided | repo_derivable | public_fact | unknown
+  - acceptance criteria: user_provided | repo_derivable | public_fact | unknown
+  - verification method: user_provided | repo_derivable | public_fact | unknown
+  - affected tests: user_provided | repo_derivable | public_fact | unknown
+  - affected docs: user_provided | repo_derivable | public_fact | unknown
 
 ## Open questions
 
-- [ ] <question to resolve>
+- [ ] <only attributes that remain truly unknown>
 
-## Acceptance criteria
+## Handoff recommendation
 
-- [ ] <measurable condition that must be true when done>
+- Next skill: <requirements-clarification | investigation | public-research | task-planning | implementation | refactoring | code-review>
+- Why: <one short explanation>
 ```
 
-Fill in each section based on what is known. If a section has no content after discovery, write `None identified.` rather than leaving it blank.
+If a field has no applicable content after discovery, write `None identified.` rather
+than leaving it blank.
 
 ## Procedure
 
-### Step 1: Receive and restate
+### Step 1: Restate the implementation intent
 
-Restate the user's request in your own words internally. Separate potential requirement gaps from repository-fact gaps and evaluation-context gaps.
+Summarize what change the user appears to want.
 
-### Step 2: Discover from context
+### Step 2: Discover from local and public context
 
-Read relevant repository files, configuration, code patterns, and documentation to answer as many requirement questions as possible without asking the user.
+Read the relevant repository files.
 
-If visible task details show that public facts, official guidance, or current best practices must be checked before you can fill `Constraints`, `Acceptance criteria`, or the next-skill recommendation, use `public-research` before deciding that the gap must be pushed to the user.
+If externally grounded facts affect the requirement record, use `public-research`
+before asking the user.
 
-Also identify whether any load-bearing operating assumptions must be clarified, such as local-only versus externally used, sensitive data exposure, cost sensitivity, compliance constraints, or durability expectations.
+### Step 3: Split the request into atomic requirements
 
-If a supposed requirement gap cannot yet be judged because repository facts or external criteria are still missing, keep it `undetermined` and stop to recommend `routing-diagnosis` or the prerequisite skill instead of inventing user questions.
+Identify each independent capability, constraint, or quality expectation.
 
-### Step 3: Structure into the template
+### Step 4: Fill the normalized records
 
-Fill in each section of the requirements template:
+For each atomic requirement, fill every field in the template and assign an explicit
+attribute status.
 
-- **Objective**: what the user wants to achieve, stated as a single goal
-- **Scope**: what is included and explicitly excluded
-- **Constraints**: technical, organizational, or policy constraints that bound the solution
-- **Assumptions**: inferences you made that are not yet confirmed; label each with `[ASSUMPTION]`
-- **Open questions**: genuine gaps that cannot be resolved from context; format as checkboxes
-- **Acceptance criteria**: measurable conditions for completion; format as checkboxes
+### Step 5: Evaluate unresolved attributes
 
-### Step 4: Evaluate completeness
+If unresolved required attributes remain:
 
-Check whether the structured requirements now state the objective, scope, constraints, open questions, and acceptance criteria well enough to recommend exactly one downstream skill. If yes, proceed to Step 6.
+- recommend `investigation` for `repo_derivable`
+- recommend `public-research` for `public_fact`
+- ask targeted user questions only for `unknown`
 
-If not, identify the minimum set of questions needed to fill the critical gaps.
+If the remaining `unknown` attributes are tightly interdependent, you may use
+`grill-me` before returning to this artifact.
 
-If the remaining critical gaps are mostly interdependent design questions where one answer would update multiple sections or downstream choices, consider the bounded `grill-me` escalation described above before returning to the user.
+### Step 6: Write the document
 
-### Step 5: Ask the user
+Write the current artifact to the output file even if follow-up work remains.
 
-Present the current draft to the user along with targeted questions.
+Do not wait for perfection before externalizing the normalized record.
 
-Do not present an empty template. Show what you have already filled in so the user can confirm or correct.
+### Step 7: Recommend exactly one next skill
 
-After the user responds, update the document and re-evaluate whether it supports exactly one downstream handoff recommendation. Repeat this step until it does.
-
-### Step 6: Write the requirements file
-
-Write the final document to the output file. Confirm the file path to the user.
-
-### Step 7: Recommend handoff
-
-State which downstream skill should handle the request next and why. Include the file path of the requirements document so the downstream invocation can reference it.
+Base the recommendation on the unresolved attributes or, if none remain, on the next
+real execution need.
 
 ## Handoff rules
 
-- If the requirements now identify a concrete repository change, target surfaces or contracts, and required checks with no blocking unknowns, recommend `implementation` with the requirements file path.
-- If the requirements are concrete but execution still needs ordered decomposition, dependencies, explicit resume-safe checks, or a durable task artifact because important execution guidance currently exists only in conversation, recommend `task-planning` with the requirements file path.
-- If open questions or acceptance criteria still depend on public facts or official guidance, recommend `public-research` for that portion first.
-- If the chosen work is behavior-preserving structural cleanup of existing code, recommend `refactoring` as a prerequisite.
-- If the remaining open questions concern repository-local behavior, state, or facts to confirm, recommend `investigation` first.
+- recommend `investigation` when unresolved required attributes are `repo_derivable`
+- recommend `public-research` when unresolved required attributes are `public_fact`
+- remain in `requirements-clarification` when unresolved required attributes are truly
+  `unknown` and user input is still needed
+- recommend `task-planning` when the requirement records are complete but the work still
+  needs sequencing, decomposition, or a resume-safe artifact
+- recommend `implementation` when the requirement records are complete and the change can
+  be executed directly
+- recommend `refactoring` when the complete records describe behavior-preserving
+  structural cleanup
+- recommend `code-review` when the task is to review code quality rather than to edit
 
 ## Quick checklist
 
 Before finishing, verify all of the following:
 
-- the requirements document contains all six sections
-- assumptions are explicitly labeled
-- open questions are formatted as checkboxes
-- acceptance criteria are measurable
-- no question was asked that could have been answered from repository context
-- operating assumptions were clarified only where they materially affected the request
-- the document was written to an external file
-- the file path was communicated to the user
-- a handoff recommendation was given
+- the user request was treated as a stated requirement, not as instant implementation
+- the request was split into atomic requirements
+- each atomic requirement has the fixed fields
+- each required attribute has an explicit status value
+- repo and public discovery were attempted before asking the user
+- open questions include only true `unknown` attributes
+- the artifact was written to an external file
+- the next-step recommendation names exactly one skill

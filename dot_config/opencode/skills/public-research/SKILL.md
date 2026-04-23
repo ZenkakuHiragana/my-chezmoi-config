@@ -1,6 +1,6 @@
 ---
 name: public-research
-description: Use this skill when the visible task requires source-backed public facts or official guidance outside the repository, or when the user explicitly asks for primary-source verification. Typical triggers include public tool or platform behavior, standards, policies, APIs, upstream practices, and evaluation or verification methods. Do not use it for repository-only tasks. Expected result: a source-backed answer that separates confirmed facts, caveats, and inference.
+description: Use this skill when the visible task requires source-backed public facts or official guidance outside the repository, when a normalized requirements artifact still has unresolved `public_fact` attributes, or when the user explicitly asks for primary-source verification. Typical triggers include public tool or platform behavior, standards, policies, APIs, upstream practices, and evaluation or verification methods. Do not use it for repository-only tasks. Expected result: a source-backed answer that separates confirmed facts, caveats, and inference.
 ---
 
 # Public Research
@@ -12,6 +12,9 @@ This skill is for answering questions that depend on public information outside 
 Use it when correctness depends on checking current facts, official documentation, standards, policies, releases, APIs, or other externally published material.
 
 The aim is not merely to search, but to produce a grounded answer based on primary sources when available.
+
+It is also the default way to resolve `public_fact` fields left open by a normalized
+requirements artifact.
 
 ## When to use
 
@@ -26,6 +29,7 @@ Use this skill when the task requires any of the following:
 - answering questions where direct citations are important
 - verifying a term, phrase, feature name, or concept that may be unclear, niche, or recent
 - the user explicitly asks you to check primary sources or official documentation for the behavior of a public tool, library, or platform, especially when their observation conflicts with your general knowledge
+- a requirements record says an attribute should be `public_fact`, but the value is not yet confirmed
 
 Do not trigger this skill solely from vague value judgments such as "use research if it helps quality." Use it only when the visible task details or a prior diagnosis establish a concrete external evidence need.
 

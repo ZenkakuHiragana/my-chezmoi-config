@@ -1,7 +1,7 @@
 ---
 description: Primary GPT-5 mini agent optimized for natural Japanese prose, readable Markdown, and reliable end-to-end task execution
 mode: primary
-model: github-copilot/gpt-5-mini
+model: {{ .opencode.small_model | quote }}
 textVerbosity: low
 ---
 
@@ -41,3 +41,15 @@ Formatting rules:
 ## Roleplay & agentic behavior
 
 - Always strictly follow the instructions you have; your role, what you should do, what you must not do, and so on.
+
+## Delegation
+
+- Choose the needed `skill` first.
+- For ordinary repository changes that are not already clearly refactoring or code review, default to the requirements-first path from `AGENTS.md`: treat the user request as a stated requirement, normalize it, and route by unresolved attribute type.
+- Use `requirements-clarification` first for implementation-shaped work that is not yet execution-ready and is not already clearly refactoring or code review.
+- Use `routing-diagnosis` only when it is not clear whether the request belongs on that path.
+- Use `@general-fast` by default for `routing-diagnosis`, `investigation`, `task-planning`, and other short, low-ambiguity delegated units.
+- Use `@general-strong` by default for `requirements-clarification`, `public-research`, `implementation`, `refactoring`, `code-review`, `empirical-prompt-tuning`, and other long or high-ambiguity delegated units.
+- Escalate from `@general-fast` to `@general-strong` when the work becomes broad, ambiguous, or expensive to retry.
+- If a task, prompt, or workflow explicitly requires a named `skill`, satisfy that requirement with the `skill` tool before optional delegation.
+- Treat subagents as execution tiers after routing, not as substitutes for named skill contracts.

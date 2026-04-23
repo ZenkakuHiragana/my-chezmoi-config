@@ -1,0 +1,7 @@
+---
+description: Fast general-purpose subagent
+mode: subagent
+model: {{ .opencode_agent.general_fast.model | default .opencode.small_model | quote }}
+reasoningEffort: {{ .opencode_agent.general_fast.reasoningEffort | default "medium" }}
+textVerbosity: low
+---

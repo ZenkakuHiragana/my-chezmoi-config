@@ -1,6 +1,6 @@
 ---
 name: implementation
-description: Use this skill when the requested repository change, target surfaces, and required checks are already identified in the current request or task contract, and the task is to make or update files to satisfy it, including feature work, known bug fixes, and coherent code, documentation, configuration, prompt, or script changes. Do not use when the main task is to investigate observed behavior, gather diagnostic evidence, or decide whether any real change is needed.
+description: Use this skill when a normalized requirements artifact or task contract already identifies the requested repository change, target surfaces, invariants, acceptance criteria, verification method, and required checks, and the task is to make or update files to satisfy it, including feature work, known bug fixes, and coherent code, documentation, configuration, prompt, or script changes. Do not use when the main task is to investigate observed behavior, gather diagnostic evidence, or decide whether any real change is needed.
 ---
 
 # Implementation
@@ -33,7 +33,7 @@ Do not use this skill when the task is primarily:
 
 If the task is mainly external fact-finding, use `public-research` instead.
 
-If the request or task contract does not yet identify the needed facts, target surfaces, or required checks, stop and use the prerequisite skill instead of guessing.
+If the request or task contract does not yet identify the needed facts, target surfaces, invariants, acceptance criteria, verification method, or required checks, stop and use the prerequisite skill instead of guessing.
 
 ## Expected inputs
 
@@ -41,10 +41,13 @@ You should already have, or first establish, a task contract that identifies:
 
 - the requested outcome
 - the relevant files or directories
-- the expected outcome
+- the invariants and constraints that must remain true
+- the acceptance criteria
+- the verification method
 - explicit user constraints
 - required facts
 - candidate dependent surfaces
+- affected tests and docs when relevant
 - required checks before completion
 
 ## Expected outputs
@@ -64,6 +67,8 @@ At minimum, provide:
 Do not stop after making one plausible edit if the request implies additional required changes elsewhere.
 
 If a command-line interface, configuration key, prompt contract, public function, user-facing behavior, or documented workflow changed, inspect likely dependent surfaces and update them as needed.
+
+When a normalized requirements artifact exists, treat its `Invariants`, `Acceptance criteria`, `Verification method`, `Affected tests`, and `Affected docs` as required obligations, not optional hints.
 
 Typical dependent surfaces include:
 
@@ -194,6 +199,7 @@ State internally:
 - what the user wants changed
 - what counts as completion
 - which change class applies
+- which normalized requirement records or task-contract obligations must be satisfied
 
 ### Step 2: Survey the affected area
 
@@ -219,6 +225,8 @@ After editing, re-read the changed files and nearby dependent surfaces to catch 
 
 Perform proportionate validation.
 
+Validate against the explicit acceptance criteria and verification method from the requirement record or task contract, not only against local intuition.
+
 Start from the most direct checks:
 
 - changed file re-read
@@ -240,6 +248,7 @@ Ask:
 - did any contract change without related docs or help being updated?
 - are there stale comments, examples, or prompts that still describe the old state?
 - for modify_existing or bugfix, was regression risk checked at least locally?
+- were affected tests and docs updated, checked, or explicitly confirmed as not needed?
 
 Also compare the final result against the task contract.
 Do not finish if any required fact, dependent surface, or required check remains unaddressed.

@@ -1,144 +1,128 @@
 ---
 name: routing-diagnosis
 description: >
-  Use this skill when it is not yet clear whether the next step should be `investigation`, `requirements-clarification`, `public-research`, `task-planning`, `implementation`, or `refactoring`, especially when requirement gaps, repository-fact gaps, and evaluation-context gaps interact. It classifies each gap as `satisfied`, `missing`, or `undetermined`, records dependency order between gaps, and recommends the cheapest safe next skill. Do not use when the three gap classes can already be classified with no blocking `undetermined` state and they already point to one next skill, or when a command workflow already performs this diagnosis. Expected result: a concise diagnosis with blocker gaps, the next-skill recommendation, and the minimum evidence or question needed next.
+  Use this skill only when it is not yet clear whether a request should enter the default requirements-first path or another path such as direct information gathering, public research, planning, implementation, refactoring, or review. It performs a lightweight diagnosis, recommends exactly one next skill, and states the minimum evidence or question needed next. Do not use it for ordinary implementation-shaped requests that can start by normalizing stated requirements. Expected result: a concise diagnosis with one next-skill recommendation.
 ---
 
 # Routing Diagnosis
 
 ## Purpose
 
-This skill performs lightweight pre-routing diagnosis when it is not yet clear which downstream skill should act first.
+This skill is an escape hatch for ambiguous routing.
 
-It separates three kinds of unresolved gaps:
+Use it when the first problem is not "how do we execute this change?" but
+"what routing template should this request use at all?"
 
-- requirement gaps
-- repository-fact gaps
-- evaluation-context gaps
-
-The goal is not to solve the task. The goal is to identify the cheapest safe next step and explain why.
+For ordinary implementation-shaped requests, do not start here.
+Start with `requirements-clarification` and let the normalized requirement
+records drive later handoffs.
 
 ## When to use
 
-- more than one downstream skill plausibly fits as the first step
-- whether requirements are clear depends on repository inspection, external guidance, or both
-- the request mixes "understand the current state", "decide the scope", and "plan or implement"
-- a request looks concrete at first, but may change shape once current artifacts, constraints, or evaluation criteria are checked
-- you need a lightweight diagnosis before deciding between `investigation`, `public-research`, `requirements-clarification`, `task-planning`, `implementation`, or `refactoring`
+- it is unclear whether the request is primarily implementation-shaped,
+  investigation-shaped, public-research-shaped, review-shaped, or refactoring-shaped
+- the request mixes inspection, design choice, and execution intent in a way that
+  makes the correct first template unclear
+- the request is meta-work about routing, skills, or workflow boundaries and the
+  correct downstream skill is not obvious
+- several different first skills are plausible and the wrong choice would change
+  the work materially
 
 ## When not to use
 
-- the three gap classes can already be classified with no blocking `undetermined` state and they already point to one next skill
-- the task already has a concrete next step because the requested outcome, known facts, and required checks match one downstream skill's entry conditions
-- a command workflow already performs this diagnosis
+- the request is an ordinary repository change that can start from stated-requirement
+  normalization
+- the request is clearly pure public research
+- the request is clearly pure local investigation
+- the request is clearly refactoring or code review
+- the request already has a written requirements artifact or task file that points
+  to one downstream skill
 
 ## Expected inputs
 
 - the raw user request
 - any explicit user constraints or prior decisions
-- the minimum local or public context needed to classify unresolved gaps
+- the minimum local or public context needed to decide the next template safely
 
 ## Expected outputs
 
-- a concise diagnosis with the status of each gap class
-- dependency notes for any `undetermined` gap
-- the recommended next skill and why
-- the minimum evidence or user decision needed next
-- any reroute condition that would change the recommendation
+- a short request summary
+- a short routing assessment
+- exactly one recommended next skill
+- the minimum evidence or question needed next
+- a reroute condition if one fact would change the recommendation
 
 ## Core rules
 
-### 1. Separate gap classes
+### 1. Prefer the default path when possible
 
-Classify unresolved uncertainty into these buckets:
+First ask whether the request is an ordinary implementation-shaped task.
 
-- **Requirement gaps**: objective, scope, constraints, acceptance criteria, or load-bearing operating assumptions are missing or ambiguous.
-- **Repository-fact gaps**: current state, affected surfaces, existing artifacts, code paths, or configuration facts inside the repository are missing or unconfirmed.
-- **Evaluation-context gaps**: externally grounded criteria or task-shaped priorities such as security, privacy, compatibility, performance, compliance, reliability, or source/evidence standards are missing or unconfirmed.
+If yes, recommend `requirements-clarification` rather than inventing a broader
+diagnostic branch.
 
-Do not collapse these gap classes into a single label such as "unclear."
+### 2. Diagnose only what changes routing
 
-### 2. Use three states
+Do not perform broad exploration.
 
-Track each gap class as one of:
+Gather only enough evidence to decide which skill should act first.
 
-- `satisfied`
-- `missing`
-- `undetermined`
+### 3. Keep the output to one next step
 
-Use `undetermined` when you do not yet have enough evidence to judge whether the gap is actually missing, or when signals conflict.
+Return exactly one next skill.
 
-Do not treat `undetermined` as `missing` or `satisfied`.
+If later skills may follow, mention them only as follow-up context, not as a tied
+first-step recommendation.
 
-### 3. Resolve prerequisite gaps first
+### 4. Use simple routing tests
 
-If one gap cannot yet be judged because another gap is unresolved, keep the dependent gap `undetermined` and resolve the prerequisite gap first.
+Use this order:
 
-Examples:
+1. If the request is clearly behavior-preserving structural cleanup, recommend `refactoring`.
+2. If the request is clearly about reviewing code quality, recommend `code-review`.
+3. If the request is an ordinary repository change, recommend `requirements-clarification`.
+4. If the request is clearly about repository-local facts or observed behavior with no
+   confirmed change yet, recommend `investigation`.
+5. If the request is clearly about source-backed public facts or external guidance,
+   recommend `public-research`.
+6. If the request already has execution-ready requirements but needs sequencing,
+   recommend `task-planning`.
+7. If the request already has execution-ready requirements and no planning gap,
+   recommend `implementation`.
 
-- if you cannot tell whether the scope is complete until you inspect the current repository surfaces, resolve the repository-fact gap first
-- if you cannot tell whether compatibility or citation requirements matter until you know the domain or external policy, resolve the evaluation-context gap first
+### 5. State the smallest missing input
 
-### 4. Prefer the cheapest safe next step
+If one missing fact or one user decision blocks safe routing, say exactly what it is.
 
-Recommend the next skill that is most likely to change the routing decision with the least cost.
-
-Use this default mapping unless evidence clearly points elsewhere:
-
-- choose `investigation` when repository-fact gaps are `missing`, or when requirement clarity remains `undetermined` because repository facts are missing
-- choose `public-research` when evaluation-context gaps are `missing`, or when requirement clarity remains `undetermined` because visible task details show that external guidance or public facts must be checked before the next skill can be chosen safely
-- choose `requirements-clarification` when requirement gaps remain `missing` after proportionate factual and evaluation-context gathering
-- choose `task-planning` when all material gaps are `satisfied` and the work still needs ordered decomposition or a durable task artifact to preserve conversation-only instructions, constraints, dependencies, or checks
-- choose `implementation` when all material gaps are `satisfied` and the requested repository change, target surfaces, and required checks are already identified
-- choose `refactoring` when the next step is behavior-preserving structural cleanup rather than feature delivery or bug fixing
-
-### 5. Keep diagnosis lightweight
-
-Inspect only the minimum context needed to recommend the next skill safely.
-
-Do not turn this skill into broad exploration, detailed planning, or implementation.
-
-### 6. Distinguish blockers from follow-ups
-
-A gap blocks routing only when the next skill would be materially different depending on how that gap is resolved.
-
-If a gap does not change the safe next step, note it as a follow-up rather than treating it as a blocker.
+Do not ask broad questions such as "what do you want?"
 
 ## Procedure
 
-### Step 1: Restate the task and candidate next steps
+### Step 1: Restate the request in one line
 
-Restate the user's request internally and identify the plausible downstream skills.
+Identify the concrete thing the user appears to want.
 
-### Step 2: Gather only the minimum prerequisite context
+### Step 2: Decide whether it is an ordinary implementation-shaped request
 
-Read the minimum relevant repository files when the task is repository-local.
+If yes, first check whether it is already clearly refactoring or code review.
 
-If visible task details already show that official docs, public standards, or current guidance must be checked to fill an evaluation-context gap, use `public-research` before finalizing the diagnosis.
+If it is not, stop and recommend `requirements-clarification`.
 
-### Step 3: Fill the gap table
+### Step 3: Check the nearest alternative
 
-For each gap class, record:
+If not, determine whether the request is more clearly investigation, public research,
+refactoring, code review, task planning, or implementation.
 
-- status: `satisfied`, `missing`, or `undetermined`
-- short supporting evidence
-- whether another gap must be resolved first
+### Step 4: Report one next skill
 
-### Step 4: Choose the next skill
-
-Recommend the smallest safe next skill based on the gap table and dependency order.
-
-### Step 5: Report reroute conditions
-
-State what new fact, user answer, or external source would change the diagnosis enough to justify a different next skill.
+State the recommendation and the minimum evidence or question that justified it.
 
 ## Output format
 
 Return a concise diagnosis with these sections:
 
 - **Request summary**
-- **Gap table**
-- **Blocking dependencies**
+- **Routing assessment**
 - **Recommended next skill**
 - **Minimum next evidence or question**
 - **Reroute condition**
@@ -147,8 +131,7 @@ Return a concise diagnosis with these sections:
 
 Before finishing, verify all of the following:
 
-- all three gap classes were considered
-- any `undetermined` status has a short reason
-- dependency order between gaps is explicit when relevant
-- the recommendation points to exactly one next skill
-- the proposed next step is smaller than full planning or implementation when the evidence is still incomplete
+- you checked whether the default requirements-first path was enough
+- the recommendation names exactly one next skill
+- the diagnosis is smaller than full planning or implementation
+- the report states the minimum evidence or question needed next

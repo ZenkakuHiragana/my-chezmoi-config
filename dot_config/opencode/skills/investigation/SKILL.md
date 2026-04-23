@@ -1,6 +1,6 @@
 ---
 name: investigation
-description: Use this skill when you need to investigate repository-local behavior, state, or facts before deciding on a real fix or implementation change. Use it for reproduction, evidence gathering, code-path confirmation, temporary instrumentation, and configuration, environment, or data inspection. Do not use when the current request or task contract already identifies a concrete repository change and required checks, or when the task is mainly public fact-finding. Expected result: confirmed observations, reproduction status, narrowed scope, ranked explanations, remaining unknowns, and the recommended next action.
+description: Use this skill when you need to investigate repository-local behavior, state, or facts before deciding on a real fix or implementation change, or when a normalized requirements artifact still has unresolved `repo_derivable` attributes. Use it for reproduction, evidence gathering, code-path confirmation, temporary instrumentation, and configuration, environment, or data inspection. Do not use when the current request or task contract already identifies a concrete repository change and required checks, or when the task is mainly public fact-finding. Expected result: confirmed observations, resolved repository facts, remaining unknowns, and the recommended next action.
 ---
 
 # Investigation
@@ -8,6 +8,8 @@ description: Use this skill when you need to investigate repository-local behavi
 ## Purpose
 
 This skill is for investigating repository-local observed behavior, system state, and factual conditions before deciding whether any real fix or implementation change is needed.
+
+It is also the default way to resolve `repo_derivable` fields left open by a normalized requirements artifact.
 
 ## When to use
 
@@ -18,6 +20,7 @@ This skill is for investigating repository-local observed behavior, system state
 - you need to separate internal causes from external dependencies, configuration, data, or environment factors
 - you need to compare several plausible explanations before deciding the next action
 - you need to check related public issues, release notes, or upstream reports; use `public-research` for that part when local evidence is not enough
+- a requirements record says an attribute should be `repo_derivable`, but the actual value is not yet confirmed
 
 ## When not to use
 
@@ -44,6 +47,7 @@ Return:
 
 - a short summary of the observed behavior or factual question
 - confirmed observations and relevant evidence
+- which `repo_derivable` fields or local facts were resolved, when applicable
 - reproduction status
 - narrowed scope and what has been ruled out
 - likely explanations ranked by evidence

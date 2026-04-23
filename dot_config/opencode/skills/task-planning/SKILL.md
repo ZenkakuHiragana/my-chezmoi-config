@@ -1,7 +1,7 @@
 ---
 name: task-planning
 description: >
-  Use this skill when diagnosis or an existing requirements artifact has already made the requested outcome, constraints, and prerequisite facts concrete enough to write a task file, but the work still needs ordered investigation, implementation, research, or verification steps, or when long conversation-only instructions should be normalized into a durable artifact before downstream work. Use it before downstream execution when the task spans multiple files or phases, depends on sequencing, or needs a resume-safe plan that reduces compaction or omission risk. Do not use it when requirement clarity is still missing or `undetermined`; resolve those gaps first with `routing-diagnosis`, `investigation`, `public-research`, or `requirements-clarification`. Expected result: One task file under `.opencode/work/` with the outcome, constraints, relevant surfaces, ordered work items, and completion checks.
+  Use this skill when a normalized requirements artifact or other clear task contract already makes the requested outcome, constraints, and prerequisite facts concrete enough to write a task file, but the work still needs ordered investigation, implementation, research, or verification steps, or when long conversation-only instructions should be normalized into a durable artifact before downstream work. Use it before downstream execution when the task spans multiple files or phases, depends on sequencing, or needs a resume-safe plan that reduces compaction or omission risk. Do not use it when required requirement attributes are still unresolved; resolve those first with `requirements-clarification`, `investigation`, or `public-research`. Expected result: One task file under `.opencode/work/` with the outcome, constraints, relevant surfaces, ordered work items, and completion checks.
 ---
 
 # Task Planning
@@ -17,7 +17,7 @@ required research, execution order, or completion checks.
 
 Also use it when the user already provided a long or multi-part procedure, but reliable execution would still depend on preserving that procedure, its dependencies, or its checks outside transient chat state.
 
-Use it after routing diagnosis or another existing artifact has already made the requested outcome, constraints, and prerequisite facts concrete enough to fill the task file.
+Use it after `requirements-clarification` or another existing artifact has already made the requested outcome, constraints, invariants, acceptance criteria, verification method, and prerequisite facts concrete enough to fill the task file.
 
 This skill does not implement the task.
 It defines the task in a form that downstream execution can follow reliably.
@@ -40,15 +40,15 @@ Use this skill when one or more of the following are true:
 Do not use this skill when:
 
 - the task is short enough that all required steps, constraints, and checks can be executed reliably in one focused pass without creating a durable task artifact
-- the requirements are still ambiguous or under-specified; use `requirements-clarification` first
-- requirement clarity is still `undetermined` because prerequisite repository facts or evaluation-context gaps remain unresolved; use `routing-diagnosis` or the prerequisite skill first
-- the first meaningful work item would mostly be to discover missing facts or criteria; use `routing-diagnosis`, `investigation`, `public-research`, or `requirements-clarification` first
+- required requirement attributes are still unresolved; use `requirements-clarification`, `investigation`, or `public-research` first
+- the first meaningful work item would mostly be to discover missing facts or criteria before the requirement record is complete; use `requirements-clarification`, `investigation`, or `public-research` first
 - the task is purely investigative with no implementation intent; use `investigation` or `public-research`
 - the task is already fully structured by a command workflow
 
 ## Expected inputs
 
 - a clear task description or requirement
+- a normalized requirements artifact when the task is implementation-shaped
 - repository context discoverable from the codebase, when the task is repository-local
 - any explicit user constraints, preferences, or prior decisions already stated
 
@@ -78,6 +78,8 @@ execution-time decisions that belong to downstream work.
 ### 2. Base the task file on evidence
 
 Read the actual repository when the task is repository-local.
+
+When a normalized requirements artifact exists, use it as the primary source for the requested outcome, invariants, acceptance criteria, verification method, and affected tests or docs.
 
 Do not invent file names, module boundaries, dependency relationships, conventions,
 tests, or verification mechanisms from assumptions.
@@ -137,6 +139,7 @@ At minimum, capture:
 
 - concrete input artifacts
 - conversation-provided instructions, constraints, checks, and dependency notes that execution would otherwise need to remember
+- requirement-record obligations such as invariants, acceptance criteria, verification method, and affected tests or docs
 - relevant surfaces to change or inspect
 - the chosen approach
 - blocking unknowns that gate execution
@@ -226,7 +229,7 @@ When upstream conversation contains long procedural guidance, capture the durabl
 
 Restate the task internally.
 
-If the requested outcome, constraints, prerequisite facts, or blocking unknowns still cannot be filled without guessing, stop and recommend `routing-diagnosis` or the appropriate prerequisite skill instead.
+If the requested outcome, constraints, prerequisite facts, acceptance criteria, or blocking unknowns still cannot be filled without guessing, stop and recommend `requirements-clarification` or the appropriate prerequisite skill instead.
 
 ### Step 2: Survey the relevant context
 
@@ -239,6 +242,8 @@ Do not skip this step.
 ### Step 3: Write requested outcome, constraints, and inputs
 
 Record what must be achieved, what must remain true, and which concrete upstream artifacts or user decisions this plan depends on.
+
+If a normalized requirements artifact exists, carry forward its invariants, acceptance criteria, verification method, and affected tests or docs rather than re-inventing them.
 
 If the user already gave an ordered procedure, capture the durable instructions, constraints, and checks from that procedure in these sections and in later work items.
 
@@ -302,6 +307,7 @@ Recommend the next downstream skill based on the first real execution need:
 Before finishing, verify all of the following:
 
 - the task file could be filled without inventing missing requirements or prerequisite facts
+- requirement-record obligations were preserved when such an artifact existed
 - the repository or other relevant context was actually inspected when needed
 - the task file contains requested outcome, constraints, inputs, relevant surfaces, chosen approach, facts to gather, blocking unknowns, work items, and checks before completion
 - any long or dependency-rich conversation-only procedure needed for execution was normalized into the task file

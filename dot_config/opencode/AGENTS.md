@@ -14,45 +14,64 @@
 ## Intent gate and skill selection
 
 - Route the task to the minimum set of skills needed, in the order the task actually requires.
-- First identify the smallest unresolved core intent:
+- First identify whether the visible task is primarily:
   - information gathering
-  - planning
-  - implementation
+  - implementation or change delivery
+  - planning or decomposition
+  - review or refactoring
+- For implementation-shaped requests, do not treat the user's first instruction as execution-ready. Treat it as a `stated requirement` until it has been normalized.
 - Treat verification as a cross-cutting obligation for every non-trivial task, not as a substitute for unresolved information gathering, planning, or implementation.
 - For mixed tasks, first reduce the uncertainty that blocks safe routing, then continue with planning, implementation, and verification.
 
+### Default requirements-first routing
+
+- For ordinary repository-change requests that are not already clearly behavior-preserving refactoring or code review, start with a requirements-first path instead of open-ended multi-skill diagnosis.
+- Break the requested change into atomic requirements. Each atomic requirement should express one capability, constraint, or quality expectation.
+- Normalize each atomic requirement into a fixed record. Use an EARS-style statement when practical, but prefer a precise fixed structure over free-form prose.
+- Record at least these attributes for each atomic requirement:
+  - source
+  - target
+  - desired change
+  - invariants
+  - constraints
+  - acceptance criteria
+  - verification method
+  - affected tests
+  - affected docs
+- Track each required attribute as exactly one of:
+  - `user_provided`
+  - `repo_derivable`
+  - `public_fact`
+  - `unknown`
+- Use missing attributes, not a vague overall clarity judgment, to decide the next step.
+- The default routing for implementation-shaped work is:
+  - start with `requirements-clarification` unless the request is already clearly refactoring or code review
+  - use `investigation` to resolve unresolved `repo_derivable` attributes
+  - use `public-research` to resolve unresolved `public_fact` attributes
+  - keep `requirements-clarification` responsible for any required `unknown` attributes that still need a user decision
+  - once the requirement records are complete, hand off to `task-planning`, `implementation`, `refactoring`, or `code-review` as appropriate
+
 ### Diagnostic routing
 
-- Before deciding that a request is clear enough for planning or implementation, classify unresolved gaps into:
-  - requirement gaps
-  - repository-fact gaps
-  - evaluation-context gaps
-- Track each gap as `satisfied`, `missing`, or `undetermined`.
-- If a gap cannot yet be judged because another gap is unresolved, keep it `undetermined` and resolve the prerequisite gap first.
-- Use `routing-diagnosis` when the right next skill is not already obvious, especially when:
-  - the request mixes current-state inspection, scope decisions, and planning
-  - requirement, repository-fact, or evaluation-context gaps may interact
-  - the task depends on existing surfaces or artifacts before scope or completion can be judged
-  - external criteria or current practice may materially change the acceptable solution
+- Use `routing-diagnosis` only when it is not yet clear whether the request should enter the default requirements-first path or another path such as direct information gathering, public research, review, or refactoring.
 - Keep diagnosis lightweight. Gather only the minimum evidence needed to recommend the next skill safely.
 
 ### Information gathering
 
-- Use `investigation` when repository-local behavior, state, configuration, inputs, outputs, code paths, or existing artifacts must be confirmed before the next action is clear, or when requirement clarity is still `undetermined` because repository facts are missing.
-- Use `public-research` when the visible task requires source-backed public facts or official guidance outside the repository, such as checking tool or platform behavior, standards, policies, APIs, upstream practices, or evaluation methods, or when `routing-diagnosis` identifies an evaluation-context gap that needs external evidence.
+- Use `investigation` when repository-local behavior, state, configuration, inputs, outputs, code paths, or existing artifacts must be confirmed before the next action is clear, or when unresolved `repo_derivable` requirement attributes must be filled.
+- Use `public-research` when the visible task requires source-backed public facts or official guidance outside the repository, such as checking tool or platform behavior, standards, policies, APIs, upstream practices, or evaluation methods, or when unresolved `public_fact` requirement attributes must be filled.
 
 ### Planning
 
-- Use `requirements-clarification` when requirement gaps remain `missing` after proportionate repository or public fact gathering, or when the user still has to choose objective, scope, acceptance criteria, or load-bearing operating assumptions for the solution.
-- Do not use `requirements-clarification` as the initial total diagnosis for every kind of uncertainty.
-- Do not use `requirements-clarification` when the main uncertainty is whether repository facts or external evaluation criteria are missing; use `routing-diagnosis`, `investigation`, or `public-research` first.
+- Use `requirements-clarification` as the default first skill for ordinary implementation-shaped requests that are not yet execution-ready. It should transform the user's stated requirement into a written artifact with atomic requirement records, explicit attribute status, and the minimum remaining open questions.
+- Do not use `requirements-clarification` for purely factual questions, pure public research, or pure local investigation with no implementation intent.
 - Use `task-planning` when requirements are clear enough to act on after diagnosis, but the work still needs decomposition, sequencing, dependency handling, surface mapping, explicit checks before execution, or a durable task artifact because important instructions, constraints, or checks currently exist only in conversation and should not be left vulnerable to resume, compaction, or omission risk.
 - Use `grill-me` only when the user explicitly asks for that mode, or when `requirements-clarification` reaches several interdependent design questions that are better resolved through a bounded interview before the requirements document can be finalized.
 - When a planning artifact for the current request is already identified from the conversation or from an allowed recovery step, read and use it before starting downstream execution.
 
 ### Implementation
 
-- Use `implementation` once the intended repository change is clear and enough facts are known to act.
+- Use `implementation` once normalized requirements or an equivalent task contract identify the requested change, invariants, acceptance criteria, verification method, and affected tests or docs well enough to act.
 - Prefer `refactoring` for behavior-preserving structural cleanup rather than feature delivery or bug fixes.
 - Prefer `code-review` for reviewing code quality without making implementation the primary task.
 
@@ -91,13 +110,15 @@ Do not let it override the current request.
 
 For any non-trivial task, establish a task contract before substantial editing, answering, or claiming completion.
 
+For implementation-shaped work, prefer a written requirements artifact or task file over relying on the raw user request alone.
+
 The task contract must record:
 
 - the requested outcome
-- the constraints that must stay true
+- the invariants and constraints that must stay true
 - the facts that must be gathered before acting
 - the surfaces that may need to change or be checked
-- the checks required before the task can be treated as done
+- the acceptance criteria and verification method, including affected tests and docs when relevant
 
 Keep this contract active throughout investigation, research, implementation, and verification.
 
