@@ -45,11 +45,46 @@ Do not use public research as a substitute for local investigation when the real
 
 Do not perform token research just to look busy. Use enough external evidence to support the material claim or design choice, then stop.
 
-## High-priority safety and privacy rule
+## Privacy and Internal Term Guard
+
+### High-priority safety rule
 
 Never include private repository contents, unpublished identifiers, secrets, internal URLs, local paths, proprietary names, or user-sensitive details in a web query unless the user has explicitly asked for that public disclosure and it is clearly safe.
 
 When external research is needed, formulate queries using public-facing descriptions rather than internal private details whenever possible.
+
+### Internal Term Guard (mandatory before each external search)
+
+Before issuing any external search query:
+
+1. **Screen all search terms**
+   Do not search for:
+   - internal variable, function, class, or module names
+   - project-specific identifiers or abbreviated names that only make sense in the local codebase
+   - error messages that appear to be authored by the project itself
+
+2. **Detect likely internal terms**
+   - If a term appears in the local codebase and does not appear as a common public term in documentation or well-known resources, treat it as internal.
+   - When uncertain, err on the side of treating the term as internal.
+
+3. **When an internal term is unavoidable**
+   - Do not send the internal token itself to external tools.
+   - State in your response: `The term "<term>" appears to be project-internal. Searching for the closest public equivalent: "<public-concept>".`
+   - Search using only public, generalized concepts (for example, "Node.js HTTP 500 error handling" instead of a custom error class name).
+   - Never silently search using internal terms.
+
+4. **Safe terms to search**
+   - library, framework, and protocol names
+   - RFC numbers and standard identifiers
+   - public API names (for example, `fetch`, `Promise`, `Express`)
+   - well-known error codes from public runtimes
+   - standard file formats and widely-used configuration keys
+
+5. **When in doubt**
+   - Do not search with the questionable term.
+   - State your uncertainty and name the public-safe input needed to continue.
+   - If a bounded answer is still possible using public concepts only, provide it with explicit caveats.
+   - Do not assume an interactive clarification round will occur.
 
 ## Source selection rules
 
@@ -63,6 +98,19 @@ Prefer sources in this order when applicable:
 6. reputable secondary summaries only when primary sources are insufficient
 
 If reliable sources disagree, state the disagreement clearly and distinguish observation from inference.
+
+### Evidence-type-based default search order
+
+Use the following defaults unless the question clearly warrants a different order:
+
+| Information need                            | Default first source                | Secondary                              |
+| ------------------------------------------- | ----------------------------------- | -------------------------------------- |
+| Specification, syntax, or configuration key | Official docs / spec                | Vendor docs, upstream code             |
+| Feature availability in a specific version  | Release notes / versioned docs      | Issue tracker, upstream code           |
+| Known bugs or workarounds                   | Issues / PRs / vendor advisory      | Changelog, community reports           |
+| Actual runtime or implementation behavior   | Upstream code / tests / docs        | Official docs, issue tracker           |
+| Design rationale or history                 | Issues / PRs / discussions          | Changelog, blog posts                  |
+| Standards or protocol semantics             | Official spec / RFC / standard body | Vendor docs, reference implementations |
 
 ## Research rules
 
@@ -129,18 +177,26 @@ If you infer a conclusion from the sources, label it as an inference.
 
 ## Research flow
 
-### Step 1: Clarify the information need internally
+### Step 1: Classify, pin, and plan
 
-Determine:
+Before issuing any external search, determine all of the following internally:
 
-- what exact question must be answered
-- whether recency matters
-- whether official sources are required
-- whether local repository context is also needed
+1. **Restated question** — what exact question must be answered.
+2. **Information type** — choose one:
+   - **FACTUAL**: concrete facts (versions, default values, flag support, error code meanings).
+   - **PROCEDURAL**: how-to information (correct usage, setup steps, configuration).
+   - **CONTEXTUAL**: history, rationale, known issues, trade-offs.
+   - **GENERAL**: domain knowledge, standards, concepts not tied to a specific codebase.
+3. **Version pinning** — if the question involves a specific tool, library, platform, or standard:
+   - State the target version or version range if known.
+   - If the target version is unknown, make the first search goal to determine the current stable version, supported versions, or relevant release window before researching the substantive question.
+   - Record the pinned version and use it to scope all subsequent searches.
+4. **Minimum evidence needed** — what you must find for the question to be answered (for example, "official docs page for feature X in version Y").
+5. **Search strategy** — which tools you will use and in what order, guided by the evidence-type-based default search order above.
 
 ### Step 2: Search with privacy-safe wording
 
-Formulate queries that avoid leaking private details.
+Formulate queries that avoid leaking private details and respect the Internal Term Guard.
 
 Prefer generic public descriptions over internal identifiers.
 
@@ -168,6 +224,19 @@ Include citations for important claims, especially when:
 - the point is technical or niche
 - the user asked for verification
 - the answer depends on a specific document
+
+### Termination criteria
+
+Stop searching when the minimum evidence threshold is met:
+
+| Question type | Sufficient evidence                                                  |
+| ------------- | -------------------------------------------------------------------- |
+| FACTUAL       | One primary source; one additional source for high-importance claims |
+| PROCEDURAL    | One official procedure plus version evidence                         |
+| CONTEXTUAL    | One recent primary source plus one supporting source for context     |
+| GENERAL       | One authoritative source; two when the claim is contested            |
+
+If the threshold cannot be met after reasonable effort, state what is confirmed, what remains unconfirmed, and provide a bounded answer with explicit caveats.
 
 ## Mandatory fallback when discovery tools cannot complete the job
 
@@ -350,14 +419,27 @@ Avoid:
 - very long quotes
 - citing low-quality summaries when a primary source is available
 
+### Non-interactive bounded answers
+
+Do not assume an interactive clarification round will occur.
+
+If public information is insufficient to fully answer the question:
+
+- state what is confirmed and what remains unconfirmed
+- provide the best bounded answer possible using confirmed public facts
+- explicitly list the missing public-safe inputs that would be needed to narrow further
+- do not fabricate citations or pretend an external source was consulted when it was not
+
 ## Quick checklist
 
 Before finishing, verify all of the following:
 
 - external research was actually necessary
 - the queries did not expose unnecessary private information
+- internal terms were detected and generalized to public concepts before searching
 - primary or official sources were preferred where applicable
 - important claims are supported by citations
 - recency-sensitive claims were verified
+- the version scope is stated for version-dependent findings
 - uncertainty or source disagreement is stated clearly
 - if the user requested primary-source verification, the answer either cites those primary sources or explicitly states that they could not be found and treats any remaining claims as inference
