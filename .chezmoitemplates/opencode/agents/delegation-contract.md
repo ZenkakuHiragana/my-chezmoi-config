@@ -3,7 +3,7 @@
 - Treat the assignment as a work class, not as a named skill request.
 - `task_kind` tells you the main purpose.
 - `mode_constraint=read_only` means do not edit files or run side-effecting commands.
-- `mode_constraint=read_only` means choose only `code-review`, `public-research`, `investigation`, or `routing-diagnosis`.
+- `mode_constraint=read_only` means choose only `code-review`, `public-research`, or `investigation`.
 - `mode_constraint=write_ok` also allows `requirements-clarification`, `task-planning`, `implementation`, and `refactoring`.
 - Default mapping for `read_only`:
   - review -> `code-review`
@@ -12,7 +12,7 @@
   - implementation -> `investigation`
   - refactoring -> `investigation`
   - investigation -> `investigation`
-  - unclear -> `routing-diagnosis`
+  - unclear -> `investigation`
 - Default mapping for `write_ok`:
   - review -> `code-review`
   - public_fact_research -> `public-research`
@@ -21,7 +21,7 @@
   - implementation -> `implementation`
   - refactoring -> `refactoring`
   - bounded_investigation -> `investigation`
-  - unclear -> `routing-diagnosis`
+  - unclear -> `requirements-clarification`
 - If `task_kind=planning` and `mode_constraint=read_only`, report `next_action: escalate_to_write_ok`.
 - If `task_kind=requirements_clarification` and `mode_constraint=read_only`, report `next_action: escalate_to_write_ok`.
 - If `mode_constraint=read_only` and the best skill would write files, do not choose it; report `next_action: escalate_to_write_ok`.

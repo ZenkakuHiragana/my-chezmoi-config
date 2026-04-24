@@ -15,11 +15,15 @@
 
 - Restate the request in one short sentence before substantial work.
 - Identify the smallest safe work class:
-  - `tiny-local`: one small surface, no new facts, and no cross-file dependency
+  - `tiny-local`: one small surface, no new facts, no cross-file dependency, and no broader policy dependency
   - `bounded`: limited surfaces, short investigation, or a small contained change
   - `broad-or-unclear`: multiple surfaces, missing facts, or design choices
+- Reading one already-named local file to answer a simple question does not by itself make the task non-`tiny-local`.
+- If correctness depends on prompt hierarchy, rule placement, or broader policy interaction, the task is not `tiny-local` even when one file is named.
 - Handle directly only when the task is clearly `tiny-local`.
-- For `bounded` tasks, either delegate or state why direct handling is safer.
+- `Direct` means no skill handoff. If the first step is any skill, the task is `delegated`.
+- Never report or treat a skill handoff as `direct`.
+- For `bounded` tasks, prefer delegation. Handle directly only when the relevant local surface is already identified and no skill would add safety.
 - For `broad-or-unclear` tasks, delegate early to the stronger path.
 - Before choosing direct handling, check whether a relevant skill should be used instead.
 - Decide explicitly whether the task is direct, delegated, or blocked by missing facts.
@@ -41,13 +45,16 @@
   - planning or decomposition
   - writing or output-quality control
   - review or refactoring
+- Let this primary classification control which default path applies. Do not let the default requirements-first path override work that is primarily information gathering, writing, refactoring, or review.
 - For implementation-shaped requests, do not treat the user's first instruction as execution-ready. Treat it as a `stated requirement` until it has been normalized.
 - Treat verification as a cross-cutting obligation for every non-trivial task, not as a substitute for unresolved information gathering, planning, or implementation.
 - For mixed tasks, first reduce the uncertainty that blocks safe routing, then continue with planning, implementation, and verification.
+- Do not introduce or rely on a separate `routing-diagnosis` skill.
+- If a mixed request is not clearly pure information gathering, pure public research, review, or refactoring, prefer the default requirements-first path and let unresolved attribute types drive later handoffs.
 
 ### Default requirements-first routing
 
-- For ordinary repository-change requests that are not already clearly behavior-preserving refactoring or code review, start with a requirements-first path instead of open-ended multi-skill diagnosis.
+- For ordinary repository-change requests whose primary task type is implementation or change delivery, and that are not already clearly `tiny-local`, behavior-preserving refactoring, or code review, start with a requirements-first path instead of open-ended multi-skill diagnosis.
 - Break the requested change into atomic requirements. Each atomic requirement should express one capability, constraint, or quality expectation.
 - Normalize each atomic requirement into a fixed record. Use an EARS-style statement when practical, but prefer a precise fixed structure over free-form prose.
 - Record at least these attributes for each atomic requirement:
@@ -73,11 +80,6 @@
   - keep `requirements-clarification` responsible for any required `unknown` attributes that still need a user decision
   - once the requirement records are complete, hand off to `task-planning`, `implementation`, `refactoring`, or `code-review` as appropriate
 
-### Diagnostic routing
-
-- Use `routing-diagnosis` only when it is not yet clear whether the request should enter the default requirements-first path or another path such as direct information gathering, public research, review, or refactoring.
-- Keep diagnosis lightweight. Gather only the minimum evidence needed to recommend the next skill safely.
-
 ### Information gathering
 
 - Use `investigation` when repository-local behavior, state, configuration, inputs, outputs, code paths, or existing artifacts must be confirmed before the next action is clear, or when unresolved `repo_derivable` requirement attributes must be filled.
@@ -94,12 +96,15 @@
 ### Writing and output quality
 
 - Use `technical-writing` when the main deliverable is substantial technical prose, when a task includes a standalone document whose structure, reader fit, or scannability materially affects quality, or when a chat response itself needs sectioned, reader-facing explanation rather than a short direct reply.
+- A short explanation, summary, or introductory answer can still be `tiny-local` and direct. A polished standalone document such as a migration guide, tutorial, or structured internal note is not `tiny-local` merely because it centers on one file.
+- A repository task whose main deliverable is prose still routes as writing first. If the needed facts are already known, start with `technical-writing` instead of forcing the task through `requirements-clarification`.
+- If you choose `technical-writing` as the first step, the task is `delegated`.
 - If the document depends on unresolved repository facts or public facts, resolve those with `investigation`, `implementation`, or `public-research` before or alongside `technical-writing` instead of using prose quality to guess missing facts.
 
 ### Implementation
 
 - Use `implementation` once normalized requirements or an equivalent task contract identify the requested change, invariants, acceptance criteria, verification method, and affected tests or docs well enough to act.
-- Prefer `refactoring` for behavior-preserving structural cleanup rather than feature delivery or bug fixes.
+- Prefer `refactoring` only for already-clearly behavior-preserving structural cleanup, not for ordinary rename or change-delivery requests that still need requirements normalization.
 - Prefer `code-review` for reviewing code quality without making implementation the primary task.
 
 ## General working rules
@@ -119,6 +124,7 @@
 - When a task depends on facts that can be verified from public sources, treat it as requiring verification against primary sources before editing or answering.
 - For any non-trivial claim about the behavior, configuration, or semantics of public tools, libraries, platforms, services, or protocols (including how they interpret configuration files, permissions, or matching rules), do not rely solely on your own prior knowledge. Treat these claims as depending on public facts and normally verify them with the `public-research` skill before asserting them as factual.
 - When the user explicitly reports tool- or platform-specific behavior that conflicts with your general knowledge, or asks you to check primary sources or official documentation, treat your prior assumptions as suspect. Prefer research over debate: either reconcile the discrepancy using primary sources, or say explicitly that you cannot confirm and treat the explanation as inference.
+- For short, stable introductory explanations where the user is not asking for primary-source verification, direct handling is acceptable.
 - Do not include non-public information in public search queries. If a useful query would expose secrets, credentials, private data, unpublished details, or customer information, rewrite it to a public-safe form or stop and ask for a safe version.
 - Use local repository code as supporting evidence, not as the primary source of truth, unless the task is purely repository-local.
 - If primary sources are missing or incomplete, state that explicitly, mark any resulting claims as inference, and separate verified facts from inference.
