@@ -1,6 +1,7 @@
 ---
 name: technical-writing
-description: Use this skill when the main deliverable is substantial technical prose such as a report, README, tutorial, how-to, reference, explanation, CHANGELOG, migration note, or a chat response that needs sectioned, reader-facing explanation. Use it after the needed facts are known, or alongside the fact-owning skill when writing quality is a major part of the task. It chooses the document form, drafts the piece, runs a bounded critique-revise-recheck loop, and applies artifact-specific checks. Do not use for short simple replies, incidental copyedits, or tasks whose real blocker is missing facts rather than weak writing. Expected result: a clear, accurate, reader-fit document plus concise evidence of the checks performed.
+description: >
+  Use this skill when the main deliverable is substantial technical prose such as a report, README, tutorial, how-to, reference, explanation, CHANGELOG, migration note, or a chat response that needs sectioned, reader-facing explanation. Use it after the needed facts are known, or alongside the fact-owning skill when writing quality is a major part of the task. It chooses the document form, drafts the piece, runs a bounded critique-revise-recheck loop, and applies artifact-specific checks. Do not use for short simple replies, incidental copyedits, or tasks whose real blocker is missing facts rather than weak writing. Expected result: a clear, accurate, reader-fit document plus concise evidence of the checks performed.
 ---
 
 # Technical Writing

@@ -168,6 +168,8 @@
         "tr *": "allow",
         "nl": "allow",
         "nl *": "allow",
+        "wc": "allow",
+        "wc *": "allow",
         // シェルスクリプト補助コマンド
         "true": "allow",
         "true *": "allow",
