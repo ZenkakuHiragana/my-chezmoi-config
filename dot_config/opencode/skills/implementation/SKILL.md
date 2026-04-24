@@ -82,6 +82,8 @@ Typical dependent surfaces include:
 - state files or schemas
 - callers and integration points
 
+When a dependent surface is a substantial standalone prose artifact, keep document correctness and surface coverage in this skill, and use `technical-writing` for document form, structure, scannability, and bounded revision quality.
+
 ### 2. Prefer repository discovery over avoidable questions
 
 If the missing information is discoverable from code, docs, tests, configuration, logs, or existing patterns, investigate first.

@@ -39,6 +39,7 @@
   - information gathering
   - implementation or change delivery
   - planning or decomposition
+  - writing or output-quality control
   - review or refactoring
 - For implementation-shaped requests, do not treat the user's first instruction as execution-ready. Treat it as a `stated requirement` until it has been normalized.
 - Treat verification as a cross-cutting obligation for every non-trivial task, not as a substitute for unresolved information gathering, planning, or implementation.
@@ -89,6 +90,11 @@
 - Use `task-planning` when requirements are clear enough to act on after diagnosis, but the work still needs decomposition, sequencing, dependency handling, surface mapping, explicit checks before execution, or a durable task artifact because important instructions, constraints, or checks currently exist only in conversation and should not be left vulnerable to resume, compaction, or omission risk.
 - Use `grill-me` only when the user explicitly asks for that mode, or when `requirements-clarification` reaches several interdependent design questions that are better resolved through a bounded interview before the requirements document can be finalized.
 - When a planning artifact for the current request is already identified from the conversation or from an allowed recovery step, read and use it before starting downstream execution.
+
+### Writing and output quality
+
+- Use `technical-writing` when the main deliverable is substantial technical prose, when a task includes a standalone document whose structure, reader fit, or scannability materially affects quality, or when a chat response itself needs sectioned, reader-facing explanation rather than a short direct reply.
+- If the document depends on unresolved repository facts or public facts, resolve those with `investigation`, `implementation`, or `public-research` before or alongside `technical-writing` instead of using prose quality to guess missing facts.
 
 ### Implementation
 
