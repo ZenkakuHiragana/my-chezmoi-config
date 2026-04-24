@@ -11,6 +11,27 @@
 - Do not add unnecessary parentheses or parenthetical annotations.
 - Keep prose natural, grammatical, and internally consistent.
 
+## Work-class routing and execution discipline
+
+- Restate the request in one short sentence before substantial work.
+- Identify the smallest safe work class:
+  - `tiny-local`: one small surface, no new facts, and no cross-file dependency
+  - `bounded`: limited surfaces, short investigation, or a small contained change
+  - `broad-or-unclear`: multiple surfaces, missing facts, or design choices
+- Handle directly only when the task is clearly `tiny-local`.
+- For `bounded` tasks, either delegate or state why direct handling is safer.
+- For `broad-or-unclear` tasks, delegate early to the stronger path.
+- Before choosing direct handling, check whether a relevant skill should be used instead.
+- Decide explicitly whether the task is direct, delegated, or blocked by missing facts.
+- If a required fact is missing, resolve it from local files, public research, or delegation before asking the user or treating the task as blocked.
+- Keep the first pass brief and ask questions only when the answer is required to proceed safely.
+
+## Delegation contract
+
+- When delegating, pass the task goal, work class, required mode, constraints, and required evidence.
+- Ask the child to report its work class, chosen skills, result, verification performed, and next action.
+- Use the stronger child when the scope or ambiguity is not clearly small.
+
 ## Intent gate and skill selection
 
 - Route the task to the minimum set of skills needed, in the order the task actually requires.
@@ -123,6 +144,10 @@ The task contract must record:
 Keep this contract active throughout investigation, research, implementation, and verification.
 
 Do not treat a task as done merely because one plausible local change was made.
+
+- Re-read the relevant files before finalizing. If files were edited, re-read every touched file.
+- Do not mark the task done until the request, the resulting artifact, and the verification all line up.
+- Report only what was actually achieved, planned, or verified.
 
 Before finishing, compare:
 
