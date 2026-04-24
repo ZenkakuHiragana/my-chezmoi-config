@@ -1,6 +1,6 @@
 ---
 name: empirical-prompt-tuning
-description: Use this skill to improve agent-facing instructions empirically by dispatching fresh OpenCode subagents, measuring both executor-reported ambiguity and instruction-side metrics, and iterating until the gains flatten out. Use it after creating or heavily revising prompts, skills, command workflows, AGENTS sections, or code-generation instructions, especially when the failure mode may be ambiguous wording rather than missing capability.
+description: Use this skill to improve agent-facing instructions empirically by dispatching fresh OpenCode subagents, scoring outputs with a frozen hidden rubric, and iterating until the gains flatten out. Use it after creating or heavily revising prompts, skills, command workflows, AGENTS sections, or code-generation instructions, especially when the failure mode may be ambiguous wording rather than missing capability.
 ---
 
 # Empirical Prompt Tuning
@@ -38,18 +38,27 @@ Before any empirical run, compare the frontmatter `description` against the body
 
 Skipping this step can create false positives because the executor may reinterpret the body through the description and appear to succeed for the wrong reason.
 
-### 1. Prepare the baseline
+### 1. Prepare the evaluation design
 
-Define the target prompt and prepare both of the following:
+Define the target prompt and prepare a frozen evaluation design with both of the following packets:
 
-- **evaluation scenarios**: two or three realistic scenarios, usually one median case and one or two edge cases
-- **requirements checklist**: three to seven checklist items per scenario describing what a successful output must satisfy
+- **run packet**: the target prompt plus one scenario plus the task instructions, with no scoring checklist or rubric
+- **scoring packet**: the frozen requirements checklist and scoring rules that will be applied after execution
+
+Also prepare the evaluation scenarios:
+
+- two or three realistic scenarios, usually one median case and one or two edge cases
+- randomize the scenario order before dispatch
+- if you compare two or more prompt variants, counterbalance the variant order across runs or blocks when order could matter
+- if you compare prompt variants, freeze the scenario set and the block-level comparison rule before the first dispatch
 
 Rules:
 
 - mark at least one checklist item as `[critical]`
 - freeze the checklist before evaluation
-- do not move checklist items after seeing the result
+- do not change checklist items after seeing the result
+- do not show the checklist to the executor during the run
+- if multiple nuisance factors matter, block them rather than letting them leak into the run order
 
 ### 2. Use a fresh executor
 
@@ -59,22 +68,33 @@ In OpenCode this normally means using the subagent dispatch mechanism such as th
 
 Do not substitute self-rereading for a fresh executor.
 
+Give the executor only the run packet. Do not include the scoring checklist or rubric in the executor prompt.
+
 If multiple scenarios can be run independently, dispatch them in parallel.
+
+If you are comparing prompt variants, keep the executor blind to which variant is the control and which is the revision.
 
 ### 3. Execute the scenario
 
-Give the executor the target prompt plus the scenario and checklist.
+Give the executor the target prompt plus the scenario and task instructions.
 
 The executor should attempt the task normally and then return a structured report.
 
+The report should capture open-ended observations first, before any scoring pass happens.
+
 ### 4. Evaluate from both sides
+
+After the executor output is fixed, score it in a separate pass using the frozen scoring packet.
+
+Prefer a fresh scorer session or a caller-side blinded review. The scorer should not see prompt-version labels until scoring is complete.
+If the same person must both observe the executor and score it, keep the executor self-report hidden until the checklist score is final.
 
 Record both:
 
 - **executor self-report**: ambiguity, blocked interpretations, discretionary fill-ins, and retries
 - **instruction-side metrics**:
   - success or failure
-  - checklist accuracy percentage
+  - checklist pass rate
   - step count from dispatch usage metadata when available
   - duration from dispatch usage metadata when available
   - retry count from the executor report
@@ -84,7 +104,7 @@ Success rule:
 - success is `○` only if every `[critical]` item is fully satisfied
 - if any `[critical]` item is failed or only partially satisfied, the scenario result is `×`
 
-Accuracy rule:
+Pass rate rule:
 
 - `○` = 1
 - `partial` = 0.5
@@ -112,7 +132,7 @@ Do not reuse the previous executor.
 Default heuristic stop condition:
 
 - two consecutive iterations with no new ambiguities, and
-- accuracy improvement of no more than 3 points, and
+- pass rate improvement of no more than 3 points, and
 - step-count change within ±10% when metadata is available, and
 - duration change within ±15% when metadata is available
 
@@ -126,26 +146,26 @@ Use qualitative feedback as the primary signal and quantitative metrics as suppo
 
 ### Core metrics
 
-| Metric | How to collect it | Meaning |
-|---|---|---|
-| Success / failure | whether all `[critical]` items passed | minimum bar |
-| Accuracy | checklist satisfaction percentage | degree of partial success |
-| Steps | subagent-dispatch usage metadata when available | prompt efficiency and search burden |
-| Duration | subagent-dispatch usage metadata when available | proxy for executor load |
-| Retries | executor self-report | ambiguity signal |
-| Ambiguities | executor self-report | direct improvement material |
-| Discretionary fill-ins | executor self-report | hidden unstated requirements |
+| Metric                 | How to collect it                               | Meaning                             |
+| ---------------------- | ----------------------------------------------- | ----------------------------------- |
+| Success / failure      | whether all `[critical]` items passed           | minimum bar                         |
+| Pass rate              | checklist satisfaction percentage               | degree of partial success           |
+| Steps                  | subagent-dispatch usage metadata when available | prompt efficiency and search burden |
+| Duration               | subagent-dispatch usage metadata when available | proxy for executor load             |
+| Retries                | executor self-report                            | ambiguity signal                    |
+| Ambiguities            | executor self-report                            | direct improvement material         |
+| Discretionary fill-ins | executor self-report                            | hidden unstated requirements        |
 
 ### Interpreting step count
 
-High accuracy can still hide structural prompt weakness.
+High pass rate can still hide structural prompt weakness.
 
 Compare step count across scenarios when the OpenCode subagent-dispatch mechanism reports it:
 
 - if one scenario is three to five times heavier than the others, the prompt may be acting like a decision-tree index rather than a self-contained instruction
 - a common cause is missing inline guidance or an unclear pointer for when to consult references
 
-Use this signal to justify another iteration even when raw accuracy already looks strong.
+Use this signal to justify another iteration even when raw pass rate already looks strong.
 
 ### Expected effect patterns
 
@@ -172,24 +192,48 @@ You are a fresh executor reading <target prompt name> with no prior context.
 ## Scenario
 <one paragraph describing the situation>
 
-## Requirements checklist
-1. [critical] <minimum-bar item>
-2. <normal item>
-3. <normal item>
-
 ## Task
 1. Execute the scenario using the target prompt.
 2. Return the report structure below.
 
 ## Report structure
 - Deliverable: <artifact or concise execution summary>
-- Checklist result: each item marked as ○ / × / partial, with reasons
 - Ambiguities: places where the prompt was unclear or hard to interpret
 - Discretionary fill-ins: decisions you made that the prompt did not settle
 - Retries: how many times you re-did the same judgment and why
+- Self-assessed uncertainty: where you were least certain and why
 ```
 
 The caller should combine that report with any available OpenCode subagent-dispatch usage metadata to fill in the evaluation record.
+
+## Blinded scoring packet
+
+When you are ready to score, use a second prompt shaped like this:
+
+```text
+You are a fresh scorer reading an executor output with no prior context.
+
+## Scenario
+<one paragraph describing the situation>
+
+## Executor output
+<fixed executor output>
+
+## Frozen scoring rubric
+<the pre-registered checklist and scoring rules>
+
+## Task
+1. Score the output against the frozen rubric.
+2. Return the report structure below.
+
+## Report structure
+- Checklist result: each item marked as ○ / × / partial, with reasons
+- Success or failure: whether all [critical] items passed
+- Pass rate: checklist satisfaction percentage
+- Notes: any short scoring caveats
+```
+
+Do not reveal the prompt variant label to the scorer until scoring is complete.
 
 ## Environment constraints
 
@@ -223,7 +267,7 @@ Record each iteration like this:
 - <one-line summary>
 
 ### Scenario results
-| Scenario | Success | Accuracy | steps | duration | retries |
+| Scenario | Success | Pass rate | steps | duration | retries |
 |---|---|---|---|---|---|
 | A | ○ | 90% | 4 | 20s | 0 |
 | B | × | 60% | 9 | 41s | 2 |
