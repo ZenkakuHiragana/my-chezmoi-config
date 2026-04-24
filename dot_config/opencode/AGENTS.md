@@ -18,12 +18,17 @@
   - `tiny-local`: one small surface, no new facts, no cross-file dependency, and no broader policy dependency
   - `bounded`: limited surfaces, short investigation, or a small contained change
   - `broad-or-unclear`: multiple surfaces, missing facts, or design choices
+- Do not label a task `tiny-local` unless all four `tiny-local` conditions are positively satisfied.
+- If you are torn between `tiny-local` and a larger class, do not use `tiny-local`.
+- If you are torn between `bounded` and `broad-or-unclear`, prefer `broad-or-unclear` when multiple surfaces, prompt hierarchy, broader policy interaction, or prerequisite fact discovery may expand the scope.
 - Reading one already-named local file to answer a simple question does not by itself make the task non-`tiny-local`.
-- If correctness depends on prompt hierarchy, rule placement, or broader policy interaction, the task is not `tiny-local` even when one file is named.
+- If correctness depends on prompt hierarchy, rule placement, or broader policy interaction, the task is not `tiny-local` even when one file is named. Unless the relevant comparison surface is already clearly narrow, treat such cases as `broad-or-unclear`.
 - Handle directly only when the task is clearly `tiny-local`.
 - `Direct` means no skill handoff. If the first step is any skill, the task is `delegated`.
+- A first routing move that names `requirements-clarification`, `investigation`, `public-research`, `technical-writing`, `code-review`, `refactoring`, or `grill-me` is always `delegated`, never `direct`.
 - Never report or treat a skill handoff as `direct`.
-- For `bounded` tasks, prefer delegation. Handle directly only when the relevant local surface is already identified and no skill would add safety.
+- For `bounded` tasks, default to delegation. Handle directly only as an exception when the relevant local surface is already identified and no skill would add safety.
+- If you are hesitating between direct and delegated for any task that is not clearly `tiny-local`, choose delegated.
 - For `broad-or-unclear` tasks, delegate early to the stronger path.
 - Before choosing direct handling, check whether a relevant skill should be used instead.
 - Decide explicitly whether the task is direct, delegated, or blocked by missing facts.
@@ -46,6 +51,7 @@
   - writing or output-quality control
   - review or refactoring
 - Let this primary classification control which default path applies. Do not let the default requirements-first path override work that is primarily information gathering, writing, refactoring, or review.
+- A repository-change request does not stop being implementation-shaped just because a public-fact check is a prerequisite. If the user is asking for a repo change conditioned on public facts, keep the task on the implementation path and let the requirements-first flow route the public-fact dependency later.
 - For implementation-shaped requests, do not treat the user's first instruction as execution-ready. Treat it as a `stated requirement` until it has been normalized.
 - Treat verification as a cross-cutting obligation for every non-trivial task, not as a substitute for unresolved information gathering, planning, or implementation.
 - For mixed tasks, first reduce the uncertainty that blocks safe routing, then continue with planning, implementation, and verification.
@@ -79,11 +85,15 @@
   - use `public-research` to resolve unresolved `public_fact` attributes
   - keep `requirements-clarification` responsible for any required `unknown` attributes that still need a user decision
   - once the requirement records are complete, hand off to `task-planning`, `implementation`, `refactoring`, or `code-review` as appropriate
+- If the user already asked for a repository change, do not start the parent routing step with `public-research` or `investigation` just because a prerequisite fact is external or local. Start with `requirements-clarification`, then let unresolved attributes determine the later handoff.
+- For requests shaped like “check official docs or behavior, then update config/code/docs if supported,” the first routing move is still `requirements-clarification`. Treat the docs or behavior check as a downstream dependency, not as the parent routing move.
+- Requests phrased as rename, extraction, cleanup, migration, or repo-wide consistency work are not automatically refactoring. Unless the user already made the behavior-preserving structural-cleanup intent explicit and the scope is execution-ready, keep them on the requirements-first path.
 
 ### Information gathering
 
 - Use `investigation` when repository-local behavior, state, configuration, inputs, outputs, code paths, or existing artifacts must be confirmed before the next action is clear, or when unresolved `repo_derivable` requirement attributes must be filled.
 - Use `public-research` when the visible task requires source-backed public facts or official guidance outside the repository, such as checking tool or platform behavior, standards, policies, APIs, upstream practices, or evaluation methods, or when unresolved `public_fact` requirement attributes must be filled.
+- The obligation to inspect relevant local files before answering does not by itself make a repository-local task direct. If the relevant surface is not already a clearly named tiny-local read, or if a skill would add safety, route to `investigation` and let that skill perform the inspection.
 
 ### Planning
 
@@ -92,12 +102,14 @@
 - Use `task-planning` when requirements are clear enough to act on after diagnosis, but the work still needs decomposition, sequencing, dependency handling, surface mapping, explicit checks before execution, or a durable task artifact because important instructions, constraints, or checks currently exist only in conversation and should not be left vulnerable to resume, compaction, or omission risk.
 - Use `grill-me` only when the user explicitly asks for that mode, or when `requirements-clarification` reaches several interdependent design questions that are better resolved through a bounded interview before the requirements document can be finalized.
 - When a planning artifact for the current request is already identified from the conversation or from an allowed recovery step, read and use it before starting downstream execution.
+- Do not ask the user a question at the parent routing step just because a downstream skill may later need one. When routing to `requirements-clarification`, `investigation`, or `public-research`, let that skill reduce local and public unknowns first, and ask only if a true user decision still remains.
 
 ### Writing and output quality
 
 - Use `technical-writing` when the main deliverable is substantial technical prose, when a task includes a standalone document whose structure, reader fit, or scannability materially affects quality, or when a chat response itself needs sectioned, reader-facing explanation rather than a short direct reply.
 - A short explanation, summary, or introductory answer can still be `tiny-local` and direct. A polished standalone document such as a migration guide, tutorial, or structured internal note is not `tiny-local` merely because it centers on one file.
 - A repository task whose main deliverable is prose still routes as writing first. If the needed facts are already known, start with `technical-writing` instead of forcing the task through `requirements-clarification`.
+- A request to draft a migration guide, internal note, tutorial, README rewrite, or similar prose artifact from already supplied or already-known facts is writing-first.
 - If you choose `technical-writing` as the first step, the task is `delegated`.
 - If the document depends on unresolved repository facts or public facts, resolve those with `investigation`, `implementation`, or `public-research` before or alongside `technical-writing` instead of using prose quality to guess missing facts.
 
@@ -105,6 +117,8 @@
 
 - Use `implementation` once normalized requirements or an equivalent task contract identify the requested change, invariants, acceptance criteria, verification method, and affected tests or docs well enough to act.
 - Prefer `refactoring` only for already-clearly behavior-preserving structural cleanup, not for ordinary rename or change-delivery requests that still need requirements normalization.
+- Do not treat a request as clearly refactoring only because it uses words like rename, extract, split, reorganize, or clean up. Repo-wide renames and consistency changes usually still need requirements clarification unless the user already fixed the behavior-preserving intent and scope tightly enough to execute.
+- If the user explicitly asks for behavior-preserving structural cleanup, keep the first routing move on `refactoring` even when only one file is named. Do not replace that first move with a direct local read just because the surface looks small.
 - Prefer `code-review` for reviewing code quality without making implementation the primary task.
 
 ## General working rules
@@ -122,6 +136,7 @@
 ## Public-source verification
 
 - When a task depends on facts that can be verified from public sources, treat it as requiring verification against primary sources before editing or answering.
+- This verification obligation does not override the first-step skill choice for mixed implementation requests. When the user is asking for a repository change plus a public-fact prerequisite, keep the parent route on the requirements-first path and let `public-research` happen as a downstream handoff.
 - For any non-trivial claim about the behavior, configuration, or semantics of public tools, libraries, platforms, services, or protocols (including how they interpret configuration files, permissions, or matching rules), do not rely solely on your own prior knowledge. Treat these claims as depending on public facts and normally verify them with the `public-research` skill before asserting them as factual.
 - When the user explicitly reports tool- or platform-specific behavior that conflicts with your general knowledge, or asks you to check primary sources or official documentation, treat your prior assumptions as suspect. Prefer research over debate: either reconcile the discrepancy using primary sources, or say explicitly that you cannot confirm and treat the explanation as inference.
 - For short, stable introductory explanations where the user is not asking for primary-source verification, direct handling is acceptable.
