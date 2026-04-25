@@ -12,6 +12,7 @@
   "opencode": {
     "$schema": "https://opencode.ai/config.json",
     "share": "disabled",
+    "small_model": "openai/gpt-5.4-mini",
     "formatter": {
       "prettier": {
         "command": [
@@ -271,8 +272,8 @@
         "/*": "deny"
       },
       "orchestrator": {
-        "orch-local-investigator": "allow",
-        "orch-public-researcher": "allow"
+        "orch-local-investigator": "deny",
+        "orch-public-researcher": "deny"
       }
     }
   }

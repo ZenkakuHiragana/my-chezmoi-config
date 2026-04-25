@@ -77,6 +77,9 @@
           "PackageIdentifier": "jqlang.jq"
         },
         {
+          "PackageIdentifier": "MikeFarah.yq"
+        },
+        {
           "PackageIdentifier": "junegunn.fzf"
         },
         {
