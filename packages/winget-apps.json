@@ -5,9 +5,6 @@
     {
       "Packages": [
         {
-          "PackageIdentifier": "Proton.ProtonVPN"
-        },
-        {
           "PackageIdentifier": "Google.JapaneseIME"
         },
         {
@@ -17,10 +14,10 @@
           "PackageIdentifier": "Dropbox.Dropbox"
         },
         {
-          "PackageIdentifier": "Valve.Steam"
+          "PackageIdentifier": "Discord.Discord"
         },
         {
-          "PackageIdentifier": "Discord.Discord"
+          "PackageIdentifier": "Valve.Steam"
         },
         {
           "PackageIdentifier": "Valve.SteamCMD"
@@ -29,7 +26,13 @@
           "PackageIdentifier": "SlackTechnologies.Slack"
         },
         {
+          "PackageIdentifier": "Proton.ProtonVPN"
+        },
+        {
           "PackageIdentifier": "Proton.ProtonPass.CLI"
+        },
+        {
+          "PackageIdentifier": "VideoLAN.VLC"
         }
       ],
       "SourceDetails": {

@@ -22,3 +22,6 @@ end
 -- git の出力を UTF-8 に固定する環境変数をセット
 vim.env.GIT_EDITOR = "nvim"
 vim.env.LANG = "en_US.UTF-8"
+
+-- 追加のファイル読み込みの有効化
+vim.o.exrc = true
