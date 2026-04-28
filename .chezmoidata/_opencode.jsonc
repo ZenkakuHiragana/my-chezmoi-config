@@ -38,6 +38,7 @@
         ]
       }
     },
+    "lsp": {},
     "provider": {
       "github-copilot": {
         "models": {
