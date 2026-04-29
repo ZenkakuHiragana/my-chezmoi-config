@@ -19,6 +19,9 @@ if vim.fn.has("win32") == 1 then
   vim.opt.shellxquote = ""
 end
 
+-- treesitter パーサーのビルドに gcc を使う（Windows では cl.exe が見つからないため）
+vim.env.CC = "gcc"
+
 -- git の出力を UTF-8 に固定する環境変数をセット
 vim.env.GIT_EDITOR = "nvim"
 vim.env.LANG = "en_US.UTF-8"
