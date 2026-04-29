@@ -67,6 +67,11 @@ return {
       client._hlsl_sync_wrapped = true
     end
 
+    local function seed_hlsl_document(client, bufnr)
+      client._hlsl_documents = client._hlsl_documents or {}
+      client._hlsl_documents[vim.uri_from_bufnr(bufnr)] = hlsl_full_text(vim.uri_from_bufnr(bufnr))
+    end
+
     -- table.insert(opts.servers.clangd.cmd, "--log=verbose")
     table.insert(opts.servers.clangd.cmd, "--query-driver=*c++*")
     table.insert(opts.servers.clangd.cmd, "--enable-config")
@@ -81,8 +86,9 @@ return {
       flags = {
         allow_incremental_sync = false,
       },
-      on_attach = function(client)
+      on_attach = function(client, bufnr)
         wrap_hlsl_sync(client)
+        seed_hlsl_document(client, bufnr)
         client.server_capabilities.documentHighlightProvider = false
       end,
     }
