@@ -28,3 +28,6 @@ vim.env.LANG = "en_US.UTF-8"
 
 -- 追加のファイル読み込みの有効化
 vim.o.exrc = true
+
+-- ヘルプ日本語化
+vim.opt.helplang = { "ja", "en" }
