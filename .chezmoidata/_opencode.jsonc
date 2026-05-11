@@ -114,6 +114,8 @@
         "git describe *": "allow",
         "git fetch": "allow",
         "git fetch *": "allow",
+        // git 操作系統（書き込み: 許可）
+        "git worktree *": "allow",
         // git 操作系統（書き込み: 拒否）
         "git add *": "deny",
         "git commit": "deny",
