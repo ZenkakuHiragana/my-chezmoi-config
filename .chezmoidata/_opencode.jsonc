@@ -265,7 +265,8 @@
         // Lua
         "lua *": "allow",
         "luajit *": "allow",
-        "luals *": "allow"
+        "luals *": "allow",
+        "lua-language-server *": "allow"
       },
       "webfetch": "allow",
       "websearch": "allow",

@@ -44,6 +44,8 @@ Assess the change against:
 A refactor is ready only when:
 
 - intended behavior is unchanged, or every intentional change is isolated and explained
+- every non-trivial diff hunk is accounted for as one of: rename, move, extraction, deletion of dead code, unchanged logic carried forward, or an explicitly intended behavior change
+- any newly introduced helper, API, library function, language idiom, or abstraction has its exact semantics confirmed from local usage, existing tests/docs, or an authoritative source before it replaces existing logic
 - touched public interfaces, schemas, configs, and entry points still line up
 - weak or missing coverage is backed by characterization tests or another repeatable before/after check
 - stale references to renamed or moved items are removed
@@ -54,9 +56,11 @@ A refactor is ready only when:
 ## Procedure
 
 1. Map the current structure, call paths, and invariants.
-2. Identify the smallest coherent refactor that improves the design.
-3. Prefer deletion, consolidation, and extraction over new abstractions.
-4. Edit code, tests, docs, and prompts together when needed.
-5. Re-read changed surfaces for stale names, duplicate paths, or contradictions.
-6. Validate with the most direct checks available.
-7. If a behavior change is unavoidable, isolate it and treat it as a separate verified step.
+2. Make a semantic inventory for the planned diff: what will be renamed, moved, extracted, deleted, or intentionally changed.
+3. Identify the smallest coherent refactor that improves the design.
+4. Prefer deletion, consolidation, and extraction over new abstractions.
+5. Do not substitute existing logic with a new helper, API, library function, language idiom, or abstraction merely because it looks shorter or cleaner. If such a substitution is necessary, record the semantics evidence first; otherwise carry the existing expression forward.
+6. Edit code, tests, docs, and prompts together when needed.
+7. Re-read changed surfaces for stale names, duplicate paths, contradictions, and unaccounted semantic substitutions.
+8. Validate with the most direct checks available, and include at least one before/after or characterization check when behavior preservation is not obvious from inspection.
+9. If a behavior change is unavoidable, isolate it and treat it as a separate verified step.
