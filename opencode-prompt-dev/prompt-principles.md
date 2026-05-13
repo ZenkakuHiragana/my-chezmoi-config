@@ -6,7 +6,10 @@
 
 ## 新規規則追加ポリシー
 
-- 新しい失敗が見つかったら、まずは `~/.local/share/chezmoi/.opencode/local-failure-logs/` に事例ごとの Markdown ファイルとして記録すること。
+- local failure-log root は `~/.local/share/chezmoi/.opencode/local-failure-logs/` とする。
+  - 個別失敗事例は root 直下に Markdown として記録する。
+  - 過去セッション採掘レポートは `session-mining/` に保存する。
+  - 蓄積事例の triage レポートは `triage/` に保存する。
 - failure-log は改善対象となる実際の失敗事例だけを記録する場所とし、演習・訓練・検証だけの記録は別の検証記録として扱うこと。
 - デフォルトの対応: 既存規則の言い換え・統合、または skill への移設。
 - 新規ルールを追加してよいのは以下をすべて満たす場合だけ：
@@ -14,6 +17,7 @@
   2. 既存規則の表現を整理しても防げない
   3. 配置変更だけで解決しない
   4. 新規規則の方が既存規則群より短く明確である
+- tracked repository files には、生ログや未整理の失敗証拠ではなく、検証済みの運用原則・プロンプト変更・チェックリストのみを残す。
 
 ## リファクタリングのトリガー
 

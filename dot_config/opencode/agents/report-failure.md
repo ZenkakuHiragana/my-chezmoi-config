@@ -168,11 +168,25 @@ Set it to false when:
 
 # Output file
 
-Create a Markdown report using the repository's existing convention.
+The canonical failure-log root is local-only.
 
-If no convention exists, use:
+Resolve it in this order:
 
-`.opencode/failures/YYYYMMDD-HHMM-short-slug.md`
+1. If running inside the my-chezmoi-config source repository, use `.opencode/local-failure-logs/` relative to the repository root.
+2. Else if `chezmoi source-path` is available, use `$(chezmoi source-path)/.opencode/local-failure-logs/`.
+3. Else use `~/.local/share/chezmoi/.opencode/local-failure-logs/`.
+
+Create the directory if it does not exist.
+
+Write each incident as a Markdown file under the failure-log root.
+
+Use:
+
+`YYYYMMDD-HHMM-short-slug.md`
+
+Do not write raw evidence, unredacted private data, or local-only incident material into tracked repository files.
+
+Before writing, check whether an existing report for the same incident already exists. Update that report only when it is clearly the same incident; otherwise create a new file.
 
 Use this structure:
 

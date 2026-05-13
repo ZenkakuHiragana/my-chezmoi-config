@@ -233,6 +233,29 @@ Prefer interventions with clear validation.
 
 ## 7. Produce output
 
+The canonical failure-log root is local-only.
+
+Resolve it in this order:
+
+1. If running inside the my-chezmoi-config source repository, use `.opencode/local-failure-logs/` relative to the repository root.
+2. Else if `chezmoi source-path` is available, use `$(chezmoi source-path)/.opencode/local-failure-logs/`.
+3. Else use `~/.local/share/chezmoi/.opencode/local-failure-logs/`.
+
+Create the directory if it does not exist.
+
+Write the triage report to the local failure-log root.
+
+Use:
+
+`triage/YYYYMMDD-HHMM-triage-short-slug.md`
+
+The triage report must reference the incident report ids it analyzed.
+
+If the triage defines corrective actions, update the referenced incident files only with short status, root-cause, corrective-action, and verification-plan notes.
+
+Do not mark incidents `verified_closed` in this command.
+Do not write raw evidence into tracked repository files.
+
 Output this structure:
 
 # Failure triage report

@@ -149,7 +149,27 @@ Do not treat suspected cause as proven.
 
 Do not propose a prompt-system change from a single weak case.
 
-## 7. Output
+## 7. Output artifact
+
+The canonical failure-log root is local-only.
+
+Resolve it in this order:
+
+1. If running inside the my-chezmoi-config source repository, use `.opencode/local-failure-logs/` relative to the repository root.
+2. Else if `chezmoi source-path` is available, use `$(chezmoi source-path)/.opencode/local-failure-logs/`.
+3. Else use `~/.local/share/chezmoi/.opencode/local-failure-logs/`.
+
+Create the directory if it does not exist.
+
+Write the mining report to the local failure-log root.
+
+Use:
+
+`session-mining/YYYYMMDD-HHMM-session-mining-short-slug.md`
+
+The report is an analysis artifact, not an incident report.
+
+If the mining report identifies confirmed or strong candidate failures, create or recommend separate incident reports under the failure-log root. Do not mix multiple unrelated incidents into one incident report.
 
 Produce a report with this structure:
 

@@ -2,8 +2,13 @@
 
 - プロンプト運用の正本と運用テンプレートはリポジトリ内に分離して管理しています。
   - プロンプト運用原則: opencode-prompt-dev/prompt-principles.md
-  - 失敗記録テンプレート: `dot_config/opencode/commands/report-failure.md` に埋め込まれたテンプレートと `~/.local/share/chezmoi/.opencode/local-failure-logs/` 配下の事例ファイル
-  - リファクタチェックリスト等: opencode-prompt-dev/prompt-refactor-checklist.md
+  - 失敗記録:
+    - canonical local log root: `~/.local/share/chezmoi/.opencode/local-failure-logs/`
+    - incident capture procedure: `dot_config/opencode/agents/report-failure.md`
+    - session mining procedure: `dot_config/opencode/agents/extract-failure-patterns.md`
+    - triage procedure: `dot_config/opencode/agents/triage-failure.md`
+    - リファクタチェックリスト等: opencode-prompt-dev/prompt-refactor-checklist.md
+- 失敗ログ、セッション採掘レポート、triage レポートは原則として local failure-log root に保存し、tracked repository files には運用規則と確定済みの改善だけを残します。
 - 失敗や改善案はまず上記の failure-log に記録し、その後リファクタワークフローで差分を適用してください。
 
 ## プロンプトに使用する言語
@@ -14,6 +19,8 @@
   - ./dot_config/opencode/skills/\*/SKILL.md
   - ./dot_config/opencode/commands/\*.md
   - ./dot_config/opencode/AGENTS.md
+  - ./.chezmoitemplates/opencode/AGENTS.md
+  - ./.chezmoitemplates/opencode/agents/\*.md
 - 失敗事例、プロンプト運用規則など、プロンプトを改良するためのワークフローに関する記載は日本語で書いてください。具体的には以下のファイルが対象です。
   - ./opencode-prompt-dev/\*.md
   - ./AGENTS.md
