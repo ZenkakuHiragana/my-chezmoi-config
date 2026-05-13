@@ -95,6 +95,8 @@
         // git 操作系統（読み取り専用: 許可）
         "git status": "allow",
         "git status *": "allow",
+        "git blame": "allow",
+        "git blame *": "allow",
         "git diff": "allow",
         "git diff *": "allow",
         "git show": "allow",
