@@ -153,6 +153,8 @@
         "ls": "allow",
         "ls *": "allow",
         "mkdir *": "allow",
+        "pwd": "allow",
+        "pwd *": "allow",
         "jq *": "allow",
         "rg": "allow",
         "rg *": "allow",
@@ -266,7 +268,10 @@
         "lua *": "allow",
         "luajit *": "allow",
         "luals *": "allow",
-        "lua-language-server *": "allow"
+        "lua-language-server *": "allow",
+        // その他
+        "graphify": "allow",
+        "graphify *": "allow"
       },
       "webfetch": "allow",
       "websearch": "allow",
