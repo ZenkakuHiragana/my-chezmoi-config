@@ -157,6 +157,15 @@ Do not create documents that read as half-old and half-new.
 
 Do not invent migration layers, runtime switches, fallback behavior, compatibility shims, comments about former behavior, or extra abstractions unless they are required by the request or by an existing supported contract.
 
+Before editing any fallback, compatibility shim, migration or cache-version path, broad error handling, warning suppression, stub, or replacement design, classify it as exactly one of:
+
+- required for the current acceptance criteria
+- explicitly requested by the user
+- prohibited by the task contract or local invariant
+- follow-up only
+
+Do not edit prohibited or follow-up-only items. Report follow-up-only concerns separately unless the user opts in.
+
 If temporary diagnostics are needed, keep them narrow and remove or isolate them before finishing instead of turning them into new supported behavior.
 
 ### 7. Avoid fake completion
