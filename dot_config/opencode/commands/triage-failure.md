@@ -3,3 +3,5 @@ description: Analyze accumulated failure reports and propose the minimal effecti
 agent: triage-failure
 subtask: true
 ---
+Triage the failures.
+$ARGUMENTS

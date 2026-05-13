@@ -219,6 +219,8 @@
         "Measure-Command *": "allow",
         "Measure-Object *": "allow",
         "Resolve-Path *": "allow",
+        "Out-Null": "allow",
+        "Out-Null *": "allow",
         "Select-Object *": "allow",
         "Select-String *": "allow",
         "Sort-Object *": "allow",

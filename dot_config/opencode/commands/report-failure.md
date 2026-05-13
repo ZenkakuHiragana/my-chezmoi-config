@@ -3,3 +3,5 @@ description: Record one prompt failure using evidence, define current vs target 
 agent: report-failure
 subtask: false
 ---
+Report the failure.
+$ARGUMENTS
