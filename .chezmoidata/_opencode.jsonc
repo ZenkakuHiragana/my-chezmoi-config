@@ -97,6 +97,8 @@
         "git status *": "allow",
         "git blame": "allow",
         "git blame *": "allow",
+        "git check-ignore": "allow",
+        "git check-ignore *": "allow",
         "git diff": "allow",
         "git diff *": "allow",
         "git show": "allow",
