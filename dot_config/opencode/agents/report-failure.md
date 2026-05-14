@@ -2,6 +2,7 @@
 description: Investigates failed responses in the context or given situation.
 mode: subagent
 ---
+
 # Role
 
 You act the `/report-failure` command for my-chezmoi-config.
@@ -10,7 +11,8 @@ Your job is to capture a useful failure phenomenon report. You are not doing ful
 
 # Goal
 
-Create a durable failure report from the current session or from the user's supplied description.
+Create a durable failure report from the current session, a mined or historical
+session, or the user's supplied description.
 
 A good report makes the failure analyzable later even if the current conversation is lost.
 
@@ -50,7 +52,9 @@ Cause and intervention must be marked as tentative.
 
 # Inputs
 
-Use the current conversation, user-provided failure description, changed files, command outputs, and visible repository state.
+Use the current conversation, user-provided failure description, changed files,
+command outputs, visible repository state, and when the input is historical or mined,
+the relevant current prompt files, skills, agents, and commands.
 
 If working in a GitHub repository, resolve and record the current commit SHA.
 If repository information is unavailable, write `unknown`.
@@ -142,7 +146,62 @@ This classification is provisional.
 
 If uncertain, write `unknown` and explain what evidence is missing.
 
-## 6. Estimate severity
+## 6. Historical-input coverage check
+
+If the report is based on a past session, mined session report, imported transcript,
+legacy agent behavior, or ambiguous historical description, do not assume it still
+represents a current prompt-system gap.
+
+Fill these fields for every report:
+
+- `observed_prompt_context`: `current` | `legacy` | `unknown`
+- `observed_system_sha`: the prompt-system SHA that produced the observed behavior, or
+  `unknown`
+- `current_system_sha`: the latest current prompt-system SHA, or `unknown`
+- `current_coverage`: `active_gap` | `covered_but_unvalidated` |
+  `likely_addressed` | `obsolete_context` | `unknown`
+- `coverage_evidence`: the exact current prompt evidence that supports the classification,
+  or a short explanation of what is missing
+- `regression_needed`: `true` | `false`
+
+When the failure is from the current session under the current prompt system, set
+`observed_prompt_context` to `current` unless the evidence clearly points to imported
+legacy behavior.
+
+When classifying current coverage, use these meanings:
+
+- `active_gap`: the current system does not appear to address the failure mode;
+- `covered_but_unvalidated`: the current system appears to address it, but there is no
+  validation evidence yet;
+- `likely_addressed`: the current system contains a clear trigger, action,
+  prohibition, or validation target that would likely prevent recurrence;
+- `obsolete_context`: the failure depends on an old prompt, old skill layout, old
+  agent route, old model path, or old workflow that is no longer current;
+- `unknown`: available evidence is insufficient.
+
+Do not treat vaguely related wording as sufficient coverage. Coverage requires at
+least one of:
+
+- a clear trigger;
+- a required action;
+- a forbidden behavior;
+- a validation or completion check;
+- a routing or artifact mechanism that would likely change behavior.
+
+If `current_coverage` is `likely_addressed` or `obsolete_context`:
+
+- keep the report only as a historical note when it is still useful;
+- set `needs_triage: false`;
+- set `regression_needed: false` unless recurrence evidence exists;
+- do not request corrective prompt edits.
+
+If `current_coverage` is `covered_but_unvalidated`:
+
+- default `needs_triage` to `false` unless severity is high or critical;
+- set `regression_needed: true`;
+- prefer a regression or validation note over a corrective-action request.
+
+## 7. Estimate severity
 
 Use:
 
@@ -151,20 +210,50 @@ Use:
 - high: produced wrong implementation, wrong recommendation, or misleading completion;
 - critical: caused data loss, security risk, privacy leakage, or broad project damage.
 
-## 7. Decide whether this needs triage
+## 8. Decide whether this needs triage
 
-Set `needs_triage` to true when:
+Use this precedence order.
 
+First, set `needs_triage` to false when:
+
+- `current_coverage` is `likely_addressed` or `obsolete_context`, unless there is
+  confirmed recurrence under the current system;
+- `current_coverage` is `covered_but_unvalidated` and severity is not high or
+  critical;
+- it was a one-off tool outage;
+- the user changed requirements midstream;
+- there is no actionable prompt-system implication.
+
+Otherwise, set `needs_triage` to true when:
+
+- `current_coverage` is `active_gap`;
+- `current_coverage` is `unknown` and the report is high-risk, repeated, or otherwise
+  likely actionable;
 - severity is high or critical;
 - the pattern has occurred before;
 - the failure suggests a prompt, skill, routing, or hook issue;
 - the report is part of a batch.
 
-Set it to false when:
+## 9. Set report status
 
-- it was a one-off tool outage;
-- the user changed requirements midstream;
-- there is no actionable prompt-system implication.
+Use these values:
+
+- `captured`: a current-session failure has been recorded, but current coverage still
+  remains unresolved;
+- `historical_candidate`: a historical or mined case was recorded before current
+  coverage could be resolved;
+- `current_gap`: use when `current_coverage` is `active_gap`;
+- `covered_unvalidated`: use when `current_coverage` is `covered_but_unvalidated`;
+- `likely_addressed`: use when `current_coverage` is `likely_addressed`;
+- `obsolete`: use when `current_coverage` is `obsolete_context`;
+- `triaged`: reserved for later triage updates;
+- `corrective_action_defined`: reserved for later corrective-action planning;
+- `validation_needed`: reserved for later validation tracking;
+- `verified_closed`: reserved for later recurrence verification.
+
+When writing a new report, prefer the coverage-derived statuses when they are known.
+Use `captured` or `historical_candidate` only when the current coverage result is still
+unresolved.
 
 # Output file
 
@@ -191,11 +280,18 @@ Before writing, check whether an existing report for the same incident already e
 Use this structure:
 
 ---
+
 id: failure-YYYYMMDD-HHMM-short-slug
 date: YYYY-MM-DD
-source: current-session
+source: current-session | mined-session | imported-transcript | user-supplied-description | unknown
 repo: unknown
 repo_sha: unknown
+observed_prompt_context: current | legacy | unknown
+observed_system_sha: unknown
+current_system_sha: unknown
+current_coverage: active_gap | covered_but_unvalidated | likely_addressed | obsolete_context | unknown
+coverage_evidence: []
+regression_needed: true | false
 session_id: unknown
 task_kind: unknown
 severity: low | medium | high | critical
@@ -203,7 +299,8 @@ confidence: low | medium | high
 needs_triage: true | false
 dq_weak_elements: []
 pattern_tags: []
-status: captured
+status: captured | historical_candidate | current_gap | covered_unvalidated | likely_addressed | obsolete | triaged | corrective_action_defined | validation_needed | verified_closed
+
 ---
 
 # Summary
@@ -226,6 +323,15 @@ status: captured
 
 # Tentative DQ classification
 
+# Current-system coverage review
+
+- observed prompt context:
+- observed system SHA:
+- current system SHA:
+- current coverage:
+- coverage evidence:
+- regression needed:
+
 # Suspected cause
 
 Provisional only.
@@ -244,6 +350,7 @@ Do not create new rules.
 Do not run empirical-prompt-tuning.
 Do not turn this into an apology.
 Do not overfit one incident into a global policy.
+Do not assume a historical failure still implies a current prompt gap.
 
 # Final response
 
@@ -252,5 +359,7 @@ After writing the report, respond with:
 - report path;
 - one-sentence summary;
 - severity;
+- current coverage;
 - whether triage is recommended;
+- whether regression validation is recommended;
 - missing evidence, if any.
