@@ -159,6 +159,8 @@
         "mkdir *": "allow",
         "pwd": "allow",
         "pwd *": "allow",
+        "date": "allow",
+        "date *": "allow",
         "jq *": "allow",
         "rg": "allow",
         "rg *": "allow",
@@ -284,7 +286,8 @@
       "codesearch": "allow",
       "external_directory": {
         "*": "ask",
-        "/*": "deny"
+        "~": "deny",
+        "/": "deny"
       },
       "orchestrator": {
         "orch-local-investigator": "deny",
