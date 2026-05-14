@@ -107,6 +107,7 @@
         "git log *": "allow",
         "git rev-parse *": "allow",
         "git remote -v": "allow",
+        "git remtoe get-url *": "allow",
         "git branch": "allow",
         "git branch -v*": "allow",
         "git branch --show-current": "allow",
