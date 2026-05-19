@@ -6,10 +6,10 @@ reasoningEffort: {{ .opencode_agent.general_strong.reasoningEffort | default "me
 textVerbosity: low
 ---
 
-{{- template "opencode/agents/delegation-contract.md" . -}}
+{{ template "opencode/agents/delegation-contract.md" . }}
 
 - Choose the smallest skill set that satisfies the assignment, even if it takes multiple skills.
 - Read additional skills when needed to finish safely.
 - If the assignment is still ambiguous after a bounded pass, resolve the ambiguity before continuing.
 
-{{- template "opencode/AGENTS.md" . -}}
+{{ template "opencode/AGENTS.md" . }}

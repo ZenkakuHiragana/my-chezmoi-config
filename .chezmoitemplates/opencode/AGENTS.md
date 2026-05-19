@@ -11,35 +11,32 @@
 - Do not add unnecessary parentheses or parenthetical annotations.
 - Keep prose natural, grammatical, and internally consistent.
 
-## Work-class routing and execution discipline
+## Work-class and execution route
 
 - Restate the request in one short sentence before substantial work.
-- Identify the smallest safe work class:
+- Identify the smallest safe `work_class`:
   - `tiny-local`: one small surface, no new facts, no cross-file dependency, and no broader policy dependency
   - `bounded`: limited surfaces, short investigation, or a small contained change
   - `broad-or-unclear`: multiple surfaces, missing facts, or design choices
+- `work_class` describes task size and uncertainty. It does not decide whether a skill or subagent is used.
 - Do not label a task `tiny-local` unless all four `tiny-local` conditions are positively satisfied.
 - If you are torn between `tiny-local` and a larger class, do not use `tiny-local`.
 - If you are torn between `bounded` and `broad-or-unclear`, prefer `broad-or-unclear` when multiple surfaces, prompt hierarchy, broader policy interaction, or prerequisite fact discovery may expand the scope.
 - Reading one already-named local file to answer a simple question does not by itself make the task non-`tiny-local`.
 - If correctness depends on prompt hierarchy, rule placement, or broader policy interaction, the task is not `tiny-local` even when one file is named. Unless the relevant comparison surface is already clearly narrow, treat such cases as `broad-or-unclear`.
-- Handle directly only when the task is clearly `tiny-local`.
-- `Direct` means no skill handoff. If the first step is any skill, the task is `delegated`.
-- A first routing move that names `requirements-clarification`, `investigation`, `public-research`, `technical-writing`, `code-review`, `refactoring`, or `grill-me` is always `delegated`, never `direct`.
-- Never report or treat a skill handoff as `direct`.
-- For `bounded` tasks, default to delegation. Handle directly only as an exception when the relevant local surface is already identified and no skill would add safety.
-- If you are hesitating between direct and delegated for any task that is not clearly `tiny-local`, choose delegated.
-- For `broad-or-unclear` tasks, delegate early to the stronger path.
-- Before choosing direct handling, check whether a relevant skill should be used instead.
-- Decide explicitly whether the task is direct, delegated, or blocked by missing facts.
-- If a required fact is missing, resolve it from local files, public research, or delegation before asking the user or treating the task as blocked.
+- `execution_route` is separate from `work_class`.
+- Skill use alone is never delegation.
+- A task is `delegated` only when a bounded assignment was sent to a subagent.
+- Do not delegate merely because a task is not `tiny-local`.
+- Before proceeding, check whether a relevant skill should guide the work.
+- If a required fact is missing, resolve it from local files, public research, or an explicitly allowed subagent assignment before asking the user or treating the task as blocked.
 - Keep the first pass brief and ask questions only when the answer is required to proceed safely.
 
-## Delegation contract
+## Delegation basics
 
-- When delegating, pass the task goal, work class, required mode, constraints, and required evidence.
-- Ask the child to report its work class, chosen skills, result, verification performed, and next action.
-- Use the stronger child when the scope or ambiguity is not clearly small.
+- The parent remains responsible for final integration, conflict resolution, and verification.
+- Subagents must treat delegated assignments as bounded contracts unless explicitly told to analyze the whole user request.
+- Subagents must not recursively delegate unless the assignment explicitly allows it.
 
 ## Intent gate and skill selection
 
@@ -84,7 +81,7 @@
   - use `investigation` to resolve unresolved `repo_derivable` attributes
   - use `public-research` to resolve unresolved `public_fact` attributes
   - keep `requirements-clarification` responsible for any required `unknown` attributes that still need a user decision
-  - once the requirement records are complete, hand off to `task-planning`, `implementation`, `refactoring`, or `code-review` as appropriate
+  - once the requirement records are complete, continue to `task-planning`, `implementation`, `refactoring`, or `code-review` as appropriate
 - If the user already asked for a repository change, do not start the parent routing step with `public-research` or `investigation` just because a prerequisite fact is external or local. Start with `requirements-clarification`, then let unresolved attributes determine the later handoff.
 - For requests shaped like “check official docs or behavior, then update config/code/docs if supported,” the first routing move is still `requirements-clarification`. Treat the docs or behavior check as a downstream dependency, not as the parent routing move.
 - Requests phrased as rename, extraction, cleanup, migration, or repo-wide consistency work are not automatically refactoring. Unless the user already made the behavior-preserving structural-cleanup intent explicit and the scope is execution-ready, keep them on the requirements-first path.
@@ -93,7 +90,7 @@
 
 - Use `investigation` when repository-local behavior, state, configuration, inputs, outputs, code paths, or existing artifacts must be confirmed before the next action is clear, or when unresolved `repo_derivable` requirement attributes must be filled.
 - Use `public-research` when the visible task requires source-backed public facts or official guidance outside the repository, such as checking tool or platform behavior, standards, policies, APIs, upstream practices, or evaluation methods, or when unresolved `public_fact` requirement attributes must be filled.
-- The obligation to inspect relevant local files before answering does not by itself make a repository-local task direct. If the relevant surface is not already a clearly named tiny-local read, or if a skill would add safety, route to `investigation` and let that skill perform the inspection.
+- The obligation to inspect relevant local files before answering does not by itself decide `execution_route`. If the relevant surface is not already a clearly named tiny-local read, or if a skill would add safety, use `investigation` to guide the inspection.
 
 ### Planning
 
@@ -110,7 +107,7 @@
 - A short explanation, summary, or introductory answer can still be `tiny-local` and direct. A polished standalone document such as a migration guide, tutorial, or structured internal note is not `tiny-local` merely because it centers on one file.
 - A repository task whose main deliverable is prose still routes as writing first. If the needed facts are already known, start with `technical-writing` instead of forcing the task through `requirements-clarification`.
 - A request to draft a migration guide, internal note, tutorial, README rewrite, or similar prose artifact from already supplied or already-known facts is writing-first.
-- If you choose `technical-writing` as the first step, the task is `delegated`.
+- Choosing `technical-writing` as the first step does not by itself change `execution_route`.
 - If the document depends on unresolved repository facts or public facts, resolve those with `investigation`, `implementation`, or `public-research` before or alongside `technical-writing` instead of using prose quality to guess missing facts.
 
 ### Implementation

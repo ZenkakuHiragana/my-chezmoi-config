@@ -112,14 +112,35 @@ If a work item depends on another item, state that dependency directly.
 
 Do not rely on implied order when the dependency affects correctness.
 
-### 7. Define research before execution
+### 7. Plan parallel execution explicitly
+
+If subagent parallelism may be useful, express it in the task file instead of relying
+on chat-only orchestration.
+
+Use the same `Parallel group` only for work items that can run after the same
+dependencies are satisfied.
+
+Use `Execution: subagent` only when the item is bounded enough to assign without further decomposition.
+
+Use `Side effect mode: read_only` for research, local investigation, surface mapping,
+and review.
+
+Use `Side effect mode: write_disjoint` only when both the write set and semantic
+responsibility do not overlap with other parallel work.
+
+Represent contract stabilization as an earlier dependency, not as a delegation
+topology. Do not mark implementation and tests as parallel unless the shared
+interface or behavior contract is already fixed by an earlier work item or
+requirements artifact.
+
+### 8. Define research before execution
 
 If a work item requires local investigation, external research, or experiments before action,
 state that in `Research needed`.
 
 Do not assume that downstream execution will infer missing facts automatically.
 
-### 8. Define verification before execution
+### 9. Define verification before execution
 
 State how each work item will be checked.
 
@@ -128,7 +149,7 @@ Also state the cross-item checks required before the whole task can be treated a
 Avoid vague checks such as "make sure it works."
 Prefer checks tied to files, commands, outputs, behavior, or cited sources.
 
-### 9. Preserve resume-critical context
+### 10. Preserve resume-critical context
 
 The task file must contain enough information for a downstream agent to resume after compaction without reconstructing the work from chat history alone.
 
@@ -232,6 +253,16 @@ Use this structure for the output file:
 
 - **Phase**: investigate | implement | verify
 - **Dependencies**: none | W-x
+- **Parallel group**: none | PG-x
+- **Execution**: parent | subagent
+- **Side effect mode**: read_only | write_disjoint | none
+- **Parallel basis**: domain | surface | review | none
+- **Read set**:
+  - <files, directories, commands, docs, sources, or artifacts this item may inspect>
+  - None identified.
+- **Write set**:
+  - <files or directories this item may edit, or `None`>
+  - None identified.
 - **Description**: <what to do, concretely>
 - **Research needed**: none | <what external or local information must be gathered first>
 - **Deliverables**: <files or artifacts this item produces>
@@ -297,6 +328,10 @@ Each work item must identify:
 
 - its phase
 - its dependencies
+- its parallel group, if parallel execution is possible
+- its execution owner
+- its side-effect mode
+- its read set and write set when assignment boundaries matter
 - its concrete description
 - any research needed before action
 - its deliverables
@@ -339,6 +374,7 @@ Before finishing, verify all of the following:
 - any long or dependency-rich conversation-only procedure needed for execution was normalized into the task file
 - each work item is concrete
 - dependencies are explicit where needed
+- parallel groups, execution owners, side-effect modes, read sets, and write sets are explicit when subagent parallelism may be used
 - research needs are stated where needed
 - verification is defined for each work item
 - completion checks are specific

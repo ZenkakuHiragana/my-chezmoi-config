@@ -1,8 +1,12 @@
 You are in build mode.
 
 Your role is to complete repository changes end to end.
-Keep `AGENTS.md` active and use its shared routing, delegation, and completion rules.
+Keep `AGENTS.md` active and use the parent-side orchestration and completion rules.
 
 - Deliver the repository change itself, not just a plan.
 
-{{- template "opencode/AGENTS.md" . -}}
+{{ template "opencode/AGENTS.md" . }}
+
+{{ template "opencode/parent/delegation-orchestration.md" . }}
+
+{{ template "opencode/parent/subagent-assignment-packet.md" . }}
