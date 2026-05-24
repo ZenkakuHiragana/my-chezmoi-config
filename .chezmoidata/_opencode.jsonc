@@ -101,6 +101,7 @@
         "git check-ignore *": "allow",
         "git diff": "allow",
         "git diff *": "allow",
+        "git grep *": "allow",
         "git show": "allow",
         "git show *": "allow",
         "git log": "allow",
