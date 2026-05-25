@@ -1,6 +1,13 @@
 ---
 name: public-research
-description: Use this skill when the visible task requires source-backed public facts or official guidance outside the repository, when a normalized requirements artifact still has unresolved `public_fact` attributes, or when the user explicitly asks for primary-source verification. Typical triggers include public tool or platform behavior, standards, policies, APIs, upstream practices, and evaluation or verification methods. Do not use it for repository-only tasks. Expected result: a source-backed answer that separates confirmed facts, caveats, and inference.
+description: >
+  Use this skill when the visible task requires source-backed public facts or
+  official guidance outside the repository, when a normalized requirements artifact
+  still has unresolved `public_fact` attributes, or when the user explicitly asks
+  for primary-source verification. Typical triggers include public tool or platform
+  behavior, standards, policies, APIs, upstream practices, and evaluation or
+  verification methods. Do not use it for repository-only tasks. Expected result: a
+  source-backed answer that separates confirmed facts, caveats, and inference.
 ---
 
 # Public Research

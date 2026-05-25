@@ -1,6 +1,10 @@
 ---
 name: refactoring
-description: Use this skill for behavior-preserving structural cleanup of existing code. Do not use for feature work, bug fixes, or external research. Expected result: clearer structure, names, and boundaries, with explicit validation for any intentional contract change.
+description: >
+  Use this skill for behavior-preserving structural cleanup of existing code. Do not
+  use for feature work, bug fixes, or external research. Expected result: clearer
+  structure, names, and boundaries, with explicit validation for any intentional
+  contract change.
 ---
 
 # Refactoring

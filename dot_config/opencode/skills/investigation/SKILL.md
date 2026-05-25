@@ -1,6 +1,15 @@
 ---
 name: investigation
-description: Use this skill when you need to investigate repository-local behavior, state, or facts before deciding on a real fix or implementation change, or when a normalized requirements artifact still has unresolved `repo_derivable` attributes. Use it for reproduction, evidence gathering, code-path confirmation, temporary instrumentation, and configuration, environment, or data inspection. Do not use when the current request or task contract already identifies a concrete repository change and required checks, or when the task is mainly public fact-finding. Expected result: confirmed observations, resolved repository facts, remaining unknowns, and the recommended next action.
+description: >
+  Use this skill when you need to investigate repository-local behavior, state, or
+  facts before deciding on a real fix or implementation change, or when a normalized
+  requirements artifact still has unresolved `repo_derivable` attributes. Use it for
+  reproduction, evidence gathering, code-path confirmation, temporary
+  instrumentation, and configuration, environment, or data inspection. Do not use
+  when the current request or task contract already identifies a concrete repository
+  change and required checks, or when the task is mainly public fact-finding.
+  Expected result: confirmed observations, resolved repository facts, remaining
+  unknowns, and the recommended next action.
 ---
 
 # Investigation
