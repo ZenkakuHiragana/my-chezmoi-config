@@ -1,0 +1,6 @@
+---
+name: extract-failure-patterns
+description: Mine failure logs and session reports for repeated patterns. Use only when the user explicitly wants recurring prompt or workflow failures clustered and summarized.
+---
+
+{{ regexReplaceAll "(?s)^---\n.*?\n---\n\n?" (include "dot_config/opencode/agents/extract-failure-patterns.md") "" }}

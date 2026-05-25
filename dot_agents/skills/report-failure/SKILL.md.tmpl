@@ -1,0 +1,6 @@
+---
+name: report-failure
+description: Record one prompt or workflow failure with evidence and minimal containment. Use only when the user explicitly wants a failure captured as an incident.
+---
+
+{{ regexReplaceAll "(?s)^---\n.*?\n---\n\n?" (include "dot_config/opencode/agents/report-failure.md") "" }}

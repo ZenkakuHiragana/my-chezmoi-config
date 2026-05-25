@@ -1,0 +1,6 @@
+---
+name: export-context
+description: Export the current session into a reusable handoff bundle. Use only when the user explicitly wants a factual context export for another session or agent.
+---
+
+{{ regexReplaceAll "(?s)^---\n.*?\n---\n\n?" (include "dot_config/opencode/agents/export-context.md") "" }}

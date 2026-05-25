@@ -1,0 +1,14 @@
+# Copy this file to `.chezmoitemplates/codex/config-specific.toml` on a machine
+# where you want local-only Codex settings that should not be committed.
+#
+# Examples:
+#
+# model = "gpt-5.5"
+# review_model = "gpt-5.5"
+#
+# [windows]
+# sandbox = "elevated"
+#
+# [profiles.readonly_quiet]
+# approval_policy = "never"
+# sandbox_mode = "read-only"

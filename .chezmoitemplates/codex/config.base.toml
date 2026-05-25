@@ -1,0 +1,28 @@
+# Managed by chezmoi.
+#
+# Common defaults live in this repository.
+# Optional machine-specific additions can be placed in:
+#   .chezmoitemplates/codex/config-specific.toml
+# in the chezmoi source directory on this machine.
+#
+# Trusted workspace entries that Codex appends locally are preserved automatically
+# during `chezmoi apply` and are intentionally not tracked in this repository.
+
+approval_policy = "on-request"
+sandbox_mode = "workspace-write"
+model_reasoning_effort = "high"
+personality = "pragmatic"
+web_search = "cached"
+
+[sandbox_workspace_write]
+network_access = true
+
+project_doc_fallback_filenames = [".agents.md"]
+project_doc_max_bytes = 65536
+
+[features]
+hooks = true
+multi_agent = true
+personality = true
+shell_snapshot = true
+unified_exec = true

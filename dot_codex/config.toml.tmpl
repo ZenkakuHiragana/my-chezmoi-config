@@ -1,0 +1,24 @@
+{{- $basePath := ".chezmoitemplates/codex/config.base.toml" -}}
+{{- $specificPath := ".chezmoitemplates/codex/config-specific.toml" -}}
+{{- $existingConfigPath := joinPath .chezmoi.homeDir ".codex" "config.toml" -}}
+{{- $extractorPath := joinPath .chezmoi.sourceDir ".chezmoitemplates" "codex" "extract-project-trust.py" -}}
+{{- $base := include $basePath | trim -}}
+{{- $specific := "" -}}
+{{- if stat $specificPath -}}
+{{- $specific = include $specificPath | trim -}}
+{{- end -}}
+{{- $preservedProjects := "" -}}
+{{- if stat $existingConfigPath -}}
+{{- $preservedProjects = output "python3" $extractorPath $existingConfigPath | trim -}}
+{{- end -}}
+{{ $base }}
+{{- if $specific }}
+
+# Machine-specific additions from local source state
+{{ $specific }}
+{{- end }}
+{{- if $preservedProjects }}
+
+# Preserved local project trust entries from the existing destination config
+{{ $preservedProjects }}
+{{- end }}
