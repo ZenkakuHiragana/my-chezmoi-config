@@ -1,5 +1,6 @@
 # Copy this file to `.chezmoitemplates/codex/config-specific.toml` on a machine
 # where you want local-only Codex settings that should not be committed.
+# Root-level keys are safe here and will remain top-level in the rendered config.
 #
 # Examples:
 #

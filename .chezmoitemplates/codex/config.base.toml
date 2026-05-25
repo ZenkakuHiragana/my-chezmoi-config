@@ -14,15 +14,5 @@ model_reasoning_effort = "high"
 personality = "pragmatic"
 web_search = "cached"
 
-[sandbox_workspace_write]
-network_access = true
-
 project_doc_fallback_filenames = [".agents.md"]
 project_doc_max_bytes = 65536
-
-[features]
-hooks = true
-multi_agent = true
-personality = true
-shell_snapshot = true
-unified_exec = true

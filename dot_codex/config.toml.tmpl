@@ -1,8 +1,10 @@
 {{- $basePath := ".chezmoitemplates/codex/config.base.toml" -}}
+{{- $tablesPath := ".chezmoitemplates/codex/config.tables.toml" -}}
 {{- $specificPath := ".chezmoitemplates/codex/config-specific.toml" -}}
 {{- $existingConfigPath := joinPath .chezmoi.homeDir ".codex" "config.toml" -}}
 {{- $extractorPath := joinPath .chezmoi.sourceDir ".chezmoitemplates" "codex" "extract-project-trust.py" -}}
 {{- $base := include $basePath | trim -}}
+{{- $tables := include $tablesPath | trim -}}
 {{- $specific := "" -}}
 {{- if stat $specificPath -}}
 {{- $specific = include $specificPath | trim -}}
@@ -21,4 +23,8 @@
 
 # Preserved local project trust entries from the existing destination config
 {{ $preservedProjects }}
+{{- end }}
+{{- if $tables }}
+
+{{ $tables }}
 {{- end }}

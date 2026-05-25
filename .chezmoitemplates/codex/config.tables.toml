@@ -1,0 +1,9 @@
+[sandbox_workspace_write]
+network_access = true
+
+[features]
+hooks = true
+multi_agent = true
+personality = true
+shell_snapshot = true
+unified_exec = true
