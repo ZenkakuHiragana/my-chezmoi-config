@@ -12,4 +12,4 @@
 #
 # [profiles.readonly_quiet]
 # approval_policy = "never"
-# sandbox_mode = "read-only"
+# default_permissions = ":read-only"

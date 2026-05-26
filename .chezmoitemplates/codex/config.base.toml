@@ -8,11 +8,6 @@
 # Trusted workspace entries that Codex appends locally are preserved automatically
 # during `chezmoi apply` and are intentionally not tracked in this repository.
 
-approval_policy = "on-request"
-sandbox_mode = "workspace-write"
 model_reasoning_effort = "high"
 personality = "pragmatic"
 web_search = "cached"
-
-project_doc_fallback_filenames = [".agents.md"]
-project_doc_max_bytes = 65536
