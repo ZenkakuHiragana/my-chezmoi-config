@@ -19,11 +19,23 @@ Flag comments or docs when the described behavior, option, flag, API, default, f
 
 This includes documentation for non-existent behavior, stale comments after a refactor, and prose that contradicts tests or implementation.
 
+## Placement
+
+Flag documentation placed where the intended reader will not find it, where it interrupts local code comprehension, or where it belongs in a more durable surface such as API docs, README, migration notes, generated reference, or tests.
+
+Prefer moving text to the surface that owns the contract instead of duplicating it across comments, examples, and user docs.
+
 ## Reader-context alignment
 
 Flag comments or docs that may be true but do not help the intended reader because they depend on private conversation history, obsolete names, temporary implementation history, or agent self-justification.
 
 Examples include comments that memorialize a rename, explain why a discarded feature flag does not exist, or describe an internal edit decision that is not part of the public or maintenance contract.
+
+## Negative documentation
+
+Flag documentation that mainly says what the code does not do, what was not implemented, or which rejected approach was avoided unless that absence is part of a real public contract, security boundary, compatibility promise, migration warning, or operational constraint.
+
+Prefer documenting supported behavior, invariants, limits, and required actions over preserving internal non-decisions.
 
 ## Other suspicious patterns
 

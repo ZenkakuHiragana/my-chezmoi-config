@@ -134,6 +134,7 @@ If input scale, deployment status, public API status, or compatibility requireme
    - Use the core checklist below.
    - Read relevant concern files from `concerns/` when their trigger appears or the review scope is broad.
    - Read relevant combined language/toolchain profiles from `profiles/` when the codebase uses that stack.
+   - Resolve concern and profile paths relative to this skill directory. If an auxiliary file is unavailable, continue with the core checklist and state which file could not be loaded.
 3. Decide whether to review directly or split by concern.
    - Review directly when the surface is small enough for one coherent pass.
    - Use concern-based subagents when the review is broad, multi-file, high-risk, or spans several independent quality domains.
@@ -185,7 +186,7 @@ Concern files are codified review knowledge, not incident history. Load only the
 - `concerns/complexity.md`: function/file size, indirection, duplication, and excessive splitting
 - `concerns/tests.md`: coverage expectations and missing test cases
 - `concerns/test-quality.md`: whether tests prove meaningful behavior
-- `concerns/comments-and-docs.md`: useful documentation, factual alignment, reader-context alignment, and documentation noise
+- `concerns/comments-and-docs.md`: useful documentation, factual alignment, placement, reader-context alignment, negative documentation, and documentation noise
 - `concerns/security.md`: security, privacy, and misuse-resistance triggers
 - `concerns/concurrency-and-async.md`: concurrency, async, cancellation, ordering, and synchronization
 - `concerns/resource-lifecycle.md`: ownership, cleanup, leaks, and lifecycle coupling
@@ -292,20 +293,6 @@ The parent owns the final review:
 - discard generic advice, unsupported speculation, and out-of-scope redesigns
 - check for missing high-risk packs before finalizing
 - present one coherent review in the normal output format
-
-## Failure-learning boundary
-
-Do not load raw failure reports during ordinary code review.
-
-Past misses should enter this skill only after triage converts them into one of:
-
-- a concern trigger
-- a project profile rule
-- a language/toolchain profile rule
-- a static analysis rule
-- no change
-
-Do not add a lessons-learned or incident database under this skill. Raw failure evidence belongs in the repository's failure-log pipeline, not in review-time instructions.
 
 ## Output format
 
