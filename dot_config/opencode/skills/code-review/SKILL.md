@@ -65,6 +65,10 @@ If only the current codebase is available, review the highest-risk areas first a
 
 Inspect the actual files, related callers, tests, docs, and project rules that define the contract.
 
+Project-local rules, ADRs, specifications, domain notes, and explicit user constraints are
+review authority. Generic best practices are advisory unless they are supported by a
+concrete project risk, a project rule, a public contract, or a safety/security concern.
+
 For a diff, read every changed line.
 
 When available and relevant, inspect:
@@ -91,6 +95,16 @@ Use these severity labels:
 - `Major`: serious design, maintainability, performance, migration, or test-quality concerns supported by concrete evidence and likely to create near-term trouble
 - `Minor`: localized readability, naming, documentation, or consistency issues
 - `Uncertain`: plausible concern with incomplete evidence; state what extra context would confirm or dismiss it
+
+Also classify each finding's authority:
+
+- `project_rule_violation`: a project rule, ADR, specification, documented invariant, or explicit user constraint is violated
+- `contract_or_correctness_risk`: the code can break a public API, persisted format, user workflow, security boundary, or directly evidenced behavior
+- `generic_risk`: general engineering guidance applies and no project rule was found to override it
+- `uncertain`: project authority or impact is not yet established
+
+Do not present a `generic_risk` as a blocking finding unless the concrete impact is
+shown for this project.
 
 ### 4. Avoid out-of-scope drift
 
@@ -123,6 +137,22 @@ Do not report generic advice without a concrete location.
 If a claim cannot be supported from the reviewed code, say so and ask for the missing context instead of guessing.
 
 If input scale, deployment status, public API status, or compatibility requirements are unknown, state the assumption before judging severity.
+
+### 8. Escape to investigation when the premise changes
+
+During code review, a follow-up question or finding premise may stop being ordinary
+review and become a factual investigation.
+
+Reclassify the subquestion before continuing when it depends on external engine
+behavior, platform semantics, public API behavior, generated data provenance, render
+target formats, shader semantics, runtime objects, configuration keys, or project-local
+domain rules.
+
+Use `investigation`, `public-research`, and `epistemic-audit` as needed to identify and
+check the required source classes.
+Do not make the review finding blocking while a required source class remains unchecked.
+Report the concern as `Uncertain`, state the coverage gap, and name the evidence needed to
+promote or dismiss it.
 
 ## Review workflow
 
@@ -308,6 +338,7 @@ For each finding, include:
 - severity
 - location
 - claim
+- authority
 - evidence
 - impact
 - suggested next step

@@ -5,7 +5,7 @@
 - Skill use is procedure selection, not delegation.
 - `task_kind` tells you the main purpose.
 - `mode_constraint=read_only` means do not edit files or run side-effecting commands.
-- `mode_constraint=read_only` means choose only `code-review`, `public-research`, or `investigation`.
+- `mode_constraint=read_only` means choose only `code-review`, `public-research`, `investigation`, or `epistemic-audit`.
 - `mode_constraint=write_ok` also allows `requirements-clarification`, `task-planning`, `implementation`, and `refactoring`.
 - If the assignment includes `side_effect_mode=read_only`, treat it as `mode_constraint=read_only` even if other wording is loose.
 - If the assignment includes `side_effect_mode=write_disjoint`, edit only the explicit `write_set`; do not edit shared files, schemas, prompt hierarchy, lockfiles, or global rules unless they are inside your exclusive write set.
@@ -17,6 +17,7 @@
   - review -> `code-review`
   - public_fact_research -> `public-research`
   - bounded_investigation -> `investigation`
+  - epistemic_audit -> `epistemic-audit`
   - implementation -> `investigation`
   - refactoring -> `investigation`
   - investigation -> `investigation`
@@ -24,6 +25,7 @@
 - Default mapping for `write_ok`:
   - review -> `code-review`
   - public_fact_research -> `public-research`
+  - epistemic_audit -> `epistemic-audit`
   - requirements_clarification -> `requirements-clarification`
   - planning -> `task-planning`
   - implementation -> `implementation`

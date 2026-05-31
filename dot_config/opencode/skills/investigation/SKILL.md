@@ -42,6 +42,8 @@ It is also the default way to resolve `repo_derivable` fields left open by a nor
 Assess the work against:
 
 - what has been directly observed and confirmed
+- which claims are repository-observed facts, deductions from local evidence, inferred candidates, working assumptions, unknowns, or rejected explanations
+- which required local source classes were checked and which remain unchecked
 - reproduction status and reproducibility conditions
 - scope of impact and affected surfaces
 - which code paths, inputs, state, configuration, data, or environment factors are confirmed in play
@@ -56,6 +58,8 @@ Return:
 
 - a short summary of the observed behavior or factual question
 - confirmed observations and relevant evidence
+- a local source coverage summary when multiple repository paths, logs, configs, generated outputs, or runtime states were required
+- inferred candidates and working assumptions kept separate from confirmed observations
 - which `repo_derivable` fields or local facts were resolved, when applicable
 - reproduction status
 - narrowed scope and what has been ruled out
@@ -69,9 +73,11 @@ Return:
 1. Restate the observed behavior, factual question, and expected behavior if it is known.
 2. Reproduce or approximate the behavior when possible.
 3. If the user names or strongly implies a decisive source of truth, make it the first evidence target before proposing fixes, replacement designs, suppressions, workarounds, or broad theories. Examples include an exact source path, runtime state, log, route, register or constant provenance, authoritative specification, mode or authority table, generated-data path, or history diff. If that evidence is unavailable, record what was unavailable and why before moving to alternatives.
-4. Gather direct evidence from the relevant repository paths, logs, state, callers, configuration, environment, inputs, or outputs. Keep searches scoped to the relevant repository or to the smallest necessary, explicitly named directories, and do not use the filesystem root `/` or other very broad top-level directories as search roots.
-5. Keep explicit user constraints active while gathering evidence. Add temporary diagnostics only as narrowly as needed, and do not turn them into new supported control surfaces, runtime branches, or compatibility paths unless the request or an existing contract requires that.
-6. Compare plausible explanations against the observed evidence and rule out what you can.
-7. Check public issue trackers or docs when local evidence does not sufficiently explain the behavior.
-8. Stop once you can report confirmed observations, remaining unknowns, and exactly one recommended next action, whether that is implementation, more targeted investigation, a user question, or no repository change.
-9. Remove, disable, or clearly isolate temporary diagnostics before finishing if they are no longer needed.
+4. If AGENTS.md, project rules, domain notes, or the user identify a local source-of-truth repository, generated graph, runtime artifact, log, or authoritative path for the domain, include it as a required source class when the question depends on that domain.
+5. Gather direct evidence from the relevant repository paths, logs, state, callers, configuration, environment, inputs, or outputs. Keep searches scoped to the relevant repository or to the smallest necessary, explicitly named directories, and do not use the filesystem root `/` or other very broad top-level directories as search roots.
+6. When the task requires several local source classes, maintain a source coverage matrix with source class, status, evidence, and missing impact. Do not present an explanation as confirmed when a required source class is unchecked.
+7. Keep explicit user constraints active while gathering evidence. Add temporary diagnostics only as narrowly as needed, and do not turn them into new supported control surfaces, runtime branches, or compatibility paths unless the request or an existing contract requires that.
+8. Compare plausible explanations against the observed evidence and rule out what you can.
+9. Check public issue trackers or docs when local evidence does not sufficiently explain the behavior.
+10. Stop once you can report confirmed observations, remaining unknowns, and exactly one recommended next action, whether that is implementation, more targeted investigation, a user question, or no repository change.
+11. Remove, disable, or clearly isolate temporary diagnostics before finishing if they are no longer needed.

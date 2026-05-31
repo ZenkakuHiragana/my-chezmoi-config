@@ -135,6 +135,20 @@ Give extra attention to:
 
 Before editing, inspect enough of the relevant context to avoid shallow or contradictory changes.
 
+Use only binding claims as implementation premises:
+
+- user-stated requirements
+- repository-observed facts
+- public-source facts verified by the appropriate workflow
+- active project rules or domain-premise documents
+- valid deductions from those inputs
+
+Do not turn inferred candidates, working assumptions, unchecked `repo_derivable` or
+`public_fact` fields, unsupported generic best practices, or session-local context into
+implemented behavior.
+If an unconfirmed claim would affect the change, resolve it first or keep it out of the
+implementation.
+
 At minimum, read:
 
 - the target file
