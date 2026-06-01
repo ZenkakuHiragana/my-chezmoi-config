@@ -1,17 +1,14 @@
 ---
 name: refactoring
 description: >
-  Use this skill for behavior-preserving structural cleanup of existing code. Do not
-  use for feature work, bug fixes, or external research. Expected result: clearer
-  structure, names, and boundaries, with explicit validation for any intentional
-  contract change.
+  Attach this capability for behavior-preserving structural cleanup of existing code. It covers clearer structure, names, boundaries, and validation that behavior is preserved. Do not attach it as the sole capability for feature work, bug fixes, unresolved source evidence, or external research; attach requirements-clarification, investigation, public-research, implementation, or epistemic-audit as needed.
 ---
 
 # Refactoring
 
 ## Purpose
 
-This skill guides behavior-preserving cleanup of existing code. Use it to improve structure, names, boundaries, and maintainability after first understanding the current design.
+This capability guides behavior-preserving cleanup of existing code. Attach it to improve structure, names, boundaries, and maintainability after first understanding the current design.
 
 ## When to use
 

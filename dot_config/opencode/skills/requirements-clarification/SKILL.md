@@ -1,27 +1,27 @@
 ---
 name: requirements-clarification
 description: >
-  Use this skill as the default first step for ordinary implementation-shaped requests that are not yet execution-ready. It treats the user's initial instruction as a stated requirement, decomposes it into atomic requirements, normalizes each one into a fixed record, marks each required attribute as `user_provided`, `repo_derivable`, `public_fact`, or `unknown`, separates binding requirements from inferred candidates and rejected assumptions, and determines the next skill from unresolved attributes. Do not use it for purely factual questions, pure local investigation, or pure public research with no implementation intent. Expected result: a written requirements artifact plus one next-step recommendation.
+  Attach this capability as the default requirement-normalization step for ordinary implementation-shaped requests that are not yet execution-ready. It treats the user's instruction as a stated requirement, decomposes atomic requirements, records attribute status, field grounding, inferred candidates, rejected assumptions, and remaining source or capability obligations. Do not use it for purely factual questions, pure local investigation, or pure public research with no implementation intent. Expected result: a written requirements artifact plus a next capability set.
 ---
 
 # Requirements Clarification
 
 ## Purpose
 
-This skill turns a raw implementation request into an execution-ready requirements
+This capability turns a raw implementation request into an execution-ready requirements
 artifact.
 
 Its starting assumption is that the user's initial instruction is a `stated requirement`:
 useful, but not yet analyzed, verified, or validated enough for direct execution.
 
-The goal is to reduce routing ambiguity for smaller models by replacing
+The goal is to reduce task-framing ambiguity for smaller models by replacing
 "does this feel specific enough?" with a fixed requirements record, explicit
 attribute status, and a clear boundary between binding requirements and non-binding
 inferences.
 
 ## When to use
 
-Use this skill as the default first step when the request is an ordinary
+Attach this capability as the default first step when the request is an ordinary
 implementation-shaped task and one or more of these are true:
 
 - the request names a change but not the full execution-ready requirement set
@@ -34,14 +34,14 @@ implementation-shaped task and one or more of these are true:
 
 ## When not to use
 
-Do not use this skill when:
+Do not attach this capability when:
 
 - the request is a purely factual question with no implementation intent
 - the request is clearly pure public research
 - the request is clearly pure repository-local investigation
 - the request is clearly behavior-preserving refactoring and already execution-ready
 - the request already has a written requirements artifact or task file that is good
-  enough for the next downstream skill
+  enough for the next downstream capability set
 
 ## Expected inputs
 
@@ -55,7 +55,7 @@ Do not use this skill when:
 - a structured requirements document written to `.opencode/work/req-<slug>.md`
 - atomic requirement records with explicit attribute status
 - targeted user questions only for remaining `unknown` attributes
-- exactly one handoff recommendation
+- a next capability set or handoff recommendation
 
 ## Core rules
 
@@ -140,20 +140,21 @@ until confirmed by evidence or accepted by the user.
 
 ### 5. Discover before asking
 
-Before asking the user, inspect the repository and use public research when needed.
+Before asking the user, inspect the repository and attach public research when needed.
 
 Ask only about attributes that remain `unknown` after proportionate discovery.
 
-### 6. Route from unresolved attributes, not intuition
+### 6. Map unresolved attributes to capability obligations, not intuition
 
 Use this mapping:
 
-- unresolved required `repo_derivable` attributes -> recommend `investigation`
-- unresolved required `public_fact` attributes -> recommend `public-research`
+- unresolved required `repo_derivable` attributes -> include `investigation`
+- unresolved required `public_fact` attributes -> include `public-research`
 - unresolved required `unknown` attributes -> stay in this skill and ask targeted
-  questions, or use `grill-me` only if the remaining decisions are interdependent
-- no unresolved required attributes -> recommend `task-planning`, `implementation`,
-  `refactoring`, or `code-review` as appropriate
+  questions, or attach `grill-me` only if the remaining decisions are interdependent
+- no unresolved required attributes -> recommend the smallest sufficient next capability
+  set, such as `task-planning`, `implementation`, `refactoring`, `code-review`,
+  `investigation`, `public-research`, or `epistemic-audit` as appropriate
 
 Do not hand off to implementation while a required attribute is still `unknown`.
 
@@ -295,7 +296,7 @@ Use this only when one field contains multiple material claims or non-trivial de
 
 ## Handoff recommendation
 
-- Next skill: <requirements-clarification | investigation | public-research | task-planning | implementation | refactoring | code-review>
+- Next capability set: <requirements-clarification | investigation | public-research | task-planning | implementation | refactoring | code-review | epistemic-audit>[, ...]
 - Why: <one short explanation>
 ```
 
@@ -312,7 +313,7 @@ Summarize what change the user appears to want.
 
 Read the relevant repository files.
 
-If externally grounded facts affect the requirement record, use `public-research`
+If externally grounded facts affect the requirement record, attach `public-research`
 before asking the user.
 
 ### Step 3: Split the request into atomic requirements
@@ -334,11 +335,11 @@ of making it part of a binding field.
 
 If unresolved required attributes remain:
 
-- recommend `investigation` for `repo_derivable`
-- recommend `public-research` for `public_fact`
+- include `investigation` for `repo_derivable`
+- include `public-research` for `public_fact`
 - ask targeted user questions only for `unknown`
 
-If the remaining `unknown` attributes are tightly interdependent, you may use
+If the remaining `unknown` attributes are tightly interdependent, you may attach
 `grill-me` before returning to this artifact.
 
 ### Step 6: Write the document
@@ -347,24 +348,29 @@ Write the current artifact to the output file even if follow-up work remains.
 
 Do not wait for perfection before externalizing the normalized record.
 
-### Step 7: Recommend exactly one next skill
+### Step 7: Recommend the next capability set
 
 Base the recommendation on the unresolved attributes or, if none remain, on the next
 real execution need.
 
+Do not force mixed follow-up work into a single capability when different obligations
+require a capability set. Keep the set as small as possible while still sufficient.
+
 ## Handoff rules
 
-- recommend `investigation` when unresolved required attributes are `repo_derivable`
-- recommend `public-research` when unresolved required attributes are `public_fact`
-- remain in `requirements-clarification` when unresolved required attributes are truly
+- include `investigation` when unresolved required attributes are `repo_derivable` or a
+  required local source-of-truth class is unchecked
+- include `public-research` when unresolved required attributes are `public_fact`
+- keep `requirements-clarification` active when unresolved required attributes are truly
   `unknown` and user input is still needed
-- recommend `task-planning` when the requirement records are complete but the work still
+- include `epistemic-audit` when source-class selection, claim authority, or allowed use is non-trivial
+- include `task-planning` when the requirement records are complete but the work still
   needs sequencing, decomposition, or a resume-safe artifact
-- recommend `implementation` when the requirement records are complete and the change can
+- include `implementation` when the requirement records are complete and the change can
   be executed directly
-- recommend `refactoring` when the complete records describe behavior-preserving
+- include `refactoring` when the complete records describe behavior-preserving
   structural cleanup
-- recommend `code-review` when the task is to review code quality rather than to edit
+- include `code-review` when the task is to review code quality rather than to edit
 
 ## Quick checklist
 
@@ -380,4 +386,4 @@ Before finishing, verify all of the following:
 - repo and public discovery were attempted before asking the user
 - open questions include only true `unknown` attributes
 - the artifact was written to an external file
-- the next-step recommendation names exactly one skill
+- the next-step recommendation names the smallest sufficient capability set

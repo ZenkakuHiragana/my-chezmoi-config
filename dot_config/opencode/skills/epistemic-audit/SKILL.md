@@ -1,14 +1,14 @@
 ---
 name: epistemic-audit
 description: >
-  Use this skill when a task requires non-trivial factual claims, required source-class selection, requirement interpretation, source synthesis, review judgment, implementation premises, or reader-facing explanation where confirmed facts, deductions, inferences, assumptions, project rules, generic guidance, unknowns, or session-local context may be confused. It produces a control-plane ledger and prose or decision constraints, not final prose. Do not use for tiny obvious replies or as a substitute for repository investigation or public research.
+  Attach this capability when a task frame needs non-trivial claim control, source-class selection, requirement interpretation, source synthesis, review judgment, implementation premises, or reader-facing constraints. Load it before answering when a follow-up verifies a prior claim and the answer depends on both public docs and a required local source-of-truth class, or when that local source class is known but unchecked. It produces a control-plane ledger, not final prose, and does not replace investigation or public research.
 ---
 
 # Epistemic Audit
 
 ## Purpose
 
-This skill separates claim status, evidence, and allowed use before those claims are
+This capability separates claim status, evidence, and allowed use before those claims are
 turned into requirements, investigation conclusions, review findings, implementation
 premises, summaries, comments, documentation, or other natural-language output.
 
@@ -18,7 +18,7 @@ reader-facing prose.
 
 ## When to use
 
-Use this skill when one or more of the following are true:
+Attach this capability when one or more of the following are true:
 
 - a task combines user intent, repository evidence, public sources, project rules, and
   model inference
@@ -35,17 +35,21 @@ Use this skill when one or more of the following are true:
 - a subagent is asked to provide a read-only claim audit before the parent writes final
   prose or edits files
 
+Mandatory trigger: load this skill before answering when a follow-up asks to verify a
+prior claim and either the answer depends on both public documentation and a required
+local source-of-truth class, or a known local source-of-truth class remains unchecked.
+
 ## When not to use
 
-Do not use this skill when:
+Do not attach this capability when:
 
 - the task is a tiny obvious reply with no material factual, review, or requirement claim
-- the only missing fact must first be gathered from a single obvious source class; use
+- the only missing fact must first be gathered from a single obvious source class; attach
   `investigation` or `public-research` directly
 - the primary problem is document structure, scannability, or reader fit after facts are
   already settled; use `technical-writing`
 
-Do not use this skill as a substitute for gathering missing repository or public facts.
+Do not attach this capability as a substitute for gathering missing repository or public facts.
 However, use it before or alongside `investigation` or `public-research` when the task
 must first decide which source classes are required, or when public facts, repository
 evidence, project rules, and model inference may be confused.
@@ -92,12 +96,17 @@ When the task needs more than one source class, create a compact coverage matrix
 | -------------------------- | ---------------- | -------------------------------- | --------------------- | -------------- |
 | user request               | yes/no           | checked/unchecked/not applicable | request excerpt       | none or impact |
 | repository evidence        | yes/no           | checked/unchecked/not applicable | path:line or command  | none or impact |
+| local source of truth      | yes/no           | checked/unchecked/not applicable | path, graph, log      | none or impact |
 | public primary source      | yes/no           | checked/unchecked/not applicable | URL or citation       | none or impact |
 | project rules/domain notes | yes/no           | checked/unchecked/not applicable | path:line             | none or impact |
 | prior/session context      | yes/no/forbidden | checked/unchecked/not applicable | conversation artifact | none or impact |
 
 If a required source class is unchecked, do not assert a conclusion as confirmed.
 Either gather the source with the appropriate skill/tool or state the limitation.
+
+When a local source-of-truth checkout, generated graph, runtime artifact, log, or
+authoritative path is required, public documentation may support the explanation but
+does not satisfy that local source class.
 
 ## Claim ledger
 
@@ -119,21 +128,24 @@ Use `binding_level` values:
 ## Procedure
 
 1. Restate the exact output or decision that needs claim control.
-2. If the current message is a follow-up, compare it with the previous workflow and
+2. Build or update the task frame: requested output, action modes, continuation relation,
+   material claims, required source classes, project/domain rules, and needed capability
+   packs.
+3. If the current message is a follow-up, compare it with the previous workflow and
    reclassify the turn if the task type or required source-of-truth class changed.
-3. Identify the intended audience when reader-facing prose is involved.
-4. Identify required source classes and fill the source coverage matrix.
-5. List the material claims and assign statuses, evidence, derivation, binding level, and
+4. Identify the intended audience when reader-facing prose is involved.
+5. Identify required source classes and fill the source coverage matrix.
+6. List the material claims and assign statuses, evidence, derivation, binding level, and
    allowed use.
-6. Move plausible but unconfirmed content into `inferred_candidate`, `working_assumption`,
+7. Move plausible but unconfirmed content into `inferred_candidate`, `working_assumption`,
    `unknown`, or `rejected_assumption` instead of silently promoting it.
-7. Derive constraints for the downstream output or edit:
+8. Derive constraints for the downstream output or edit:
    - what may be stated directly
    - what must be caveated
    - what must not be asserted
    - what source must be gathered before proceeding
    - what session-local context must be reintroduced or omitted
-8. If the audit was delegated, return the control-plane result only. Do not draft final
+9. If the audit was delegated, return the control-plane result only. Do not draft final
    prose or make repository edits unless the assignment explicitly asks for them.
 
 ## Output schema
@@ -142,6 +154,7 @@ Return or record:
 
 - `output_or_decision_target`
 - `reader_context` when relevant
+- `task_frame`
 - `source_coverage`
 - `binding_claims`
 - `deductions`
@@ -151,7 +164,7 @@ Return or record:
 - `session_local_risks`
 - `rejected_assumptions`
 - `constraints_for_final_output_or_edit`
-- `recommended_next_action`
+- `recommended_next_action_or_capability_set`
 
 ## Quick checklist
 

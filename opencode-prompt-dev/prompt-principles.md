@@ -27,12 +27,22 @@
 
 ## ターン単位の再分類原則
 
-- 新しい user turn ごとに、前ターンの task type、skill、source coverage をそのまま継承してよいかを再判定する。
+- 新しい user turn ごとに、前ターンの task type、skill、source coverage をそのまま継承してよいかを再判定し、必要なら task frame を作り直す。
 - 後続質問が、過去の指摘や前提の検証、外部システム・エンジン・ライブラリ・シェーダー・API・runtime object・設定キー・ファイルの実挙動確認、または review から investigation / verification / audit への切り替えを含む場合、最初の分類に引っ張られたまま回答しない。
 - AGENTS.md、project rules、domain notes、ユーザー入力が domain-specific な local repository、generated graph、runtime artifact、log、authoritative path を示している場合、その domain に依存する質問では required source class として扱う。
 - public research は必要な公開情報を満たせるが、既知の local implementation source requirement を満たしたことにはならない。未確認なら coverage gap として扱う。
 - code review 中でも、finding の正否が外部・domain 実装挙動に依存した時点で、通常レビューを中断して investigation / public-research / epistemic-audit に再分類する。
 - この失敗パターンは、shader review の後続質問で `_rt_resolvedfullframedepth` の実装仕様確認に切り替わったケースを回帰検証候補として扱う。
+
+## Task frame と capability pack の原則
+
+- 非自明な user turn は、単一の route / primary skill に圧縮する前に task frame として扱う。
+- task frame には、少なくとも requested output、action mode、continuation relation、material claims、required source classes、project/domain rules、必要な capability pack を含める。
+- skill は排他的な行き先ではなく、task frame の義務を満たすために attach する capability pack として扱う。
+- 目標は「skill 数を最小化する」ことではなく、「十分な source coverage と claim control を満たす最小の義務集合」にすること。
+- primary output は最終出力の形を決めるために使ってよいが、source obligation や claim authority を免除しない。
+- local source-of-truth が required source class に入った時点で、public-research は補助情報になり、local evidence investigation を置き換えない。
+- 以前の review context は仮説や確認対象の由来として扱い、実装挙動の確認義務そのものは investigation / source coverage / epistemic gate に分解する。
 
 ## 現行カバレッジ確認ポリシー
 

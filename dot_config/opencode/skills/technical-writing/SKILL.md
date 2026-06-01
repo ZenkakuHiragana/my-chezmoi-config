@@ -1,22 +1,22 @@
 ---
 name: technical-writing
 description: >
-  Use this skill when the main deliverable is substantial technical prose such as a report, README, tutorial, how-to, reference, explanation, CHANGELOG, migration note, or a chat response that needs sectioned, reader-facing explanation. Use it after the needed facts are known, or alongside the fact-owning skill when writing quality is a major part of the task. It chooses the document form, drafts the piece, runs a bounded critique-revise-recheck loop, and applies artifact-specific checks. Do not use for short simple replies, incidental copyedits, or tasks whose real blocker is missing facts rather than weak writing. Expected result: a clear, accurate, reader-fit document plus concise evidence of the checks performed.
+  Attach this capability when the task frame needs substantial technical prose quality, such as a report, README, tutorial, how-to, reference, explanation, CHANGELOG, migration note, or sectioned chat response. Attach it after facts are known, or alongside fact-owning capabilities when writing quality is a major obligation. It covers form, structure, scannability, critique, and revision, but does not discharge missing investigation, public research, source coverage, or implementation obligations.
 ---
 
 # Technical Writing
 
 ## Purpose
 
-This skill improves long-form technical prose quality for human readers.
+This capability improves long-form technical prose quality for human readers.
 
 It owns document form, structure, scannability, reader fit, and bounded revision quality for artifacts such as investigation reports, README files, tutorials, how-to guides, reference pages, explanations, CHANGELOG entries, migration notes, structured chat explanations, and similar documents.
 
-It does not own missing facts or repository behavior changes. Resolve those with the appropriate fact-owning skill first.
+It does not own missing facts or repository behavior changes. Resolve those with the appropriate fact-owning capability first.
 
 ## When to use
 
-Use this skill when one or more of the following are true:
+Attach this capability when one or more of the following are true:
 
 - the main deliverable is a substantial technical document
 - another task includes a standalone prose artifact that must remain useful after the implementation work is done
@@ -26,18 +26,18 @@ Use this skill when one or more of the following are true:
 
 ## When not to use
 
-Do not use this skill when the task is primarily:
+Do not attach this capability when the task is primarily:
 
 - a short simple conversational reply that does not need sectioning or a document-like structure
 - a tiny wording tweak or one-off copyedit
-- missing-fact investigation or public research; use `investigation` or `public-research` first
+- missing-fact investigation or public research; attach `investigation` or `public-research` first
 - implementation work where writing is only incidental and no substantial document is being produced
 - legal, policy, sales, or marketing copy with domain-specific constraints outside ordinary technical writing
 - pure translation or localization without redesigning the document for clarity and reader fit
 
 ## Collaboration contract
 
-- `investigation` resolves missing repository facts.
+- `investigation` resolves missing repository or local source-of-truth facts.
 - `public-research` resolves missing public facts and externally grounded writing norms when they matter.
 - `implementation` owns repository behavior changes, dependent-surface updates, and document correctness as part of the delivered change.
 - `technical-writing` owns document form, structure, scannability, reader fit, critique, and bounded revision.

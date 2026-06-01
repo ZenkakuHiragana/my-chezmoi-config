@@ -1,21 +1,25 @@
 ---
 name: code-review
-description: Use this skill when you need to review a specific diff or the current codebase for quality issues. It produces prioritized findings with severity, evidence, impact, and next-step guidance across correctness, design, tests, maintainability, security, performance, docs, and style. Do not use for implementing fixes, investigating observed behavior, or purely factual questions.
+description: Attach this capability when a task frame needs review of a specific diff or codebase surface for quality issues. It produces prioritized findings with severity, authority, evidence, impact, and next steps across correctness, design, tests, maintainability, security, performance, docs, and style. Do not use as the sole capability for implementing fixes, investigating observed behavior, or factual follow-up verification; attach investigation, public-research, or epistemic-audit as needed.
 ---
 
 # Code Review
 
 ## Purpose
 
-This skill reviews code for likely defects, design problems, regressions, and maintainability issues.
+This capability reviews code for likely defects, design problems, regressions, and maintainability issues.
 
 It is for advisory review, not for making fixes.
+
+In mixed tasks, review context may provide hypotheses or locations to inspect, but it is
+not the owner of public facts, local source-of-truth investigation, implementation, or
+final prose quality.
 
 The review must not stop at broad labels such as "performance" or "maintainability." It must use concrete trigger patterns, read enough context to judge impact, and report only findings backed by evidence.
 
 ## When to use
 
-Use this skill when the user asks to:
+Attach this capability when the user asks to:
 
 - review a diff, patch, or pull request
 - review the current codebase for quality issues
@@ -24,7 +28,7 @@ Use this skill when the user asks to:
 
 ## When not to use
 
-Do not use this skill when the main task is:
+Do not attach this capability as the sole task owner when the main task is:
 
 - implementing a change
 - investigating a specific failure or unclear behavior
@@ -148,7 +152,7 @@ behavior, platform semantics, public API behavior, generated data provenance, re
 target formats, shader semantics, runtime objects, configuration keys, or project-local
 domain rules.
 
-Use `investigation`, `public-research`, and `epistemic-audit` as needed to identify and
+Attach `investigation`, `public-research`, and `epistemic-audit` as needed to identify and
 check the required source classes.
 Do not make the review finding blocking while a required source class remains unchecked.
 Report the concern as `Uncertain`, state the coverage gap, and name the evidence needed to

@@ -6,10 +6,11 @@
   - `direct`: the parent owns the work end to end. It may use skills, tools, files, research, or task artifacts.
   - `delegated`: the parent invokes one or more subagents through the task tool, then integrates and verifies their results.
   - `blocked`: a real missing fact, denied permission, unavailable tool, or required user decision prevents safe progress.
+- `execution_route` is only the parent-side execution ownership choice. It is not a single task type, source-of-truth class, or skill owner, and it does not replace task framing or capability-pack selection.
 - Decide the route internally. Do not announce `direct` or `delegated` as a ritual.
 - Mention delegation only when a subagent is actually used and the split matters to the user.
-- Mode or permission limits constrain what can be done now; they do not change the primary task type. When a needed write step is disallowed, ask for approval or report the write-capable next action instead of relabeling the task as investigation.
-- When reporting from a constrained mode, distinguish the current procedure used to analyze the request from the downstream next skill or route; do not let a read-only inspection step replace the required write-capable next step.
+- Mode or permission limits constrain what can be done now; they do not change the task frame. When a needed write step is disallowed, ask for approval or report the write-capable next action instead of relabeling the task as investigation.
+- When reporting from a constrained mode, distinguish the current procedure used to analyze the request from the downstream capability set or write-capable route; do not let a read-only inspection step replace the required write-capable next step.
 - Keep `tiny-local` work `direct` unless the user explicitly asks for a subagent or independent verification clearly pays for the handoff.
 - Use a subagent only when the expected value from isolation, parallelism, specialization, or independent review clearly exceeds handoff, context-loading, integration, verification, and misalignment costs.
 - Keep the route `direct` when the assignment packet would be longer, more ambiguous, or more expensive than doing the work directly.

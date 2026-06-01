@@ -1,19 +1,19 @@
 ---
 name: implementation
-description: Use this skill when a normalized requirements artifact or task contract already identifies the requested repository change, target surfaces, invariants, acceptance criteria, verification method, and required checks, and the task is to make or update files to satisfy it, including feature work, known bug fixes, and coherent code, documentation, configuration, prompt, or script changes. Do not use when the main task is to investigate observed behavior, gather diagnostic evidence, or decide whether any real change is needed.
+description: Attach this capability when a normalized requirements artifact or task contract identifies the requested repository change, target surfaces, invariants, acceptance criteria, verification method, and required checks, and files must be updated to satisfy it. It covers coherent code, documentation, configuration, prompt, or script changes. Do not use as the sole capability when required source classes, observed behavior, diagnostic evidence, or user decisions remain unresolved; attach investigation, public-research, requirements-clarification, or epistemic-audit first as needed.
 ---
 
 # Implementation
 
 ## Purpose
 
-This skill is for tasks that require changing repository contents and bringing the work to a complete, internally consistent state.
+This capability is for changing repository contents and bringing the work to a complete, internally consistent state.
 
-Use this skill to improve self-propelled execution quality for implementation work. The goal is not only to edit files, but to finish the requested change with the necessary surrounding updates and basic validation.
+Use this capability to improve self-propelled execution quality for implementation work. The goal is not only to edit files, but to finish the requested change with the necessary surrounding updates and basic validation.
 
 ## When to use
 
-Use this skill when the user asks for any of the following:
+Attach this capability when the user asks for any of the following:
 
 - implement a feature
 - apply a known bug fix or behavior change whose affected behavior, target surfaces, and required checks are already identified
@@ -23,17 +23,21 @@ Use this skill when the user asks for any of the following:
 
 ## When not to use
 
-Do not use this skill when the task is primarily:
+Do not attach this capability as the sole task owner when the task is primarily:
 
 - answering factual questions without changing files
 - open-ended external research
 - broad requirements exploration with no concrete change target
 - local investigation only, where the deliverable is analysis rather than edits
-- investigating unclear behavior, confirming observed facts, or gathering diagnostic evidence before deciding on a real change; use `investigation` instead
+- investigating unclear behavior, confirming observed facts, or gathering diagnostic evidence before deciding on a real change; attach `investigation` instead
 
-If the task is mainly external fact-finding, use `public-research` instead.
+If the task is mainly external fact-finding, attach `public-research` instead.
 
-If the request or task contract does not yet identify the needed facts, target surfaces, invariants, acceptance criteria, verification method, or required checks, stop and use the prerequisite skill instead of guessing.
+If the task mixes implementation with unresolved local or public evidence obligations,
+keep implementation in the capability set but satisfy those evidence obligations before
+using their claims as implementation premises.
+
+If the request or task contract does not yet identify the needed facts, target surfaces, invariants, acceptance criteria, verification method, or required checks, stop and attach the appropriate prerequisite capability or capability set instead of guessing.
 
 ## Expected inputs
 

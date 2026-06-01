@@ -1,22 +1,18 @@
 ---
 name: investigation
 description: >
-  Use this skill when you need to investigate repository-local behavior, state, or
-  facts before deciding on a real fix or implementation change, or when a normalized
-  requirements artifact still has unresolved `repo_derivable` attributes. Use it for
-  reproduction, evidence gathering, code-path confirmation, temporary
-  instrumentation, and configuration, environment, or data inspection. Do not use
-  when the current request or task contract already identifies a concrete repository
-  change and required checks, or when the task is mainly public fact-finding.
-  Expected result: confirmed observations, resolved repository facts, remaining
-  unknowns, and the recommended next action.
+  Attach this capability when repository-local behavior or locally available source-of-truth evidence must be inspected before a claim, fix, or implementation is safe. This includes local upstream checkouts, generated graphs, runtime artifacts, logs, traces, authoritative paths named by AGENTS.md, domain notes, or the user, and unresolved `repo_derivable` attributes. It produces confirmed local observations, source coverage, remaining unknowns, and the next action. Do not use as the sole capability for public-only fact finding or for concrete implementation work whose facts and checks are already resolved.
 ---
 
 # Investigation
 
 ## Purpose
 
-This skill is for investigating repository-local observed behavior, system state, and factual conditions before deciding whether any real fix or implementation change is needed.
+This capability is for investigating repository-local or otherwise locally available evidence before deciding whether a factual claim, fix, implementation change, or review finding is safe.
+
+Local evidence includes the current repository, local upstream checkouts, generated graphs,
+runtime artifacts, logs, traces, authoritative paths, and other source-of-truth materials
+named by AGENTS.md, project rules, domain notes, or the user.
 
 It is also the default way to resolve `repo_derivable` fields left open by a normalized requirements artifact.
 
@@ -25,6 +21,7 @@ It is also the default way to resolve `repo_derivable` fields left open by a nor
 - the observed behavior, reported issue, or factual state is unclear and you first need to establish what is actually happening
 - you need to reproduce or approximate a behavior before deciding what to change
 - you need direct evidence such as logs, traces, runtime state, temporary instrumentation, or concrete outputs
+- you need to inspect a local upstream checkout, generated graph, runtime artifact, log, trace, or authoritative path that is outside the current repository but available locally
 - you need to confirm which code path, branch, configuration, environment, input, or data shape is actually in play
 - you need to separate internal causes from external dependencies, configuration, data, or environment factors
 - you need to compare several plausible explanations before deciding the next action
@@ -35,7 +32,7 @@ It is also the default way to resolve `repo_derivable` fields left open by a nor
 
 - the current request or task contract already identifies a concrete repository change and required checks, and the main task is to implement it
 - the main work is feature delivery, refactoring, or documentation updates rather than investigation
-- the task is repository-independent fact finding with no repository-local behavior or state to inspect
+- the task is repository-independent fact finding with no local evidence, local source-of-truth, repository behavior, or state to inspect
 
 ## Investigation criteria
 
@@ -65,7 +62,7 @@ Return:
 - narrowed scope and what has been ruled out
 - likely explanations ranked by evidence
 - remaining unknowns
-- the recommended next action
+- the recommended next action or capability set
 - any temporary diagnostics that should be removed after the investigation
 
 ## Procedure
@@ -79,5 +76,5 @@ Return:
 7. Keep explicit user constraints active while gathering evidence. Add temporary diagnostics only as narrowly as needed, and do not turn them into new supported control surfaces, runtime branches, or compatibility paths unless the request or an existing contract requires that.
 8. Compare plausible explanations against the observed evidence and rule out what you can.
 9. Check public issue trackers or docs when local evidence does not sufficiently explain the behavior.
-10. Stop once you can report confirmed observations, remaining unknowns, and exactly one recommended next action, whether that is implementation, more targeted investigation, a user question, or no repository change.
+10. Stop once you can report confirmed observations, remaining unknowns, and the smallest sufficient recommended next action or capability set, whether that is implementation, more targeted investigation, public research, epistemic audit, a user question, or no repository change.
 11. Remove, disable, or clearly isolate temporary diagnostics before finishing if they are no longer needed.

@@ -1,31 +1,28 @@
 ---
 name: public-research
 description: >
-  Use this skill when the visible task requires source-backed public facts or
-  official guidance outside the repository, when a normalized requirements artifact
-  still has unresolved `public_fact` attributes, or when the user explicitly asks
-  for primary-source verification. Typical triggers include public tool or platform
-  behavior, standards, policies, APIs, upstream practices, and evaluation or
-  verification methods. Do not use it for repository-only tasks. Expected result: a
-  source-backed answer that separates confirmed facts, caveats, and inference.
+  Attach this capability when a task frame requires source-backed public facts, official guidance, standards, policies, APIs, upstream practices, evaluation methods, or unresolved `public_fact` attributes. It covers public evidence acquisition and citation. Do not use it as the primary or sole capability when AGENTS.md, domain notes, project rules, or the user name a local source-of-truth checkout, generated graph, runtime artifact, log, or authoritative path for the same behavior; attach `investigation` for that local evidence first, and add `epistemic-audit` when claim authority or source-class selection is non-trivial.
 ---
 
 # Public Research
 
 ## Purpose
 
-This skill is for answering questions that depend on public information outside the repository.
+This capability is for satisfying public-evidence obligations in a task frame.
 
-Use it when correctness depends on checking current facts, official documentation, standards, policies, releases, APIs, or other externally published material.
+Attach it when correctness depends on checking current facts, official documentation, standards, policies, releases, APIs, or other externally published material.
 
 The aim is not merely to search, but to produce a grounded answer based on primary sources when available.
 
-It is also the default way to resolve `public_fact` fields left open by a normalized
+It is also the default capability to resolve `public_fact` fields left open by a normalized
 requirements artifact.
+
+It does not discharge required local source-of-truth evidence named by AGENTS.md,
+project rules, domain notes, or the user.
 
 ## When to use
 
-Use this skill when the task requires any of the following:
+Attach this capability when the task requires any of the following:
 
 - checking current facts
 - confirming product, library, tool, or platform behavior from public documentation
@@ -38,17 +35,23 @@ Use this skill when the task requires any of the following:
 - the user explicitly asks you to check primary sources or official documentation for the behavior of a public tool, library, or platform, especially when their observation conflicts with your general knowledge
 - a requirements record says an attribute should be `public_fact`, but the value is not yet confirmed
 
-Do not trigger this skill solely from vague value judgments such as "use research if it helps quality." Use it only when the visible task details or a prior diagnosis establish a concrete external evidence need.
+Do not trigger this capability solely from vague value judgments such as "use research if it helps quality." Attach it only when the visible task details or a prior diagnosis establish a concrete external evidence need.
 
 ## When not to use
 
-Do not use this skill when the answer is already fully supported by:
+Do not attach this capability when the answer is already fully supported by:
 
 - the repository itself
 - user-provided files
 - public sources already cited or quoted in the current task context, and no new public-fact claim still needs to be established
 
-Do not use public research as a substitute for local investigation when the real question is about the user's repository.
+Do not use public research as a substitute for local investigation when the real question is about the user's repository or another locally available source-of-truth evidence class.
+
+Do not use this capability as the primary or sole path when AGENTS.md, project rules,
+domain notes, or the user identify a local source-of-truth checkout, generated graph,
+runtime artifact, log, or authoritative path for the same behavior. Attach
+`investigation` for that local evidence first, and attach `epistemic-audit` as an
+additional claim-control capability when needed.
 
 Do not perform token research just to look busy. Use enough external evidence to support the material claim or design choice, then stop.
 
@@ -178,8 +181,9 @@ If you infer a conclusion from the sources, label it as an inference.
 
 ## Source handling rules
 
-- Prefer public evidence over local code when both are available.
-- Use local code only as supporting evidence unless the task is strictly repository-local.
+- Prefer public primary sources for public-fact claims.
+- Do not let public sources override or replace required local source-of-truth evidence.
+- Use local code only as supporting evidence for public-fact claims unless the task is repository-local or a local source class is named as authoritative for the behavior.
 - If primary sources are missing or incomplete, say so explicitly and separate documented facts from inference.
 - When a question requires more than one source class, maintain source coverage explicitly. Do not assert a conclusion as confirmed while a required source class is unchecked.
 - If AGENTS.md, project rules, domain notes, or the user identify a local source-of-truth repository, generated graph, runtime artifact, log, or authoritative path for the behavior, public research is not sufficient by itself. Treat that local source as a required source class or state that it remains unchecked.

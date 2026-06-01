@@ -1,30 +1,30 @@
 ---
 name: task-planning
 description: >
-  Use this skill when a normalized requirements artifact or other clear task contract already makes the requested outcome, constraints, and prerequisite facts concrete enough to write a task file, but the work still needs ordered investigation, implementation, research, or verification steps, or when long conversation-only instructions should be normalized into a durable artifact before downstream work. Use it before downstream execution when the task spans multiple files or phases, depends on sequencing, or needs a resume-safe plan that reduces compaction or omission risk. Do not use it when required requirement attributes are still unresolved; resolve those first with `requirements-clarification`, `investigation`, or `public-research`. Expected result: One task file under `.opencode/work/` with the outcome, constraints, relevant surfaces, ordered work items, and completion checks.
+  Attach this capability when a normalized requirements artifact or clear task contract is concrete enough to write a durable task file, but the work still needs sequencing across investigation, implementation, research, verification, or resume-safe execution. It records ordered work items, dependencies, relevant surfaces, source obligations, completion checks, and downstream capability needs under `.opencode/work/`. Do not use it when required requirement attributes or source classes are still unresolved; resolve those first with the appropriate capability.
 ---
 
 # Task Planning
 
 ## Purpose
 
-This skill prepares a written task file for multi-step work.
+This capability prepares a written task file for multi-step work.
 
 It can either create an execution plan from clear requirements or normalize an important conversation-only procedure into a durable task artifact.
 
-Use it when jumping directly into downstream execution would risk missing dependencies,
+Attach it when jumping directly into downstream execution would risk missing dependencies,
 required research, execution order, or completion checks.
 
 Also use it when the user already provided a long or multi-part procedure, but reliable execution would still depend on preserving that procedure, its dependencies, or its checks outside transient chat state.
 
-Use it after `requirements-clarification` or another existing artifact has already made the requested outcome, constraints, invariants, acceptance criteria, verification method, and prerequisite facts concrete enough to fill the task file.
+Attach it after `requirements-clarification` or another existing artifact has already made the requested outcome, constraints, invariants, acceptance criteria, verification method, and prerequisite facts concrete enough to fill the task file.
 
-This skill does not implement the task.
+This capability does not implement the task.
 It defines the task in a form that downstream execution can follow reliably.
 
 ## When to use
 
-Use this skill when one or more of the following are true:
+Attach this capability when one or more of the following are true:
 
 - the task spans multiple files, modules, systems, or documents
 - the task has multiple phases such as investigation, implementation, and verification
@@ -37,12 +37,12 @@ Use this skill when one or more of the following are true:
 
 ## When not to use
 
-Do not use this skill when:
+Do not attach this capability when:
 
 - the task is short enough that all required steps, constraints, and checks can be executed reliably in one focused pass without creating a durable task artifact
-- required requirement attributes are still unresolved; use `requirements-clarification`, `investigation`, or `public-research` first
-- the first meaningful work item would mostly be to discover missing facts or criteria before the requirement record is complete; use `requirements-clarification`, `investigation`, or `public-research` first
-- the task is purely investigative with no implementation intent; use `investigation` or `public-research`
+- required requirement attributes are still unresolved; attach `requirements-clarification`, `investigation`, or `public-research` first
+- the first meaningful work item would mostly be to discover missing facts or criteria before the requirement record is complete; attach `requirements-clarification`, `investigation`, or `public-research` first
+- the task is purely investigative with no implementation intent; attach `investigation` or `public-research`
 - the task is already fully structured by a command workflow
 
 ## Expected inputs
@@ -58,7 +58,7 @@ When this skill is used:
 
 - a single task file at `.opencode/work/<slug>.md`
 - `.opencode/work/current-task.md` containing the slug only
-- a recommendation for the next appropriate downstream skill
+- a recommendation for the next appropriate downstream capability set
 
 Before reading `.opencode/work/current-task.md`, decide from the current conversation alone whether the user is continuing a prior task and whether a missing task identifier blocks interpretation.
 If the request is already clear without it, ignore the file.
@@ -68,7 +68,7 @@ If the conversation shows a continuation request but the task identifier is stil
 
 ### 1. Produce a task file only
 
-This skill produces a task file only.
+This capability produces a task file only.
 
 When the user already supplied an execution procedure in conversation, convert that procedure into the task file instead of relying on chat history as the durable source of truth.
 
@@ -286,7 +286,7 @@ When upstream conversation contains long procedural guidance, capture the durabl
 
 Restate the task internally.
 
-If the requested outcome, constraints, prerequisite facts, acceptance criteria, or blocking unknowns still cannot be filled without guessing, stop and recommend `requirements-clarification` or the appropriate prerequisite skill instead.
+If the requested outcome, constraints, prerequisite facts, acceptance criteria, or blocking unknowns still cannot be filled without guessing, stop and recommend `requirements-clarification` or the appropriate prerequisite capability set instead.
 
 ### Step 2: Survey the relevant context
 
@@ -354,14 +354,15 @@ Write the task file to `.opencode/work/<slug>.md`.
 
 Write the slug only to `.opencode/work/current-task.md`.
 
-### Step 9: Recommend the next skill
+### Step 9: Recommend the next capability set
 
-Recommend the next downstream skill based on the first real execution need:
+Recommend the next downstream capability set based on the first real execution need:
 
-- use `implementation` when the requested repository changes, target surfaces, and required checks are already concrete enough to execute
-- use `investigation` when repository-local facts still need to be gathered first
-- use `public-research` when external facts must be verified first
-- use `refactoring` when the next step is behavior-preserving structural cleanup
+- include `implementation` when the requested repository changes, target surfaces, and required checks are already concrete enough to execute
+- include `investigation` when local facts or source-of-truth classes still need to be gathered first
+- include `public-research` when external facts must be verified first
+- include `epistemic-audit` when source-class selection or claim authority remains non-trivial
+- include `refactoring` when the next step is behavior-preserving structural cleanup
 
 ## Quick checklist
 
@@ -380,4 +381,4 @@ Before finishing, verify all of the following:
 - completion checks are specific
 - the file was written to `.opencode/work/<slug>.md`
 - `.opencode/work/current-task.md` contains only the slug
-- a next-skill recommendation was given
+- a next capability-set recommendation was given

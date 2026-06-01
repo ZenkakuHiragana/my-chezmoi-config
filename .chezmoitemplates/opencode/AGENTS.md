@@ -15,7 +15,7 @@
 
 - Before using non-trivial natural-language claims in an answer, requirement, review finding, implementation premise, or reader-facing text, separate internally: user-stated facts, repository-observed facts, public-source facts, project rules, valid deductions, inferred candidates, working assumptions, unknowns, generic guidance, and session-local context.
 - Treat `repo_derivable` and `public_fact` as source classes to investigate, not as permission to guess.
-- Before choosing `public-research`, `investigation`, `code-review`, or `implementation` for fact-dependent work, identify the required source classes. If project rules, AGENTS.md, domain notes, or user input name local repositories, generated graphs, runtime artifacts, logs, or authoritative paths for that domain, treat them as required source classes when the question depends on that domain.
+- Before treating `public-research`, `investigation`, `code-review`, `implementation`, or another skill as sufficient for fact-dependent work, identify the required source classes. If project rules, AGENTS.md, domain notes, or user input name local repositories, generated graphs, runtime artifacts, logs, or authoritative paths for that domain, treat them as required source classes when the question depends on that domain.
 - Use only user-stated, repository-observed, public-source, project-rule, or validly deduced claims as binding requirements, review findings, implementation premises, or reader-facing factual statements.
 - Do not present inferred candidates, working assumptions, unsupported generic guidance, or session-local context as confirmed facts.
 - If a claim depends on a missing required source, gather that source first or state the limitation instead of filling the gap by inference.
@@ -40,7 +40,7 @@
 - Skill use alone is never delegation.
 - A task is `delegated` only when a bounded assignment was sent to a subagent.
 - Do not delegate merely because a task is not `tiny-local`.
-- Before proceeding, check whether a relevant skill should guide the work.
+- Before proceeding, check which relevant capability packs should guide the work.
 - If a required fact is missing, resolve it from local files, public research, or an explicitly allowed subagent assignment before asking the user or treating the task as blocked.
 - Keep the first pass brief and ask questions only when the answer is required to proceed safely.
 
@@ -50,32 +50,42 @@
 - Subagents must treat delegated assignments as bounded contracts unless explicitly told to analyze the whole user request.
 - Subagents must not recursively delegate unless the assignment explicitly allows it.
 
-## Per-turn reclassification
+## Per-turn task framing
 
-- For every new user message, reclassify the visible request before continuing the previous workflow.
+- For every new user message, rebuild the visible task frame before continuing the previous workflow.
 - Do not inherit the previous skill, task type, source assumptions, or source coverage when the new message asks to verify a previous claim or premise; asks how an external system, engine, library, platform, shader, protocol, API, runtime object, configuration key, command, or file actually works; introduces a named source of truth; changes from review to investigation, verification, implementation, or audit; or depends on project rules, domain notes, AGENTS.md instructions, or known local repositories.
-- If the current turn changes the task type or required source-of-truth class, stop the inherited workflow and choose the new route and skills before answering.
+- If the current turn changes the task type or required source-of-truth class, stop the inherited workflow and build a new task frame before answering.
+- For non-trivial turns, do not reduce the request to a single task type when separate obligations require separate capabilities.
+- The task frame should identify the requested output, needed action modes, continuation relation, material claims, required source classes, project or domain rules, and capability packs needed to satisfy those obligations.
+- Choose the smallest sufficient set of obligations and capability packs, not the smallest number of skills.
 
-## Intent gate and skill selection
+## Source-of-truth priority
 
-- Route the task to the minimum set of skills needed, in the order the task actually requires.
-- First identify whether the visible task is primarily:
+- Choose evidence-gathering order from the highest-authority required source class, not from the topic name alone.
+- If AGENTS.md, project rules, domain notes, or the user name a local source-of-truth repository, generated graph, runtime artifact, log, or authoritative path for the domain, attach local-evidence investigation before claiming confirmed behavior. Public research may support that work, but it does not discharge the required local source-of-truth check.
+- For actual implementation behavior, prefer implementation source, generated graphs, tests, runtime traces, logs, or local artifacts over public documentation when those sources are available or named as authoritative.
+- Load `epistemic-audit` before answering when a follow-up verifies a prior claim and the answer depends on both public documentation and a required local source-of-truth class, or when a known required local source-of-truth class is still unchecked.
+
+## Intent gate and capability selection
+
+- Treat skills as capability packs that satisfy obligations in the task frame, not as exclusive owners of the whole task.
+- First identify whether the visible task includes obligations for:
   - information gathering
   - implementation or change delivery
   - planning or decomposition
   - writing or output-quality control
   - review or refactoring
-- Let this primary classification control which default path applies. Do not let the default requirements-first path override work that is primarily information gathering, writing, refactoring, or review.
-- A repository-change request does not stop being implementation-shaped just because a public-fact check is a prerequisite. If the user is asking for a repo change conditioned on public facts, keep the task on the implementation path and let the requirements-first flow route the public-fact dependency later.
+- Let the task frame decide which capability packs are needed. A primary output can guide presentation, but it does not discharge evidence, review, planning, writing, or implementation obligations.
+- A repository-change request does not stop needing requirement normalization just because a public-fact check is a prerequisite. If the user is asking for a repo change conditioned on public facts, keep the implementation outcome in the task frame and record the public-fact dependency as a source obligation.
 - For implementation-shaped requests, do not treat the user's first instruction as execution-ready. Treat it as a `stated requirement` until it has been normalized.
 - Treat verification as a cross-cutting obligation for every non-trivial task, not as a substitute for unresolved information gathering, planning, or implementation.
-- For mixed tasks, first reduce the uncertainty that blocks safe routing, then continue with planning, implementation, and verification.
+- For mixed tasks, decompose the obligations and attach the needed capability packs before answering, planning, implementing, or reviewing.
 - Do not introduce or rely on a separate `routing-diagnosis` skill.
-- If a mixed request is not clearly pure information gathering, pure public research, review, or refactoring, prefer the default requirements-first path and let unresolved attribute types drive later handoffs.
+- If a mixed repository-change request is not clearly pure information gathering, pure public research, review, or refactoring, include requirements clarification in the capability set and let unresolved attribute types define the remaining evidence obligations.
 
-### Default requirements-first routing
+### Default requirements-first obligation
 
-- For ordinary repository-change requests whose primary task type is implementation or change delivery, and that are not already clearly `tiny-local`, behavior-preserving refactoring, or code review, start with a requirements-first path instead of open-ended multi-skill diagnosis.
+- For ordinary repository-change requests that include implementation or change delivery, and that are not already clearly `tiny-local`, behavior-preserving refactoring, or code review, include a requirements-first obligation instead of open-ended diagnosis.
 - Break the requested change into atomic requirements. Each atomic requirement should express one capability, constraint, or quality expectation.
 - Normalize each atomic requirement into a fixed record. Use an EARS-style statement when practical, but prefer a precise fixed structure over free-form prose.
 - Record at least these attributes for each atomic requirement:
@@ -93,54 +103,54 @@
   - `repo_derivable`
   - `public_fact`
   - `unknown`
-- Use missing attributes, not a vague overall clarity judgment, to decide the next step.
-- The default routing for implementation-shaped work is:
-  - start with `requirements-clarification` unless the request is already clearly refactoring or code review
-  - use `investigation` to resolve unresolved `repo_derivable` attributes
-  - use `public-research` to resolve unresolved `public_fact` attributes
-  - keep `requirements-clarification` responsible for any required `unknown` attributes that still need a user decision
-  - once the requirement records are complete, continue to `task-planning`, `implementation`, `refactoring`, or `code-review` as appropriate
-- If the user already asked for a repository change, do not start the parent routing step with `public-research` or `investigation` just because a prerequisite fact is external or local. Start with `requirements-clarification`, then let unresolved attributes determine the later handoff.
-- For requests shaped like “check official docs or behavior, then update config/code/docs if supported,” the first routing move is still `requirements-clarification`. Treat the docs or behavior check as a downstream dependency, not as the parent routing move.
-- Requests phrased as rename, extraction, cleanup, migration, or repo-wide consistency work are not automatically refactoring. Unless the user already made the behavior-preserving structural-cleanup intent explicit and the scope is execution-ready, keep them on the requirements-first path.
+- Use missing attributes, not a vague overall clarity judgment, to decide which evidence or execution obligations remain.
+- The default capability set for implementation-shaped work is:
+  - `requirements-clarification` unless the request is already clearly refactoring or code review
+  - `investigation` for unresolved `repo_derivable` attributes or required local source-of-truth evidence
+  - `public-research` for unresolved `public_fact` attributes
+  - `requirements-clarification` for required `unknown` attributes that still need a user decision
+  - `task-planning`, `implementation`, `refactoring`, or `code-review` when the requirement records are complete and the task frame needs that capability
+- If the user already asked for a repository change, do not replace the requirements obligation with `public-research` or `investigation` just because a prerequisite fact is external or local. Record the source obligation and attach the fact-gathering capability as needed.
+- For requests shaped like “check official docs or behavior, then update config/code/docs if supported,” requirement normalization is still required. Treat the docs or behavior check as a source obligation, not as the whole task owner.
+- Requests phrased as rename, extraction, cleanup, migration, or repo-wide consistency work are not automatically refactoring. Unless the user already made the behavior-preserving structural-cleanup intent explicit and the scope is execution-ready, keep the requirements-first obligation active.
 
 ### Information gathering
 
-- Use `investigation` when repository-local behavior, state, configuration, inputs, outputs, code paths, or existing artifacts must be confirmed before the next action is clear, or when unresolved `repo_derivable` requirement attributes must be filled.
-- Use `public-research` when the visible task requires source-backed public facts or official guidance outside the repository, such as checking tool or platform behavior, standards, policies, APIs, upstream practices, or evaluation methods, or when unresolved `public_fact` requirement attributes must be filled.
+- Attach `investigation` when repository-local behavior, local source-of-truth checkouts, generated graphs, runtime artifacts, logs, state, configuration, inputs, outputs, code paths, or existing artifacts must be confirmed before the next action is clear, or when unresolved `repo_derivable` requirement attributes must be filled.
+- Attach `public-research` when the task frame requires source-backed public facts or official guidance outside the repository, such as checking tool or platform behavior, standards, policies, APIs, upstream practices, or evaluation methods, or when unresolved `public_fact` requirement attributes must be filled. It does not discharge required local source-of-truth checks.
 - The obligation to inspect relevant local files before answering does not by itself decide `execution_route`. If the relevant surface is not already a clearly named tiny-local read, or if a skill would add safety, use `investigation` to guide the inspection.
 
 ### Planning
 
-- Use `requirements-clarification` as the default first skill for ordinary implementation-shaped requests that are not yet execution-ready. Reuse an existing requirements artifact only when it is explicitly tied to the current task by the user, by `.opencode/work/current-task.md`, or by a matching `task_slug`, and the artifact passes the binding rules in the skill: candidate primary source first, then primary only when `status` is not `superseded`, `base_commit` is valid for the current repository state, and `superseded_by` is `none` or absent; otherwise treat it as reference material. It should transform the user's stated requirement into a written artifact with atomic requirement records, explicit attribute status, and the minimum remaining open questions.
-- Do not use `requirements-clarification` for purely factual questions, pure public research, or pure local investigation with no implementation intent.
-- Use `task-planning` when requirements are clear enough to act on after diagnosis, but the work still needs decomposition, sequencing, dependency handling, surface mapping, explicit checks before execution, or a durable task artifact because important instructions, constraints, or checks currently exist only in conversation and should not be left vulnerable to resume, compaction, or omission risk.
+- Attach `requirements-clarification` as the default first capability for ordinary implementation-shaped requests that are not yet execution-ready. Reuse an existing requirements artifact only when it is explicitly tied to the current task by the user, by `.opencode/work/current-task.md`, or by a matching `task_slug`, and the artifact passes the binding rules in the skill: candidate primary source first, then primary only when `status` is not `superseded`, `base_commit` is valid for the current repository state, and `superseded_by` is `none` or absent; otherwise treat it as reference material. It should transform the user's stated requirement into a written artifact with atomic requirement records, explicit attribute status, and remaining capability or source obligations.
+- Do not attach `requirements-clarification` for purely factual questions, pure public research, or pure local investigation with no implementation intent.
+- Attach `task-planning` when requirements are clear enough to act on after diagnosis, but the work still needs decomposition, sequencing, dependency handling, surface mapping, explicit checks before execution, or a durable task artifact because important instructions, constraints, or checks currently exist only in conversation and should not be left vulnerable to resume, compaction, or omission risk.
 - Use `grill-me` only when the user explicitly asks for that mode, or when `requirements-clarification` reaches several interdependent design questions that are better resolved through a bounded interview before the requirements document can be finalized.
 - When a planning artifact for the current request is already identified from the conversation or from an allowed recovery step, read and use it before starting downstream execution.
-- Do not ask the user a question at the parent routing step just because a downstream skill may later need one. When routing to `requirements-clarification`, `investigation`, or `public-research`, let that skill reduce local and public unknowns first, and ask only if a true user decision still remains.
+- Do not ask the user a question during parent task framing just because a capability pack may later need one. When attaching `requirements-clarification`, `investigation`, or `public-research`, let that capability reduce local and public unknowns first, and ask only if a true user decision still remains.
 
 ### Writing and output quality
 
-- Use `technical-writing` when the main deliverable is substantial technical prose, when a task includes a standalone document whose structure, reader fit, or scannability materially affects quality, or when a chat response itself needs sectioned, reader-facing explanation rather than a short direct reply.
+- Attach `technical-writing` when the main deliverable is substantial technical prose, when a task includes a standalone document whose structure, reader fit, or scannability materially affects quality, or when a chat response itself needs sectioned, reader-facing explanation rather than a short direct reply.
 - A short explanation, summary, or introductory answer can still be `tiny-local` and direct. A polished standalone document such as a migration guide, tutorial, or structured internal note is not `tiny-local` merely because it centers on one file.
-- A repository task whose main deliverable is prose still routes as writing first. If the needed facts are already known, start with `technical-writing` instead of forcing the task through `requirements-clarification`.
+- A repository task whose main deliverable is prose still has a writing-quality obligation. If the needed facts are already known, attach `technical-writing` instead of forcing the task through `requirements-clarification`.
 - A request to draft a migration guide, internal note, tutorial, README rewrite, or similar prose artifact from already supplied or already-known facts is writing-first.
-- Choosing `technical-writing` as the first step does not by itself change `execution_route`.
+- Attaching `technical-writing` does not by itself change `execution_route`.
 - If the document depends on unresolved repository facts or public facts, resolve those with `investigation`, `implementation`, or `public-research` before or alongside `technical-writing` instead of using prose quality to guess missing facts.
 
 ### Implementation
 
-- Use `implementation` once normalized requirements or an equivalent task contract identify the requested change, invariants, acceptance criteria, verification method, and affected tests or docs well enough to act.
+- Attach `implementation` once normalized requirements or an equivalent task contract identify the requested change, invariants, acceptance criteria, verification method, and affected tests or docs well enough to act.
 - Prefer `refactoring` only for already-clearly behavior-preserving structural cleanup, not for ordinary rename or change-delivery requests that still need requirements normalization.
 - Do not treat a request as clearly refactoring only because it uses words like rename, extract, split, reorganize, or clean up. Repo-wide renames and consistency changes usually still need requirements clarification unless the user already fixed the behavior-preserving intent and scope tightly enough to execute.
-- If the user explicitly asks for behavior-preserving structural cleanup, keep the first routing move on `refactoring` even when only one file is named. Do not replace that first move with a direct local read just because the surface looks small.
+- If the user explicitly asks for behavior-preserving structural cleanup, keep the `refactoring` capability active even when only one file is named. Do not replace that obligation with a direct local read just because the surface looks small.
 - Prefer `code-review` for reviewing code quality without making implementation the primary task.
 
 ## General working rules
 
 - Prefer discovered facts over unnecessary questions.
 - Ask only for true user preferences, policy choices, or missing constraints.
-- Use `epistemic-audit` when non-trivial work could confuse confirmed facts, deductions, assumptions, inferences, project rules, generic guidance, unknowns, or session-local context and the normal task skill does not already provide enough claim-control structure.
+- Attach `epistemic-audit` when non-trivial work could confuse confirmed facts, deductions, assumptions, inferences, project rules, generic guidance, unknowns, or session-local context and the active capability set does not already provide enough claim-control structure.
 - For genuine user questions, prefer structured choice questions and use the `question` tool when available instead of burying key decisions in long free-form chat.
 - Keep explicit user constraints active throughout the task, including investigation, temporary diagnostics, and verification work.
 - Distinguish unresolved gaps, risks, or open questions from concrete blockers. Report a blocker only when the evidence shows a real hard stop.
@@ -152,12 +162,13 @@
 ## Public-source verification
 
 - When a task depends on facts that can be verified from public sources, treat it as requiring verification against primary sources before editing or answering.
-- This verification obligation does not override the first-step skill choice for mixed implementation requests. When the user is asking for a repository change plus a public-fact prerequisite, keep the parent route on the requirements-first path and let `public-research` happen as a downstream handoff.
-- For any non-trivial claim about the behavior, configuration, or semantics of public tools, libraries, platforms, services, or protocols (including how they interpret configuration files, permissions, or matching rules), do not rely solely on your own prior knowledge. Treat these claims as depending on public facts and normally verify them with the `public-research` skill before asserting them as factual.
+- This verification obligation does not override required local source-of-truth evidence. When the user is asking for a repository change plus a public-fact prerequisite, keep requirement normalization in the task frame and attach `public-research` as a source capability.
+- For any non-trivial claim about the behavior, configuration, or semantics of public tools, libraries, platforms, services, or protocols (including how they interpret configuration files, permissions, or matching rules), do not rely solely on your own prior knowledge. Treat these claims as depending on public facts and normally verify them with the `public-research` capability before asserting them as factual.
+- If a public tool, library, platform, service, protocol, or engine also has a required local source-of-truth checkout, generated graph, runtime artifact, log, or authoritative path named by project rules or the user, gather that local source class before claiming implementation-confirmed behavior.
 - When the user explicitly reports tool- or platform-specific behavior that conflicts with your general knowledge, or asks you to check primary sources or official documentation, treat your prior assumptions as suspect. Prefer research over debate: either reconcile the discrepancy using primary sources, or say explicitly that you cannot confirm and treat the explanation as inference.
 - For short, stable introductory explanations where the user is not asking for primary-source verification, direct handling is acceptable.
 - Do not include non-public information in public search queries. If a useful query would expose secrets, credentials, private data, unpublished details, or customer information, rewrite it to a public-safe form or stop and ask for a safe version.
-- Use local repository code as supporting evidence, not as the primary source of truth, unless the task is purely repository-local.
+- Use local repository code as supporting evidence for public-source claims, but as required source-of-truth evidence when the task is repository-local or project rules, domain notes, AGENTS.md, or the user name that local source class as authoritative for the behavior.
 - If primary sources are missing or incomplete, state that explicitly, mark any resulting claims as inference, and separate verified facts from inference.
 
 ## Optional recovery hint
