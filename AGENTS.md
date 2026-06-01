@@ -62,4 +62,4 @@
 外部調査が必要な場合は `public-research` を用いること。
 
 ここでは「いつ調べるべきか」という原則だけを定める。
-調査手順そのものは `public-research` に置き、実際の判定と反映は `/add-prompt-capability` や `/refine-prompt` などの command 側で行う。
+調査手順そのものは `public-research` に置き、実際の判定と反映は `/add-capability` や `/refine-prompt` などの command 側で行う。

@@ -43,7 +43,7 @@ It must not implement runtime hooks, plugins, harnesses, artifact storage or enf
 If `/triage-failure` recommends a hook, plugin, harness, artifact implementation, or runtime enforcement, do not convert that recommendation into a prose-only prompt rule. Instead, preserve the handoff and edit only the prompt surfaces needed to route to or document that intervention.
 
 If the request is only about recording a new failure, recommend `/report-failure`.
-If the request is mainly about adding one new capability with minimal scope, recommend `/add-prompt-capability`.
+If the request is mainly about adding one new capability with minimal scope, recommend `/add-capability`.
 
 Follow this workflow exactly.
 
@@ -81,6 +81,8 @@ If it does, read the relevant triage report or incident file first and extract:
 - rollback condition.
 
 When this command is invoked as a follow-up to `/triage-failure`, treat the triage report as the controlling intervention plan.
+
+If the request is an intentional hierarchy cleanup, consolidation, or completeness pass rather than a triage follow-up, classify it as `prompt_surface_change` unless it is actually a narrow capability addition better handled by `/add-capability`.
 
 Do not reinterpret historical, likely-addressed, obsolete-context, or covered-but-unvalidated failures as new prompt-edit requirements.
 
@@ -138,6 +140,8 @@ If no separate principles or checklists exist, still apply at least these minima
 - add a new rule only when clarifying, relocating, or merging existing rules is insufficient and the new wording is short and precise
 - keep shared or global rules short and stable, and move detailed, task-specific procedure into the most local appropriate layer
 - avoid leaving the same principle expressed in multiple places in slightly different wording
+
+When the principles and checklist do exist, treat them as the shared policy layer for intervention-type gates, no-drop preservation, and completeness checks. Keep command-local execution steps in this file.
 
 ## 2. Build a hierarchy inventory
 
@@ -588,4 +592,4 @@ Important constraints:
 - Do not drop behaviorally meaningful detail without preserving it at the same layer or moving it explicitly.
 - Do not use brevity as a reason to weaken source-verification rules, privacy rules, validation obligations, role boundaries, or task-essential structure.
 - If the request is actually only about recording a new failure, recommend `/report-failure` instead.
-- If the request is mainly about introducing one new capability with minimal scope, recommend `/add-prompt-capability` instead.
+- If the request is mainly about introducing one new capability with minimal scope, recommend `/add-capability` instead.

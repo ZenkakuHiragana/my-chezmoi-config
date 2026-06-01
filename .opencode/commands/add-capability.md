@@ -43,6 +43,8 @@ Identify the relevant prompt surfaces for this capability.
 Consider at least these possible layers:
 
 - global rules such as `AGENTS.md` or `dot_config/opencode/AGENTS.md`
+- command definitions and command stubs such as `.opencode/commands/*.md` or `dot_config/opencode/commands/*.md`
+- command-specific agent prompts such as `dot_config/opencode/agents/report-failure.md`
 - role-specific prompt files such as `build.md`, `plan.md`, or equivalent
 - skill descriptions
 - `SKILL.md` files
@@ -136,6 +138,10 @@ Use these rules:
 
 - global rules:
   short, stable, broadly shared constraints
+- command definitions and command stubs:
+  command entry points, command-specific routing, and brief workflow contracts
+- command-specific agent prompts:
+  detailed command execution roles, handoffs, local output contracts, and command-local decision policy
 - role-specific prompt files:
   behavior specific to one role, mode, or agent
 - skill descriptions:
@@ -146,6 +152,7 @@ Use these rules:
 
 Do not place detailed procedure into a skill description.
 Do not place local exceptions into a global rules file unless they truly belong there.
+Do not put command-owned capability detail into AGENTS.md when a command stub or command-specific agent prompt is the real owner.
 Do not scatter one capability across multiple layers unless each layer has a clearly different responsibility.
 
 ## 7. Choose the smallest effective change

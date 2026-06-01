@@ -67,6 +67,7 @@
   - empirical-prompt-tuning または retrospective-codify への移送
 - 原則として、最小で検証可能な介入を選ぶ。
 - prompt の追記は、最小介入の一種でしかない。再発防止に必要な制御が prompt では安定しない場合は、hook、harness、artifact、workflow の変更を優先して検討する。
+- triage が hook、plugin、harness、artifact 実装、runtime enforcement を推奨した場合、その推奨を prose-only な prompt rule に矮小化してはならない。prompt 面で行うのは、その介入への handoff や所有境界の明確化だけに留める。
 - 一件の弱い失敗から global rule を追加してはならない。
 - 既存文言の削除・言い換え・統合・移設で足りる場合は、新規ルールを追加しない。
 - 新規ルールを追加してよいのは以下をすべて満たす場合だけ：
@@ -77,6 +78,15 @@
   5. hook、artifact、harness ではなく prompt に置く方が適切である
   6. 新規規則の方が既存規則群より短く明確である
   7. 検証方法または回帰シナリオを定義できる
+
+## prompt surface 階層介入ポリシー
+
+- `/report-failure` は failure の記録に使い、ここから直接広域の hierarchy cleanup を始めない。
+- `/add-capability` は単一 capability の追加・補強に使い、広い統合・重複整理・複数層の棚卸しは `/refine-prompt` に送る。
+- `/refine-prompt` は hierarchy-aware な prompt surface intervention に使い、single-file の最適化ではなく、関係する層の配置・重複・不足をまとめて確認する。
+- `covered_but_unvalidated` は prompt edit 要件ではなく validation-first の状態として扱い、validation fail または current system での再発確認なしに prompt 変更へ進めない。
+- hierarchy refactor では、behaviorally meaningful な instruction を削除するときは、同層で言い換えるか、より適切な層へ明示的に移して保存する。
+- hierarchy refactor では、短さだけでなく completeness も監査し、目的、trigger、required output、forbidden behavior、validation target のいずれかが層全体から消えないようにする。
 
 ## リファクタリングのトリガー
 
