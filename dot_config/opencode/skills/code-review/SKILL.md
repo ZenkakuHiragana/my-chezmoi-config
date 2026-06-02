@@ -1,6 +1,6 @@
 ---
 name: code-review
-description: Attach this capability when a task frame needs review of a specific diff or codebase surface for quality issues. It produces prioritized findings with severity, authority, evidence, impact, and next steps across correctness, design, tests, maintainability, security, performance, docs, and style. Do not use as the sole capability for implementing fixes, investigating observed behavior, or factual follow-up verification; attach investigation, public-research, or epistemic-audit as needed.
+description: Attach this capability when a task frame needs review of a specific diff or codebase surface for quality issues. It produces prioritized findings with severity, authority, evidence, impact, and next steps across correctness, design, tests, maintainability, security, performance, docs, and style. Do not use as the sole capability for implementing fixes, investigating observed behavior, or factual follow-up verification; attach investigation or public-research as needed.
 ---
 
 # Code Review
@@ -69,10 +69,6 @@ If only the current codebase is available, review the highest-risk areas first a
 
 Inspect the actual files, related callers, tests, docs, and project rules that define the contract.
 
-Project-local rules, ADRs, specifications, domain notes, and explicit user constraints are
-review authority. Generic best practices are advisory unless they are supported by a
-concrete project risk, a project rule, a public contract, or a safety/security concern.
-
 For a diff, read every changed line.
 
 When available and relevant, inspect:
@@ -99,16 +95,6 @@ Use these severity labels:
 - `Major`: serious design, maintainability, performance, migration, or test-quality concerns supported by concrete evidence and likely to create near-term trouble
 - `Minor`: localized readability, naming, documentation, or consistency issues
 - `Uncertain`: plausible concern with incomplete evidence; state what extra context would confirm or dismiss it
-
-Also classify each finding's authority:
-
-- `project_rule_violation`: a project rule, ADR, specification, documented invariant, or explicit user constraint is violated
-- `contract_or_correctness_risk`: the code can break a public API, persisted format, user workflow, security boundary, or directly evidenced behavior
-- `generic_risk`: general engineering guidance applies and no project rule was found to override it
-- `uncertain`: project authority or impact is not yet established
-
-Do not present a `generic_risk` as a blocking finding unless the concrete impact is
-shown for this project.
 
 ### 4. Avoid out-of-scope drift
 
@@ -152,7 +138,7 @@ behavior, platform semantics, public API behavior, generated data provenance, re
 target formats, shader semantics, runtime objects, configuration keys, or project-local
 domain rules.
 
-Attach `investigation`, `public-research`, and `epistemic-audit` as needed to identify and
+Attach `investigation` and `public-research` as needed to identify and
 check the required source classes.
 Do not make the review finding blocking while a required source class remains unchecked.
 Report the concern as `Uncertain`, state the coverage gap, and name the evidence needed to
@@ -342,7 +328,6 @@ For each finding, include:
 - severity
 - location
 - claim
-- authority
 - evidence
 - impact
 - suggested next step

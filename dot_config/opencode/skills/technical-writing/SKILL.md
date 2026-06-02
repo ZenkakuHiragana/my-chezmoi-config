@@ -78,11 +78,6 @@ Before drafting, identify or derive all of the following:
 - the important caveats, prerequisites, and exclusions
 - the allowed source set
 - the allowed change budget
-- the reader-context envelope:
-  - what the reader already knows
-  - what the reader does not know
-  - session-local facts that are forbidden unless reintroduced
-  - current canonical terms and deprecated terms
 
 If any of these are materially unknown and cannot be derived from the task or repository, stop and resolve them before drafting.
 
@@ -137,14 +132,6 @@ Separate:
 Do not invent facts, certainty, causality, or consensus.
 
 If evidence is incomplete, say so plainly.
-
-Do not expose internal claim labels in reader-facing prose unless the user asked for an
-audit artifact. Let the claim status control wording: confirmed facts can be stated
-directly, inferred claims must be softened or caveated, and unknowns must remain open.
-
-Session-local facts, old names, discarded designs, private discussion history, and prior
-terminology may appear in reader-facing text only when the document reintroduces that
-context for the intended reader.
 
 ### 5. Use current truth unless the artifact is explicitly historical
 

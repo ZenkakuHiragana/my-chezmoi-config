@@ -1,7 +1,7 @@
 ---
 name: refactoring
 description: >
-  Attach this capability for behavior-preserving structural cleanup of existing code. It covers clearer structure, names, boundaries, and validation that behavior is preserved. Do not attach it as the sole capability for feature work, bug fixes, unresolved source evidence, or external research; attach requirements-clarification, investigation, public-research, implementation, or epistemic-audit as needed.
+  Attach this capability for behavior-preserving structural cleanup of existing code. It covers clearer structure, names, boundaries, and validation that behavior is preserved. Do not attach it as the sole capability for feature work, bug fixes, unresolved source evidence, or external research; attach requirements-clarification, investigation, public-research, or implementation as needed.
 ---
 
 # Refactoring

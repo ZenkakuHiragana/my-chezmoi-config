@@ -1,7 +1,7 @@
 ---
 name: public-research
 description: >
-  Attach this capability when a task frame requires source-backed public facts, official guidance, standards, policies, APIs, upstream practices, evaluation methods, or unresolved `public_fact` attributes. It covers public evidence acquisition and citation. Do not use it as the primary or sole capability when AGENTS.md, domain notes, project rules, or the user name a local source-of-truth checkout, generated graph, runtime artifact, log, or authoritative path for the same behavior; attach `investigation` for that local evidence first, and add `epistemic-audit` when claim authority or source-class selection is non-trivial.
+  Attach this capability when a task frame requires source-backed public facts, official guidance, standards, policies, APIs, upstream practices, evaluation methods, or unresolved `public_fact` attributes. It covers public evidence acquisition and citation. Do not use it as the primary or sole capability when AGENTS.md, domain notes, project rules, or the user name a local source-of-truth checkout, generated graph, runtime artifact, log, or authoritative path for the same behavior; attach `investigation` for that local evidence first.
 ---
 
 # Public Research
@@ -50,8 +50,7 @@ Do not use public research as a substitute for local investigation when the real
 Do not use this capability as the primary or sole path when AGENTS.md, project rules,
 domain notes, or the user identify a local source-of-truth checkout, generated graph,
 runtime artifact, log, or authoritative path for the same behavior. Attach
-`investigation` for that local evidence first, and attach `epistemic-audit` as an
-additional claim-control capability when needed.
+`investigation` for that local evidence first.
 
 Do not perform token research just to look busy. Use enough external evidence to support the material claim or design choice, then stop.
 
@@ -185,8 +184,6 @@ If you infer a conclusion from the sources, label it as an inference.
 - Do not let public sources override or replace required local source-of-truth evidence.
 - Use local code only as supporting evidence for public-fact claims unless the task is repository-local or a local source class is named as authoritative for the behavior.
 - If primary sources are missing or incomplete, say so explicitly and separate documented facts from inference.
-- When a question requires more than one source class, maintain source coverage explicitly. Do not assert a conclusion as confirmed while a required source class is unchecked.
-- If AGENTS.md, project rules, domain notes, or the user identify a local source-of-truth repository, generated graph, runtime artifact, log, or authoritative path for the behavior, public research is not sufficient by itself. Treat that local source as a required source class or state that it remains unchecked.
 
 ## Research flow
 
@@ -205,8 +202,7 @@ Before issuing any external search, determine all of the following internally:
    - If the target version is unknown, make the first search goal to determine the current stable version, supported versions, or relevant release window before researching the substantive question.
    - Record the pinned version and use it to scope all subsequent searches.
 4. **Minimum evidence needed** — what you must find for the question to be answered (for example, "official docs page for feature X in version Y").
-5. **Required source classes** — which source classes are required, optional, or forbidden for the answer. Include local source-of-truth repositories, generated graphs, runtime artifacts, logs, or authoritative paths named by AGENTS.md, project rules, domain notes, or the user when the question depends on that domain. Examples: official docs, versioned release notes, upstream code, standard text, public issue tracker, repository-local evidence supplied by the parent, or prior session context.
-6. **Search strategy** — which tools you will use and in what order, guided by the evidence-type-based default search order above.
+5. **Search strategy** — which tools you will use and in what order, guided by the evidence-type-based default search order above.
 
 ### Step 2: Search with privacy-safe wording
 
@@ -229,10 +225,6 @@ Write the answer by separating:
 - confirmed facts
 - constraints or caveats
 - interpretation or recommendation
-
-When multiple required source classes exist, include a compact source coverage summary
-or incorporate its result into the caveats. Required coverage gaps must weaken or block
-the conclusion instead of being silently filled by inference.
 
 ### Step 6: Cite appropriately
 
@@ -427,7 +419,6 @@ Prefer:
 
 - the answer
 - the supporting facts
-- the source coverage status when more than one source class was required
 - the relevant caveats
 - the source-backed conclusion
 
@@ -457,8 +448,6 @@ Before finishing, verify all of the following:
 - the queries did not expose unnecessary private information
 - internal terms were detected and generalized to public concepts before searching
 - primary or official sources were preferred where applicable
-- required source classes were checked or the remaining coverage gaps were stated
-- known local source-of-truth requirements from AGENTS.md, project rules, domain notes, or the user were not silently satisfied by public sources alone
 - important claims are supported by citations
 - recency-sensitive claims were verified
 - the version scope is stated for version-dependent findings

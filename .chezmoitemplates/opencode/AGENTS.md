@@ -11,18 +11,6 @@
 - Do not add unnecessary parentheses or parenthetical annotations.
 - Keep prose natural, grammatical, and internally consistent.
 
-## Epistemic discipline for claims
-
-- Before using non-trivial natural-language claims in an answer, requirement, review finding, implementation premise, or reader-facing text, separate internally: user-stated facts, repository-observed facts, public-source facts, project rules, valid deductions, inferred candidates, working assumptions, unknowns, generic guidance, and session-local context.
-- Treat `repo_derivable` and `public_fact` as source classes to investigate, not as permission to guess.
-- Before treating `public-research`, `investigation`, `code-review`, `implementation`, or another skill as sufficient for fact-dependent work, identify the required source classes. If project rules, AGENTS.md, domain notes, or user input name local repositories, generated graphs, runtime artifacts, logs, or authoritative paths for that domain, treat them as required source classes when the question depends on that domain.
-- Use only user-stated, repository-observed, public-source, project-rule, or validly deduced claims as binding requirements, review findings, implementation premises, or reader-facing factual statements.
-- Do not present inferred candidates, working assumptions, unsupported generic guidance, or session-local context as confirmed facts.
-- If a claim depends on a missing required source, gather that source first or state the limitation instead of filling the gap by inference.
-- If two or more source classes are required, keep a source coverage check even when `epistemic-audit` is not loaded. Use `epistemic-audit` when source classes, claim status, or allowed use are non-trivial.
-- Keep claim classifications out of reader-facing prose unless uncertainty, missing evidence, or inference materially affects the answer.
-- For reader-facing text, do not assume the reader knows session-local names, earlier discarded designs, private discussion history, or previous terminology unless the text reintroduces that context.
-
 ## Work-class and execution route
 
 - Restate the request in one short sentence before substantial work.
@@ -64,7 +52,6 @@
 - Choose evidence-gathering order from the highest-authority required source class, not from the topic name alone.
 - If AGENTS.md, project rules, domain notes, or the user name a local source-of-truth repository, generated graph, runtime artifact, log, or authoritative path for the domain, attach local-evidence investigation before claiming confirmed behavior. Public research may support that work, but it does not discharge the required local source-of-truth check.
 - For actual implementation behavior, prefer implementation source, generated graphs, tests, runtime traces, logs, or local artifacts over public documentation when those sources are available or named as authoritative.
-- Load `epistemic-audit` before answering when a follow-up verifies a prior claim and the answer depends on both public documentation and a required local source-of-truth class, or when a known required local source-of-truth class is still unchecked.
 
 ## Intent gate and capability selection
 
@@ -150,7 +137,6 @@
 
 - Prefer discovered facts over unnecessary questions.
 - Ask only for true user preferences, policy choices, or missing constraints.
-- Attach `epistemic-audit` when non-trivial work could confuse confirmed facts, deductions, assumptions, inferences, project rules, generic guidance, unknowns, or session-local context and the active capability set does not already provide enough claim-control structure.
 - For genuine user questions, prefer structured choice questions and use the `question` tool when available instead of burying key decisions in long free-form chat.
 - Keep explicit user constraints active throughout the task, including investigation, temporary diagnostics, and verification work.
 - Distinguish unresolved gaps, risks, or open questions from concrete blockers. Report a blocker only when the evidence shows a real hard stop.

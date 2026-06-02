@@ -115,29 +115,6 @@ Use these meanings:
 
 Do not collapse these statuses into a vague statement such as "unclear."
 
-Attribute status is not evidence by itself.
-Treat `repo_derivable` and `public_fact` as source classes that must be investigated
-before the value can become binding.
-Do not write a plausible value into a binding requirement merely because it seems
-likely to be derivable from the repository or from public sources.
-
-### 4a. Separate requirement authority from candidate inference
-
-Each requirement-level claim must be one of:
-
-- `binding`: supported by user-stated facts, repository-observed facts, public-source
-  facts, project rules, or valid deductions from those inputs
-- `candidate`: plausible but still dependent on an auxiliary assumption, incomplete
-  source coverage, or a user decision
-- `unknown`: required but not yet resolved
-- `rejected`: a tempting assumption that must not guide downstream work
-
-Only `binding` claims may define desired change, invariants, constraints, acceptance
-criteria, verification methods, affected tests, affected docs, or implementation
-premises.
-Candidate requirements may be recorded to preserve the idea, but they are non-binding
-until confirmed by evidence or accepted by the user.
-
 ### 5. Discover before asking
 
 Before asking the user, inspect the repository and attach public research when needed.
@@ -154,12 +131,9 @@ Use this mapping:
   questions, or attach `grill-me` only if the remaining decisions are interdependent
 - no unresolved required attributes -> recommend the smallest sufficient next capability
   set, such as `task-planning`, `implementation`, `refactoring`, `code-review`,
-  `investigation`, `public-research`, or `epistemic-audit` as appropriate
+  `investigation` or `public-research` as appropriate
 
 Do not hand off to implementation while a required attribute is still `unknown`.
-
-Do not hand off to implementation while any binding field still depends on a
-`candidate` claim.
 
 ### 7. Make change obligations explicit
 
@@ -251,44 +225,6 @@ Use this structure:
   - verification method: user_provided | repo_derivable | public_fact | unknown
   - affected tests: user_provided | repo_derivable | public_fact | unknown
   - affected docs: user_provided | repo_derivable | public_fact | unknown
-- Field grounding:
-
-  | Field               | Source class                                           | Claim authority                          | Evidence                                                  | Binding level                                                                                   |
-  | ------------------- | ------------------------------------------------------ | ---------------------------------------- | --------------------------------------------------------- | ----------------------------------------------------------------------------------------------- |
-  | Source              | user_provided                                          | binding                                  | user request                                              | binding requirement                                                                             |
-  | Target              | user_provided, repo_derivable, public_fact, or unknown | binding, candidate, unknown, or rejected | <path:line, URL, user request, deduction, or `None yet.`> | binding requirement, non-binding candidate, working assumption, blocked, or rejected assumption |
-  | Desired change      | ...                                                    | ...                                      | ...                                                       | ...                                                                                             |
-  | Invariants          | ...                                                    | ...                                      | ...                                                       | ...                                                                                             |
-  | Constraints         | ...                                                    | ...                                      | ...                                                       | ...                                                                                             |
-  | Acceptance criteria | ...                                                    | ...                                      | ...                                                       | ...                                                                                             |
-  | Verification method | ...                                                    | ...                                      | ...                                                       | ...                                                                                             |
-  | Affected tests      | ...                                                    | ...                                      | ...                                                       | ...                                                                                             |
-  | Affected docs       | ...                                                    | ...                                      | ...                                                       | ...                                                                                             |
-
-## Claim ledger
-
-Use this only when one field contains multiple material claims or non-trivial derivation.
-
-| Claim id | Field   | Claim   | Status                                                                                                                                      | Evidence                  | Derivation                          | Binding level                                         | Allowed use                                  |
-| -------- | ------- | ------- | ------------------------------------------------------------------------------------------------------------------------------------------- | ------------------------- | ----------------------------------- | ----------------------------------------------------- | -------------------------------------------- |
-| C-1      | <field> | <claim> | user_stated, repo_observed, public_observed, project_rule, deduced, inferred_candidate, working_assumption, unknown, or rejected_assumption | <evidence or `None yet.`> | <deduction or auxiliary assumption> | binding, non-binding, temporary, blocked, or rejected | requirement, investigate only, or do not use |
-
-## Inferred candidate requirements
-
-- <candidate requirement, why it seems plausible, missing evidence or user decision, and why it is non-binding>
-- None identified.
-
-## Rejected assumptions
-
-- <assumption that might be tempting but was not adopted, with the reason>
-- None identified.
-
-## Execution readiness
-
-- Ready for implementation: yes | no
-- Blocking reasons:
-  - <unknown, unchecked source class, or candidate claim still present in a binding field>
-  - None identified.
 
 ## Open questions
 
@@ -296,7 +232,7 @@ Use this only when one field contains multiple material claims or non-trivial de
 
 ## Handoff recommendation
 
-- Next capability set: <requirements-clarification | investigation | public-research | task-planning | implementation | refactoring | code-review | epistemic-audit>[, ...]
+- Next capability set: <requirements-clarification | investigation | public-research | task-planning | implementation | refactoring | code-review>[, ...]
 - Why: <one short explanation>
 ```
 
@@ -324,12 +260,6 @@ Identify each independent capability, constraint, or quality expectation.
 
 For each atomic requirement, fill every field in the template and assign an explicit
 attribute status.
-
-Also fill the field grounding table for the material fields.
-Use the claim ledger only when one field contains multiple material claims or a
-non-trivial derivation.
-Move plausible but unconfirmed content into `Inferred candidate requirements` instead
-of making it part of a binding field.
 
 ### Step 5: Evaluate unresolved attributes
 
@@ -363,7 +293,6 @@ require a capability set. Keep the set as small as possible while still sufficie
 - include `public-research` when unresolved required attributes are `public_fact`
 - keep `requirements-clarification` active when unresolved required attributes are truly
   `unknown` and user input is still needed
-- include `epistemic-audit` when source-class selection, claim authority, or allowed use is non-trivial
 - include `task-planning` when the requirement records are complete but the work still
   needs sequencing, decomposition, or a resume-safe artifact
 - include `implementation` when the requirement records are complete and the change can
@@ -380,9 +309,6 @@ Before finishing, verify all of the following:
 - the request was split into atomic requirements
 - each atomic requirement has the fixed fields
 - each required attribute has an explicit status value
-- each material requirement field has grounding for source class, claim authority, evidence, and binding level
-- inferred candidates, working assumptions, and rejected assumptions are not used as binding requirements
-- execution readiness blocks implementation when a binding field still depends on a candidate claim or unchecked required source
 - repo and public discovery were attempted before asking the user
 - open questions include only true `unknown` attributes
 - the artifact was written to an external file

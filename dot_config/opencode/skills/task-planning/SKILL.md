@@ -361,7 +361,6 @@ Recommend the next downstream capability set based on the first real execution n
 - include `implementation` when the requested repository changes, target surfaces, and required checks are already concrete enough to execute
 - include `investigation` when local facts or source-of-truth classes still need to be gathered first
 - include `public-research` when external facts must be verified first
-- include `epistemic-audit` when source-class selection or claim authority remains non-trivial
 - include `refactoring` when the next step is behavior-preserving structural cleanup
 
 ## Quick checklist

@@ -15,23 +15,13 @@
 - 演習・訓練・検証だけの記録は、実際の失敗事例と混ぜず、別の検証記録として扱う。
 - tracked repository files には、生ログ・未整理の失敗証拠・長い会話断片ではなく、検証済みの運用原則・プロンプト変更・チェックリストのみを残す。
 
-## 認識状態管理の原則
-
-- 非自明な自然文の主張は、完成文にする前に control plane で根拠と拘束力を分ける。
-- 少なくとも、ユーザー明示、リポジトリ観測、公開情報、プロジェクト規則、論理的帰結、推測候補、作業仮定、未知、セッション限定文脈、採用しない仮定を区別する。
-- 推測候補や作業仮定は記録してよいが、要求、レビュー指摘、実装前提、読者向け事実として拘束力を持たせない。
-- 分類表は原則として最終回答や読者向け文書に露出させず、断定度、保留、根拠確認、文脈の再導入有無として反映する。
-- source coverage が未達の主張は、必要な情報源を確認するか、未確認の制限として扱う。
-- project-local rule と一般的 best practice を分け、一般論だけで project-specific な判断を blocking 扱いしない。
-- セッション限定の旧名、経緯、破棄された案、内部会話は、読者向け文書で再導入されない限り reader-known context とみなさない。
-
 ## ターン単位の再分類原則
 
 - 新しい user turn ごとに、前ターンの task type、skill、source coverage をそのまま継承してよいかを再判定し、必要なら task frame を作り直す。
 - 後続質問が、過去の指摘や前提の検証、外部システム・エンジン・ライブラリ・シェーダー・API・runtime object・設定キー・ファイルの実挙動確認、または review から investigation / verification / audit への切り替えを含む場合、最初の分類に引っ張られたまま回答しない。
 - AGENTS.md、project rules、domain notes、ユーザー入力が domain-specific な local repository、generated graph、runtime artifact、log、authoritative path を示している場合、その domain に依存する質問では required source class として扱う。
 - public research は必要な公開情報を満たせるが、既知の local implementation source requirement を満たしたことにはならない。未確認なら coverage gap として扱う。
-- code review 中でも、finding の正否が外部・domain 実装挙動に依存した時点で、通常レビューを中断して investigation / public-research / epistemic-audit に再分類する。
+- code review 中でも、finding の正否が外部・domain 実装挙動に依存した時点で、通常レビューを中断して investigation / public-research に再分類する。
 - この失敗パターンは、shader review の後続質問で `_rt_resolvedfullframedepth` の実装仕様確認に切り替わったケースを回帰検証候補として扱う。
 
 ## Task frame と capability pack の原則
@@ -42,7 +32,7 @@
 - 目標は「skill 数を最小化する」ことではなく、「十分な source coverage と claim control を満たす最小の義務集合」にすること。
 - primary output は最終出力の形を決めるために使ってよいが、source obligation や claim authority を免除しない。
 - local source-of-truth が required source class に入った時点で、public-research は補助情報になり、local evidence investigation を置き換えない。
-- 以前の review context は仮説や確認対象の由来として扱い、実装挙動の確認義務そのものは investigation / source coverage / epistemic gate に分解する。
+- 以前の review context は仮説や確認対象の由来として扱い、実装挙動の確認義務そのものは investigation / source coverage に分解する。
 
 ## 現行カバレッジ確認ポリシー
 

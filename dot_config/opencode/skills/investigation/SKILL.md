@@ -39,8 +39,6 @@ It is also the default way to resolve `repo_derivable` fields left open by a nor
 Assess the work against:
 
 - what has been directly observed and confirmed
-- which claims are repository-observed facts, deductions from local evidence, inferred candidates, working assumptions, unknowns, or rejected explanations
-- which required local source classes were checked and which remain unchecked
 - reproduction status and reproducibility conditions
 - scope of impact and affected surfaces
 - which code paths, inputs, state, configuration, data, or environment factors are confirmed in play
@@ -55,8 +53,6 @@ Return:
 
 - a short summary of the observed behavior or factual question
 - confirmed observations and relevant evidence
-- a local source coverage summary when multiple repository paths, logs, configs, generated outputs, or runtime states were required
-- inferred candidates and working assumptions kept separate from confirmed observations
 - which `repo_derivable` fields or local facts were resolved, when applicable
 - reproduction status
 - narrowed scope and what has been ruled out
@@ -76,5 +72,5 @@ Return:
 7. Keep explicit user constraints active while gathering evidence. Add temporary diagnostics only as narrowly as needed, and do not turn them into new supported control surfaces, runtime branches, or compatibility paths unless the request or an existing contract requires that.
 8. Compare plausible explanations against the observed evidence and rule out what you can.
 9. Check public issue trackers or docs when local evidence does not sufficiently explain the behavior.
-10. Stop once you can report confirmed observations, remaining unknowns, and the smallest sufficient recommended next action or capability set, whether that is implementation, more targeted investigation, public research, epistemic audit, a user question, or no repository change.
+10. Stop once you can report confirmed observations, remaining unknowns, and the smallest sufficient recommended next action or capability set, whether that is implementation, more targeted investigation, public research, a user question, or no repository change.
 11. Remove, disable, or clearly isolate temporary diagnostics before finishing if they are no longer needed.

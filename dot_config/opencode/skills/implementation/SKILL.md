@@ -1,6 +1,6 @@
 ---
 name: implementation
-description: Attach this capability when a normalized requirements artifact or task contract identifies the requested repository change, target surfaces, invariants, acceptance criteria, verification method, and required checks, and files must be updated to satisfy it. It covers coherent code, documentation, configuration, prompt, or script changes. Do not use as the sole capability when required source classes, observed behavior, diagnostic evidence, or user decisions remain unresolved; attach investigation, public-research, requirements-clarification, or epistemic-audit first as needed.
+description: Attach this capability when a normalized requirements artifact or task contract identifies the requested repository change, target surfaces, invariants, acceptance criteria, verification method, and required checks, and files must be updated to satisfy it. It covers coherent code, documentation, configuration, prompt, or script changes. Do not use as the sole capability when required source classes, observed behavior, diagnostic evidence, or user decisions remain unresolved; attach investigation, public-research, or requirements-clarification first as needed.
 ---
 
 # Implementation
@@ -138,20 +138,6 @@ Give extra attention to:
 ### 4. Read before you write
 
 Before editing, inspect enough of the relevant context to avoid shallow or contradictory changes.
-
-Use only binding claims as implementation premises:
-
-- user-stated requirements
-- repository-observed facts
-- public-source facts verified by the appropriate workflow
-- active project rules or domain-premise documents
-- valid deductions from those inputs
-
-Do not turn inferred candidates, working assumptions, unchecked `repo_derivable` or
-`public_fact` fields, unsupported generic best practices, or session-local context into
-implemented behavior.
-If an unconfirmed claim would affect the change, resolve it first or keep it out of the
-implementation.
 
 At minimum, read:
 
