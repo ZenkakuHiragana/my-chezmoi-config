@@ -22,4 +22,4 @@ customCommands:
         ghcr.io/open-webui/open-webui:main
     - name: SearXNG
       shell: true
-      command: ~/searxng/launch.sh
+      command: ~/.docker/searxng/launch.sh
