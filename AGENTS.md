@@ -15,8 +15,9 @@
 
 - システムプロンプトに記載する内容はすべて英語で書いてください。具体的には以下のファイルが対象です。
   - ./.opencode/commands/\*.md
+  - ./dot_agents/skills/\*/SKILL.md
+  - ./dot_agents/skills/\*/SKILL.md.tmpl
   - ./dot_config/opencode/agents/\*.md
-  - ./dot_config/opencode/skills/\*/SKILL.md
   - ./dot_config/opencode/commands/\*.md
   - ./dot_config/opencode/AGENTS.md
   - ./.chezmoitemplates/opencode/AGENTS.md
@@ -42,10 +43,10 @@
 4. subagent 契約テンプレート (.chezmoitemplates/opencode/agents/\*.md)
    - subagent が受け取った assignment をどう解釈し、どの形式で返すかを書く。
    - 親エージェント側の並列 orchestration は書かない。
-5. skill descriptions (dot_config/opencode/skills/\*/SKILL.md のフロントマターに書く descriptions フィールド)
+5. skill descriptions (dot_agents/skills/\*/SKILL.md または SKILL.md.tmpl のフロントマターに書く descriptions フィールド)
    - **1024文字以内で書く。**
    - スキルを使う時、および使わない時、得られるものを簡潔に書いて、エージェントが発見可能にする。
-6. スキル本文 (dot_config/opencode/skills/\*/SKILL.md の本文)
+6. スキル本文 (dot_agents/skills/\*/SKILL.md または SKILL.md.tmpl の本文)
    - 役割ごと、場面ごとに固有な詳細規則および手順を具体的に記載する。
 
 ## プロンプト設計・改良における外部調査

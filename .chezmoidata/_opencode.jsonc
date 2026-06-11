@@ -286,11 +286,14 @@
       "webfetch": "allow",
       "websearch": "allow",
       "codesearch": "allow",
+      "skill": {
+        "*": "allow",
+        "cmd-*": "deny"
+      },
       "external_directory": {
         "*": "ask",
         "~": "deny",
         "/": "deny",
-        "~/.config/opencode/skills/**": "allow",
         "~/.agents/skills/**": "allow"
       },
       "orchestrator": {
