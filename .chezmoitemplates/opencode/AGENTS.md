@@ -10,6 +10,10 @@
 - Include the information necessary to satisfy the request, but do not add meaningless side notes or filler.
 - Do not add unnecessary parentheses or parenthetical annotations.
 - Keep prose natural, grammatical, and internally consistent.
+- For substantial prose, identify the reader, the reader's goal, and the required takeaway before drafting.
+- Unless the user explicitly allows companion context, make standalone documents self-contained and do not assume access to tickets, chats, or adjacent artifacts.
+- Do not expose revision process, self-evaluation, or writer-oriented handoff framing inside the deliverable; present the final content directly.
+- Organize reader-facing documents around the reader's questions, decisions, or tasks, not around the order of investigation or editing.
 
 ## Work-class and execution route
 

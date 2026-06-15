@@ -44,6 +44,17 @@ Do not attach this capability when the task is primarily:
 
 If facts are still materially unknown, stop and hand off before drafting instead of using prose quality to guess.
 
+## Reference materials
+
+For substantial standalone documents, read these references before outlining:
+
+- `references/01-reader-contract.md`
+- `references/02-standalone-structure.md`
+
+For rendered formats such as Typst or other layout-sensitive outputs, also read:
+
+- `references/03-rendered-artifact-checks.md`
+
 ## Document form
 
 Choose one primary document form before outlining.
@@ -74,12 +85,16 @@ Before drafting, identify or derive all of the following:
 - the intended audience
 - the reader's main goal or question
 - the one-sentence purpose of the document
+- what the reader already knows and may safely be assumed to know
+- whether the artifact must stand alone or may rely on a named companion artifact
 - the confirmed facts
 - the important caveats, prerequisites, and exclusions
 - the allowed source set
 - the allowed change budget
 
 If any of these are materially unknown and cannot be derived from the task or repository, stop and resolve them before drafting.
+
+Default rule: if the user asks for a standalone document and does not explicitly permit companion context, write it to stand on its own without relying on ticket text, chat history, or adjacent artifacts.
 
 ## Drafting rules
 
@@ -93,7 +108,27 @@ State or imply early:
 
 Do not force the reader to finish the document before learning the point.
 
-### 2. Make structure visible
+### 2. Write for the reader, not the writer
+
+Organize the document around the reader's questions, decisions, or tasks.
+
+Do not structure a reader-facing document around:
+
+- the order in which you discovered facts
+- the sequence of revisions you made
+- your own handoff concerns as the writer
+
+Do not expose drafting-process language inside the deliverable unless the process itself is the topic.
+
+Avoid self-referential lines such as:
+
+- "this document is written so the reader can understand"
+- "for sharing with another team"
+- "after feedback, this section was updated"
+
+When the audience is external or cross-team, assume they cannot see the surrounding ticket, PR, or chat unless the task explicitly says they can.
+
+### 3. Make structure visible
 
 Use a clear heading hierarchy.
 
@@ -106,7 +141,7 @@ Headings should be:
 
 Provide at least brief orienting text under headings instead of stacking empty subheadings.
 
-### 3. Optimize for scanning
+### 4. Optimize for scanning
 
 Prefer plain language, active voice, and direct sentences.
 
@@ -121,7 +156,7 @@ When practical:
 
 Highlight sparingly.
 
-### 4. Keep claims bounded
+### 5. Keep claims bounded
 
 Separate:
 
@@ -133,7 +168,7 @@ Do not invent facts, certainty, causality, or consensus.
 
 If evidence is incomplete, say so plainly.
 
-### 5. Use current truth unless the artifact is explicitly historical
+### 6. Use current truth unless the artifact is explicitly historical
 
 For normative documents, state the current intended behavior.
 
@@ -216,6 +251,7 @@ Rules:
 
 Include, when relevant:
 
+- the audience and why they need the document
 - the question or problem investigated
 - the evidence sources or method
 - the confirmed findings
@@ -223,6 +259,12 @@ Include, when relevant:
 - the recommended next action
 
 Make it easy to distinguish observed evidence from interpretation.
+
+For cross-team or externally shared reports:
+
+- make the subject understandable without access to the originating ticket or chat
+- place caveats near the affected finding unless they are truly cross-cutting
+- avoid writer-oriented section titles such as "points for sharing" when the whole document is already for that audience
 
 ### README
 
@@ -286,6 +328,7 @@ When available and proportionate:
 - run prose-lint or terminology checks such as `Vale` if the workspace uses them
 - verify commands, links, paths, headings, code samples, and claimed changes against the repository or available evidence
 - for changelogs, confirm that claimed notable changes exist in the diff or release evidence
+- for rendered artifacts such as Typst, compile or render early enough to catch numbering, table, overflow, and layout failures before polishing prose
 
 Treat failed checks as revision input, not as the whole quality judgment.
 
@@ -306,6 +349,9 @@ Before finishing, be able to state:
 - front-loading project history before reader value
 - using headings that are vague or only meaningful to insiders
 - hiding important caveats deep in the document
+- assuming the reader has access to the surrounding ticket, chat, or draft context when the artifact is meant to stand alone
+- using writer-oriented headings or sections that describe the delivery context instead of the subject matter
+- leaving revision traces or self-evaluation inside the final deliverable
 - turning a README into a full manual
 - turning a changelog into a commit dump
 - looping on full rewrites instead of fixing the highest-impact issues first
