@@ -17,6 +17,20 @@
 - Do not expose revision process, self-evaluation, or writer-oriented handoff framing inside the deliverable; present the final content directly.
 - Organize reader-facing documents around the reader's questions, decisions, or tasks, not around the order of investigation or editing.
 
+## Japanese artifact writing
+
+- When writing or revising Japanese natural-language text that will be saved,
+  copied, reviewed, or reused outside the current chat, treat it as an artifact
+  even if it is short.
+- This includes README text, documentation sections, code comments, prompt text,
+  skill instructions, commit-facing notes, and reusable chat-produced drafts.
+- For such text, use `technical-writing` for the artifact contract and read its
+  Japanese prose references when the output contains Japanese reader-facing
+  prose.
+- Do not treat user feedback, old states, rejected structures, review comments,
+  or completion reports as artifact content. Apply them by changing the
+  artifact.
+
 ## Work-class and execution route
 
 - Restate the request in one short sentence before substantial work.

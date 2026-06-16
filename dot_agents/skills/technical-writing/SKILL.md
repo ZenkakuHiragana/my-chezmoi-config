@@ -1,16 +1,16 @@
 ---
 name: technical-writing
 description: >
-  Attach this capability when the task frame needs substantial technical prose quality, such as a report, README, tutorial, how-to, reference, explanation, CHANGELOG, migration note, or sectioned chat response. Attach it after facts are known, or alongside fact-owning capabilities when writing quality is a major obligation. It covers form, structure, scannability, critique, and revision, but does not discharge missing investigation, public research, source coverage, or implementation obligations.
+  Attach this capability when the task frame needs technical prose quality, artifact structure, or final-artifact hygiene for reader-facing natural-language text. This includes reports, README files, tutorials, how-to guides, references, explanations, CHANGELOG entries, migration notes, prompt text, skill instructions, code comments, reusable chat-produced drafts, and Japanese prose that will be saved, copied, reviewed, or read outside the current chat. Attach it after facts are known, or alongside fact-owning capabilities when writing quality is a major obligation. It covers artifact contracts, document form, structure, scannability, reader fit, artifact-boundary hygiene, critique, and bounded revision, but does not discharge missing investigation, public research, source coverage, or implementation obligations.
 ---
 
 # Technical Writing
 
 ## Purpose
 
-This capability improves long-form technical prose quality for human readers.
+This capability improves technical prose quality for human readers.
 
-It owns document form, structure, scannability, reader fit, and bounded revision quality for artifacts such as investigation reports, README files, tutorials, how-to guides, reference pages, explanations, CHANGELOG entries, migration notes, structured chat explanations, and similar documents.
+It owns document form, structure, scannability, reader fit, final-artifact hygiene, and bounded revision quality for artifacts such as investigation reports, README files, tutorials, how-to guides, reference pages, explanations, CHANGELOG entries, migration notes, prompt text, skill instructions, code comments, structured chat explanations, and similar documents.
 
 It does not own missing facts or repository behavior changes. Resolve those with the appropriate fact-owning capability first.
 
@@ -20,15 +20,16 @@ Attach this capability when one or more of the following are true:
 
 - the main deliverable is a substantial technical document
 - another task includes a standalone prose artifact that must remain useful after the implementation work is done
+- the output is Japanese reader-facing prose that will be saved, copied, reviewed, or reused outside the current chat, even when it is short
 - the answer is a chat response, but the reader needs a sectioned explanation rather than a short direct reply
-- the likely failure mode is weak structure, mixed document purpose, low scannability, or poor reader fit
+- the likely failure mode is weak structure, mixed document purpose, low scannability, poor reader fit, or leakage of drafting context into final artifact prose
 - the task needs a reusable writing workflow rather than ad hoc style advice
 
 ## When not to use
 
 Do not attach this capability when the task is primarily:
 
-- a short simple conversational reply that does not need sectioning or a document-like structure
+- a short simple conversational reply that does not need sectioning, document-like structure, or reuse outside the current chat
 - a tiny wording tweak or one-off copyedit
 - missing-fact investigation or public research; attach `investigation` or `public-research` first
 - implementation work where writing is only incidental and no substantial document is being produced
@@ -50,6 +51,15 @@ For substantial standalone documents, read these references before outlining:
 
 - `references/01-reader-contract.md`
 - `references/02-standalone-structure.md`
+
+For any reusable or persisted Japanese reader-facing prose, also read these references:
+
+- `references/04-artifact-integrity.md`
+- `references/05-japanese-tech-writing.md`
+
+Read `04-artifact-integrity.md` before prose polishing. It decides whether a sentence belongs in the artifact at all.
+
+Read `05-japanese-tech-writing.md` after the artifact contract, facts, and artifact-integrity checks are settled. It improves Japanese paragraphing, argument, reader load, diction, redundancy, and LLM-like phrasing. Do not use it to preserve a sentence that fails the artifact-integrity check.
 
 For rendered formats such as Typst or other layout-sensitive outputs, also read:
 
@@ -95,6 +105,18 @@ Before drafting, identify or derive all of the following:
 If any of these are materially unknown and cannot be derived from the task or repository, stop and resolve them before drafting.
 
 Default rule: if the user asks for a standalone document and does not explicitly permit companion context, write it to stand on its own without relying on ticket text, chat history, or adjacent artifacts.
+
+## Japanese artifact quality path
+
+When the artifact contains Japanese reader-facing prose:
+
+1. Establish the artifact contract and confirmed facts.
+2. Read `references/04-artifact-integrity.md`.
+3. Read `references/05-japanese-tech-writing.md`.
+4. Draft or revise the artifact.
+5. Re-check that every remaining sentence is licensed by the artifact contract.
+
+Apply this path to README text, documentation sections, code comments, prompt text, skill instructions, commit-facing notes, and reusable chat-produced drafts. Do not apply it to ordinary ephemeral chat replies unless the reply itself is a reusable artifact.
 
 ## Drafting rules
 
