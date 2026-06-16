@@ -128,6 +128,12 @@ Avoid self-referential lines such as:
 
 When the audience is external or cross-team, assume they cannot see the surrounding ticket, PR, or chat unless the task explicitly says they can.
 
+Treat user instructions, review comments, drafting constraints, and rejected alternatives as control inputs for producing the artifact, not as default artifact content. Mention them only when the writing process itself is the subject or when the reader truly needs that context to interpret the artifact.
+
+Before keeping a sentence, check its provenance. Keep or rewrite sentences grounded in subject matter, evidence, reader task, or necessary caveats. Delete or rewrite sentences grounded mainly in prompt wording, review feedback, abandoned structure, or the writer's process.
+
+Do not rely on invisible comparison frames. If a sentence works mainly because the writer can see an unseen alternative, rejected draft, or feedback thread, delete it or rewrite it as a direct positive statement about the current subject. Use contrast only when it prevents a real reader misunderstanding or when the reader must compare live alternatives.
+
 ### 3. Make structure visible
 
 Use a clear heading hierarchy.
@@ -196,6 +202,8 @@ Check:
 - term consistency
 - alignment with the available facts
 - natural ordering of conditions, actions, and results
+- sentences whose meaning depends on an unseen draft, rejected alternative, or feedback thread
+- whether a contrast is necessary or should be rewritten as a direct positive statement
 
 ### Procedure quality
 
@@ -350,6 +358,8 @@ Before finishing, be able to state:
 - using headings that are vague or only meaningful to insiders
 - hiding important caveats deep in the document
 - assuming the reader has access to the surrounding ticket, chat, or draft context when the artifact is meant to stand alone
+- leaking user instructions, review feedback, or drafting constraints into artifact content
+- relying on a rejected frame such as "not X but Y" when X exists only in an unseen draft or feedback thread
 - using writer-oriented headings or sections that describe the delivery context instead of the subject matter
 - leaving revision traces or self-evaluation inside the final deliverable
 - turning a README into a full manual

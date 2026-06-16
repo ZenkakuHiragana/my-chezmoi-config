@@ -12,6 +12,8 @@
 - Keep prose natural, grammatical, and internally consistent.
 - For substantial prose, identify the reader, the reader's goal, and the required takeaway before drafting.
 - Unless the user explicitly allows companion context, make standalone documents self-contained and do not assume access to tickets, chats, or adjacent artifacts.
+- Treat user instructions, review feedback, drafting constraints, and rejected alternatives as control inputs for producing the artifact, not as default artifact content.
+- Do not write sentences that only make sense by contrasting the final artifact with an unseen draft, rejected structure, or feedback thread unless the reader truly needs that contrast.
 - Do not expose revision process, self-evaluation, or writer-oriented handoff framing inside the deliverable; present the final content directly.
 - Organize reader-facing documents around the reader's questions, decisions, or tasks, not around the order of investigation or editing.
 
