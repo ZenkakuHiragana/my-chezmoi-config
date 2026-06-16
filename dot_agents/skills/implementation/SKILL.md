@@ -1,294 +1,85 @@
 ---
 name: implementation
-description: Attach this capability when a normalized requirements artifact or task contract identifies the requested repository change, target surfaces, invariants, acceptance criteria, verification method, and required checks, and files must be updated to satisfy it. It covers coherent code, documentation, configuration, prompt, or script changes. Do not use as the sole capability when required source classes, observed behavior, diagnostic evidence, or user decisions remain unresolved; attach investigation, public-research, or requirements-clarification first as needed.
+description: Attach when a normalized task contract identifies the repository change, invariants, acceptance criteria, verification method, and required checks. 要件が揃った repo 変更を実装し、関連面と検証まで完了させる。
 ---
 
 # Implementation
 
-## Purpose
+repo 内容を変更し、依頼、周辺面、検証がそろった状態まで持っていく。
+単発 edit ではなく、task contract の完了を扱う。
 
-This capability is for changing repository contents and bringing the work to a complete, internally consistent state.
+## 使う条件
 
-Use this capability to improve self-propelled execution quality for implementation work. The goal is not only to edit files, but to finish the requested change with the necessary surrounding updates and basic validation.
+- feature、bugfix、behavior change、prompt/docs/config 更新を実装する
+- requirements artifact または同等の task contract がある
+- target surfaces、invariants、acceptance criteria、verification method が確定
+- unresolved `repo_derivable` / `public_fact` / `unknown` がない
 
-## When to use
+## 使わない条件
 
-Attach this capability when the user asks for any of the following:
+- 事実回答だけ
+- public research が主目的
+- local investigation が主目的
+- 要件、根拠、検証方法が未確定
 
-- implement a feature
-- apply a known bug fix or behavior change whose affected behavior, target surfaces, and required checks are already identified
-- modify existing behavior
-- update documentation, configuration, prompts, or scripts as part of a concrete repository change
-- make repository changes and verify that they are coherent
+## change class
 
-## When not to use
+編集前に分類する。
 
-Do not attach this capability as the sole task owner when the task is primarily:
+- `new_feature`: entry point、wiring、docs、tests を重視
+- `modify_existing`: existing contract、callers、compatibility、stale docs を重視
+- `bugfix`: affected path、regression risk、intended behavior preservation を重視
 
-- answering factual questions without changing files
-- open-ended external research
-- broad requirements exploration with no concrete change target
-- local investigation only, where the deliverable is analysis rather than edits
-- investigating unclear behavior, confirming observed facts, or gathering diagnostic evidence before deciding on a real change; attach `investigation` instead
+## 読むもの
 
-If the task is mainly external fact-finding, attach `public-research` instead.
+最低限:
 
-If the task mixes implementation with unresolved local or public evidence obligations,
-keep implementation in the capability set but satisfy those evidence obligations before
-using their claims as implementation premises.
+- target file
+- nearby callers/consumers
+- relevant schema/type/config
+- tests/docs defining behavior
 
-If the request or task contract does not yet identify the needed facts, target surfaces, invariants, acceptance criteria, verification method, or required checks, stop and attach the appropriate prerequisite capability or capability set instead of guessing.
+## 編集原則
 
-## Expected inputs
+- task contract の acceptance criteria を満たす最小 coherent change にする。
+- public interface、config key、prompt contract、documented workflow を変えたら dependent surfaces も確認する。
+- normative artifacts は current truth を直接書く。旧状態の墓標を残さない。
+- fallback、feature flag、compat shim、migration path、warning suppression は要求または既存 contract がある場合だけ追加する。
+- unrelated user changes は戻さない。
 
-You should already have, or first establish, a task contract that identifies:
+## 手順
 
-- the requested outcome
-- the relevant files or directories
-- the invariants and constraints that must remain true
-- the acceptance criteria
-- the verification method
-- explicit user constraints
-- required facts
-- candidate dependent surfaces
-- affected tests and docs when relevant
-- required checks before completion
+1. outcome、completion criteria、change class を確認する。
+2. relevant surfaces を読む。
+3. 最小 coherent diff を作る。
+4. touched files と dependent surfaces を再読する。
+5. acceptance criteria に直結する checks を実行する。
+6. original request、facts gathered、artifacts changed、checks performed を照合する。
 
-## Expected outputs
+## validation
 
-A completed repository change, together with concise evidence that the change was checked.
+優先順:
 
-At minimum, provide:
+1. touched files の再読
+2. relevant diagnostics / typecheck / lint
+3. targeted tests
+4. broader checks
 
-- what was changed
-- what was checked
-- any remaining limitation only if it could not reasonably be resolved during this run
+実行不能なら理由を明示する。
 
-## Core working rules
+## output
 
-### 1. Complete the requested change, not only the first local edit
+- changed files
+- behavior/docs/config changed
+- checks performed と concrete result
+- unresolved limitation only if real
 
-Do not stop after making one plausible edit if the request implies additional required changes elsewhere.
+## 完了チェック
 
-If a command-line interface, configuration key, prompt contract, public function, user-facing behavior, or documented workflow changed, inspect likely dependent surfaces and update them as needed.
-
-When a normalized requirements artifact exists, treat its `Invariants`, `Acceptance criteria`, `Verification method`, `Affected tests`, and `Affected docs` as required obligations, not optional hints.
-
-Typical dependent surfaces include:
-
-- help text
-- README or usage docs
-- tests
-- configuration examples
-- related type definitions
-- validator logic
-- prompt contracts
-- state files or schemas
-- callers and integration points
-
-When a dependent surface is a substantial standalone prose artifact, keep document correctness and surface coverage in this skill, and use `technical-writing` for document form, structure, scannability, and bounded revision quality.
-
-### 2. Prefer repository discovery over avoidable questions
-
-If the missing information is discoverable from code, docs, tests, configuration, logs, or existing patterns, investigate first.
-
-For repository-local work, read the relevant files before answering or editing, and keep `read` / `glob` / `grep` searches scoped to the current repository or to the smallest necessary, explicitly named directories outside it. Do not use the filesystem root `/` or other very broad top-level directories as search roots.
-
-Ask only when the missing information is a true user preference, a policy choice, or a trade-off that cannot be resolved from repository context.
-
-### 3. Classify the change before editing
-
-Before editing, classify the task internally as one of:
-
-- new_feature
-- modify_existing
-- bugfix
-
-This classification affects what to inspect.
-
-#### new_feature
-
-Give extra attention to:
-
-- new entry points
-- wiring and registration
-- documentation for new behavior
-- configuration exposure
-- missing tests for the added path
-
-#### modify_existing
-
-Give extra attention to:
-
-- current behavior and intended contract
-- affected callers
-- compatibility with surrounding logic
-- regression risks
-- stale documentation or examples
-
-#### bugfix
-
-Give extra attention to:
-
-- confirming the affected path, inputs, or configuration that the known fix must address
-- verifying that the intended change actually addresses the observed failure
-- preventing nearby regressions
-- preserving intended behavior outside the fix
-
-### 4. Read before you write
-
-Before editing, inspect enough of the relevant context to avoid shallow or contradictory changes.
-
-At minimum, read:
-
-- the target file
-- nearby callers or consumers
-- relevant type or schema definitions
-- tests or docs that define expected behavior when they exist
-
-### 5. Prefer replacing outdated truth over layering history into normative files
-
-When editing normative artifacts such as code comments, prompts, specifications, instructions, or user documentation:
-
-- write the current intended behavior
-- prefer replacing obsolete wording over appending patches around it
-- do not preserve old behavior descriptions unless the file is explicitly historical
-- keep change history in changelogs, commits, migration notes, or separate historical documents
-
-Do not create documents that read as half-old and half-new.
-
-### 6. Do not add unnecessary compatibility work
-
-Do not invent migration layers, runtime switches, fallback behavior, compatibility shims, comments about former behavior, or extra abstractions unless they are required by the request or by an existing supported contract.
-
-Before editing any fallback, compatibility shim, migration or cache-version path, broad error handling, warning suppression, stub, or replacement design, classify it as exactly one of:
-
-- required for the current acceptance criteria
-- explicitly requested by the user
-- prohibited by the task contract or local invariant
-- follow-up only
-
-Do not edit prohibited or follow-up-only items. Report follow-up-only concerns separately unless the user opts in.
-
-If temporary diagnostics are needed, keep them narrow and remove or isolate them before finishing instead of turning them into new supported behavior.
-
-### 7. Avoid fake completion
-
-Do not declare success merely because a local edit was made.
-
-The task is complete only when the requested outcome, the dependent surfaces named by the task contract or repository survey, and the required checks are done, or when a real blocker prevents completion.
-
-A blocker must be concrete, such as:
-
-- required files or information are absent
-- a tool or command is unavailable
-- tests or build steps cannot be run in this environment
-- the request requires a policy choice the repository cannot answer
-
-### 8. Use a failure ladder instead of repeating the same attempt
-
-When an approach fails:
-
-#### first failure
-
-Try a different plausible approach after inspecting more evidence.
-
-#### second failure
-
-Re-check assumptions, affected files, and whether the problem was misclassified.
-
-#### third failure
-
-Stop repeating the same pattern. Report the blocker, what was tried, what evidence was checked, and what remains unresolved.
-
-Do not loop on nearly identical edits or commands.
-
-## Implementation flow
-
-Follow this order unless there is a clear reason not to.
-
-### Step 1: Understand the target
-
-State internally:
-
-- what the user wants changed
-- what counts as completion
-- which change class applies
-- which normalized requirement records or task-contract obligations must be satisfied
-
-### Step 2: Survey the affected area
-
-Read the target file and nearby related files.
-
-For `modify_existing` and `bugfix`, pay extra attention to:
-
-- existing behavior
-- call sites
-- state transitions
-- existing tests
-- docs that encode the contract
-
-### Step 3: Make the change
-
-Edit the minimum set of files needed for a coherent result, but do not artificially limit yourself if surrounding updates are required.
-
-### Step 4: Re-read changed surfaces
-
-After editing, re-read the changed files and nearby dependent surfaces to catch contradictions, stale wording, and missed updates.
-
-### Step 5: Validate
-
-Perform proportionate validation.
-
-Validate against the explicit acceptance criteria and verification method from the requirement record or task contract, not only against local intuition.
-
-Start from the most direct checks:
-
-- changed file re-read
-- relevant diagnostics or type checks if available
-- targeted tests if available
-- broader checks only when justified by the affected surface
-
-### Step 6: Final completion check
-
-Before finishing, compare the result against:
-
-- the original request
-- the current behavior implied by the changed files
-- dependent surfaces named by the task contract or discovered during the repository survey
-
-Ask:
-
-- is the requested behavior actually implemented?
-- did any contract change without related docs or help being updated?
-- are there stale comments, examples, or prompts that still describe the old state?
-- for modify_existing or bugfix, was regression risk checked at least locally?
-- were affected tests and docs updated, checked, or explicitly confirmed as not needed?
-
-Also compare the final result against the task contract.
-Do not finish if any required fact, dependent surface, or required check remains unaddressed.
-
-## Output style
-
-Be concise and concrete.
-
-Prefer:
-
-- files changed
-- behavior changed
-- checks performed
-- remaining blocker, if any
-
-Avoid long self-justification or process narration.
-
-## Quick checklist
-
-Before finishing, verify all of the following:
-
-- the repository change matches the user request
-- dependent surfaces named by the task contract or discovered during the repository survey were checked
-- changed files were re-read
-- validation was attempted at an appropriate level
-- no stale normative text remains in touched areas
-- no unnecessary compatibility layer was introduced
-- success is not being claimed on the basis of a partial edit
+- request と task contract を満たした
+- dependent surfaces を確認した
+- touched files を再読した
+- required checks を試した
+- stale normative text が残っていない
+- unnecessary compatibility layer を入れていない
+- partial edit を completion と呼んでいない

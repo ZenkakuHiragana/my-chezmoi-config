@@ -1,6 +1,6 @@
 ---
 name: cmd-triage-failure
-description: Triage accumulated failures and propose the minimal effective intervention. Use only when the user explicitly wants prioritized failure clusters and a smallest viable fix.
+description: Triage accumulated failures and propose the minimal effective intervention. Use only when the user explicitly wants prioritized failure clusters and a smallest viable fix. 蓄積した失敗を優先度順に整理し、最小介入を提案する。
 ---
 
 {{ regexReplaceAll "(?s)^---\n.*?\n---\n\n?" (include "dot_config/opencode/agents/triage-failure.md") "" }}

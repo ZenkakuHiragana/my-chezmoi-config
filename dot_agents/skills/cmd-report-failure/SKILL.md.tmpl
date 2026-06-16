@@ -1,6 +1,6 @@
 ---
 name: cmd-report-failure
-description: Record one prompt or workflow failure with evidence and minimal containment. Use only when the user explicitly wants a failure captured as an incident.
+description: Record one prompt or workflow failure with evidence and minimal containment. Use only when the user explicitly wants a failure captured as an incident. 失敗を証拠つき incident として記録する。
 ---
 
 {{ regexReplaceAll "(?s)^---\n.*?\n---\n\n?" (include "dot_config/opencode/agents/report-failure.md") "" }}

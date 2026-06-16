@@ -1,39 +1,36 @@
 ---
 name: grill-me
-description: Use this skill only when the user explicitly wants a plan or design grilled, or when `requirements-clarification` already has a draft requirements artifact but one answer would still change multiple sections or several downstream design choices. It asks targeted questions, gives recommended answers, and returns clarified decisions that must be folded back into a written requirements artifact.
+description: Use only for a requested design grilling interview, or when requirements-clarification finds interdependent decisions that would change multiple sections. 設計を詰めるための短い質問面接を行い、決定事項を requirements artifact へ戻す。
 ---
 
 # Grill Me
 
-## Purpose
+相互依存する設計判断を、短い directed interview で解く。
+normal clarification、repository discovery、public research の代替ではない。
 
-Use this skill for bounded design interrogation.
+## 使う条件
 
-Its job is to resolve interdependent design questions through a directed interview, not to replace normal clarification, repository discovery, or factual research.
+- ユーザーが plan/design を「grill」してほしいと明示
+- `requirements-clarification` が discovery 後も、1 つの回答で複数 section や downstream design が変わると判断
 
-## When to use
+## 使わない条件
 
-- the user explicitly asks to be grilled on a plan or design
-- `requirements-clarification` has already discovered what it can, but one answer would still change multiple sections of the requirements artifact or several downstream design choices
+- 欠けているのが単純な値だけ
+- repo から発見できる
+- factual research が必要
+- requirements artifact がすでに `task-planning` または `implementation` を指す
 
-## When not to use
+## 手順
 
-- the gaps are simple missing values or one-off confirmations
-- the answer can be discovered from the repository
-- the next need is factual research rather than a design interview
-- the task already has a requirements artifact that points to `task-planning` or `implementation` without another branching interview
+1. repo から発見できるものを先に確認する。
+2. genuine user decision だけを質問にする。
+3. 1 回に最大 5 問。
+4. 各質問に recommended answer と短い reason を添える。
+5. requirements artifact に戻せる状態になったら止める。
+6. clarified decisions、remaining open questions、requirements への反映勧告を返す。
 
-## Rules
-
-1. Explore the repository first for anything discoverable there.
-2. For genuine user decisions, prefer the `question` tool when available.
-3. Ask at most five questions at a time.
-4. For each question, provide a recommended answer and a short reason.
-5. Keep the interview bounded. Stop once the clarified decisions can be written back into the active requirements document without another branching interview.
-6. Do not leave the result as chat-only state. Summarize the clarified decisions, remaining open questions, and the recommendation to fold them back into the active requirements document.
-
-## Expected output
+## output
 
 - clarified design decisions
-- any remaining open questions
-- a recommendation to resume `requirements-clarification` and update the written requirements artifact
+- remaining open questions
+- recommendation to resume `requirements-clarification`

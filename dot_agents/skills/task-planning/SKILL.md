@@ -1,188 +1,68 @@
 ---
 name: task-planning
 description: >
-  Attach this capability when a normalized requirements artifact or clear task contract is concrete enough to write a durable task file, but the work still needs sequencing across investigation, implementation, research, verification, or resume-safe execution. It records ordered work items, dependencies, relevant surfaces, source obligations, completion checks, and downstream capability needs under `.opencode/work/`. Do not use it when required requirement attributes or source classes are still unresolved; resolve those first with the appropriate capability.
+  Create a durable .opencode/work task file when requirements are clear but execution still needs sequencing, dependencies, source obligations, and completion checks. 明確な要件を、再開可能な作業順序と検証条件へ落とす。
 ---
 
 # Task Planning
 
-## Purpose
-
-This capability prepares a written task file for multi-step work.
-
-It can either create an execution plan from clear requirements or normalize an important conversation-only procedure into a durable task artifact.
-
-Attach it when jumping directly into downstream execution would risk missing dependencies,
-required research, execution order, or completion checks.
-
-Also use it when the user already provided a long or multi-part procedure, but reliable execution would still depend on preserving that procedure, its dependencies, or its checks outside transient chat state.
-
-Attach it after `requirements-clarification` or another existing artifact has already made the requested outcome, constraints, invariants, acceptance criteria, verification method, and prerequisite facts concrete enough to fill the task file.
-
-This capability does not implement the task.
-It defines the task in a form that downstream execution can follow reliably.
-
-## When to use
-
-Attach this capability when one or more of the following are true:
-
-- the task spans multiple files, modules, systems, or documents
-- the task has multiple phases such as investigation, implementation, and verification
-- the order of operations matters
-- local investigation, external research, or experiments must happen before implementation
-- the task needs a written artifact because it spans multiple files or phases, or because a downstream agent may need to resume without chat history
-- the user already provided a long or multi-part procedure, but important instructions, constraints, dependencies, or checks still exist only in conversation and should be normalized into a durable task file before downstream execution
-- reliable execution would otherwise depend on preserving conversation-only details across a long session, resume, or compaction boundary
-- the task needs explicit completion checks before execution begins
-
-## When not to use
-
-Do not attach this capability when:
-
-- the task is short enough that all required steps, constraints, and checks can be executed reliably in one focused pass without creating a durable task artifact
-- required requirement attributes are still unresolved; attach `requirements-clarification`, `investigation`, or `public-research` first
-- the first meaningful work item would mostly be to discover missing facts or criteria before the requirement record is complete; attach `requirements-clarification`, `investigation`, or `public-research` first
-- the task is purely investigative with no implementation intent; attach `investigation` or `public-research`
-- the task is already fully structured by a command workflow
-
-## Expected inputs
-
-- a clear task description or requirement
-- a normalized requirements artifact when the task is implementation-shaped
-- repository context discoverable from the codebase, when the task is repository-local
-- any explicit user constraints, preferences, or prior decisions already stated
-
-## Expected outputs
-
-When this skill is used:
-
-- a single task file at `.opencode/work/<slug>.md`
-- `.opencode/work/current-task.md` containing the slug only
-- a recommendation for the next appropriate downstream capability set
-
-Before reading `.opencode/work/current-task.md`, decide from the current conversation alone whether the user is continuing a prior task and whether a missing task identifier blocks interpretation.
-If the request is already clear without it, ignore the file.
-If the conversation shows a continuation request but the task identifier is still missing, the file may be consulted only to recover that identifier, not to redefine the request.
-
-## Core rules
-
-### 1. Produce a task file only
-
-This capability produces a task file only.
-
-When the user already supplied an execution procedure in conversation, convert that procedure into the task file instead of relying on chat history as the durable source of truth.
-
-Do not start implementation, edit code, create implementation artifacts, or make
-execution-time decisions that belong to downstream work.
-
-### 2. Base the task file on evidence
-
-Read the actual repository when the task is repository-local.
-
-When a normalized requirements artifact exists, use it as the primary source only when it is explicitly tied to the current task by the user, by `.opencode/work/current-task.md`, or by a matching `task_slug`, and the artifact passes these binding rules: candidate primary source first, then primary only when `status` is not `superseded`, `base_commit` is valid for the current repository state, and `superseded_by` is `none` or absent. Otherwise treat it as reference material only.
-
-Do not invent file names, module boundaries, dependency relationships, conventions,
-tests, or verification mechanisms from assumptions.
-
-If external facts are required before execution, state that explicitly.
-
-### 3. Keep everything in one task file
-
-Write one task file only.
-
-Do not split task contract content and plan content into separate files.
-Do not create additional task-state files beyond `.opencode/work/current-task.md`.
-
-### 4. Keep the current-task pointer minimal
-
-Write only the slug to `.opencode/work/current-task.md`.
-
-Do not write summaries, timestamps, or additional metadata there.
-
-### 5. Make work items concrete
-
-Each work item must be specific enough that a downstream skill can execute it
-without reconstructing the whole task from scratch.
-
-Avoid vague items such as "update code as needed" or "verify everything."
-
-### 6. Make dependencies explicit
-
-If a work item depends on another item, state that dependency directly.
-
-Do not rely on implied order when the dependency affects correctness.
-
-### 7. Plan parallel execution explicitly
-
-If subagent parallelism may be useful, express it in the task file instead of relying
-on chat-only orchestration.
-
-Use the same `Parallel group` only for work items that can run after the same
-dependencies are satisfied.
-
-Use `Execution: subagent` only when the item is bounded enough to assign without further decomposition.
-
-Use `Side effect mode: read_only` for research, local investigation, surface mapping,
-and review.
-
-Use `Side effect mode: write_disjoint` only when both the write set and semantic
-responsibility do not overlap with other parallel work.
-
-Represent contract stabilization as an earlier dependency, not as a delegation
-topology. Do not mark implementation and tests as parallel unless the shared
-interface or behavior contract is already fixed by an earlier work item or
-requirements artifact.
-
-### 8. Define research before execution
-
-If a work item requires local investigation, external research, or experiments before action,
-state that in `Research needed`.
-
-Do not assume that downstream execution will infer missing facts automatically.
-
-### 9. Define verification before execution
-
-State how each work item will be checked.
-
-Also state the cross-item checks required before the whole task can be treated as done.
-
-Avoid vague checks such as "make sure it works."
-Prefer checks tied to files, commands, outputs, behavior, or cited sources.
-
-### 10. Preserve resume-critical context
-
-The task file must contain enough information for a downstream agent to resume after compaction without reconstructing the work from chat history alone.
-
-Do not assume that a detailed user-authored procedure can remain chat-only just because it already specifies order or dependencies.
-If later execution still depends on that procedure, normalize it into the task file.
-
-At minimum, capture:
-
-- concrete input artifacts
-- conversation-provided instructions, constraints, checks, and dependency notes that execution would otherwise need to remember
-- requirement-record obligations such as invariants, acceptance criteria, verification method, and affected tests or docs
-- relevant surfaces to change or inspect
-- the chosen approach
-- blocking unknowns that gate execution
-- evidence-oriented verification expectations
-
-## Output location
-
-Write the task file to:
-
-`.opencode/work/<slug>.md`
-
-Where `<slug>` is a short kebab-case identifier derived from the task title.
-
-If `.opencode/work/` does not exist, create it.
-
-Also write the slug only to:
-
-`.opencode/work/current-task.md`
-
-## Task file template
-
-Use this structure for the output file:
+clear requirements を、downstream execution が再開できる task file に変換する。
+implementation はしない。
+
+## 使う条件
+
+- 複数 files、modules、documents、phases にまたがる
+- investigation、research、implementation、verification の順序が重要
+- downstream agent または resume があり得る
+- long conversation-only procedure を durable artifact にする必要がある
+- completion checks を実行前に固定したい
+
+## 使わない条件
+
+- 1 回の focused pass で安全に完了できる
+- required attributes が未解決
+- first work item が要件発見そのもの
+- pure investigation / public research
+- command workflow が十分に構造化済み
+
+## 入力
+
+- clear task description
+- requirements artifact or equivalent task contract
+- repository context
+- explicit user constraints / decisions
+
+## 出力
+
+- `.opencode/work/<slug>.md`
+- `.opencode/work/current-task.md` with slug only
+- next capability set
+
+`current-task.md` は continuation の task identity が会話から欠ける場合だけ見る。
+現在依頼が明確なら無視する。
+
+## task file rules
+
+- 1 task = 1 file。
+- `.opencode/work/current-task.md` には slug だけを書く。
+- work items は downstream が再構成なしで実行できる粒度にする。
+- dependencies、read set、write set、side effect mode、verification を明示する。
+- external/local facts が必要なら実行前 research として書く。
+- conversation-only constraints を task file に移す。
+
+## 手順
+
+1. requirements が task file 化できるほど確定しているか確認する。
+2. relevant repo context を読む。
+3. outcome、constraints、inputs を書く。
+4. relevant surfaces と chosen approach を書く。
+5. facts to gather と blocking unknowns を分ける。
+6. work items を phase、dependencies、parallel group、execution、side effect mode、read/write set、deliverables、verification 付きで書く。
+7. checks before completion を定義する。
+8. task file と current-task pointer を書く。
+9. next capability set を示す。
+
+## template
 
 ```markdown
 # Task: <title>
@@ -194,17 +74,14 @@ Use this structure for the output file:
 ## Constraints
 
 - <what must remain true>
-- None identified.
 
 ## Inputs
 
-- <requirements file, research note, issue, or explicit user decision this plan depends on>
-- None identified.
+- <requirements file, research note, issue, or user decision>
 
 ## Relevant surfaces
 
-- <files, directories, commands, outputs, or artifacts to change or inspect>
-- None identified.
+- <files, directories, commands, outputs, artifacts>
 
 ## Binding metadata
 
@@ -217,35 +94,19 @@ Use this structure for the output file:
 
 ## Binding rules
 
-- Binding rules:
-  - A requirements artifact is a candidate primary source only when one of these holds:
-    - the user explicitly names the artifact
-    - `.opencode/work/current-task.md` points to it
-    - `task_slug` matches the current task
-  - A candidate primary source becomes primary only when `status` is not `superseded`,
-    `base_commit` is valid for the current repository state, and `superseded_by` is `none`
-    or absent.
-  - If `status` is `superseded` or `base_commit` is unknown or stale, do not use the file as
-    primary source.
-  - If `superseded_by` is present, inspect that artifact next as the preferred candidate
-    source.
-  - If none of the explicit binding conditions hold, treat the file as reference material
-    only.
+- <binding rules from requirements-clarification>
 
 ## Chosen approach
 
-- <brief explanation of the intended execution shape>
-- None identified.
+- <brief execution shape>
 
 ## Facts to gather
 
-- <task-level facts that must be confirmed before acting>
-- None identified.
+- <facts required before action>
 
 ## Blocking unknowns
 
-- <unknown that must be resolved before a dependent work item can proceed>
-- None identified.
+- <unknowns that block dependent items>
 
 ## Work items
 
@@ -258,126 +119,27 @@ Use this structure for the output file:
 - **Side effect mode**: read_only | write_disjoint | none
 - **Parallel basis**: domain | surface | review | none
 - **Read set**:
-  - <files, directories, commands, docs, sources, or artifacts this item may inspect>
-  - None identified.
+  - <sources>
 - **Write set**:
-  - <files or directories this item may edit, or `None`>
-  - None identified.
-- **Description**: <what to do, concretely>
-- **Research needed**: none | <what external or local information must be gathered first>
-- **Deliverables**: <files or artifacts this item produces>
-- **Verification**: <how to confirm this item is done correctly>
-
-### W-2: ...
+  - <files or `None`>
+- **Description**: <concrete work>
+- **Research needed**: none | <required research>
+- **Deliverables**: <outputs>
+- **Verification**: <check>
 
 ## Checks before completion
 
-- <cross-item checks needed before the task can be treated as done>
-- None identified.
+- <cross-item checks>
 ```
 
-If a section has no content after analysis, write `None identified.` rather than leaving it blank.
+空欄禁止。該当なしは `None identified.`。
 
-When upstream conversation contains long procedural guidance, capture the durable substance of that guidance in the task file instead of referring vaguely to “the steps above” or “the user plan.”
+## 完了チェック
 
-## Procedure
-
-### Step 1: Confirm that the task file can be filled from known requirements and facts
-
-Restate the task internally.
-
-If the requested outcome, constraints, prerequisite facts, acceptance criteria, or blocking unknowns still cannot be filled without guessing, stop and recommend `requirements-clarification` or the appropriate prerequisite capability set instead.
-
-### Step 2: Survey the relevant context
-
-For repository-local work, read the relevant code, configuration, tests, and documentation.
-
-For externally grounded work, identify what facts must be gathered before execution.
-
-Do not skip this step.
-
-### Step 3: Write requested outcome, constraints, and inputs
-
-Record what must be achieved, what must remain true, and which concrete upstream artifacts or user decisions this plan depends on.
-
-If a normalized requirements artifact exists, carry forward its invariants, acceptance criteria, verification method, and affected tests or docs rather than re-inventing them.
-
-If the user already gave an ordered procedure, capture the durable instructions, constraints, and checks from that procedure in these sections and in later work items.
-
-Do not expand the task beyond what the user asked for.
-
-### Step 4: Identify relevant surfaces and chosen approach
-
-List the concrete surfaces that may need to change or be checked.
-
-Also record the chosen approach in a short form so downstream execution can resume without rediscovering the high-level shape of the task.
-
-### Step 5: Identify facts to gather and blocking unknowns
-
-List the task-level facts that must be confirmed before implementation or final judgment.
-
-These are cross-cutting facts for the whole task, not per-item details.
-
-Separate unknowns that merely need investigation from unknowns that block execution order or make later work items unreliable until they are resolved.
-
-### Step 6: Build concrete work items
-
-Decompose the task into ordered work items.
-
-Each work item must identify:
-
-- its phase
-- its dependencies
-- its parallel group, if parallel execution is possible
-- its execution owner
-- its side-effect mode
-- its read set and write set when assignment boundaries matter
-- its concrete description
-- any research needed before action
-- its deliverables
-- its verification method
-
-Use as many items as needed, but keep them meaningful.
-Do not split work into tiny procedural noise.
-
-If the procedure already exists in conversation, translate it into concrete work items rather than merely pointing downstream execution back to chat history.
-
-### Step 7: Define checks before completion
-
-List the cross-item checks needed before the whole task can be treated as done.
-
-These should cover overall requested outcome, not just individual items.
-
-### Step 8: Write the files
-
-Write the task file to `.opencode/work/<slug>.md`.
-
-Write the slug only to `.opencode/work/current-task.md`.
-
-### Step 9: Recommend the next capability set
-
-Recommend the next downstream capability set based on the first real execution need:
-
-- include `implementation` when the requested repository changes, target surfaces, and required checks are already concrete enough to execute
-- include `investigation` when local facts or source-of-truth classes still need to be gathered first
-- include `public-research` when external facts must be verified first
-- include `refactoring` when the next step is behavior-preserving structural cleanup
-
-## Quick checklist
-
-Before finishing, verify all of the following:
-
-- the task file could be filled without inventing missing requirements or prerequisite facts
-- requirement-record obligations were preserved when such an artifact existed
-- the repository or other relevant context was actually inspected when needed
-- the task file contains requested outcome, constraints, inputs, relevant surfaces, chosen approach, facts to gather, blocking unknowns, work items, and checks before completion
-- any long or dependency-rich conversation-only procedure needed for execution was normalized into the task file
-- each work item is concrete
-- dependencies are explicit where needed
-- parallel groups, execution owners, side-effect modes, read sets, and write sets are explicit when subagent parallelism may be used
-- research needs are stated where needed
-- verification is defined for each work item
-- completion checks are specific
-- the file was written to `.opencode/work/<slug>.md`
-- `.opencode/work/current-task.md` contains only the slug
-- a next capability-set recommendation was given
+- task file が known requirements から埋まる
+- requirement obligations を保持した
+- relevant repo context を確認した
+- work items が具体的
+- dependencies と verification が明示
+- current-task は slug のみ
+- next capability set が最小十分

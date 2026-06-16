@@ -1,6 +1,6 @@
 ---
 name: cmd-export-context
-description: Export the current session into a reusable handoff bundle. Use only when the user explicitly wants a factual context export for another session or agent.
+description: Export the current session into a reusable handoff bundle. Use only when the user explicitly wants a factual context export for another session or agent. セッションを再利用可能な引き継ぎ束として出力する。
 ---
 
 {{ regexReplaceAll "(?s)^---\n.*?\n---\n\n?" (include "dot_config/opencode/agents/export-context.md") "" }}

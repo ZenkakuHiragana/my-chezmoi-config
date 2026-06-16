@@ -15,14 +15,18 @@
 
 - システムプロンプトに記載する内容はすべて英語で書いてください。具体的には以下のファイルが対象です。
   - ./.opencode/commands/\*.md
-  - ./dot_agents/skills/\*/SKILL.md
-  - ./dot_agents/skills/\*/SKILL.md.tmpl
   - ./dot_config/opencode/agents/\*.md
   - ./dot_config/opencode/commands/\*.md
   - ./dot_config/opencode/AGENTS.md
   - ./.chezmoitemplates/opencode/AGENTS.md
   - ./.chezmoitemplates/opencode/agents/\*.md
   - ./.chezmoitemplates/opencode/parent/\*.md
+- スキル定義は次の方針で書いてください。
+  - `name`: 英語の kebab-case を維持する。
+  - frontmatter `description`: 英語の発火語を主にし、必要なら短い日本語要約を1文だけ添える。詳細手順は書かない。
+  - 本文: 日本語で短く書く。逐語翻訳ではなく、用途、使う条件、使わない条件、手順、出力、チェックを箇条書き中心に再設計する。
+  - 制御語彙は英語のまま維持する。例: skill 名、router 名、schema field、handoff 名、status 値、severity 値、`unknown`、`repo_derivable`、`public_fact`、`user_provided`、`acceptance criteria`、`verification method`。
+  - command skill template の本文が `dot_config/opencode/agents/*.md` を include する場合、include 先の言語規則に従う。
 - 失敗事例、プロンプト運用規則など、プロンプトを改良するためのワークフローに関する記載は日本語で書いてください。具体的には以下のファイルが対象です。
   - ./opencode-prompt-dev/\*.md
   - ./AGENTS.md
@@ -43,15 +47,22 @@
 4. subagent 契約テンプレート (.chezmoitemplates/opencode/agents/\*.md)
    - subagent が受け取った assignment をどう解釈し、どの形式で返すかを書く。
    - 親エージェント側の並列 orchestration は書かない。
-5. skill descriptions (dot_agents/skills/\*/SKILL.md または SKILL.md.tmpl のフロントマターに書く descriptions フィールド)
+5. skill descriptions (dot_agents/skills/\*/SKILL.md または SKILL.md.tmpl のフロントマターに書く `description` フィールド)
    - **1024文字以内で書く。**
-   - スキルを使う時、および使わない時、得られるものを簡潔に書いて、エージェントが発見可能にする。
+   - 英語の発火語を維持し、必要なら短い日本語要約を添える。
+   - スキルを使う時、使わない時、得られるものを簡潔に書いて、エージェントが発見可能にする。
+   - 詳細手順、固定 schema、長い checklist は書かない。
 6. スキル本文 (dot_agents/skills/\*/SKILL.md または SKILL.md.tmpl の本文)
    - 役割ごと、場面ごとに固有な詳細規則および手順を具体的に記載する。
+   - 日本語で短く書く。丁寧語を避け、仕様書的な短文と箇条書きを優先する。
+   - 制御語彙、field 名、skill 名、output schema 名は英語のまま維持する。
 
 ## プロンプト設計・改良における外部調査
 
 このリポジトリでプロンプトの追加、改良、失敗分析、階層整理を行うとき、外部の指針や現在の実務が品質に実質的な影響を与えうる場合は、ローカルの prompt 群だけを根拠に確定してはならない。
+
+プロンプトや workflow のルールを「変えるべきか判断する」依頼は、実装前の判断だけを求める場合でも repository-change intent を含むものとして扱う。
+この場合、外部調査中も `requirements-clarification` を capability set に残し、変更しない結論になった場合だけ実装へ進まない。
 
 特に次のいずれかに当てはまる場合は、関連 command 側で外部調査の要否を判定すること。
 

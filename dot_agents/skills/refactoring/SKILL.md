@@ -1,67 +1,58 @@
 ---
 name: refactoring
 description: >
-  Attach this capability for behavior-preserving structural cleanup of existing code. It covers clearer structure, names, boundaries, and validation that behavior is preserved. Do not attach it as the sole capability for feature work, bug fixes, unresolved source evidence, or external research; attach requirements-clarification, investigation, public-research, or implementation as needed.
+  Use for behavior-preserving structural cleanup of existing code after local evidence is understood. 既存挙動を保ちながら構造、名前、境界、重複を整理する。
 ---
 
 # Refactoring
 
-## Purpose
+既存挙動を保ったまま、構造、名前、責務境界、重複、読みやすさを改善する。
 
-This capability guides behavior-preserving cleanup of existing code. Attach it to improve structure, names, boundaries, and maintainability after first understanding the current design.
+## 使う条件
 
-## When to use
+- behavior-preserving cleanup が明示または task contract で確定
+- file/module split、merge、move が必要
+- naming、duplication、dependency direction、ownership boundary を整える
+- tests/docs/comments も refactor に合わせる必要がある
 
-- the codebase structure is hard to follow
-- files or modules should be split, merged, or relocated
-- names should better reflect responsibility
-- duplicated logic should be consolidated
-- dependency direction or ownership boundaries need tightening
-- tests, docs, or comments need to be aligned with the refactor
+## 使わない条件
 
-## When not to use
+- feature delivery または bugfix が主目的
+- 単純な局所 edit
+- external research が主依存
+- 現挙動や source evidence が未確認
 
-- the main task is feature delivery or defect repair
-- the task only needs a local edit without structural impact
-- the request depends on external research rather than repository analysis
-
-## Refactoring evaluation criteria
-
-Assess the change against:
+## 評価軸
 
 - behavior preservation
-- public API and contract stability
-- cohesion and coupling
+- public API / contract stability
+- cohesion / coupling
 - responsibility clarity
 - naming precision
 - duplication reduction
-- complexity and readability
+- complexity / readability
 - dependency direction
-- testability and change locality
-- removal of dead, stale, or parallel paths
+- testability / change locality
+- dead/stale/parallel path removal
 
-## Quality gates
+## quality gates
 
-A refactor is ready only when:
+- intended behavior は不変。意図的な変更は分離して説明する。
+- non-trivial diff hunk は rename、move、extract、dead deletion、unchanged logic carry-forward、intentional behavior change のどれかに分類できる。
+- helper、API、idiom、abstraction 置換は semantics evidence を先に確認する。
+- public interfaces、schemas、configs、entry points が整合する。
+- coverage が弱い場合は characterization test または before/after check を置く。
+- stale references がない。
+- targeted tests と static checks を実行または実行不能理由を記録する。
 
-- intended behavior is unchanged, or every intentional change is isolated and explained
-- every non-trivial diff hunk is accounted for as one of: rename, move, extraction, deletion of dead code, unchanged logic carried forward, or an explicitly intended behavior change
-- any newly introduced helper, API, library function, language idiom, or abstraction has its exact semantics confirmed from local usage, existing tests/docs, or an authoritative source before it replaces existing logic
-- touched public interfaces, schemas, configs, and entry points still line up
-- weak or missing coverage is backed by characterization tests or another repeatable before/after check
-- stale references to renamed or moved items are removed
-- targeted tests for affected paths pass
-- available static checks or linters for touched code pass
-- the final diff and validation checks can account for each behavior-affecting change, and any intentional behavior change is isolated and explained
+## 手順
 
-## Procedure
-
-1. Map the current structure, call paths, and invariants.
-2. Make a semantic inventory for the planned diff: what will be renamed, moved, extracted, deleted, or intentionally changed.
-3. Identify the smallest coherent refactor that improves the design.
-4. Prefer deletion, consolidation, and extraction over new abstractions.
-5. Do not substitute existing logic with a new helper, API, library function, language idiom, or abstraction merely because it looks shorter or cleaner. If such a substitution is necessary, record the semantics evidence first; otherwise carry the existing expression forward.
-6. Edit code, tests, docs, and prompts together when needed.
-7. Re-read changed surfaces for stale names, duplicate paths, contradictions, and unaccounted semantic substitutions.
-8. Validate with the most direct checks available, and include at least one before/after or characterization check when behavior preservation is not obvious from inspection.
-9. If a behavior change is unavoidable, isolate it and treat it as a separate verified step.
+1. current structure、call paths、invariants を map する。
+2. semantic inventory を作る。
+3. 最小 coherent refactor を選ぶ。
+4. deletion、consolidation、extraction を優先する。
+5. 短さだけを理由に semantics の違う helper/API へ置換しない。
+6. code、tests、docs、prompts を必要に応じて同時更新する。
+7. changed surfaces を再読し、stale names と unaccounted semantic substitutions を探す。
+8. direct checks と before/after evidence で検証する。
+9. behavior change が避けられない場合は別 step として扱う。

@@ -1,88 +1,47 @@
 ---
 name: requirements-clarification
 description: >
-  Attach this capability as the default requirement-normalization step for ordinary implementation-shaped requests that are not yet execution-ready. It treats the user's instruction as a stated requirement, decomposes atomic requirements, records attribute status, field grounding, inferred candidates, rejected assumptions, and remaining source or capability obligations. Do not use it for purely factual questions, pure local investigation, or pure public research with no implementation intent. Expected result: a written requirements artifact plus a next capability set.
+  Normalize implementation-shaped requests into execution-ready atomic requirement records with explicit Attribute status and remaining capability obligations. 実装依頼を、Attribute status 付き atomic requirement records へ正規化する。
 ---
 
 # Requirements Clarification
 
-## Purpose
+実装依頼を `stated requirement` として扱い、実行前に `Attribute status` 付き atomic requirement records へ落とす。
+曖昧さを感覚で処理せず、固定 record、属性 status、残る capability obligation で管理する。
 
-This capability turns a raw implementation request into an execution-ready requirements
-artifact.
+## 使う条件
 
-Its starting assumption is that the user's initial instruction is a `stated requirement`:
-useful, but not yet analyzed, verified, or validated enough for direct execution.
+- 実装意図あり
+- 受け入れ条件、検証方法、影響範囲が未整理
+- 1 文に複数要求が混在
+- tests、docs、invariants が暗黙
+- planning または implementation 前に durable artifact が必要
 
-The goal is to reduce task-framing ambiguity for smaller models by replacing
-"does this feel specific enough?" with a fixed requirements record, explicit
-attribute status, and a clear boundary between binding requirements and non-binding
-inferences.
+## 使わない条件
 
-## When to use
+- 純粋な事実質問
+- 純粋な local investigation
+- 純粋な public research
+- 実行可能な refactoring 依頼
+- 現行 task に結び付いた十分な requirements artifact がある
 
-Attach this capability as the default first step when the request is an ordinary
-implementation-shaped task and one or more of these are true:
+## 入力
 
-- the request names a change but not the full execution-ready requirement set
-- the request implies invariants, tests, docs, or verification work that are not yet
-  explicit
-- the request may hide multiple atomic requirements inside one instruction
-- the request needs a normalized artifact before planning or implementation
-- the request looks specific but still relies on unstated assumptions about scope,
-  constraints, or acceptance criteria
+- raw user request
+- explicit constraints、preferences、prior decisions
+- repository context
+- 必要な public facts
 
-## When not to use
+## 出力
 
-Do not attach this capability when:
+- `.opencode/work/req-<slug>.md`
+- `Attribute status` 付き atomic requirement records
+- 残る `unknown` だけへの targeted questions
+- next capability set
 
-- the request is a purely factual question with no implementation intent
-- the request is clearly pure public research
-- the request is clearly pure repository-local investigation
-- the request is clearly behavior-preserving refactoring and already execution-ready
-- the request already has a written requirements artifact or task file that is good
-  enough for the next downstream capability set
+## record schema
 
-## Expected inputs
-
-- the raw user request
-- any explicit user constraints, preferences, or prior decisions
-- relevant repository context discoverable from local files
-- public sources when externally grounded facts are needed for the requirement record
-
-## Expected outputs
-
-- a structured requirements document written to `.opencode/work/req-<slug>.md`
-- atomic requirement records with explicit attribute status
-- targeted user questions only for remaining `unknown` attributes
-- a next capability set or handoff recommendation
-
-## Core rules
-
-### 1. Start from stated requirements
-
-Do not treat the user's first wording as automatically execution-ready.
-
-Instead, convert it into one or more atomic requirements.
-
-### 2. Split into atomic requirements
-
-Each atomic requirement should express one of:
-
-- a capability
-- a constraint
-- a quality expectation
-
-Do not leave several independently verifiable changes fused into one record.
-
-### 3. Normalize every atomic requirement
-
-For each atomic requirement, fill a fixed record.
-
-Use an EARS-style statement when practical, but prefer a precise fixed structure over
-free-form prose.
-
-Each record must contain at least:
+各 atomic requirement に必ず書く。
 
 - `Type`
 - `Normalized statement`
@@ -95,70 +54,58 @@ Each record must contain at least:
 - `Verification method`
 - `Affected tests`
 - `Affected docs`
+- `Attribute status`
 
-### 4. Track attribute status explicitly
+`Attribute status` は各必須属性に 1 つだけ付ける。
 
-For every required attribute, record exactly one of:
+- `user_provided`: ユーザー入力で確定
+- `repo_derivable`: repo 調査で解決する
+- `public_fact`: 公開情報で確認する
+- `unknown`: proportionate discovery 後もユーザー判断が必要
 
-- `user_provided`
-- `repo_derivable`
-- `public_fact`
-- `unknown`
+空欄禁止。該当なしなら `None identified.`。
 
-Use these meanings:
+## 手順
 
-- `user_provided`: the user already gave the value clearly enough
-- `repo_derivable`: the value should be determined from repository context
-- `public_fact`: the value depends on externally verifiable public information
-- `unknown`: the value still requires a real user decision or remains unresolved after
-  proportionate discovery
+1. 依頼を 1 文で restate する。
+2. relevant files、docs、tests を読む。
+3. public facts が必要なら `public-research` を付ける。
+4. 要求を capability、constraint、quality の atomic requirements に分割する。
+5. 各 atomic requirement を schema に埋め、各属性に `Attribute status` を付ける。
+6. `repo_derivable` は `investigation`、`public_fact` は `public-research`、`unknown` は targeted question へ回す。
+7. `.opencode/work/req-<slug>.md` に書く。
+8. 最小の next capability set を示す。
 
-Do not collapse these statuses into a vague statement such as "unclear."
+## binding
 
-### 5. Discover before asking
+既存 requirements artifact は候補 primary source にすぎない。
+primary source として使う条件:
 
-Before asking the user, inspect the repository and attach public research when needed.
+- ユーザーが明示
+- `.opencode/work/current-task.md` が指す
+- `task_slug` が一致
 
-Ask only about attributes that remain `unknown` after proportionate discovery.
+さらに次を満たすこと。
 
-### 6. Map unresolved attributes to capability obligations, not intuition
+- `status` が `superseded` ではない
+- `base_commit` が現 repo state に有効
+- `superseded_by` が `none` または未設定
 
-Use this mapping:
+満たさない場合は reference material として扱う。
 
-- unresolved required `repo_derivable` attributes -> include `investigation`
-- unresolved required `public_fact` attributes -> include `public-research`
-- unresolved required `unknown` attributes -> stay in this skill and ask targeted
-  questions, or attach `grill-me` only if the remaining decisions are interdependent
-- no unresolved required attributes -> recommend the smallest sufficient next capability
-  set, such as `task-planning`, `implementation`, `refactoring`, `code-review`,
-  `investigation` or `public-research` as appropriate
+## handoff
 
-Do not hand off to implementation while a required attribute is still `unknown`.
+- required `repo_derivable` 未解決: `investigation`
+- required `public_fact` 未解決: `public-research`
+- required `unknown` 未解決: この skill に留まる。分岐が多い場合だけ `grill-me`
+- requirements 完了、順序設計が必要: `task-planning`
+- requirements 完了、編集可能: `implementation`
+- behavior-preserving cleanup: `refactoring`
+- review が目的: `code-review`
 
-### 7. Make change obligations explicit
+`unknown` が残る間は `implementation` に渡さない。
 
-The requirement record must surface change obligations that small models often miss.
-
-At minimum, make explicit:
-
-- what existing behavior must remain true
-- what new behavior must be verified
-- which tests are affected
-- which docs are affected
-
-If you determine that no test or doc update is needed, say so explicitly instead of
-leaving the field blank.
-
-### 8. Write the artifact
-
-Write the requirements document to `.opencode/work/req-<slug>.md` unless the user asked
-for another location.
-
-If the directory does not exist, create it.
-
-## Requirements document template
-
-Use this structure:
+## template
 
 ```markdown
 # Requirements: <title>
@@ -185,20 +132,7 @@ Use this structure:
 
 ## Binding rules
 
-- Binding rules:
-  - A requirements artifact is a candidate primary source only when one of these holds:
-    - the user explicitly names the artifact
-    - `.opencode/work/current-task.md` points to it
-    - `task_slug` matches the current task
-  - A candidate primary source becomes primary only when `status` is not `superseded`,
-    `base_commit` is valid for the current repository state, and `superseded_by` is `none`
-    or absent.
-  - If `status` is `superseded` or `base_commit` is unknown or stale, do not use the file as
-    primary source.
-  - If `superseded_by` is present, inspect that artifact next as the preferred candidate
-    source.
-  - If none of the explicit binding conditions hold, treat the file as reference material
-    only.
+- <binding rules from this skill>
 
 ## Atomic requirements
 
@@ -228,88 +162,20 @@ Use this structure:
 
 ## Open questions
 
-- [ ] <only attributes that remain truly unknown>
+- [ ] <only true unknowns>
 
 ## Handoff recommendation
 
-- Next capability set: <requirements-clarification | investigation | public-research | task-planning | implementation | refactoring | code-review>[, ...]
+- Next capability set: <skills>
 - Why: <one short explanation>
 ```
 
-If a field has no applicable content after discovery, write `None identified.` rather
-than leaving it blank.
+## 完了チェック
 
-## Procedure
-
-### Step 1: Restate the implementation intent
-
-Summarize what change the user appears to want.
-
-### Step 2: Discover from local and public context
-
-Read the relevant repository files.
-
-If externally grounded facts affect the requirement record, attach `public-research`
-before asking the user.
-
-### Step 3: Split the request into atomic requirements
-
-Identify each independent capability, constraint, or quality expectation.
-
-### Step 4: Fill the normalized records
-
-For each atomic requirement, fill every field in the template and assign an explicit
-attribute status.
-
-### Step 5: Evaluate unresolved attributes
-
-If unresolved required attributes remain:
-
-- include `investigation` for `repo_derivable`
-- include `public-research` for `public_fact`
-- ask targeted user questions only for `unknown`
-
-If the remaining `unknown` attributes are tightly interdependent, you may attach
-`grill-me` before returning to this artifact.
-
-### Step 6: Write the document
-
-Write the current artifact to the output file even if follow-up work remains.
-
-Do not wait for perfection before externalizing the normalized record.
-
-### Step 7: Recommend the next capability set
-
-Base the recommendation on the unresolved attributes or, if none remain, on the next
-real execution need.
-
-Do not force mixed follow-up work into a single capability when different obligations
-require a capability set. Keep the set as small as possible while still sufficient.
-
-## Handoff rules
-
-- include `investigation` when unresolved required attributes are `repo_derivable` or a
-  required local source-of-truth class is unchecked
-- include `public-research` when unresolved required attributes are `public_fact`
-- keep `requirements-clarification` active when unresolved required attributes are truly
-  `unknown` and user input is still needed
-- include `task-planning` when the requirement records are complete but the work still
-  needs sequencing, decomposition, or a resume-safe artifact
-- include `implementation` when the requirement records are complete and the change can
-  be executed directly
-- include `refactoring` when the complete records describe behavior-preserving
-  structural cleanup
-- include `code-review` when the task is to review code quality rather than to edit
-
-## Quick checklist
-
-Before finishing, verify all of the following:
-
-- the user request was treated as a stated requirement, not as instant implementation
-- the request was split into atomic requirements
-- each atomic requirement has the fixed fields
-- each required attribute has an explicit status value
-- repo and public discovery were attempted before asking the user
-- open questions include only true `unknown` attributes
-- the artifact was written to an external file
-- the next-step recommendation names the smallest sufficient capability set
+- request を `stated requirement` として扱った
+- atomic requirement に分割した
+- 全必須 field と status を埋めた
+- discovery 前の質問を避けた
+- open questions は真の `unknown` だけ
+- artifact を `.opencode/work/` に書いた
+- next capability set が最小十分
