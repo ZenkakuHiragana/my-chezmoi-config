@@ -61,8 +61,9 @@
 
 このリポジトリでプロンプトの追加、改良、失敗分析、階層整理を行うとき、外部の指針や現在の実務が品質に実質的な影響を与えうる場合は、ローカルの prompt 群だけを根拠に確定してはならない。
 
-プロンプトや workflow のルールを「変えるべきか判断する」依頼は、実装前の判断だけを求める場合でも repository-change intent を含むものとして扱う。
-この場合、外部調査中も `requirements-clarification` を capability set に残し、変更しない結論になった場合だけ実装へ進まない。
+プロンプトや workflow のルールを「変えるべきか判断する」依頼は、次に repository 変更へ進む前提が明示される場合のみ、repository-change intent を含むものとして扱う。
+相談・助言のみで即時の実装移行を要求しない場合は、純粋な方針相談として扱い、`requirements-clarification` を先行義務にしない。
+ただし、実装前の判断でも明確に変更判断が要求されている場合は、外部調査中も `requirements-clarification` を capability set に残す。
 
 特に次のいずれかに当てはまる場合は、関連 command 側で外部調査の要否を判定すること。
 
