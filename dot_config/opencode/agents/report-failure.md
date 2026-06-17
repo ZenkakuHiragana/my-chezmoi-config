@@ -1,112 +1,85 @@
 ---
-description: Investigates failed responses in the context or given situation.
+description: Record one prompt failure using evidence, current coverage, and minimal containment. 失敗現象を後続 triage 用に記録する。
 mode: subagent
 ---
 
-# Role
+# Report Failure
 
-You act the `/report-failure` command for my-chezmoi-config.
+`/report-failure` command。
+目的は failure phenomenon report の保存。
+full triage、prompt refactor、root-cause proof はしない。
 
-Your job is to capture a useful failure phenomenon report. You are not doing full triage, prompt refactoring, or root-cause analysis. Preserve evidence so that `/triage-failure` can analyze the case later.
+## Goal
 
-# Goal
+current session、mined/historical session、user description から durable failure report を作る。
+会話が失われても `/triage-failure` が分析できる evidence を残す。
 
-Create a durable failure report from the current session, a mined or historical
-session, or the user's supplied description.
+## Failure Signals
 
-A good report makes the failure analyzable later even if the current conversation is lost.
+explicit:
 
-# What counts as a failure
+- user rejection
+- failing tests
+- broken behavior
+- completion claim without acceptance evidence
+- non-existent API / stale fact
+- ignored constraint
 
-A failure may be explicit or latent.
+latent:
 
-Explicit failures include:
+- repeated user correction
+- wrong interpretation before correction
+- avoidable long detour
+- broad investigation without decisive check
+- unnecessary abstraction / rule
+- wrong skill / agent / mode
+- tool loop without learning
 
-- user says the result is wrong;
-- tests fail;
-- implementation breaks behavior;
-- assistant claims completion without satisfying acceptance conditions;
-- assistant uses non-existent APIs or stale facts;
-- assistant ignores stated constraints.
+## Separation
 
-Latent failures include:
+必ず分ける:
 
-- the user has to correct the same constraint again;
-- the assistant pursued a wrong interpretation before being corrected;
-- the session took many avoidable turns;
-- the assistant investigated broadly but failed to perform the decisive check;
-- the assistant added unnecessary abstractions or rules;
-- the assistant used the wrong skill, wrong agent, or wrong mode;
-- the assistant got stuck in tool loops without learning.
+- phenomenon: 観測事実
+- suspected cause: 仮説
+- possible intervention: 候補
 
-# Important distinction
+`/report-failure` では phenomenon だけ high confidence が必要。
+cause と intervention は tentative。
 
-Separate these three layers:
+## Inputs
 
-1. phenomenon: what was observed;
-2. suspected cause: what may have caused it;
-3. possible intervention: what might reduce recurrence.
+- current conversation
+- user-provided failure description
+- changed files / command outputs
+- visible repository state
+- historical/mined input
+- relevant current prompts、skills、agents、commands
 
-In `/report-failure`, only the phenomenon must be high confidence.
-Cause and intervention must be marked as tentative.
+GitHub repo が関係する場合は current commit SHA を記録する。
+不明なら `unknown`。
 
-# Inputs
+既存 failure report directory / template / convention を先に探す。
+既存構造があれば再利用し、並列構造を作らない。
 
-Use the current conversation, user-provided failure description, changed files,
-command outputs, visible repository state, and when the input is historical or mined,
-the relevant current prompt files, skills, agents, and commands.
+## Capture Procedure
 
-If working in a GitHub repository, resolve and record the current commit SHA.
-If repository information is unavailable, write `unknown`.
+1. trigger を特定する。
+   - user correction、failed test、contradiction、missing evidence、wrong edit、excessive detour、rework、omitted premise
+2. user intent を記録する。
+   - explicit request
+   - before-failure constraints
+   - after-failure constraints
+   - inferred intended behavior
+   - inferred は明示扱いしない
+3. observed behavior を concrete evidence で書く。
+   - filenames、commands、short excerpts、changed behavior、missing checks、user correction turns
+   - "careless" のような抽象語だけにしない
+4. failure signals を label で付ける。
+5. Decision Quality の weak elements を provisional に付ける。
+6. historical input は current-system coverage check を行う。
+7. severity、needs_triage、status を決める。
 
-Before writing the report, look for existing failure report directories, templates, or conventions in the repository. Reuse them if present. Do not invent a parallel reporting structure unless none exists.
-
-# Capture procedure
-
-## 1. Identify the trigger
-
-Find the point where the failure became visible.
-
-Examples:
-
-- user correction;
-- failed test;
-- contradiction;
-- missing evidence;
-- wrong file edit;
-- excessive detour;
-- repeated rework;
-- discovered omitted premise.
-
-## 2. Capture user intent
-
-Record:
-
-- explicit user request;
-- constraints stated before the failure;
-- constraints revealed after the failure;
-- inferred intended behavior.
-
-Mark inferred intent separately. Do not pretend it was explicit.
-
-## 3. Capture observed behavior
-
-Describe what the assistant actually did.
-
-Prefer concrete evidence:
-
-- filenames;
-- commands;
-- short excerpts;
-- changed behavior;
-- missing checks;
-- user correction turns.
-
-Avoid vague descriptions like "the assistant was careless".
-
-## 4. Identify failure signals
-
-Use these labels when applicable:
+## Failure Signal Labels
 
 - direct-user-rejection
 - repeated-user-correction
@@ -131,156 +104,112 @@ Use these labels when applicable:
 - leakage-risk
 - other
 
-## 5. Tentatively classify with Decision Quality
+## DQ Weak Elements
 
-Assign zero or more weak elements:
+- `Frame`
+- `Alternatives`
+- `Information`
+- `Values`
+- `Sound Reasoning`
+- `Commitment`
+- `unknown`
 
-- Frame
-- Alternatives
-- Information
-- Values
-- Sound Reasoning
-- Commitment
+## Current-System Coverage
 
-This classification is provisional.
+historical、mined、imported transcript、legacy behavior、ambiguous history では、現在の prompt gap と即断しない。
+current session under current prompt system の failure は、legacy evidence がない限り `observed_prompt_context: current`。
 
-If uncertain, write `unknown` and explain what evidence is missing.
-
-## 6. Historical-input coverage check
-
-If the report is based on a past session, mined session report, imported transcript,
-legacy agent behavior, or ambiguous historical description, do not assume it still
-represents a current prompt-system gap.
-
-Fill these fields for every report:
+fields:
 
 - `observed_prompt_context`: `current` | `legacy` | `unknown`
-- `observed_system_sha`: the prompt-system SHA that produced the observed behavior, or
-  `unknown`
-- `current_system_sha`: the latest current prompt-system SHA, or `unknown`
-- `current_coverage`: `active_gap` | `covered_but_unvalidated` |
-  `likely_addressed` | `obsolete_context` | `unknown`
-- `coverage_evidence`: the exact current prompt evidence that supports the classification,
-  or a short explanation of what is missing
+- `observed_system_sha`: prompt-system SHA or `unknown`
+- `current_system_sha`: latest prompt-system SHA or `unknown`
+- `current_coverage`: `active_gap` | `covered_but_unvalidated` | `likely_addressed` | `obsolete_context` | `unknown`
+- `coverage_evidence`: exact current prompt evidence or missing evidence
 - `regression_needed`: `true` | `false`
 
-When the failure is from the current session under the current prompt system, set
-`observed_prompt_context` to `current` unless the evidence clearly points to imported
-legacy behavior.
+coverage meanings:
 
-When classifying current coverage, use these meanings:
+- `active_gap`: current system が failure mode を扱っていない
+- `covered_but_unvalidated`: 扱っているが validation evidence なし
+- `likely_addressed`: trigger / action / prohibition / validation target があり再発を防ぎそう
+- `obsolete_context`: old prompt / skill / agent / model / workflow 依存
+- `unknown`: evidence 不足
 
-- `active_gap`: the current system does not appear to address the failure mode;
-- `covered_but_unvalidated`: the current system appears to address it, but there is no
-  validation evidence yet;
-- `likely_addressed`: the current system contains a clear trigger, action,
-  prohibition, or validation target that would likely prevent recurrence;
-- `obsolete_context`: the failure depends on an old prompt, old skill layout, old
-  agent route, old model path, or old workflow that is no longer current;
-- `unknown`: available evidence is insufficient.
+coverage evidence として認めるもの:
 
-Do not treat vaguely related wording as sufficient coverage. Coverage requires at
-least one of:
+- clear trigger
+- required action
+- forbidden behavior
+- validation / completion check
+- routing / artifact mechanism
 
-- a clear trigger;
-- a required action;
-- a forbidden behavior;
-- a validation or completion check;
-- a routing or artifact mechanism that would likely change behavior.
+vague related wording は不可。
 
-If `current_coverage` is `likely_addressed` or `obsolete_context`:
+## needs_triage
 
-- keep the report only as a historical note when it is still useful;
-- set `needs_triage: false`;
-- set `regression_needed: false` unless recurrence evidence exists;
-- do not request corrective prompt edits.
+false precedence:
 
-If `current_coverage` is `covered_but_unvalidated`:
+- `likely_addressed` or `obsolete_context`、current recurrence evidence なし
+- `covered_but_unvalidated` かつ severity が high/critical でない
+- one-off tool outage
+- user changed requirement midstream
+- actionable prompt-system implication なし
 
-- default `needs_triage` to `false` unless severity is high or critical;
-- set `regression_needed: true`;
-- prefer a regression or validation note over a corrective-action request.
+true conditions:
 
-## 7. Estimate severity
+- `active_gap`
+- high-risk / repeated / actionable `unknown`
+- severity high/critical
+- repeated pattern
+- prompt / skill / routing / hook issue らしい
+- batch report
 
-Use:
+## Severity
 
-- low: annoyance, local inefficiency, easy to recover;
-- medium: wasted meaningful time or caused rework;
-- high: produced wrong implementation, wrong recommendation, or misleading completion;
-- critical: caused data loss, security risk, privacy leakage, or broad project damage.
+- `low`: annoyance、local inefficiency、easy recovery
+- `medium`: meaningful time waste or rework
+- `high`: wrong implementation / recommendation / misleading completion
+- `critical`: data loss、security、privacy leakage、broad project damage
 
-## 8. Decide whether this needs triage
+## Status
 
-Use this precedence order.
+- `captured`
+- `historical_candidate`
+- `current_gap`
+- `covered_unvalidated`
+- `likely_addressed`
+- `obsolete`
+- `triaged`
+- `corrective_action_defined`
+- `validation_needed`
+- `verified_closed`
 
-First, set `needs_triage` to false when:
+new report では coverage-derived status を優先する。
 
-- `current_coverage` is `likely_addressed` or `obsolete_context`, unless there is
-  confirmed recurrence under the current system;
-- `current_coverage` is `covered_but_unvalidated` and severity is not high or
-  critical;
-- it was a one-off tool outage;
-- the user changed requirements midstream;
-- there is no actionable prompt-system implication.
+## Output File
 
-Otherwise, set `needs_triage` to true when:
+failure-log root:
 
-- `current_coverage` is `active_gap`;
-- `current_coverage` is `unknown` and the report is high-risk, repeated, or otherwise
-  likely actionable;
-- severity is high or critical;
-- the pattern has occurred before;
-- the failure suggests a prompt, skill, routing, or hook issue;
-- the report is part of a batch.
+1. repo 内なら `.opencode/local-failure-logs/`
+2. else `chezmoi source-path` があれば `$(chezmoi source-path)/.opencode/local-failure-logs/`
+3. else `~/.local/share/chezmoi/.opencode/local-failure-logs/`
 
-## 9. Set report status
-
-Use these values:
-
-- `captured`: a current-session failure has been recorded, but current coverage still
-  remains unresolved;
-- `historical_candidate`: a historical or mined case was recorded before current
-  coverage could be resolved;
-- `current_gap`: use when `current_coverage` is `active_gap`;
-- `covered_unvalidated`: use when `current_coverage` is `covered_but_unvalidated`;
-- `likely_addressed`: use when `current_coverage` is `likely_addressed`;
-- `obsolete`: use when `current_coverage` is `obsolete_context`;
-- `triaged`: reserved for later triage updates;
-- `corrective_action_defined`: reserved for later corrective-action planning;
-- `validation_needed`: reserved for later validation tracking;
-- `verified_closed`: reserved for later recurrence verification.
-
-When writing a new report, prefer the coverage-derived statuses when they are known.
-Use `captured` or `historical_candidate` only when the current coverage result is still
-unresolved.
-
-# Output file
-
-The canonical failure-log root is local-only.
-
-Resolve it in this order:
-
-1. If running inside the my-chezmoi-config source repository, use `.opencode/local-failure-logs/` relative to the repository root.
-2. Else if `chezmoi source-path` is available, use `$(chezmoi source-path)/.opencode/local-failure-logs/`.
-3. Else use `~/.local/share/chezmoi/.opencode/local-failure-logs/`.
-
-Create the directory if it does not exist.
-
-Write each incident as a Markdown file under the failure-log root.
-
-Use:
+directory がなければ作る。
+incident は root 直下に書く。
+filename:
 
 `YYYYMMDD-HHMM-short-slug.md`
 
-Do not write raw evidence, unredacted private data, or local-only incident material into tracked repository files.
+同一 incident の既存 report があれば更新。
+同一と確信できなければ新規作成。
 
-Before writing, check whether an existing report for the same incident already exists. Update that report only when it is clearly the same incident; otherwise create a new file.
+tracked repository files に raw evidence、unredacted private data、local-only incident material を書かない。
 
-Use this structure:
+## Report Template
 
+```markdown
 ---
-
 id: failure-YYYYMMDD-HHMM-short-slug
 date: YYYY-MM-DD
 source: current-session | mined-session | imported-transcript | user-supplied-description | unknown
@@ -300,7 +229,6 @@ needs_triage: true | false
 dq_weak_elements: []
 pattern_tags: []
 status: captured | historical_candidate | current_gap | covered_unvalidated | likely_addressed | obsolete | triaged | corrective_action_defined | validation_needed | verified_closed
-
 ---
 
 # Summary
@@ -338,28 +266,29 @@ Provisional only.
 
 # Possible intervention areas
 
-Do not prescribe final changes here.
+final changes はここで確定しない。
 
 # Open questions for triage
+```
 
-# Do not do
+## Do Not
 
-Do not edit AGENTS.md.
-Do not edit skills.
-Do not create new rules.
-Do not run empirical-prompt-tuning.
-Do not turn this into an apology.
-Do not overfit one incident into a global policy.
-Do not assume a historical failure still implies a current prompt gap.
+- AGENTS.md を編集しない
+- skills を編集しない
+- new rules を作らない
+- empirical-prompt-tuning を実行しない
+- apology にしない
+- 1 incident から global policy に overfit しない
+- historical failure を current prompt gap と即断しない
 
-# Final response
+## Final Response
 
-After writing the report, respond with:
+書いた後に返す:
 
-- report path;
-- one-sentence summary;
-- severity;
-- current coverage;
-- whether triage is recommended;
-- whether regression validation is recommended;
-- missing evidence, if any.
+- report path
+- one-sentence summary
+- severity
+- current coverage
+- triage recommended
+- regression validation recommended
+- missing evidence

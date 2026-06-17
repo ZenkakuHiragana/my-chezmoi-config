@@ -13,9 +13,17 @@
 
 ## プロンプトに使用する言語
 
-- システムプロンプトに記載する内容はすべて英語で書いてください。具体的には以下のファイルが対象です。
+- agent system prompt と command prompt は次の方針で書いてください。
+  - frontmatter `description`: 英語の発火語を主にし、必要なら短い日本語要約を1文だけ添える。詳細手順は書かない。
+  - 本文: 日本語で短く書く。逐語翻訳ではなく、役割、条件、手順、禁止事項、出力、完了条件を箇条書き中心に再設計する。
+  - 制御語彙は英語のまま維持する。例: agent 名、skill 名、router 名、schema field、status 値、severity 値、handoff 名、`work_class`、`execution_route`、`task_kind`、`mode_constraint`、`side_effect_mode`。
+  - output schema、frontmatter key、template include 名、command 名は既存の英語を維持する。
+  - 長い rationale は agent prompt 本体に置かず、運用メモ、report、reference に分離する。
+  - prompt 本体の日本語は丁寧語を避け、仕様書的な短文を優先する。
+- 対象ファイル:
   - ./.opencode/commands/\*.md
   - ./dot_config/opencode/agents/\*.md
+  - ./dot_config/opencode/agents/\*.md.tmpl
   - ./dot_config/opencode/commands/\*.md
   - ./dot_config/opencode/AGENTS.md
   - ./.chezmoitemplates/opencode/AGENTS.md
@@ -37,8 +45,8 @@
    - すべてのエージェントに適用される共通規則。
    - 可能な限り小さく抑える。
    - 分岐を書いてはいけない。Build エージェントの場合は～などと書きたくなったら、それは書くべき階層が異なる。
-2. エージェント システムプロンプト (dot_config/opencode/agents/build.md.tmpl, dot_config/opencode/agents/plan.md.tmpl, dot_config/opencode/agents/plan2.md.tmpl)
-   - Build モード、および読み取り専用の Plan モードに対応したシステムプロンプト。
+2. エージェント システムプロンプト (dot_config/opencode/agents/\*.md, dot_config/opencode/agents/\*.md.tmpl)
+   - Build、Plan、subagent、command agent に対応したシステムプロンプト。
    - 要求の分類やエージェント固有の規則を書く。
    - 具体的な作業内容については言及してはいけない。スキルへの誘導はよい。
 3. 親エージェント用 orchestration テンプレート (.chezmoitemplates/opencode/parent/\*.md)

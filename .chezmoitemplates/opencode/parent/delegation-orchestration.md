@@ -1,72 +1,79 @@
-## Parent-side subagent orchestration
+## Parent-Side Subagent Orchestration
 
-- Use these rules only when acting as a parent or primary agent.
-- Skill use is not delegation. Delegation means invoking one or more subagents and retaining parent responsibility for integration and verification.
-- Choose one `execution_route`:
-  - `direct`: the parent owns the work end to end. It may use skills, tools, files, research, or task artifacts.
-  - `delegated`: the parent invokes one or more subagents through the task tool, then integrates and verifies their results.
-  - `blocked`: a real missing fact, denied permission, unavailable tool, or required user decision prevents safe progress.
-- `execution_route` is only the parent-side execution ownership choice. It is not a single task type, source-of-truth class, or skill owner, and it does not replace task framing or capability-pack selection.
-- Decide the route internally. Do not announce `direct` or `delegated` as a ritual.
-- Mention delegation only when a subagent is actually used and the split matters to the user.
-- Mode or permission limits constrain what can be done now; they do not change the task frame. When a needed write step is disallowed, ask for approval or report the write-capable next action instead of relabeling the task as investigation.
-- When reporting from a constrained mode, distinguish the current procedure used to analyze the request from the downstream capability set or write-capable route; do not let a read-only inspection step replace the required write-capable next step.
-- Keep `tiny-local` work `direct` unless the user explicitly asks for a subagent or independent verification clearly pays for the handoff.
-- Use a subagent only when the expected value from isolation, parallelism, specialization, or independent review clearly exceeds handoff, context-loading, integration, verification, and misalignment costs.
-- Keep the route `direct` when the assignment packet would be longer, more ambiguous, or more expensive than doing the work directly.
-- For `broad-or-unclear` work, decompose first. Delegate only bounded leaf assignments, not the whole ambiguity.
+parent / primary agent の時だけ適用する。
 
-### Delegation gate
+## Route
 
-Before invoking a subagent, confirm all of the following:
+`execution_route`:
 
-- the goal can be stated in one sentence
-- scope, inputs, constraints, required evidence, output format, and stop conditions are explicit
-- the parent can verify or reconcile the returned result
-- the subtask is independent enough that the child does not need unresolved parent decisions or another child's unfinished result
-- misalignment or rework cost is bounded
+- `direct`: parent が end to end で担当
+- `delegated`: subagent を使い、parent が統合と検証を担当
+- `blocked`: missing fact、denied permission、unavailable tool、required user decision で安全に進めない
 
-Prefer delegation when at least one of these is strongly true:
+規則:
 
-- independent public fact domains can be checked in parallel
-- repository surfaces are disjoint and can be inspected or changed independently
-- independent review perspectives improve confidence
-- a specialized or cheaper subagent is clearly suited to a bounded task
-- evidence collection, surface mapping, candidate comparison, or verification has a clear output schema
+- skill use は delegation ではない。
+- route は task type、source class、skill owner ではない。
+- route 名を儀式的に出さない。
+- delegation は実際に subagent を使い、分割が user に重要な場合だけ説明する。
+- constrained mode では、現在の分析手順と downstream capability / write-capable route を分けて述べる。
+- `tiny-local` は原則 `direct`。
+- `broad-or-unclear` は先に分解し、曖昧さ全体ではなく bounded leaf assignment だけ委譲する。
 
-Avoid delegation when any of these is strongly true:
+## Delegation Gate
 
-- the main uncertainty is user intent
-- the work is sequential and needs one continuous state owner
-- the parent must redo most of the work to verify the result
-- the subagent would edit the same file, shared API, shared config, schema, prompt hierarchy, lockfile, or global rule as another worker
-- the task is narrow enough that direct parent work is cheaper
+subagent 前に全て満たす:
 
-### Delegation shape
+- goal が 1 文で書ける
+- scope、inputs、constraints、required evidence、output format、stop conditions が明示
+- parent が検証または reconcile できる
+- child が未解決の parent decision や他 child の未完了結果を必要としない
+- misalignment / rework cost が bounded
 
-- `single`: one bounded subagent assignment.
-- `parallel`: multiple assignments can run after the same dependencies are satisfied.
+delegation が有利な条件:
 
-Use parallel delegation only when every parallel item has explicit dependencies, read set, write set, side-effect mode, verification method, and parent-owned fan-in check.
+- independent public fact domains
+- disjoint repository surfaces
+- independent review perspective
+- specialized / cheaper subagent が適合
+- evidence collection、surface mapping、candidate comparison、verification に明確な output schema がある
 
-Use `parallel_basis` values as follows:
+避ける条件:
 
-- `domain`: independent specification, public source, or fact domain.
-- `surface`: independent file, directory, component, or module surface.
-- `review`: independent review perspective over the same artifact.
+- 主な不確実性が user intent
+- sequential work で state owner が必要
+- parent が検証のため大半をやり直す必要がある
+- 同じ file、shared API、shared config、schema、prompt hierarchy、lockfile、global rule を複数 child が触る
+- direct の方が安い narrow task
 
-Represent contract stabilization as task planning, not as a delegation shape. First use `requirements-clarification` or `task-planning` to fix requirements, dependencies, interfaces, and invariants; then parallelize only downstream work items whose dependencies are satisfied.
+## Shape
 
-### Side-effect discipline
+- `single`: bounded assignment 1 件
+- `parallel`: dependencies が揃った複数 assignment
 
-- Default parallel assignments to `read_only`.
-- Use `write_disjoint` only when each child has an explicit non-overlapping write set and semantic responsibility is also disjoint.
-- Do not use parallel write delegation for shared APIs, shared config, schemas, prompt hierarchy, lockfiles, or global rules unless one child has exclusive ownership.
-- Do not collect competing patch proposals as the standard implementation path. Use review findings or suggested wording only as supporting evidence for parent-owned edits.
-- The parent owns final merge, conflict resolution, and verification.
+`parallel` 条件:
 
-### Subagent selection
+- 各 item に dependencies、read_set、write_set、side_effect_mode、verification method、parent fan-in check がある
 
-- Use `general-fast` for bounded, evidence-oriented, read-only, or single-skill assignments with a clear stop condition.
-- Use `general-strong` for broad investigation, competing hypotheses, design trade-off analysis, ambiguity reduction, or secondary review when child results conflict.
-- Do not use a stronger or parallel subagent merely because it is available.
+`parallel_basis`:
+
+- `domain`: independent spec / public source / fact domain
+- `surface`: independent file / directory / component / module
+- `review`: same artifact の independent review
+
+contract stabilization は delegation shape ではない。
+先に `requirements-clarification` または `task-planning` で requirements、dependencies、interfaces、invariants を固定する。
+
+## Side Effects
+
+- parallel assignment は default `read_only`。
+- `write_disjoint` は explicit non-overlapping write_set と semantic responsibility がある場合だけ。
+- shared APIs、shared config、schemas、prompt hierarchy、lockfiles、global rules は parallel write しない。例外は 1 child が exclusive owner の時だけ。
+- competing patch proposals を標準 implementation path にしない。
+- final merge、conflict resolution、verification は parent が担当する。
+
+## Subagent Choice
+
+- `general-fast`: bounded、evidence-oriented、read-only、single-skill、clear stop condition
+- `general-strong`: broad investigation、competing hypotheses、design trade-off、ambiguity reduction、conflicting child results の secondary review
+- available だから強い/並列 subagent を使う、は不可。

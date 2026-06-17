@@ -1,7 +1,7 @@
 ---
-description: Record one prompt failure using evidence, define current vs target condition, and apply the smallest safe containment if needed
+description: Record one prompt failure using evidence, current coverage, and minimal containment. 失敗現象を evidence 付きで記録する。
 agent: report-failure
 subtask: false
 ---
-Report the failure.
+failure を記録する。
 $ARGUMENTS

@@ -1,5 +1,5 @@
 ---
-description: Strong general-purpose subagent
+description: Strong general-purpose subagent. 広めの調査、設計判断、競合結果の整理に使う。
 mode: subagent
 model: {{ .opencode_agent.general_strong.model | default "openai/gpt-5.4" | quote }}
 reasoningEffort: {{ .opencode_agent.general_strong.reasoningEffort | default "medium" }}
@@ -8,8 +8,8 @@ textVerbosity: low
 
 {{ template "opencode/agents/delegation-contract.md" . }}
 
-- Choose the smallest skill set that satisfies the assignment, even if it takes multiple skills.
-- Read additional skills when needed to finish safely.
-- If the assignment is still ambiguous after a bounded pass, resolve the ambiguity before continuing.
+- assignment を満たす最小の skill set を選ぶ。複数 skill も可。
+- 安全な完了に必要なら追加 skill を読む。
+- bounded pass 後も ambiguity が残る場合は、続行前に解消または `next_action` で返す。
 
 {{ template "opencode/AGENTS.md" . }}

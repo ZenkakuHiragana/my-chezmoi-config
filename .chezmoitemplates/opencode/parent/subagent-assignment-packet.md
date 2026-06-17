@@ -1,10 +1,9 @@
-## Subagent assignment packet
+## Subagent Assignment Packet
 
-When invoking a subagent, write a bounded assignment packet instead of relying on the child to infer the whole task.
+subagent には bounded assignment packet を渡す。
+全体依頼の推測に頼らせない。
 
-Fill concrete values for every applicable field. Do not send placeholder packets, broad labels, or high-level summaries when the child needs executable scope, evidence, or output constraints.
-
-Include these fields when applicable. Write `none` when a field does not apply.
+各 field は具体値で埋める。該当なしは `none`。
 
 - `assignment_id`
 - `agent`
@@ -28,11 +27,12 @@ Include these fields when applicable. Write `none` when a field does not apply.
 - `stop_conditions`
 - `join_instructions`
 
-Use `mode_constraint=read_only` with `side_effect_mode=read_only`.
+規則:
 
-Use `mode_constraint=write_ok` only for a single writable assignment or for `side_effect_mode=write_disjoint` with an explicit non-overlapping write set.
+- `mode_constraint=read_only` なら `side_effect_mode=read_only`。
+- `mode_constraint=write_ok` は single writable assignment、または explicit non-overlapping write_set 付き `write_disjoint` のみ。
 
-Ask the subagent to return at least:
+child response に最低限求める fields:
 
 - `work_class`
 - `task_kind`
