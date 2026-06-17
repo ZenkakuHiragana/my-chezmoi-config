@@ -281,7 +281,8 @@
         "lua-language-server *": "allow",
         // その他
         "graphify": "allow",
-        "graphify *": "allow"
+        "graphify *": "allow",
+        "rtk *": "allow"
       },
       "webfetch": "allow",
       "websearch": "allow",
