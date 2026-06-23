@@ -126,17 +126,17 @@ $ARGUMENTS
 
 層の責務:
 
-- 共有 rules: 短く安定した共有制約
+- 共有規則: 短く安定した共有制約
 - command 定義 / command 雛形: command の入口、command 固有の routing、短い作業契約
-- command 専用 agent prompt: 詳細な command 実行 role、handoff、local output contract、command 内の判断方針
+- command 専用 agent prompt: 詳細な command 実行 role、handoff、ローカル出力契約、command 内の判断方針
 - role 別 prompt ファイル: 1 つの role、mode、agent に固有の動作
 - skill descriptions: 発見用の案内だけ。when to use、when not to use、期待される結果
-- `SKILL.md`: 詳細な手順、確認、例、local 判断規則
+- `SKILL.md`: 詳細な手順、確認、例、局所判断規則
 
 禁止:
 
 - 詳細手順を skill description に置く
-- 本当に共有でない local exception を global rules に置く
+- 本当に共有でない局所例外を共有規則に置く
 - command が所有する詳細を AGENTS.md に置く
 - 1 つの能力を、責務差がないまま複数層へ散らす
 
@@ -178,7 +178,7 @@ $ARGUMENTS
 - 規範的なプロンプト本文に歴史説明を入れない
 - 層間で重複した注意を作らない
 - 行動を制御しない抽象標語を避ける
-- 近接する capabilities と constraints を保つ
+- 近接する capability と constraint を保つ
 - 言語方針と出力品質の規則を弱めない
 
 編集してよいのは、この能力に必要なファイルだけ。
@@ -200,7 +200,7 @@ $ARGUMENTS
 - 矛盾を入れていない
 - 既存の重要能力を弱めたり削除したりしていない
 - 詳細手順が skill description にだけ残っていない
-- local exception が不適切に global 層へ漏れていない
+- 局所例外が不適切に共有層へ漏れていない
 - 明らかに長い代替文と比べても実効性が落ちていない
 
 失敗した場合は、最終化前に直す。
@@ -211,15 +211,15 @@ $ARGUMENTS
 
 ## Capability contract
 
-- objective
-- scope
-- assumptions
-- inputs
-- required outputs or decisions
-- forbidden behavior
+- 目的
+- 範囲
+- 前提
+- 入力
+- 必須出力または判断
+- 禁止行動
 - validation target
 
-## Research decision
+## 調査判断
 
 - 追加調査が必要だったか
 - 必要なら理由
@@ -228,13 +228,13 @@ $ARGUMENTS
 ## 変更内容
 
 - 変更したファイル
-- 各ファイルで clarified、moved、merged、split、added wording のどれをしたか
+- 各ファイルで明確化、移設、統合、分割、文言追加のどれをしたか
 
 ## この層に置く理由
 
 - 各変更が別の層ではなくその層に属する理由
 
-## Validation plan
+## 検証計画
 
 - 実施した確認
 - 従っている例
@@ -242,7 +242,7 @@ $ARGUMENTS
 
 ## 後続対応
 
-- 後で `/refine-prompt` pass が役立つか
+- 後で `/refine-prompt` による確認が役立つか
 - 理由は重複リスクや近接規則との重なりなど、具体的なものだけにする
 
 ## 重要制約

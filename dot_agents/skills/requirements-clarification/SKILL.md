@@ -6,8 +6,8 @@ description: >
 
 # Requirements Clarification
 
-実装に見える依頼を、実行前に `Attribute status` 付き atomic requirement records へ落とす。
-曖昧さを感覚で処理しない。固定 record、属性 status、残る capability obligation で管理する。
+実装に見える依頼を、実行前に `Attribute status` 付き atomic requirement の記録へ落とす。
+曖昧さを感覚で処理しない。固定形式の記録、属性 status、残る capability 上の義務で管理する。
 
 ## 入力
 
@@ -45,14 +45,14 @@ description: >
 - `user_provided`: ユーザー入力で確定
 - `repo_derivable`: repo 調査で解決する
 - `public_fact`: 公開情報で確認する
-- `unknown`: proportionate discovery 後もユーザー判断が必要
+- `unknown`: 適切な範囲の調査後もユーザー判断が必要
 
 空欄は禁止。該当なしなら `None identified.` と書く。
 
 ## 手順
 
 1. 依頼を 1 文で言い直す。
-2. relevant files、docs、tests を読む。
+2. 関連ファイル、文書、テストを読む。
 3. 公開事実が必要なら `public-research` を付ける。
 4. 要求を capability、constraint、quality の atomic requirements に分割する。
 5. 各 atomic requirement を schema に埋め、各属性に `Attribute status` を付ける。
@@ -75,7 +75,7 @@ description: >
 - `base_commit` が現リポジトリ状態に有効
 - `superseded_by` が `none` または未設定
 
-満たさない場合は reference material として扱う。
+満たさない場合は参考資料として扱う。
 
 ## 引き渡し
 
@@ -159,7 +159,7 @@ description: >
 - 実装依頼を最初の要求として扱った。
 - atomic requirement に分割した。
 - 全必須 field と status を埋めた。
-- discovery 前の質問を避けた。
-- open questions は真の `unknown` だけ。
+- 調査前の質問を避けた。
+- 未解決質問は真の `unknown` だけ。
 - artifact を `.opencode/work/` に書いた。
 - next capability set が最小十分。

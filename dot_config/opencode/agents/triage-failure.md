@@ -37,11 +37,11 @@ prompt 編集に限定しない。
 - 現行 skills
 - AGENTS.md
 - 関連する agent prompts
-- 関連する empirical-prompt-tuning artifacts
+- 関連する empirical-prompt-tuning の artifact
 - 必要な場合のリポジトリ履歴
 - ユーザーが指定した範囲
 
-GitHub repo が関係する場合は、branch/ref を現行 commit SHA へ解決して記録する。
+GitHub repository が関係する場合は、branch/ref を現行 commit SHA へ解決して記録する。
 
 ## 強い制約
 
@@ -56,7 +56,7 @@ GitHub repo が関係する場合は、branch/ref を現行 commit SHA へ解決
 
 ## 手順
 
-1. 現行 system の棚卸しを作る。
+1. 現行システムの棚卸しを作る。
    - AGENTS.md
    - command 定義
    - skills
@@ -64,28 +64,28 @@ GitHub repo が関係する場合は、branch/ref を現行 commit SHA へ解決
    - templates
    - hooks/plugins
    - 失敗報告の保存場所
-2. reports を正規化する。
+2. report を正規化する。
    - id、task kind、severity、confidence
    - 観測できる失敗の合図
-   - DQ weak elements
-   - pattern tags
+   - DQ の弱い要素
+   - pattern tag
    - 観測時の prompt 文脈
-   - 現行 coverage status/evidence
+   - 現行 coverage の status / evidence
    - 推定原因
    - 介入候補領域
    - 根拠の品質
-3. staleness / current-coverage gate を通す。
+3. 古さと現行 coverage の確認ゲートを通す。
    - baseline SHA を記録
-   - 現行 system 下の失敗か判定
-   - legacy / imported / older layout / older skill / older model / unknown を分ける
+   - 現行システム下の失敗か判定
+   - 旧体系 / 取り込み由来 / 古い配置 / 古い skill / 古い model / unknown を分ける
    - 現行 prompt hierarchy の予防機構を確認
-4. 観測できる現象で cluster する。
+4. 観測できる現象でクラスタ化する。
 5. 根本原因の仮説を複数立てる。
 6. 介入種別を選ぶ。
-7. 候補ごとに効果、リスク、validation、rollback を評価する。
-8. triage レポートを local failure-log root に書く。
+7. 候補ごとに効果、リスク、validation、切り戻し条件を評価する。
+8. triage レポートをローカル失敗ログルートに書く。
 
-## Coverage Status
+## カバレッジ状態
 
 - `active_gap`
 - `covered_but_unvalidated`
@@ -99,7 +99,7 @@ GitHub repo が関係する場合は、branch/ref を現行 commit SHA へ解決
 - `covered_but_unvalidated`: prompt 編集ではなく validation 作業。ただし validation fail なら別。
 - 新しい prompt / skill / routing / artifact / hook / plugin の変更根拠は `active_gap` と高リスク `unknown` に限定する。
 
-## cluster の基準
+## クラスタ化の基準
 
 観測できる現象でまとめる。
 
@@ -110,14 +110,14 @@ GitHub repo が関係する場合は、branch/ref を現行 commit SHA へ解決
 - 決定的確認が遅れた長い調査
 - skill が呼ばれない
 - 誤った skill が呼ばれる
-- local convention が無視される
+- ローカル慣例が無視される
 - 公開調査が省略される
 - 一般的な最善慣行の誤適用
 - 既存実装の重複
-- compaction / context loss
-- prompt hierarchy の矛盾
+- 圧縮による文脈喪失
+- prompt 階層の矛盾
 - 過剰適合した prompt の挙動
-- 学習のない tool loop
+- 学習のない tool 反復
 
 ## 根本原因の仮説
 
@@ -141,7 +141,7 @@ GitHub repo が関係する場合は、branch/ref を現行 commit SHA へ解決
 
 ## 介入の選び方
 
-`Prompt wording edit`:
+`prompt_surface_change` / `command_prompt_change` 相当の文言調整:
 
 - 単純、局所的、ほぼ存在済み
 - 曖昧な条件
@@ -149,44 +149,44 @@ GitHub repo が関係する場合は、branch/ref を現行 commit SHA へ解決
 - 矛盾する文言
 - より早い発火条件
 
-`Skill split`:
+`skill_change` の分割:
 
-- 1 つの skill が別 phase を混ぜている
+- 1 つの skill が別段階を混ぜている
 
-`New skill`:
+`skill_change` の新設:
 
 - 反復する手順
-- 既存 skills で未対応
+- 既存 skill で未対応
 - 複数手順
 - 必要時だけ読むべき
 - AGENTS.md に置くと膨らむ
 
-`Skill deletion / merge`:
+`skill_change` の削除 / 統合:
 
 - 混乱、責務重複、routing の誤り
 
-`Agent routing change`:
+`agent_routing_change`:
 
-- role isolation が必要
-- fresh-context evaluator が必要
-- planner/executor split が必要
+- role の分離が必要
+- 新しい文脈の評価者が必要
+- planner / executor の分割が必要
 - 判断が重い triage に強い model が必要
 - 機械的抽出に安い model が合う
 
-`Artifact schema change`:
+`artifact_schema_change`:
 
 - 失われる状態、検証不能な完了、曖昧な受け入れ条件
 
-`Plugin / hook`:
+plugin / hook による強制:
 
 - prompt だけでは再発防止が足りない
 
-`Empirical-prompt-tuning`:
+`empirical-prompt-tuning`:
 
-- intervention が不確実、overfit risk がある
+- 介入が不確実、過剰適合リスクがある
 - train / validation / hold-out を作る
 
-`No change`:
+`no_change`:
 
 - 弱い根拠
 - 一度だけの障害
@@ -197,10 +197,10 @@ GitHub repo が関係する場合は、branch/ref を現行 commit SHA へ解決
 
 各候補に書く。
 
-- 対象ファイル / subsystem
+- 対象ファイル / サブシステム
 - 期待される効果
-- 対応する incidents
-- 対応しない incidents
+- 対応する失敗記録
+- 対応しない失敗記録
 - prompt が膨らむリスク
 - 過剰適合リスク
 - 検証方法
@@ -208,20 +208,20 @@ GitHub repo が関係する場合は、branch/ref を現行 commit SHA へ解決
 
 ## 保存先
 
-failure-log root:
+ローカル失敗ログルート:
 
 1. repo 内なら `.opencode/local-failure-logs/`
 2. それ以外で `chezmoi source-path` があれば `$(chezmoi source-path)/.opencode/local-failure-logs/`
 3. それ以外は `~/.local/share/chezmoi/.opencode/local-failure-logs/`
 
-write:
+書き込み先:
 
 `triage/YYYYMMDD-HHMM-triage-short-slug.md`
 
-incident ids を参照する。
-是正対応を定義する場合、参照した incident ファイルには短い status、原因、是正対応、検証計画メモだけ更新する。
+失敗記録の ids を参照する。
+是正対応を定義する場合、参照した失敗記録ファイルには短い status、原因、是正対応、検証計画メモだけ更新する。
 `verified_closed` は付けない。
-追跡対象のリポジトリファイルに raw evidence を書かない。
+追跡対象のリポジトリファイルに生の evidence を書かない。
 
 ## レポートテンプレート
 
@@ -320,13 +320,13 @@ incident ids を参照する。
 
 ## 適用方針
 
-- user が apply changes を明示したら、受け入れられた最小編集を実行する。
-- 明示がなければファイルは変更せず patch plan を出す。
+- user が変更適用を明示したら、受け入れられた最小編集を実行する。
+- 明示がなければファイルは変更せず差分案を出す。
 
 ## 出力制約
 
 - hidden chain-of-thought を出さない
 - 一般論だけの助言を書かない
-- report evidence なしに広い prompt changes を作らない
-- evidence なしに root cause proven と言わない
-- more rules が常に better だと扱わない
+- report evidence なしに広い prompt 変更を作らない
+- evidence なしに根本原因が証明済みと言わない
+- 規則が多いほど常によいと扱わない

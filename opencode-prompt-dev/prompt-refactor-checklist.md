@@ -6,17 +6,17 @@
 
 ## 実行前チェック
 
-- [ ] 変更は failure-log のどのエントリに対応するか明示した
-- [ ] 利用可能な prompt surfaces を棚卸しし、in scope / out of scope を分けた
-- [ ] 介入種別を prompt surface change / command prompt change / skill change / agent routing change / artifact schema change / hook or plugin change / harness change / regression validation only / no change のどれかで明示した
+- [ ] 変更は失敗ログのどのエントリに対応するか明示した
+- [ ] 利用可能な prompt surface を棚卸しし、対象範囲 / 対象外を分けた
+- [ ] 介入種別を `prompt_surface_change` / `command_prompt_change` / `skill_change` / `agent_routing_change` / `artifact_schema_change` / `hook_or_plugin_change` / `harness_change` / `regression_validation_only` / `no_change` のどれかで明示した
 - [ ] 追加ではなく、まずは言い換え・統合・移設で対応できるか検討した
 - [ ] どの層（AGENTS.md / agent / skill descriptions / skill）へ配置するか決めた
 - [ ] 共有状態、保存先、状態語彙、workflow 契約など複数面が依存する要素を変える場合、影響面を洗い出した
 - [ ] 重要な条件文について、その時点で可視な情報だけで判定できるか確認した
 - [ ] 条件分岐が別 skill や別工程の診断結果を前借りしていないか確認した
-- [ ] REQUIRED BEHAVIORS と preserve すべき capability / constraint を編集前に分けて洗い出した
-- [ ] `covered_but_unvalidated` を prompt edit に変換する場合、validation fail または current system での再発確認があるか確認した
-- [ ] non-prompt intervention を prose-only の rule へ downgrade していないか確認した
+- [ ] 必須動作と保持すべき capability / 制約を編集前に分けて洗い出した
+- [ ] `covered_but_unvalidated` をプロンプト編集に変換する場合、検証失敗または現行システムでの再発確認があるか確認した
+- [ ] prompt 以外の介入を、文章だけの規則へ格下げしていないか確認した
 
 ## 実行後チェック
 
@@ -24,18 +24,18 @@
 - [ ] 同じ原則を別表現で複数書いていないか
 - [ ] 長い行動規範が常設 prompt に残っていないか
 - [ ] 例外条件が本文に埋もれていないか（必要なら専用の skill に移す）
-- [ ] 未解決事項や受け入れ条件の不足を、実行不能な blocker と取り違えていないか確認した
+- [ ] 未解決事項や受け入れ条件の不足を、実行不能な阻害要因と取り違えていないか確認した
 - [ ] タスクや場面に固有の権限や禁止事項が適切な層に書かれているか
-- [ ] 変更の理由と影響範囲を、関連する incident report または triage report に記録した
-- [ ] tracked prompt files には確定済みの規則だけを残し、未整理の証拠・長い会話断片・生ログを混入させていない
+- [ ] 変更の理由と影響範囲を、関連する失敗報告または triage レポートに記録した
+- [ ] 追跡対象の prompt files には確定済みの規則だけを残し、未整理の証拠・長い会話断片・生ログを混入させていない
 - [ ] 判定不能時の安全側デフォルト、または上流へ戻す経路を明示した
-- [ ] 抽象的な価値判断を、観測可能な代理条件や具体的な trigger に分解した
-- [ ] behaviorally meaningful な instruction を drop した場合、同層の言い換えまたは別層への明示的な移設で保存した
-- [ ] objective / trigger / required output / forbidden behavior / validation target が、該当 capability の階層全体から抜け落ちていない
+- [ ] 抽象的な価値判断を、観測可能な代理条件や具体的な発火条件に分解した
+- [ ] 挙動上意味のある指示を削除した場合、同層の言い換えまたは別層への明示的な移設で保存した
+- [ ] 目的 / 発火条件 / 必須出力 / 禁止行動 / validation target が、該当 capability の階層全体から抜け落ちていない
 - [ ] command 名、handoff 先、slash command 表記が関連面で一致している
 
 ## 品質ゲート
 
 - 変更は原則として "削除・統合・移設" を優先し、明確な理由がある場合のみ新規追加を許可する。
-- hierarchy-aware な cleanup では、短さだけでなく従いやすさと completeness の両方を満たすこと。
+- 階層を意識した整理では、短さだけでなく従いやすさと完全性の両方を満たすこと。
 - 変更後は軽い差分レビューを行い、少なくとも1人のレビュー承認を得ること。

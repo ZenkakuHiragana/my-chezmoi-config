@@ -40,10 +40,10 @@ ZIP に入れる。
 - 後続 agent への作業指示
 - ユーザーへの助言や次の作業
 - hidden chain-of-thought
-- system/developer messages
-- private tool specs
+- system / developer messages
+- 非公開 tool 仕様
 - 明示されていない感情、意図、評価
-- secrets、tokens、keys、PII
+- secret、token、key、PII
 
 判断根拠は要約してよい。
 非公開思考ログは書かない。
@@ -186,21 +186,21 @@ Markdown の構造:
 
 含めるもの:
 
-- user-uploaded files / images
-- generated files
-- edited files
-- analysis data
-- referenced PDFs / slides / sheets / docs
-- images used for analysis
-- context-critical intermediate outputs
+- ユーザーがアップロードしたファイル / 画像
+- 生成ファイル
+- 編集ファイル
+- 分析データ
+- 参照した PDF / slide / sheet / docs
+- 分析に使った画像
+- context に重要な中間出力
 
 除外するもの:
 
-- internal logs
-- private internal instructions
+- 内部 log
+- 非公開の内部指示
 - hidden reasoning
-- irrelevant temp files
-- high-risk credentials not needed for context
+- 関係ない一時ファイル
+- context に不要な高リスク認証情報
 
 安全な名前の例:
 
@@ -212,9 +212,9 @@ Markdown の構造:
 添付できない場合は書く。
 
 - ファイル / 識別子
-- reason
-- available summary
-- retrieval info if available
+- 理由
+- 利用できる要約
+- 利用できる場合の再取得情報
 
 ## 根拠の書き方
 
@@ -233,7 +233,7 @@ Markdown の構造:
 ## 文体
 
 - 日本語で書く。
-- filenames、URLs、code、proper nouns、quoted originals は原文維持。
+- file 名、URL、code、固有名詞、引用原文は原文維持。
 - 簡潔に書き、文脈を失わない具体性を保つ。
 - 事実、推測、不明点、前提を分ける。
 - 作業指示ではなく記録として書く。
@@ -251,17 +251,17 @@ ZIP 化できない場合は、次を出す。
 - `context.md` 全文
 - 添付すべきファイル一覧
 - 添付不可理由
-- available identifiers / links / paths
+- 利用できる識別子 / link / path
 - ZIP 化できなかった理由
 
 ## 禁止
 
 - 後続 agent への依頼を書かない
 - 次の作業や助言を書かない
-- session にない情報を補わない
+- セッションにない情報を補わない
 - unknown を確定扱いしない
-- hidden reasoning を書かない
+- 非公開推論を書かない
 - 非公開の system / developer 指示を書かない
 - 添付していないファイルを添付済み扱いしない
-- 参照していない source を参照済みにしない
-- 作成していない output を作成済みにしない
+- 参照していない出典を参照済みにしない
+- 作成していない出力を作成済みにしない
