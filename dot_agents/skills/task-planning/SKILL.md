@@ -1,29 +1,13 @@
 ---
 name: task-planning
 description: >
-  Create a durable .opencode/work task file when requirements are clear but execution still needs sequencing, dependencies, source obligations, and completion checks. 明確な要件を、再開可能な作業順序と検証条件へ落とす。
+  Use when requirements are already clear but execution still needs ordered work items, dependencies, read/write surfaces, handoff points, or completion checks captured in a durable task file; not when requirements are still unclear or one focused pass can finish safely. 実行計画の固定専用。再開可能な task file と次の skill を返す。
 ---
 
 # Task Planning
 
 clear requirements を、downstream execution が再開できる task file に変換する。
 implementation はしない。
-
-## 使う条件
-
-- 複数 files、modules、documents、phases にまたがる
-- investigation、research、implementation、verification の順序が重要
-- downstream agent または resume があり得る
-- long conversation-only procedure を durable artifact にする必要がある
-- completion checks を実行前に固定したい
-
-## 使わない条件
-
-- 1 回の focused pass で安全に完了できる
-- required attributes が未解決
-- first work item が要件発見そのもの
-- pure investigation / public research
-- command workflow が十分に構造化済み
 
 ## 入力
 

@@ -1,29 +1,13 @@
 ---
 name: japanese-doc-review
 description: >
-  Review Japanese prose/documents for structure, grammar, style, and typos when the user asks for review, proofreading, self-review, or issue identification. 日本語文書の問題点を固定形式で指摘する。直接改善や翻訳だけの依頼では使わない。
+  Use when the user asks to review, proofread, self-review, or point out issues in a specific Japanese prose target; not for direct rewriting, translation, abstract advice, or code/PR review. 日本語文書レビュー専用。固定形式の指摘結果を返す。
 ---
 
 # Japanese Doc Review
 
 日本語 reader-facing prose の問題を見つけ、後続修正に使える review result を返す。
 review 対象には README、設計メモ、仕様説明、運用手順、調査報告、prompt text、skill instructions を含む。
-
-## 使う条件
-
-- ユーザーが「レビュー」「校正」「問題点を指摘」「セルフレビュー」を求める
-- pasted text、file、agent draft など具体的な review target がある
-- review result file の作成または更新を求められ、review target がある
-
-`構成`、`文法`、`誤字脱字`、`表記揺れ`、`文体`、`総合`、`全観点`、`確認して`、`チェックして` は、日本語 prose quality の問題特定 intent がある場合だけ trigger。
-
-## 使わない条件
-
-- code/PR review
-- drafting、summarizing、translation
-- abstract writing advice
-- 「改善して」「自然にして」だけの直接 rewrite
-- review target がない依頼
 
 target がない場合は次だけ返す。
 

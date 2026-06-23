@@ -1,7 +1,7 @@
 ---
 name: investigation
 description: >
-  Inspect repository-local or locally available source-of-truth evidence before making claims, fixes, or implementation decisions. repo 内外のローカル根拠を確認し、観測事実、未解決点、次の行動を返す。
+  Use when a claim, fix, review finding, or implementation decision depends on unread repository-local files, configs, logs, generated artifacts, runtime traces, or other local source-of-truth evidence; not for pure public facts or already-ready implementation. ローカル根拠の確認専用。観測事実、未解決点、次の行動を返す。
 ---
 
 # Investigation
@@ -17,21 +17,6 @@ repository-local evidence を確認してから、説明、修正、review findi
 - runtime artifact
 - log、trace、state
 - AGENTS.md、domain notes、user が名指しした authoritative path
-
-## 使う条件
-
-- observed behavior または factual state が未確認
-- 再現、近似再現、ログ確認が必要
-- code path、branch、configuration、input、data shape を特定したい
-- local source of truth が named または implied
-- 複数仮説を evidence で絞る必要がある
-- `repo_derivable` 属性が未解決
-
-## 使わない条件
-
-- task contract が具体的で、主作業が implementation
-- 主目的が feature delivery、documentation update、refactoring
-- repo から独立した public fact 調査だけ
 
 ## 手順
 

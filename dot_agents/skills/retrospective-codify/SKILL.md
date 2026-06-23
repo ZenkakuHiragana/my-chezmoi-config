@@ -1,24 +1,12 @@
 ---
 name: retrospective-codify
-description: Codify task lessons by mapping first failure to final solution and choosing ast-grep, AGENTS.md, or skill updates. タスク終盤の学びを、重複確認のうえ再利用可能なルール候補にする。
+description: Use when a task required trial and error and the user wants reusable lessons codified into AGENTS.md, a skill, or a static rule; not for one-off notes or tasks with no generalizable lesson. 学びの整理専用。再利用可能な規則候補と置き場を提案する。
 ---
 
 # Retrospective Codify
 
 タスク終盤に「最初に知っていれば遠回りしなかった」知見を抽出し、静的ルール、AGENTS.md、skill のどれに残すべきか判定する。
 勝手に書き出さず、提案してユーザー承認を待つ。
-
-## 使う条件
-
-- ユーザーが「学びを残して」「ルール化して」「skill にして」「lint に落として」と言う
-- 試行錯誤の末に解に到達した
-- 同種タスクで同じ落とし穴を避けたい
-
-## 使わない条件
-
-- 一発で通った単純作業
-- 抽出する汎用知見がない
-- 単一 task 固有で commit/PR note で足りる
 
 ## 手順
 
@@ -49,12 +37,12 @@ description: Codify task lessons by mapping first failure to final solution and 
 
 ## 出力先
 
-| 条件 | 出力先 |
-| --- | --- |
-| 構文レベルで機械検出可能 | `ast-grep` / linter rule |
-| 言語横断・ツール横断の短い一般則 | AGENTS.md |
-| 手順、判断、テンプレが必要 | skill |
-| 単一 task 固有 | 採用しない |
+| 条件                             | 出力先                   |
+| -------------------------------- | ------------------------ |
+| 構文レベルで機械検出可能         | `ast-grep` / linter rule |
+| 言語横断・ツール横断の短い一般則 | AGENTS.md                |
+| 手順、判断、テンプレが必要       | skill                    |
+| 単一 task 固有                   | 採用しない               |
 
 静的検出可能なら prompt より lint を優先する。
 
@@ -64,6 +52,7 @@ description: Codify task lessons by mapping first failure to final solution and 
 ## Retrospective
 
 ### 学び 1: <label>
+
 - 最初の失敗: <1 line>
 - 最終解: <1 line>
 - 気付き: <1 line>
@@ -71,15 +60,18 @@ description: Codify task lessons by mapping first failure to final solution and 
 ## 提案
 
 採用候補:
+
 - [lint] <rule>: <1 line>（学び 1 由来）
 - [skill 追記] <skill>: <1 line>（学び 1 由来）
 - [skill 新規] <skill>: <1 line>（学び 1 由来）
 - [rule] AGENTS.md: <1 line>（学び 1 由来）
 
 重複検出（提案不要）:
+
 - 学び 1: 既存 <skill/rule> の <section/line> が完全カバー
 
 不採用:
+
 - 学び 1: <reason>
 ```
 

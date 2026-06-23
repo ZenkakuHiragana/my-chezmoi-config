@@ -1,29 +1,13 @@
 ---
 name: requirements-clarification
 description: >
-  Normalize implementation-shaped requests into execution-ready atomic requirement records with explicit Attribute status and remaining capability obligations. 実装依頼を、Attribute status 付き atomic requirement records へ正規化する。
+  Use when an implementation-shaped request still lacks stable scope, invariants, acceptance criteria, verification, affected tests/docs, or decomposition into atomic requirements; not for pure fact questions, pure local investigation, pure public research, or already-executable refactoring. 実装依頼の要件整理専用。atomic requirements、残る調査、質問、次の skill を確定する。
 ---
 
 # Requirements Clarification
 
-実装依頼を `stated requirement` として扱い、実行前に `Attribute status` 付き atomic requirement records へ落とす。
+実装依頼を最初の要求として扱い、実行前に `Attribute status` 付き atomic requirement records へ落とす。
 曖昧さを感覚で処理せず、固定 record、属性 status、残る capability obligation で管理する。
-
-## 使う条件
-
-- 実装意図あり
-- 受け入れ条件、検証方法、影響範囲が未整理
-- 1 文に複数要求が混在
-- tests、docs、invariants が暗黙
-- planning または implementation 前に durable artifact が必要
-
-## 使わない条件
-
-- 純粋な事実質問
-- 純粋な local investigation
-- 純粋な public research
-- 実行可能な refactoring 依頼
-- 現行 task に結び付いた十分な requirements artifact がある
 
 ## 入力
 
@@ -172,7 +156,7 @@ primary source として使う条件:
 
 ## 完了チェック
 
-- request を `stated requirement` として扱った
+- 実装依頼を最初の要求として扱った
 - atomic requirement に分割した
 - 全必須 field と status を埋めた
 - discovery 前の質問を避けた

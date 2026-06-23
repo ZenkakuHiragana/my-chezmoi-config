@@ -1,25 +1,12 @@
 ---
 name: empirical-prompt-tuning
-description: Empirically improve agent-facing instructions with frozen scenarios, blinded fresh executors, separate scoring, and hold-out checks. prompt/skill/command の変更を、固定評価と新規 subagent 実行で検証する。
+description: Use when a prompt, skill, command, or agent instruction has been created or substantially changed and needs empirical validation with frozen scenarios and fresh executors; not for one-off prompts or preference-only wording tweaks. 実験的な検証専用。比較可能な評価結果と改善判断を返す。
 ---
 
 # Empirical Prompt Tuning
 
 prompt author の self-reread を信頼しすぎない。
 frozen scenarios、fresh executors、separate scoring で instruction change を検証する。
-
-## 使う条件
-
-- skill、slash command、agent prompt、AGENTS section、code-generation prompt を作成または大きく改訂した
-- failure が ambiguous wording に見える
-- reused prompt で失敗コストが高い
-- evaluation cost が justified
-
-## 使わない条件
-
-- disposable one-off prompt
-- author preference の反映だけ
-- fresh subagent dispatch が使えない
 
 dispatch 不可なら `empirical evaluation skipped: dispatch unavailable` と明示する。
 self-reread を empirical evaluation と呼ばない。
@@ -173,22 +160,28 @@ adoption 目安:
 ## Iteration N
 
 ### Change from previous iteration
+
 - <summary>
 
 ### Validation summary
+
 | Scenario | Runs | Critical pass rate | Pass rate | median steps | median duration | blocked rate |
-|---|---:|---:|---:|---:|---:|---:|
+| -------- | ---: | -----------------: | --------: | -----------: | --------------: | -----------: |
 
 ### New ambiguities
+
 - <scenario>: <requirement and reason>
 
 ### New discretionary fill-ins
+
 - <scenario>: <fill-in>
 
 ### Scorer disagreement
+
 - <scenario / requirement>: <summary>
 
 ### Next prompt change
+
 - <smallest next change>
 ```
 

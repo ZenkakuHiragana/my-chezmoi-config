@@ -1,26 +1,12 @@
 ---
 name: refactoring
 description: >
-  Use for behavior-preserving structural cleanup of existing code after local evidence is understood. 既存挙動を保ちながら構造、名前、境界、重複を整理する。
+  Use only for explicitly behavior-preserving structural cleanup of existing code or prompts after current behavior is understood; not for feature delivery, bugfixes, or changes whose behavior is still uncertain. 構造整理専用。名前、責務、重複、境界を整えつつ挙動を保つ。
 ---
 
 # Refactoring
 
 既存挙動を保ったまま、構造、名前、責務境界、重複、読みやすさを改善する。
-
-## 使う条件
-
-- behavior-preserving cleanup が明示または task contract で確定
-- file/module split、merge、move が必要
-- naming、duplication、dependency direction、ownership boundary を整える
-- tests/docs/comments も refactor に合わせる必要がある
-
-## 使わない条件
-
-- feature delivery または bugfix が主目的
-- 単純な局所 edit
-- external research が主依存
-- 現挙動や source evidence が未確認
 
 ## 評価軸
 

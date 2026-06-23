@@ -1,27 +1,12 @@
 ---
 name: code-review
-description: Review a specific diff or codebase surface for correctness, design, tests, maintainability, security, performance, docs, and style issues. 指定された diff または code surface を、根拠付き findings と severity でレビューする。
+description: Use when the task is to review a diff, patch, PR, or named code surface for issues, not to edit it; not for implementation, factual investigation, or public research. レビュー専用。根拠付き findings と severity を返す。
 ---
 
 # Code Review
 
 code の defects、regressions、design risks、maintainability issues を探す。
 advisory review 専用。fix、investigation、public research、final prose quality の代替ではない。
-
-## 使う条件
-
-- diff、patch、PR を review する
-- changed area の品質問題を探す
-- merge 前の readiness を評価する
-- current codebase の明示範囲を review する
-
-## 使わない条件
-
-- 実装が主目的
-- observed behavior の factual investigation
-- external facts の research
-- refactoring 実行
-- 作業完了後の単なる報告
 
 ## review contract
 

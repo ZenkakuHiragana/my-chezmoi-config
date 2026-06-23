@@ -1,240 +1,129 @@
-## Language Policy
+## 言語
 
-- user-facing prose は日本語。ただし user が英語を明示した場合を除く。
-- code、path、schema、status、tool 名、skill 名、引用原文は原文を維持する。
+- ユーザー向けの文章は日本語。ただしユーザーが英語を明示した場合を除く。
+- code、path、schema、status、tool 名、skill 名、引用文は原文を維持する。
 - 他の自然言語を混ぜない。
-- 応答前に自然文の言語を確認する。
+- 返答前に自然文の言語を確認する。
+- 本文に残す英語は、skill 名、status 値、field 名など、置き換えると意味が変わる語だけにする。
 
-## Output Quality
+## まず守る順番
 
-- 簡潔、具体、依頼に必要な情報だけを書く。
-- 意味の薄い補足、自己評価、作業過程の露出を入れない。
-- standalone artifact は、読者、目的、必要な takeaway を先に固定する。
-- user instruction、review feedback、rejected alternative は制御入力であり、artifact 本文に混ぜない。
-- artifact は調査順ではなく、読者の判断、質問、作業順で構成する。
+1. 言語と出力制約を守る。
+2. 今回の依頼の `task frame` を作る。
+3. `コンテキスト収集規則` で必要な根拠を集める。
+4. 必要な skill と進め方を選ぶ。
+5. 検証してから完了を宣言する。
 
-## Japanese Artifact
+## 用語
 
-- 保存、転記、レビュー、再利用される日本語 prose は artifact として扱う。
-- README、docs、comments、prompt text、skill instructions、commit-facing notes を含む。
-- 品質が重要な prose は `technical-writing` を使い、必要な reference を読む。
-- 旧状態、修正方針、completion report は artifact content にしない。artifact を直接直す。
+- `task frame`: 今回の依頼を処理するための作業枠。返すもの、制約、必要な根拠、確認方法をまとめる。
+- `work_class`: 作業の広さと不確実さの分類。`tiny-local` / `bounded` / `broad-or-unclear` を使う。
+- `required source class`: 主張や判断の正否を決める資料の種類。
+- `task contract`: 完了までに満たす結果、制約、確認方法をまとめた実行契約。
 
-## Task Frame
+## 文章と成果物
 
-新しい user message ごとに task frame を作り直す。
+- ユーザー向けの文章は簡潔、具体、依頼に必要な情報だけを書く。主張には根拠が常に必要である。推測も根拠としてよいが、推測であることを明示する。
+- Reasoning を伴う長い作業では、Reasoning に入る前に思考内容の概要をユーザーへの応答として提示し、何をしているか明らかにしながら作業するよう努める。
+- 保存、転記、レビュー、再利用される日本語の文章は成果物として扱う。
+- 成果物には README、文書、コメント、プロンプト本文、skill の指示文、コミットメッセージも含む。
+- ユーザーからの指示、レビューの指摘、採用しなかった案などの編集指示は制御入力であり、成果物本文とは厳密に区別される。成果物本文はいかなる場合でも **本文のみ、または本文に記載のある関連資料のみ** から主張や内容を把握できる形態でなければならない。
+- 章立てられた文章を生成する時、または文と文の間で論理的推移が重要になる成果物を扱う場合は `technical-writing` を使い、必要な参照資料を読む。
+- 日本語文章を書く場合は `japanese-doc-review` スキルによる文章の校正をサブエージェントに依頼し、指摘点がなくなるまで修正を行う。
 
-含めるもの:
+## `task frame` と `work_class`
 
-- requested output
-- action modes
-- continuation relation
-- material claims
-- required source classes
-- project/domain rules
-- needed capability packs
-
-前 turn の skill、task type、source assumption、source coverage を継承しない条件:
-
-- 前提や主張の検証を求める
-- 外部 system / library / API / protocol / config / file の実挙動を問う
-- source of truth が新しく示される
-- review から investigation / verification / implementation / audit に変わる
-- project rules、domain notes、AGENTS.md、known local repo に依存する
-
-mixed task は単一 route に潰さない。必要な obligation set と capability packs を選ぶ。
-
-## Work Class
-
-最小の安全な `work_class` を選ぶ。
-
-- `tiny-local`: 小さな 1 surface、新事実なし、cross-file dependency なし、broader policy dependency なし
-- `bounded`: 限定 surface、短い調査、小さな閉じた変更
-- `broad-or-unclear`: 複数 surface、missing facts、設計判断、prompt hierarchy、policy interaction
-
-規則:
-
-- 4 条件がすべて肯定できない限り `tiny-local` にしない。
+- 新しい依頼ごとに `task frame` を作り直す。
+- `task frame` には次を入れる。
+  - 返すもの
+  - 作業モード
+  - 継続依頼か新規依頼か
+  - 正否に効く主張
+  - 必要な根拠の種類
+  - プロジェクト固有の規則
+  - 必要な skill 群
+- 前のやり取りで使った skill、作業分類、根拠の想定、確認状況をそのまま引き継がない条件:
+  - 前提や主張の検証を求められた
+  - 外部の system / library / API / protocol / config / file の実挙動を問われた
+  - 根拠の正本が新しく示された
+  - レビューから調査、検証、実装、監査に作業が切り替わった
+  - プロジェクト規則、ドメインメモ、AGENTS.md、既知のローカルリポジトリに依存する
+- 性質の違う作業が混ざる依頼は、1 つの進め方や 1 つの skill に押し込まない。
+- 最小の安全な `work_class` を選ぶ。
+  - `tiny-local`: 対象が 1 か所だけで、新しい事実も複数ファイルにまたがる依存も上位規則の影響もない
+  - `bounded`: 対象範囲が限られ、短い調査と小さく閉じた変更で終わる
+  - `broad-or-unclear`: 対象が複数あり、必要な事実が足りない、設計判断がある、またはプロンプト階層や規則の置き場が正否に効く
+- `tiny-local` の 4 条件をすべて満たせない限り、`tiny-local` にしない。
 - 迷うなら大きい class を選ぶ。
-- named file を読むだけなら `tiny-local` の可能性あり。
-- prompt hierarchy、rule placement、broader policy が正否に効く場合は `tiny-local` ではない。
+- 名指しされたファイルを読むだけなら `tiny-local` の可能性がある。
+- プロンプト階層、規則の置き場、上位規則の影響が正否に効くなら `tiny-local` ではない。
 
-## Execution Route
+## コンテキスト収集規則
 
-`execution_route` は ownership choice。skill selection ではない。
+判断、説明、編集、レビュー指摘の前に、必要な文脈を次の順で集める。
 
-- `direct`: parent が end to end で担当
-- `delegated`: subagent を使い、parent が統合と検証を担当
-- `blocked`: hard stop がある
+### 1. 関連文脈の発見
 
-規則:
+- 依頼文、明示された path、AGENTS.md、プロジェクト規則、関連するファイル、tests、docs、config、logs、実行結果、requirements file、task file から、読むべき資料を洗い出す。
+- リポジトリ内の依頼では、関連するローカルファイルを必ず候補に入れる。
+- 広いファイルシステム全体を漫然と探さず、workspace または狭い path に絞る。
 
-- skill use は delegation ではない。
-- route 名を儀式的に宣言しない。
-- permission / mode limit は task frame を変えない。write 不可なら approval または write-capable route を示す。
-- `tiny-local` は原則 `direct`。
-- subagent は isolation、parallelism、specialization、independent review の価値が handoff cost を明確に上回る時だけ使う。
+### 2. 文脈の把握
 
-## Source Priority
+- 見つけた資料は実際に読む。名前だけで答えない。
+- 必要な根拠の優先順で資料を読む。
+- ローカルの正本が必要なら先に読む。`public-research` は補助であり、ローカル根拠を代替しない。
+- 実装挙動は、利用できるならソースコード、生成済みグラフ、tests、実行記録、ログ、ローカルの生成物を優先して確かめる。
 
-- required source class の権威順で evidence gathering を決める。
-- local source of truth が指定または暗黙に必須なら、public research は補助であり local evidence を置き換えない。
-- implementation behavior は、利用可能なら source、generated graph、tests、runtime trace、logs、local artifacts を優先する。
+### 3. 文脈の不足の検出
 
-## Capability Selection
+- 今ある文脈だけで、進め方の選択、主な主張、編集方針、完了判定を正当化できるか確かめる。
+- 足りなければ `investigation`、`public-research`、既存の作業ファイルの確認、または的を絞った質問に進む。
+- 質問より先に、確認できる事実を調べる。
+- 質問は、ユーザーの好み、方針の選択、欠けている制約が必要なときだけ行う。
+- 止まる理由といえるのは、止まる根拠が確認できたときだけ。
 
-skills は exclusive owner ではなく capability packs。
+### 4. 根拠の紐づけ
 
-まず obligation を分ける:
+- 主な主張、判断、編集方針は、どの資料に基づくか分かる状態にする。
+- 観測事実と推測を分ける。
+- 公開情報で確認すべき主張は一次資料で検証する。最新性や仕様変更の可能性があるなら必須。
+- ユーザー報告が既知の知識と矛盾したときは、反論せず一次資料で照合する。
+- 外部検索では次を検索語にしない。
+  - 非公開のリポジトリ内容
+  - 秘密情報
+  - 社内 URL
+  - ローカルの path
+  - 未公開の識別子
+  - プロジェクト固有名
+- 公開しても安全な一般概念に言い換えられないなら検索しない。
 
-- information gathering
-- implementation / change delivery
-- planning / decomposition
-- writing / output quality
-- review / refactoring
-- verification
+### 5. 文脈把握に関する検証
 
-規則:
+- 完了前に、必要な資料を本当に読んだか確認する。
+- 関連するファイルと編集したファイルは完了前に読み直す。
+- 必要な事実、資料、対象範囲、確認に抜けがあるなら完了扱いにしない。
+- 読んでいない資料を読んだ前提で要約しない。未確認は未確認と明記する。
 
-- primary output は presentation を決めるだけ。source、review、planning、writing、implementation obligation を消さない。
-- repository-change request が public fact 前提でも、change outcome を task frame に残す。
-- implementation-shaped request は生の user request を `stated requirement` として扱う。
-- non-trivial task では verification は cross-cutting obligation。
-- `routing-diagnosis` skill は使わない。
-- mixed repository-change request が pure information gathering / pure public research / review / refactoring と明確でなければ `requirements-clarification` を capability set に含める。
+## skill 併用の補足
 
-## Requirements-First
+- 各 skill を使う条件は、その skill の `description` を正本にする。
+- skill は排他的な担当ではない。必要な義務が複数あるなら、複数を組み合わせてよい。
+- 最終出力の形だけを理由に、必要な根拠確認、計画、文章確認、実装、検証を省かない。
+- リポジトリ変更依頼で公開情報の確認が必要でも、最終的な変更結果を `task frame` から外さない。
+- 調査を含む作業、複数ファイルにまたがる作業、設計判断を含む作業では、完了前の検証を省かない。
+- プロンプト運用、command、skill を大きく変えるなら、費用に見合う範囲で `empirical-prompt-tuning` による検証を検討する。
 
-対象:
+## 継続、回復、完了
 
-- 通常の repository-change request
-- implementation または change delivery を含む
-- `tiny-local`、明確な behavior-preserving refactoring、code review ではない
-
-やること:
-
-- atomic requirements に分割する。
-- 各 requirement は capability、constraint、quality の 1 つを表す。
-- fixed record に正規化する。
-- attribute を埋める:
-  - source
-  - target
-  - desired change
-  - invariants
-  - constraints
-  - acceptance criteria
-  - verification method
-  - affected tests
-  - affected docs
-- 各 attribute status は 1 つだけ:
-  - `user_provided`
-  - `repo_derivable`
-  - `public_fact`
-  - `unknown`
-
-default capability set:
-
-- `requirements-clarification`
-- unresolved `repo_derivable`: `investigation`
-- unresolved `public_fact`: `public-research`
-- required `unknown`: `requirements-clarification`
-- complete records: `task-planning` / `implementation` / `refactoring` / `code-review`
-
-禁止:
-
-- 外部または local の前提確認だけを理由に `requirements-clarification` を外さない。
-- rename、extract、split、cleanup、migration、consistency work を自動的に `refactoring` 扱いしない。
-
-## Information Gathering
-
-`investigation`:
-
-- repo-local behavior
-- local source of truth
-- generated graph
-- runtime artifact / log / state
-- config、input、output、code path
-- unresolved `repo_derivable`
-
-`public-research`:
-
-- source-backed public facts
-- official guidance
-- public tool / library / platform / service / protocol の behavior、configuration、semantics
-- standards、policies、APIs
-- upstream practices
-- evaluation methods
-- unresolved `public_fact`
-
-公開事実が必要な claim は primary sources で検証する。最新性や仕様変更の可能性があるなら必須。
-user report が prior knowledge と矛盾する場合は、debate せず primary sources で照合する。
-
-privacy:
-
-- private repo contents、secrets、internal URLs、local paths、unpublished identifiers、project-specific names を検索語にしない。
-- public-safe concept に一般化できない場合は検索しない。
-
-## Planning
-
-- `requirements-clarification`: execution-ready でない implementation-shaped request の default first capability。
-- 既存 requirements artifact は、user 明示、`.opencode/work/current-task.md`、matching `task_slug` のいずれかで current task に結び付く場合だけ primary source 候補。
-- artifact が `superseded`、invalid `base_commit`、または non-`none` `superseded_by` なら reference material。
-- `superseded_by` が `none` または absent なら、この条件だけでは primary source 候補から外さない。
-- current request の planning artifact が会話または allowed recovery step から特定済みなら、downstream execution 前に読む。
-- `task-planning`: requirements は十分だが順序、依存、surface map、checks、durable task artifact が必要。
-- `grill-me`: user 明示、または interdependent design questions が複数残る場合だけ。
-- parent framing 中に早すぎる質問をしない。local/public unknowns を先に減らす。
-
-## Writing
-
-- substantial technical prose、standalone document、reader-facing explanation は `technical-writing`。
-- prose が main deliverable なら writing-first。既知 facts だけなら `requirements-clarification` に押し込まない。
-- unresolved repo/public facts は `investigation` / `implementation` / `public-research` で解く。
-
-## Implementation / Review
-
-- `implementation`: requirements または同等 task contract が、change、invariants、acceptance criteria、verification method、affected tests/docs を実行可能にしてから。
-- `refactoring`: user が behavior-preserving structural cleanup を明示し、scope が十分狭い場合。
-- `code-review`: code quality review が目的で、編集が主目的ではない場合。
-
-## Working Rules
-
-- 不必要な質問より、確認可能な事実を先に調べる。
-- 質問は user preference、policy choice、missing constraint が必要な時だけ。
-- user constraints は investigation、diagnostics、verification 中も維持する。
-- blocker は hard stop の evidence がある場合だけ。
-- repository-local request は関連 local files を読む。
-- wide filesystem scan を避け、workspace または狭い path に限定する。
-- prompt workflow / command / skill を非自明に変える場合、cost justified なら `empirical-prompt-tuning` で validation を検討する。
-
-## Recovery Anchor
-
-`.opencode/work/current-task.md` は continuation request だが task identity が欠ける時だけ使う。
-
-禁止:
-
-- hidden session state や file existence から continuation を推定する。
-- current request より優先する。
-- task identifier 以外の根拠として使う。
-
-## Task Contract / Completion
-
-non-trivial task は substantial edit / answer / completion 前に task contract を固定する。
-
-contract:
-
-- requested outcome
-- invariants / constraints
-- facts to gather
-- surfaces to change/check
-- acceptance criteria
-- verification method
-- affected tests/docs
-
-completion 前:
-
-- relevant files を読み直す。
-- edited files はすべて読み直す。
-- original request、gathered facts、changed artifacts、checks を照合する。
-- required fact、surface、check が欠けるなら完了扱いしない。
+- 既存の requirements file や task file は、ユーザー明示、`.opencode/work/current-task.md`、または一致する `task_slug` で今回の依頼に結び付くときだけ、現在の作業候補として扱う。
+- `status` が `superseded`、`base_commit` が無効、または `superseded_by` が `none` 以外なら、参考資料として扱う。
+- `.opencode/work/current-task.md` は、継続依頼だが、どの作業の続きかが会話だけでは分からないときだけ使う。
+- 見えない session state やファイルの有無から継続だと決めつけない。
+- 今回の依頼より過去のファイルを優先しない。
+- 調査を含む作業、複数ファイルにまたがる作業、設計判断を含む作業では、大きな編集や最終回答の前に `task contract` を固定する。
+- `task contract` には、達成すべき結果、保つべき条件、集める事実、変更または確認する範囲、受け入れ条件、確認方法、影響する tests と docs を入れる。
+- 調査、診断、検証の間もユーザー制約を守る。
+- 完了前に、依頼本文、集めた事実、変更した成果物、実施した確認を照合する。
+- 必要な事実、範囲、確認が欠けるなら完了扱いにしない。
 - 実際に達成、計画、検証したことだけ報告する。

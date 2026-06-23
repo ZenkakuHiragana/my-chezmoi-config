@@ -1,26 +1,12 @@
 ---
 name: implementation
-description: Attach when a normalized task contract identifies the repository change, invariants, acceptance criteria, verification method, and required checks. 要件が揃った repo 変更を実装し、関連面と検証まで完了させる。
+description: Use when the repository change, invariants, acceptance criteria, verification method, and affected tests/docs are already fixed well enough to execute; not for fact finding, unsettled requirements, or review-only work. 実装専用。必要な関連面の更新と検証まで完了させる。
 ---
 
 # Implementation
 
 repo 内容を変更し、依頼、周辺面、検証がそろった状態まで持っていく。
 単発 edit ではなく、task contract の完了を扱う。
-
-## 使う条件
-
-- feature、bugfix、behavior change、prompt/docs/config 更新を実装する
-- requirements artifact または同等の task contract がある
-- target surfaces、invariants、acceptance criteria、verification method が確定
-- unresolved `repo_derivable` / `public_fact` / `unknown` がない
-
-## 使わない条件
-
-- 事実回答だけ
-- public research が主目的
-- local investigation が主目的
-- 要件、根拠、検証方法が未確定
 
 ## change class
 

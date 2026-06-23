@@ -17,6 +17,7 @@
   - frontmatter `description`: 英語の発火語を主にし、必要なら短い日本語要約を1文だけ添える。詳細手順は書かない。
   - 本文: 日本語で短く書く。逐語翻訳ではなく、役割、条件、手順、禁止事項、出力、完了条件を箇条書き中心に再設計する。
   - 制御語彙は英語のまま維持する。例: agent 名、skill 名、router 名、schema field、status 値、severity 値、handoff 名、`work_class`、`execution_route`、`task_kind`、`mode_constraint`、`side_effect_mode`。
+  - 制御語彙以外の英語は原則として使わない。残す場合は、本文の近くで意味が分かるように書く。
   - output schema、frontmatter key、template include 名、command 名は既存の英語を維持する。
   - 長い rationale は agent prompt 本体に置かず、運用メモ、report、reference に分離する。
   - prompt 本体の日本語は丁寧語を避け、仕様書的な短文を優先する。
@@ -32,8 +33,9 @@
 - スキル定義は次の方針で書いてください。
   - `name`: 英語の kebab-case を維持する。
   - frontmatter `description`: 英語の発火語を主にし、必要なら短い日本語要約を1文だけ添える。詳細手順は書かない。
-  - 本文: 日本語で短く書く。逐語翻訳ではなく、用途、使う条件、使わない条件、手順、出力、チェックを箇条書き中心に再設計する。
+  - 本文: 日本語で短く書く。逐語翻訳ではなく、用途、手順、出力、チェックを箇条書き中心に再設計する。
   - 制御語彙は英語のまま維持する。例: skill 名、router 名、schema field、handoff 名、status 値、severity 値、`unknown`、`repo_derivable`、`public_fact`、`user_provided`、`acceptance criteria`、`verification method`。
+  - 制御語彙以外の英語は原則として使わない。残す場合は、本文の近くで意味が分かるように書く。
   - command skill template の本文が `dot_config/opencode/agents/*.md` を include する場合、include 先の言語規則に従う。
 - 失敗事例、プロンプト運用規則など、プロンプトを改良するためのワークフローに関する記載は日本語で書いてください。具体的には以下のファイルが対象です。
   - ./opencode-prompt-dev/\*.md
@@ -58,10 +60,12 @@
 5. skill descriptions (dot_agents/skills/\*/SKILL.md または SKILL.md.tmpl のフロントマターに書く `description` フィールド)
    - **1024文字以内で書く。**
    - 英語の発火語を維持し、必要なら短い日本語要約を添える。
-   - スキルを使う時、使わない時、得られるものを簡潔に書いて、エージェントが発見可能にする。
+   - description だけで、使う条件、使わない条件、得られるものが判断できるように書く。
+   - 近い skill と競合しやすい境界は、description の中で明示する。
    - 詳細手順、固定 schema、長い checklist は書かない。
 6. スキル本文 (dot_agents/skills/\*/SKILL.md または SKILL.md.tmpl の本文)
-   - 役割ごと、場面ごとに固有な詳細規則および手順を具体的に記載する。
+   - description が決めた用途を前提に、手順、出力契約、検査、局所判断規則を具体的に書く。
+   - description に書いた使用条件を重ね書きしない。
    - 日本語で短く書く。丁寧語を避け、仕様書的な短文と箇条書きを優先する。
    - 制御語彙、field 名、skill 名、output schema 名は英語のまま維持する。
 

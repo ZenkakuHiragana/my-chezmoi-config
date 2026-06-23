@@ -1,29 +1,13 @@
 ---
 name: technical-writing
 description: >
-  Improve technical prose artifacts for reader fit, structure, scannability, artifact integrity, and bounded revision quality. 技術文書、prompt、skill instructions、日本語成果物の構造と文章品質を整える。
+  Use when the main deliverable is a reader-facing technical document, prompt text, skill instruction, or other reusable Japanese prose that must be reorganized for audience, structure, and readability; not for fact finding, tiny wording tweaks, or direct translation only. 文章品質の調整専用。読者に合った構成と改善済み本文を作る。
 ---
 
 # Technical Writing
 
 reader-facing prose artifact の形、構造、読みやすさ、artifact hygiene を扱う。
 missing facts は `investigation` または `public-research` が担当する。
-
-## 使う条件
-
-- main deliverable が technical document
-- implementation に standalone prose artifact が含まれる
-- 保存、コピー、レビュー、再利用される日本語 reader-facing prose
-- prompt text、skill instructions、README、guide、reference、report、CHANGELOG、migration note を書く
-- failure mode が構造不備、reader mismatch、drafting context leakage
-
-## 使わない条件
-
-- ephemeral short reply
-- tiny wording tweak
-- fact finding が主目的
-- prose が incidental な implementation
-- pure translation without redesign
 
 ## artifact contract
 

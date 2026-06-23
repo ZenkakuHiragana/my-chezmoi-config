@@ -1,24 +1,12 @@
 ---
 name: grill-me
-description: Use only for a requested design grilling interview, or when requirements-clarification finds interdependent decisions that would change multiple sections. 設計を詰めるための短い質問面接を行い、決定事項を requirements artifact へ戻す。
+description: Use only when the user explicitly wants a design grilling interview, or when one answer will change multiple design sections and requirements-clarification cannot finish without that decision; not for simple missing values or facts discoverable from repo/public sources. 設計判断の質問専用。短い質問で決定事項を固める。
 ---
 
 # Grill Me
 
 相互依存する設計判断を、短い directed interview で解く。
 normal clarification、repository discovery、public research の代替ではない。
-
-## 使う条件
-
-- ユーザーが plan/design を「grill」してほしいと明示
-- `requirements-clarification` が discovery 後も、1 つの回答で複数 section や downstream design が変わると判断
-
-## 使わない条件
-
-- 欠けているのが単純な値だけ
-- repo から発見できる
-- factual research が必要
-- requirements artifact がすでに `task-planning` または `implementation` を指す
 
 ## 手順
 
