@@ -188,9 +188,11 @@ true にする条件:
 
 failure-log root:
 
-1. repo 内なら `.opencode/local-failure-logs/`
-2. それ以外で `chezmoi source-path` があれば `$(chezmoi source-path)/.opencode/local-failure-logs/`
+1. 現在位置が `chezmoi source-path` 配下なら、`$(chezmoi source-path)/.opencode/local-failure-logs/`
+2. それ以外で `chezmoi source-path` があれば、`$(chezmoi source-path)/.opencode/local-failure-logs/`
 3. それ以外は `~/.local/share/chezmoi/.opencode/local-failure-logs/`
+
+任意の作業 repo にある `.opencode/local-failure-logs/` は canonical root とみなさない。
 
 directory がなければ作る。
 失敗記録は root 直下に書く。
