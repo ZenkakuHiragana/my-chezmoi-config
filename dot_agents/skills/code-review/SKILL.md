@@ -5,59 +5,59 @@ description: Use when the task is to review a diff, patch, PR, or named code sur
 
 # Code Review
 
-code の defects、regressions、design risks、maintainability issues を探す。
-advisory review 専用。fix、investigation、public research、final prose quality の代替ではない。
+コードの欠陥、退行、設計リスク、保守性の問題を探す。
+助言としてのレビュー専用。修正、`investigation`、公開調査、最終文章品質確認の代替にはしない。
 
-## review contract
+## レビュー契約
 
 最低限見る軸:
 
-- correctness / edge cases / spec conformance
-- design / integration / responsibility placement
-- complexity / maintainability
-- tests / test quality
-- naming / readability / comments / docs
-- style / consistency
+- 正しさ / 境界事例 / 仕様準拠
+- 設計 / 統合 / 責務配置
+- 複雑さ / 保守性
+- tests / test 品質
+- 命名 / 読みやすさ / comments / docs
+- style / 一貫性
 - security / privacy
 - performance / reliability
 - compatibility / migration / operations
 
-finding は concrete location、evidence、impact、suggested next step を持つ。
-generic advice は出さない。
+finding には具体的な場所、根拠、影響、次の行動案を持たせる。
+一般論だけの助言は出さない。
 
 ## severity
 
-- `Blocker`: landing unsafe な correctness、security、privacy、data loss、contract issue
+- `Blocker`: 取り込むと危険な correctness、security、privacy、data loss、contract issue
 - `Major`: serious design、maintainability、performance、migration、test-quality risk
 - `Minor`: localized readability、naming、docs、consistency
-- `Uncertain`: plausibly risky but evidence incomplete
+- `Uncertain`: 危険そうだが根拠が足りない
 
 ## 手順
 
-1. Scope と intended behavior を確定する。
-2. changed lines、surrounding context、callers、tests、docs、configs を読む。
-3. relevant concern/profile files を必要時だけ読む。
-4. available checks を確認または実行する。
+1. 範囲と意図された挙動を確定する。
+2. 変更行、周辺文脈、呼び出し元、tests、docs、configs を読む。
+3. 必要な場合だけ concern/profile files を読む。
+4. 利用できる確認を調べ、必要なら実行する。
 5. correctness、design、performance、maintainability、minimality、tests、docs、security、compatibility の順で見る。
 6. findings を severity 順に整理する。
-7. unchecked source class は `Uncertain` として扱い、`investigation` / `public-research` を勧める。
+7. 未確認の根拠種別は `Uncertain` として扱い、`investigation` / `public-research` を勧める。
 
-## trigger checklist
+## 確認観点
 
-- repeated paths / expensive work
+- 反復経路 / 高コスト処理
 - reference/definition drift
 - modified-function drift
 - weak closed domains
 - responsibility drift
 - complexity drift
-- missing/weak tests
-- stale or negative docs
+- 不足または弱い tests
+- 古い docs または否定中心の docs
 - security/privacy boundaries
 - concurrency/resources
 - compatibility/migration
 - overengineering / policy creep
 
-## concern routing
+## 詳細観点の読み分け
 
 必要時だけ読む。
 
@@ -77,7 +77,7 @@ generic advice は出さない。
 - `concerns/dependencies.md`
 - `concerns/minimality-and-intentionality.md`
 
-Profiles:
+プロファイル:
 
 - `profiles/rust-cargo.md`
 - `profiles/python.md`
@@ -91,7 +91,7 @@ Profiles:
 
 広い review で dispatch が使える場合だけ concern split を使う。
 
-Default packs:
+既定パック:
 
 - `correctness-tests`
 - `design-maintainability`
@@ -101,16 +101,16 @@ Default packs:
 - `language-profile`
 
 child assignment は read-only、bounded、no recursive delegation。
-parent は deduplicate、evidence verify、severity reconcile、final review を担う。
+parent は重複整理、根拠確認、severity 調整、最終 review を担う。
 
-## output
+## 返す内容
 
-1. Scope reviewed
-2. Findings by severity
-3. Open questions / uncertainties
-4. Overall assessment
+1. 確認した範囲
+2. 重大度別の指摘
+3. 未解決の質問 / 不確実性
+4. 総合評価
 
-Finding fields:
+finding に含める項目:
 
 - severity
 - location
@@ -120,16 +120,16 @@ Finding fields:
 - suggested next step
 - confidence
 
-findings がなければ、scope と checked passes を明示して no findings と言う。
+findings がなければ、scope と確認済み範囲を明示して no findings と言う。
 
 ## 完了チェック
 
-- actual code/diff を読んだ
-- scope が明確
-- relevant concern/profile を検討した
-- findings が prioritized
-- evidence、impact、location がある
-- polish と blocking issue を分けた
-- absence と excess の両方を見た
-- proposed next step が最小
-- uncertainty を隠していない
+- 実際のコードまたは diff を読んだ。
+- scope が明確。
+- relevant concern/profile を検討した。
+- findings が prioritized。
+- 根拠、影響、場所がある。
+- 軽微な整えと取り込みを妨げる問題を分けた。
+- absence と excess の両方を見た。
+- proposed next step が最小。
+- uncertainty を隠していない。

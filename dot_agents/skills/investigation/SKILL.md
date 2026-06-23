@@ -6,48 +6,48 @@ description: >
 
 # Investigation
 
-repository-local evidence を確認してから、説明、修正、review finding、implementation 方針を決める。
-`repo_derivable` な要求属性を解決するための skill。
+リポジトリ内の正本を確認してから、説明、修正方針、レビュー指摘、実装方針を決める。
+`repo_derivable` な要求属性を、観測した根拠で解決する。
 
-## evidence
+## 確認する根拠
 
-- current repository
-- local upstream checkout
-- generated graph
-- runtime artifact
+- 現在のリポジトリ
+- ローカルの upstream checkout
+- 生成済みグラフ
+- 実行時の成果物
 - log、trace、state
-- AGENTS.md、domain notes、user が名指しした authoritative path
+- AGENTS.md、domain notes、ユーザーが名指しした authoritative path
 
 ## 手順
 
-1. 観測対象、期待挙動、不明点を restate する。
-2. named source of truth を最初に読む。
-3. 可能なら再現または近似再現する。
-4. relevant files、callers、configs、tests、logs、outputs を scoped search で確認する。
-5. required source class が複数ある場合は coverage matrix を持つ。
-6. 仮説を evidence で比較し、除外できるものを除外する。
-7. local evidence だけで不足する external issue/docs は `public-research` へ渡す。
-8. temporary diagnostics は狭く入れ、最後に除去または明示する。
-9. confirmed observations、remaining unknowns、next capability set を返す。
+1. 観測対象、期待挙動、不明点を短く言い直す。
+2. 名指しされた正本を最初に読む。
+3. 可能なら再現または近い確認を行う。
+4. 関連ファイル、呼び出し元、configs、tests、logs、outputs を範囲を絞って確認する。
+5. 必要な根拠種別が複数ある場合は、どこまで確認したかを表で管理する。
+6. 仮説を根拠で比較し、除外できるものを除外する。
+7. ローカル根拠だけで足りない外部 issue/docs は `public-research` へ渡す。
+8. temporary diagnostics は狭く入れ、最後に除去する。残す場合は明示する。
+9. 確認済みの観測、残る不明点、next capability set を返す。
 
-## output
+## 返す内容
 
-- factual question または observed behavior
-- confirmed observations と evidence
-- resolved `repo_derivable` fields
-- reproduction status
-- narrowed scope
-- ruled out items
-- likely explanations ranked by evidence
-- remaining unknowns
-- recommended next action
-- temporary diagnostics status
+- 事実確認の問い、または観測された挙動
+- 確認済みの観測と根拠
+- 解決した `repo_derivable` fields
+- 再現状況
+- 絞り込んだ範囲
+- 除外した項目
+- 根拠順に並べた有力な説明
+- 残る不明点
+- 推奨する次の行動
+- temporary diagnostics の状態
 
 ## 完了チェック
 
-- required local source class を確認した
-- unchecked source class を confirmed claim に使っていない
-- search scope は repo または明示 directory に限定した
-- user constraints を維持した
-- evidence と inference を分けた
-- next action が最小十分
+- 必要なローカル根拠種別を確認した。
+- 未確認の根拠種別を確定した主張に使っていない。
+- 検索範囲を repo または明示 directory に限定した。
+- user constraints を維持した。
+- 根拠と推測を分けた。
+- next action が最小十分。

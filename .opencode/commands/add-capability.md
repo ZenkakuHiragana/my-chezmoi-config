@@ -3,228 +3,211 @@ description: Add or strengthen one prompt capability with hierarchy-aware design
 agent: build
 ---
 
-Your task is to add or strengthen one prompt capability in the prompt hierarchy.
+プロンプト階層に、1 つの能力を追加または補強する。
 
-User request:
+ユーザー依頼:
 $ARGUMENTS
 
-This command is for intentional capability addition or capability strengthening.
+この command は、プロンプトシステムに特定の動作、方針、制約、判断規則を追加または強化するときに使う。
 
-Use this command when the user wants the prompt system to gain or improve a behavior, policy, constraint, or decision rule.
+次の作業を主目的にしてはいけない。
 
-Do not use this command as the primary workflow for:
+- 新しく観測した失敗事例の記録
+- 広い階層整理
+- 大規模なプロンプト構造整理
+- 追加する能力が決まっていない調査
 
-- recording a newly observed failure
-- broad hierarchy cleanup
-- large-scale prompt refactoring
-- open-ended investigation with no concrete capability to add
+失敗事例の記録が主目的なら `/report-failure` を勧める。
+広い整理や統合が主目的なら `/refine-prompt` を勧める。
 
-If the request is mainly about recording a failure, recommend `/report-failure`.
-If the request is mainly about hierarchy-wide cleanup or consolidation, recommend `/refine-prompt`.
+## 1. 管理文書を先に読む
 
-Follow this workflow exactly.
-
-## 1. Read the control documents first
-
-Read these files before doing anything else:
+最初に読む。
 
 - `AGENTS.md`
 - `opencode-prompt-dev/prompt-principles.md`
 
-If relevant, also read:
+関係する場合は読む。
 
 - `~/.local/share/chezmoi/.opencode/local-failure-logs/`
 - `opencode-prompt-dev/prompt-refactor-checklist.md`
 
-## 2. Read the relevant prompt surfaces
+## 2. 関連するプロンプト面を読む
 
-Identify the relevant prompt surfaces for this capability.
+要求された能力を所有、制約、または重複しそうな面を特定して読む。
 
-Consider at least these possible layers:
+候補:
 
-- global rules such as `AGENTS.md` or `dot_config/opencode/AGENTS.md`
-- command definitions and command stubs such as `.opencode/commands/*.md` or `dot_config/opencode/commands/*.md`
-- command-specific agent prompts such as `dot_config/opencode/agents/report-failure.md`
-- role-specific prompt files such as `build.md`, `plan.md`, or equivalent
+- 共有規則: `AGENTS.md`、`dot_config/opencode/AGENTS.md` など
+- command の定義 / 雛形: `.opencode/commands/*.md`、`dot_config/opencode/commands/*.md` など
+- command 専用の agent prompt: `dot_config/opencode/agents/*.md` など
+- role 別の prompt ファイル: `build.md`、`plan.md`、同等の agent prompt
 - skill descriptions
-- `SKILL.md` files
+- `SKILL.md` ファイル
 
-Read the files that are likely to own, constrain, or overlap with the requested capability.
+この段階では編集しない。
 
-Do not edit anything yet.
+## 3. 能力契約を編集前に書く
 
-## 3. Write a capability contract before editing
+次を具体化する。
 
-Before making changes, extract a concrete capability contract.
+### 目的
 
-Determine all of the following:
+- 追加または強化する正確な動作。
 
-### Objective
+### 範囲
 
-- What exact behavior is being added or strengthened?
+- 適用する場所。
+- 適用してはいけない場所。
 
-### Scope
+### 前提
 
-- Where should this capability apply?
-- Where must it not apply?
+- 能力が依存する前提。
+- 変えてはいけない周辺動作。
 
-### Assumptions
+### 入力
 
-- What assumptions does this capability depend on?
-- What surrounding behavior must remain unchanged?
+- 能力を発火させる情報、合図、作業条件。
 
-### Inputs
+### 必須の返答または判断
 
-- What information, signals, or task conditions should trigger the capability?
+- 能力があることで model が必ず行うこと、または判断すること。
 
-### Required outputs or decisions
+### 禁止する動作
 
-- What must the model do differently once this capability exists?
+- 能力により避けること、止めること、拒否すること。
 
-### Forbidden behavior
+### 検証対象
 
-- What should the model stop doing, avoid doing, or refuse to do because of this capability?
+- 能力が正しく入ったと判断できる観測可能な証拠。
 
-### Validation target
+要求が曖昧で使える能力契約を作れない場合は、最終応答で明示する。明確に正当化できる最小の改善だけ行う。
 
-- What observable evidence would show that this capability has actually been implemented correctly?
+## 4. 追加調査の要否を決める
 
-If the request is too vague to define a usable capability contract, say so explicitly in the final response and make the smallest safe improvement only if one is clearly justified.
+編集前に、ローカルのプロンプトファイルだけで足りるか、追加調査が必要か決める。
 
-## 4. Check whether additional research is needed
+次のどれかに当てはまる場合は調査が必要。
 
-Before editing, decide whether local prompt files are enough, or whether additional research is needed.
+- 最新の公開事実が効く
+- 外部の実務慣行が能力の中心である
+- 再利用する手順、作業の流れ、レビュー枠組み、品質チェックを定義する
+- 作業種別にリポジトリ外の品質基準がある
+- 検索方針、根拠方針、根拠基準、検証方針を変える
+- プライバシー、開示、セキュリティ上重要な挙動に触れる
+- 用語、慣行、方針が曖昧、不慣れ、または解釈が複数ありそう
 
-Research is needed when any of the following are true:
+調査が必要な場合:
 
-- current public facts matter
-- external best practices are central to the capability
-- the capability defines a reusable process, workflow, review framework, or quality checklist
-- the task archetype has established quality criteria outside the repository
-- the capability changes search policy, source policy, evidence standards, or validation strategy
-- the capability affects privacy, disclosure, or security-sensitive behavior
-- the request uses a term, practice, or policy that is ambiguous, unfamiliar, or likely to have multiple interpretations
+- 利用可能な調査ツールを編集前に使う
+- 一次資料、公式文書、製品の直接文書を優先する
+- 事実と自分の整理を分ける
+- 非公開のリポジトリ情報を公開検索の語句に入れない
+- 能力の定義と配置に必要な最小限だけ調べる
 
-If research is needed:
+調査が不要な場合:
 
-- use available research tools before editing
-- prefer primary sources, official documentation, or direct product documentation
-- separate facts from your own synthesis
-- do not include private repository information in public search queries
-- use only the minimum research needed to define and place the capability correctly
+- ローカルのプロンプト文脈だけで進める
 
-If research is not needed:
+## 5. 既に能力があるか確認する
 
-- continue using only local prompt context
+要求された能力が次のどれに当たるか確認する。
 
-## 5. Check whether the capability already exists
+- 明確かつ正しく実装済み
+- あるが弱い、または曖昧
+- 複数層で重複している
+- 誤った層にある
+- 重要な制約が欠けている
+- 失敗対応の暫定修正として存在し、意図的な能力に整理すべき
 
-Determine whether the requested capability is already present in one of these forms:
+既に存在する場合は、新規追加よりも明確化、強化、配置変更を優先する。
 
-- already implemented clearly and correctly
-- present but weak or ambiguous
-- duplicated across layers
-- placed in the wrong layer
-- partially present but missing an important constraint
-- present as a failure patch that should now become an intentional capability
+## 6. 正しい層を決める
 
-If it already exists, prefer strengthening, clarifying, or relocating it over adding a new rule.
+層の責務:
 
-## 6. Decide the correct layer
+- 共有 rules: 短く安定した共有制約
+- command 定義 / command 雛形: command の入口、command 固有の routing、短い作業契約
+- command 専用 agent prompt: 詳細な command 実行 role、handoff、local output contract、command 内の判断方針
+- role 別 prompt ファイル: 1 つの role、mode、agent に固有の動作
+- skill descriptions: 発見用の案内だけ。when to use、when not to use、期待される結果
+- `SKILL.md`: 詳細な手順、確認、例、local 判断規則
 
-Choose the most appropriate layer for the capability.
+禁止:
 
-Use these rules:
+- 詳細手順を skill description に置く
+- 本当に共有でない local exception を global rules に置く
+- command が所有する詳細を AGENTS.md に置く
+- 1 つの能力を、責務差がないまま複数層へ散らす
 
-- global rules:
-  short, stable, broadly shared constraints
-- command definitions and command stubs:
-  command entry points, command-specific routing, and brief workflow contracts
-- command-specific agent prompts:
-  detailed command execution roles, handoffs, local output contracts, and command-local decision policy
-- role-specific prompt files:
-  behavior specific to one role, mode, or agent
-- skill descriptions:
-  short discovery guidance only:
-  when to use, when not to use, and expected result
-- `SKILL.md`:
-  detailed operational procedure, checks, examples, and local decision rules
+## 7. 最小の有効変更を選ぶ
 
-Do not place detailed procedure into a skill description.
-Do not place local exceptions into a global rules file unless they truly belong there.
-Do not put command-owned capability detail into AGENTS.md when a command stub or command-specific agent prompt is the real owner.
-Do not scatter one capability across multiple layers unless each layer has a clearly different responsibility.
+優先順:
 
-## 7. Choose the smallest effective change
+1. 既存規則を明確化する
+2. 既存規則を適切な層へ移す
+3. 重複表現を統合する
+4. 責務過多な規則を、短い共有規則と局所的な詳細指針に分ける
+5. 上記で足りない場合だけ、最小の新規規則を追加する
 
-Apply this priority order:
+短い方がよいのは、能力の実効性が落ちない場合だけ。
+丁寧な言い換えで足りるなら、新しい文を足さない。
 
-1. clarify an existing rule
-2. move an existing rule to a better layer
-3. merge overlapping wording
-4. split one overloaded rule into a short shared rule plus detailed local guidance
-5. add a minimal new rule only if the above are insufficient
+## 8. 検証計画を編集前に決める
 
-Shorter is better only when the capability remains equally enforceable.
+小さな検証計画を作る。
 
-Do not add a new sentence when a careful rewording is enough.
+必ず含める。
 
-## 8. Design the validation plan before editing
+- 変更後に能力が表れるべきファイル
+- 重複または競合しそうな近接規則
+- 従っている例
+- 禁止される例
+- 能力が網羅されていると判断する方法
 
-Before editing, define a small validation plan.
+能力が広い場合は追加で書く。
 
-The plan must include:
+- 後で役立ちそうな `/refine-prompt` による確認
+- 追加によって生じる将来の統合リスク
 
-- which files should reflect the capability after the change
-- what nearby rules might now duplicate or conflict with it
-- one compliant example behavior
-- one forbidden example behavior
-- one short explanation of how you will tell that the capability is actually covered
+## 9. prompt hierarchy を編集する
 
-If the capability is broad, also identify:
+編集時のルール:
 
-- what later `/refine-prompt` pass might be useful
-- what future consolidation risk this addition introduces
+- 直接的、短く、操作可能な文にする
+- 規範的なプロンプト本文に歴史説明を入れない
+- 層間で重複した注意を作らない
+- 行動を制御しない抽象標語を避ける
+- 近接する capabilities と constraints を保つ
+- 言語方針と出力品質の規則を弱めない
 
-## 9. Edit the prompt hierarchy
+編集してよいのは、この能力に必要なファイルだけ。
 
-Now implement the capability.
+禁止:
 
-While editing:
+- 新しい追跡用ファイルを作る
+- 階層全体の整理に広げる
+- 広い構造整理に変える
+- ユーザーが明示しない限り、`~/.local/share/chezmoi/.opencode/local-failure-logs/` の incident ファイルを編集する
 
-- keep wording direct, short, and operational
-- avoid historical commentary inside normative prompt text
-- avoid duplicate reminders across layers
-- avoid vague slogans that do not control behavior
-- preserve nearby capabilities and constraints
-- preserve language-policy consistency and output-quality rules already in place
+## 10. 能力保存監査を行う
 
-You may edit only the files needed for this capability.
+最終化前に確認する。
 
-Do not create new tracking files.
-Do not perform hierarchy-wide cleanup here.
-Do not convert this into a broad refactor.
+- 能力契約が網羅されている
+- 選んだ層が正しい
+- 近接規則が不要に重複していない
+- 矛盾を入れていない
+- 既存の重要能力を弱めたり削除したりしていない
+- 詳細手順が skill description にだけ残っていない
+- local exception が不適切に global 層へ漏れていない
+- 明らかに長い代替文と比べても実効性が落ちていない
 
-Do not edit incident files under `~/.local/share/chezmoi/.opencode/local-failure-logs/` unless the user explicitly wants this capability linked to an already logged failure.
+失敗した場合は、最終化前に直す。
 
-## 10. Run the capability-preservation audit
+## 11. 最終応答の形式
 
-Before finalizing, check all of the following:
-
-- the capability contract is now covered
-- the chosen layer is correct
-- no nearby rule now says the same thing twice without need
-- no contradiction was introduced
-- no existing important capability was weakened or deleted
-- no detailed procedure lives only in a skill description
-- no local exception leaked into the global layer without justification
-- the resulting wording is at least as enforceable as the obvious longer alternative
-
-If any of these checks fail, fix the prompt hierarchy before finalizing.
-
-## 11. Final response format
-
-Provide these sections in order.
+次の順で返す。
 
 ## Capability contract
 
@@ -238,37 +221,37 @@ Provide these sections in order.
 
 ## Research decision
 
-- whether additional research was needed
-- if yes, why
-- if no, why not
+- 追加調査が必要だったか
+- 必要なら理由
+- 不要なら理由
 
-## What changed
+## 変更内容
 
-- list changed files
-- for each file, say whether you clarified, moved, merged, split, or added wording
+- 変更したファイル
+- 各ファイルで clarified、moved、merged、split、added wording のどれをしたか
 
-## Why this layer
+## この層に置く理由
 
-- explain why each change belongs in that layer rather than another one
+- 各変更が別の層ではなくその層に属する理由
 
 ## Validation plan
 
-- list the checks you used
-- state one compliant example behavior
-- state one forbidden example behavior
+- 実施した確認
+- 従っている例
+- 禁止される例
 
-## Follow-up
+## 後続対応
 
-- state whether a later `/refine-prompt` pass is likely useful
-- keep this short and mention only concrete reasons such as duplication risk or nearby overlap
+- 後で `/refine-prompt` pass が役立つか
+- 理由は重複リスクや近接規則との重なりなど、具体的なものだけにする
 
-Important constraints:
+## 重要制約
 
-- This command adds or strengthens one capability with minimal scope.
-- It must decide whether additional research is needed before editing.
-- It must define a capability contract before editing.
-- It must define a validation plan before editing.
-- Do not perform hierarchy-wide optimization here.
-- Do not add a new rule when a wording change or layer move is likely enough.
-- If the request is actually a failure-remediation request, recommend `/report-failure`.
-- If the request is mainly about broad cleanup, consolidation, or deduplication across layers, recommend `/refine-prompt`.
+- この command は、1 つの能力を最小範囲で追加または補強する。
+- 編集前に追加調査の要否を決める。
+- 編集前に能力契約を定義する。
+- 編集前に検証計画を定義する。
+- 階層全体の最適化をしない。
+- 文言変更または層の移動で足りるなら、新規規則を足さない。
+- 失敗修復が主目的なら `/report-failure` を勧める。
+- 広い整理、統合、重複排除が主目的なら `/refine-prompt` を勧める。

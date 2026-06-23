@@ -6,21 +6,21 @@ description: >
 
 # Requirements Clarification
 
-実装依頼を最初の要求として扱い、実行前に `Attribute status` 付き atomic requirement records へ落とす。
-曖昧さを感覚で処理せず、固定 record、属性 status、残る capability obligation で管理する。
+実装に見える依頼を、実行前に `Attribute status` 付き atomic requirement records へ落とす。
+曖昧さを感覚で処理しない。固定 record、属性 status、残る capability obligation で管理する。
 
 ## 入力
 
-- raw user request
-- explicit constraints、preferences、prior decisions
-- repository context
-- 必要な public facts
+- 元のユーザー依頼
+- 明示された制約、好み、過去の決定
+- リポジトリ文脈
+- 必要な公開事実
 
 ## 出力
 
 - `.opencode/work/req-<slug>.md`
 - `Attribute status` 付き atomic requirement records
-- 残る `unknown` だけへの targeted questions
+- 残る `unknown` だけへの絞った質問
 - next capability set
 
 ## record schema
@@ -40,30 +40,30 @@ description: >
 - `Affected docs`
 - `Attribute status`
 
-`Attribute status` は各必須属性に 1 つだけ付ける。
+`Attribute status` は、各必須属性に 1 つだけ付ける。
 
 - `user_provided`: ユーザー入力で確定
 - `repo_derivable`: repo 調査で解決する
 - `public_fact`: 公開情報で確認する
 - `unknown`: proportionate discovery 後もユーザー判断が必要
 
-空欄禁止。該当なしなら `None identified.`。
+空欄は禁止。該当なしなら `None identified.` と書く。
 
 ## 手順
 
-1. 依頼を 1 文で restate する。
+1. 依頼を 1 文で言い直す。
 2. relevant files、docs、tests を読む。
-3. public facts が必要なら `public-research` を付ける。
+3. 公開事実が必要なら `public-research` を付ける。
 4. 要求を capability、constraint、quality の atomic requirements に分割する。
 5. 各 atomic requirement を schema に埋め、各属性に `Attribute status` を付ける。
-6. `repo_derivable` は `investigation`、`public_fact` は `public-research`、`unknown` は targeted question へ回す。
+6. `repo_derivable` は `investigation`、`public_fact` は `public-research`、`unknown` は絞った質問へ回す。
 7. `.opencode/work/req-<slug>.md` に書く。
 8. 最小の next capability set を示す。
 
-## binding
+## 結び付け
 
-既存 requirements artifact は候補 primary source にすぎない。
-primary source として使う条件:
+既存 requirements artifact は、候補となる正本として扱う。
+正本として使う条件:
 
 - ユーザーが明示
 - `.opencode/work/current-task.md` が指す
@@ -72,19 +72,19 @@ primary source として使う条件:
 さらに次を満たすこと。
 
 - `status` が `superseded` ではない
-- `base_commit` が現 repo state に有効
+- `base_commit` が現リポジトリ状態に有効
 - `superseded_by` が `none` または未設定
 
 満たさない場合は reference material として扱う。
 
-## handoff
+## 引き渡し
 
 - required `repo_derivable` 未解決: `investigation`
 - required `public_fact` 未解決: `public-research`
 - required `unknown` 未解決: この skill に留まる。分岐が多い場合だけ `grill-me`
 - requirements 完了、順序設計が必要: `task-planning`
 - requirements 完了、編集可能: `implementation`
-- behavior-preserving cleanup: `refactoring`
+- 挙動保持の整理: `refactoring`
 - review が目的: `code-review`
 
 `unknown` が残る間は `implementation` に渡さない。
@@ -156,10 +156,10 @@ primary source として使う条件:
 
 ## 完了チェック
 
-- 実装依頼を最初の要求として扱った
-- atomic requirement に分割した
-- 全必須 field と status を埋めた
-- discovery 前の質問を避けた
-- open questions は真の `unknown` だけ
-- artifact を `.opencode/work/` に書いた
-- next capability set が最小十分
+- 実装依頼を最初の要求として扱った。
+- atomic requirement に分割した。
+- 全必須 field と status を埋めた。
+- discovery 前の質問を避けた。
+- open questions は真の `unknown` だけ。
+- artifact を `.opencode/work/` に書いた。
+- next capability set が最小十分。

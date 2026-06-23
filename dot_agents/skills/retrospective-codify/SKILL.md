@@ -5,14 +5,14 @@ description: Use when a task required trial and error and the user wants reusabl
 
 # Retrospective Codify
 
-タスク終盤に「最初に知っていれば遠回りしなかった」知見を抽出し、静的ルール、AGENTS.md、skill のどれに残すべきか判定する。
-勝手に書き出さず、提案してユーザー承認を待つ。
+タスク終盤に「最初に知っていれば遠回りしなかった」知見を取り出し、lint、AGENTS.md、skill のどこへ残すべきか判定する。
+承認なしに書き出さない。まず提案だけ返し、ユーザーが採用した項目だけ反映する。
 
 ## 手順
 
 1. 最初の失敗、最終解、橋渡しの気付きを対応付ける。
 2. 「最初に知るべきだったこと」を命令形で 1 から 3 文にする。
-3. 適用範囲、静的検出可能性、手順性、既存 artifact 依存を判定する。
+3. 適用範囲、静的検出可能性、手順性、既存成果物への依存を判定する。
 4. 既存 skill、AGENTS.md、rules を検索して重複確認する。
 5. 出力先を選ぶ。
 6. 提案だけ返す。ユーザーが採用を指示した項目だけ書き出す。
@@ -44,9 +44,9 @@ description: Use when a task required trial and error and the user wants reusabl
 | 手順、判断、テンプレが必要       | skill                    |
 | 単一 task 固有                   | 採用しない               |
 
-静的検出可能なら prompt より lint を優先する。
+静的検出できる内容なら、prompt より lint を優先する。
 
-## 提案 format
+## 提案形式
 
 ```markdown
 ## Retrospective
@@ -78,19 +78,19 @@ description: Use when a task required trial and error and the user wants reusabl
 空の section は省く。
 採用候補がない場合は、末尾を `採用候補なし。記録目的でレビューしてください。` にする。
 
-## red flags
+## 危険な兆候
 
-- project 固有なのに skill 化する
-- 承認前に書き出す
-- lint 可能なものを自然言語だけにする
-- 薄い学びを無理に残す
-- 重複確認を省く
-- 最初の失敗を省く
+- project 固有の知見を汎用 skill に入れる。
+- 承認前に書き出す。
+- lint 可能な内容を自然言語ルールだけにする。
+- 薄い学びを無理に残す。
+- 重複確認を省く。
+- 最初の失敗を省く。
 
 ## 完了チェック
 
-- 失敗と最終解を対応付けた
-- 重複確認をした
-- 出力先を分類軸で選んだ
-- 提案と書き出しを分けた
-- 採用候補、重複、不採用を明示した
+- 失敗と最終解を対応付けた。
+- 重複確認をした。
+- 出力先を分類軸で選んだ。
+- 提案と書き出しを分けた。
+- 採用候補、重複、不採用を明示した。

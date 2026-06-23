@@ -6,118 +6,116 @@ description: >
 
 # Technical Writing
 
-reader-facing prose artifact の形、構造、読みやすさ、artifact hygiene を扱う。
-missing facts は `investigation` または `public-research` が担当する。
+読者向けの技術文書、プロンプト本文、skill 指示文などを、目的、構成、読みやすさに合わせて整える。
+事実確認は担当しない。不足する事実は `investigation` または `public-research` で解決してから書く。
 
-## artifact contract
+## 成果物の前提
 
-draft 前に決める。
+本文を書く前に、次を決める。
 
-- document form
-- intended audience
-- reader goal/question
-- purpose in one sentence
-- assumed knowledge
-- standalone or companion context
-- confirmed facts
-- caveats / exclusions
-- allowed source set
-- allowed change budget
+- 文書の形式
+- 想定読者
+- 読者の疑問または目的
+- 文書の目的を示す 1 文
+- 読者がすでに知っている前提
+- 単体で読ませるか、別資料と併用させるか
+- 確認済みの事実
+- 注意点、または扱わない範囲
+- 根拠として使ってよい資料
+- 変更してよい範囲
 
-facts が足りなければ書かずに解決する。
+事実が足りない場合は、推測で埋めずに先に確認する。
 
-## reference routing
+## 参照資料の選び方
 
-Substantial standalone document:
+独立した長めの文書では、必要に応じて読む。
 
 - `references/01-reader-contract.md`
 - `references/02-standalone-structure.md`
 
-Reusable or persisted Japanese prose:
+保存、転記、再利用される日本語本文では必ず読む。
 
 - `references/04-artifact-integrity.md`
 - `references/05-japanese-tech-writing.md`
 
-Rendered/layout-sensitive artifact:
+表示や構成の崩れが成果物に影響する場合は読む。
 
 - `references/03-rendered-artifact-checks.md`
 
-`04-artifact-integrity.md` を先に読む。
-存在してはいけない文を polishing しない。
+`04-artifact-integrity.md` を先に読む。成果物に入れてはいけない文は、磨かずに削るか本文内容へ変換する。
 
-## forms
+## 文書の形式
 
 - `tutorial`
-- `how-to guide`
-- `reference`
-- `explanation`
-- investigation report
+- 手順ガイド
+- リファレンス
+- 解説
+- 調査報告
 - README
 - CHANGELOG
-- migration / release note
+- 移行案内 / リリースノート
 
-1 artifact は primary form を 1 つ持つ。
-混在する場合は section を分ける。
+1 つの成果物には主な形式を 1 つだけ持たせる。複数の形式が必要な場合は節を分ける。
 
-## drafting rules
+## 本文作成ルール
 
-- 冒頭で scope と reader value を示す。
-- reader の質問、判断、作業順に並べる。
-- discovery order、revision process、writer handoff を本文に入れない。
-- user feedback、review comments、rejected alternatives は control input。artifact content にしない。
-- normative artifact は current truth を書く。
-- contrast は reader が実際に比較対象を必要とする場合だけ使う。
-- heading は specific、unique、task-aligned にする。
-- 1 paragraph = 1 role。
-- facts、caveats、recommendation を分ける。
-- unsupported certainty を避ける。
+- 冒頭で範囲と読者にとっての価値を示す。
+- 読者の疑問、判断、作業順に沿って並べる。
+- 調査順、修正経緯、書き手側の引き継ぎを本文に入れない。
+- ユーザーからの反応、レビューコメント、採用しなかった案は制御入力として扱い、本文へ混ぜない。
+- 規範文書には現在有効な内容を書く。古い状態の墓標を残さない。
+- 対比は、読者が比較対象を知る必要がある場合だけ使う。
+- 見出しは具体的で、重複せず、その節の役割に合うものにする。
+- 1 つの段落には 1 つの役割だけを持たせる。
+- 事実、注意点、提案を分ける。
+- 根拠のない断定を避ける。
 
-## Japanese prose path
+## 日本語本文の手順
 
-1. artifact contract と confirmed facts を確定する。
+1. 成果物の前提と確認済みの事実を確定する。
 2. `references/04-artifact-integrity.md` を読む。
 3. `references/05-japanese-tech-writing.md` を読む。
-4. draft/revise する。
-5. sentence admission を再確認する。
+4. 本文を書く、または直す。
+5. 文ごとに、成果物へ入れてよい内容か確認する。
 
-## review loop
+## 見直し手順
 
-1. Draft.
-2. high-impact issues を 1 から 3 個選ぶ。
-3. affected sections だけ直す。
-4. affected dimensions を再確認する。
-5. high-impact issue がなくなったら止める。
+1. 草稿を作る。
+2. 影響が大きい問題を 1 から 3 個に絞る。
+3. 問題のある節だけ直す。
+4. 直した観点を再確認する。
+5. 影響が大きい問題がなくなったら止める。
 
 優先順:
 
-- structure
-- accuracy / meaning
-- procedure quality
-- readability / scannability
-- audience / translation resilience
+- 構成
+- 正確さと意味
+- 手順の品質
+- 読みやすさと探しやすさ
+- 読者への適合
 
-## checks
+## 確認
 
 利用可能なら実行する。
 
 - markdownlint
-- Vale / prose lint
-- path、link、heading、commands、code samples の確認
-- rendered artifact の compile/render
+- Vale または文章 lint
+- path、link、見出し、コマンド、コード例の確認
+- 表示確認または生成確認
 
-## completion evidence
+## 完了時に示す内容
 
-- document form と audience
-- checks run
-- fixed high-impact issues
-- remaining limitation
+- 文書の形式と想定読者
+- 実行した確認
+- 直した重要な問題
+- 残る制限
 
 ## 完了チェック
 
-- primary form が明確
-- opening が reader value を示す
-- order が reader need に合う
-- unsupported claims と filler がない
-- facts と caveats が混ざっていない
-- drafting context leakage がない
-- Japanese prose path を必要時に通した
+- 主な形式が明確。
+- 冒頭が読者にとっての価値を示す。
+- 構成が読者の疑問、判断、作業順に合う。
+- 根拠のない主張や埋め草がない。
+- 事実と注意点が混ざっていない。
+- 修正経緯や作業者視点が本文に漏れていない。
+- 必要な場合に日本語本文の手順を通した。

@@ -5,40 +5,40 @@ description: Use when a prompt, skill, command, or agent instruction has been cr
 
 # Empirical Prompt Tuning
 
-prompt author の self-reread を信頼しすぎない。
-frozen scenarios、fresh executors、separate scoring で instruction change を検証する。
+プロンプト作成者の読み直しだけを検証扱いしない。
+固定した検証シナリオ、新しい実行者、分離した採点を使い、指示変更が実際に効くか確認する。
 
-dispatch 不可なら `empirical evaluation skipped: dispatch unavailable` と明示する。
-self-reread を empirical evaluation と呼ばない。
+dispatch できない場合は `実験評価を省略: dispatch を利用できない` と明示する。
+自己読み直しを実験評価と呼ばない。
 
-## principles
+## 原則
 
-- evaluation design を実行前に freeze する。
-- executor は scoring checklist、variant label、intended improvement を見ない。
-- scoring は executor と分離する。
-- requirement ごとに evidence-backed score を付ける。
-- single run で採用判断しない。
+- 評価設計を実行前に固定する。
+- 実行者は scoring checklist、variant label、意図した改善点を見ない。
+- 採点は実行者と分離する。
+- requirement ごとに根拠付き score を付ける。
+- 1 回の実行だけで採用判断しない。
 - validation で改善しても hold-out regression を確認する。
 
 ## iteration 0
 
-dispatch 前に static description-body alignment を確認する。
+dispatch 前に、description と本文の対応を確認する。
 
 - frontmatter `description` の promise
-- body が実際に命じる行動
+- 本文が実際に命じる行動
 - use / do-not-use 条件
-- expected output
+- 期待される返答
 
-不一致があれば empirical run 前に直す。
+不一致があれば empirical run の前に直す。
 
-## experiment plan
+## 実験計画
 
-freeze fields:
+固定する項目:
 
-- target prompt
+- 対象 prompt
 - failure modes
-- included / excluded task types
-- scenario set or split
+- 対象に含める / 除外する作業種別
+- 検証シナリオの集合または分割
 - requirements checklist
 - `[critical]` labels
 - scoring rules
@@ -47,11 +47,11 @@ freeze fields:
 - comparison rule
 - stop rule
 - adoption rule
-- allowed changes after freeze
+- 固定後に許す変更
 
-plan を見た後に scenario/checklist/critical labels を動かすなら version を上げ、baseline からやり直す。
+計画を見た後に検証シナリオ、checklist、critical labels を動かすなら version を上げ、baseline からやり直す。
 
-## scenario split
+## 検証シナリオの分割
 
 重要 prompt:
 
@@ -59,38 +59,38 @@ plan を見た後に scenario/checklist/critical labels を動かすなら versi
 - `validation`: iteration ごとに固定再実行
 - `hold-out`: adoption 前だけ確認
 
-scenarios は typical、edge、missing-info、tool-heavy、known-failure、should-not-use を混ぜる。
+検証シナリオには typical、edge、missing-info、tool-heavy、known-failure、should-not-use を混ぜる。
 
-## packets
+## 渡す情報
 
-Executor run packet:
+Executor に渡す情報:
 
 - target prompt
-- scenario
-- required input paths/files
+- 検証シナリオ
+- 必要な入力 path / ファイル
 - task
-- report structure
+- 報告形式
 
-Scoring packet:
+採点者に渡す情報:
 
 - frozen checklist
 - scoring rules
 - critical labels
 - admissible evidence
 
-executor に scoring packet を渡さない。
+実行者に scoring packet を渡さない。
 
-## executor report
+## 実行者の報告
 
-- Deliverable
-- Execution summary
-- Ambiguities
-- Discretionary fill-ins
-- Blocked areas
-- Retries
-- Self-assessed uncertainty
+- 成果物
+- 実行概要
+- 曖昧だった点
+- 実行者が補った点
+- 詰まった箇所
+- やり直し
+- 自己評価した不確実性
 
-## scorer report
+## 採点者の報告
 
 ```json
 {
@@ -102,24 +102,24 @@ executor に scoring packet を渡さない。
 }
 ```
 
-Success:
+成功条件:
 
 - all `[critical]` requirements are `pass`
 
-Pass rate:
+合格率:
 
 - `pass` = 1
 - `partial` = 0.5
 - `fail` = 0
 
-## comparison
+## 比較
 
-prompt variants は A/B 匿名化し、必要なら order を randomize/counterbalance する。
-prose-heavy outputs は paired comparison を追加してよい。
+prompt の変種は A/B として匿名化し、必要なら順序をランダム化または均衡化する。
+文章量が多い出力では対比較を追加してよい。
 
-## adoption signals
+## 採用判断の材料
 
-Primary:
+主な材料:
 
 - critical pass rate
 - requirement pass rate
@@ -127,34 +127,34 @@ Primary:
 - new ambiguities
 - new discretionary fill-ins
 
-Supporting:
+補助材料:
 
 - median tool uses
 - median duration
 - retries
 - output length when suspicious
 
-adoption 目安:
+採用判断の目安:
 
 - validation critical pass rate が baseline 以上
 - total score が改善、または execution burden が下がり critical failures が増えない
-- scorer disagreement が悪化しない
+- 採点者の不一致が悪化しない
 - hold-out が崩れない
 
 ## 手順
 
 1. Iteration 0 static alignment を行う。
-2. experiment plan を freeze する。
-3. scenario set と packets を作る。
-4. fresh blinded executors を走らせる。
-5. fixed outputs を separate scorer が採点する。
+2. experiment plan を固定する。
+3. 検証シナリオの集合と packets を作る。
+4. 新しい blinded 実行者を走らせる。
+5. fixed outputs を別の採点者が採点する。
 6. variants または iterations を比較する。
-7. 最小 prompt change を 1 coherent theme だけ適用する。
-8. 同じ validation scenarios を fresh executors で再実行する。
-9. improvement が頭打ちになったら hold-out を確認する。
-10. adoption、next change、または rollback を決める。
+7. 最小 prompt change を 1 つのまとまったテーマだけ適用する。
+8. 同じ validation 検証シナリオを新しい実行者で再実行する。
+9. 改善が頭打ちになったら hold-out を確認する。
+10. 採用、次の変更、または rollback を決める。
 
-## output
+## 返す形式
 
 ```markdown
 ## Iteration N
@@ -187,9 +187,9 @@ adoption 目安:
 
 ## 完了チェック
 
-- evaluation design を freeze した
-- executor は blinded fresh session
-- scorer は separate pass
-- requirement-level evidence がある
-- critical failures を平均点で隠していない
-- hold-out regression を確認した、または未実施理由を明示した
+- 評価設計を固定した。
+- 実行者は blinded fresh session。
+- 採点者は separate pass。
+- requirement-level evidence がある。
+- critical failures を平均点で隠していない。
+- hold-out regression を確認した、または未実施理由を明示した。

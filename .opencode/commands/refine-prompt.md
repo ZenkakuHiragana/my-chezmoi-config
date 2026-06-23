@@ -3,90 +3,65 @@ description: Apply prompt-surface interventions while preserving required behavi
 agent: build
 ---
 
-Your task is to apply prompt-surface interventions by refactoring and completing the prompt hierarchy, not just one file.
+プロンプト階層を、必要な動作を落とさずに整理、補強、言い換えする。
+1 つのファイルだけを場当たり的に直さず、関係する層をまとめて確認する。
 
-User request:
+ユーザー依頼:
 $ARGUMENTS
 
----
+この command が扱う面:
 
-You are performing hierarchy-aware prompt maintenance across these prompt surfaces:
-
-- global rules such as `AGENTS.md`
-- command definitions and command stubs such as `.opencode/commands/*.md` and `dot_config/opencode/commands/*.md`
-- command-specific agent prompts such as `dot_config/opencode/agents/report-failure.md`
-- role-specific prompt files such as `build.md`, `plan.md`, or equivalent
+- `AGENTS.md` などの共有規則
+- `.opencode/commands/*.md`、`dot_config/opencode/commands/*.md` などの command 定義
+- `dot_config/opencode/agents/*.md` などの command 専用 agent prompt
+- `build.md`、`plan.md` などの role 別 prompt
 - skill descriptions
-- `SKILL.md` files
-- prompt-management documents when the requested change is about prompt-system policy
+- `SKILL.md` ファイル
+- プロンプトシステム方針に関係する運用文書
 
-Your goal is to make the hierarchy shorter, clearer, less redundant, easier for the model to obey under short instructions, and complete enough for each task type to work reliably.
+目的は、階層を短く、明確に、重複少なく、短い指示でも従いやすくし、各作業種別が確実に動く程度の完全性を保つこと。
 
-This command is for hierarchy-aware prompt-surface intervention, refactoring, and optimization.
-It is not for broad speculative rewriting.
-It is not primarily for recording new failures.
-It is not primarily for adding one narrowly scoped new capability.
-It is not an executor for every possible failure-analysis intervention.
+この command は、階層を意識したプロンプト面の介入、整理、最適化に使う。
+広い思いつきの書き換えには使わない。
+新しい失敗の記録が主目的なら `/report-failure` を勧める。
+単一能力の追加が主目的なら `/add-capability` を勧める。
 
-This command may edit:
+実行時の hook、plugin、harness、artifact の保存、実行時の強制処理は実装しない。
+triage がそれらを勧めている場合は、文章ルールへ矮小化せず、handoff と所有境界だけを prompt 面に残す。
 
-- global rules;
-- command definitions and command stubs;
-- command-specific agent prompts;
-- role-specific agent prompts;
-- skill descriptions;
-- `SKILL.md` files;
-- prompt-management documents when the requested change is about prompt-system policy.
+## 0. 利用できるプロンプト面を確認する
 
-It must not implement runtime hooks, plugins, harnesses, artifact storage or enforcement, or other non-prompt enforcement mechanisms.
+編集前に、この環境に存在する層を確認する。
 
-If `/triage-failure` recommends a hook, plugin, harness, artifact implementation, or runtime enforcement, do not convert that recommendation into a prose-only prompt rule. Instead, preserve the handoff and edit only the prompt surfaces needed to route to or document that intervention.
+- リポジトリ root や config 配下の `AGENTS.md`
+- `.opencode/commands/*.md`、`dot_config/opencode/commands/*.md`
+- `dot_config/opencode/agents/*.md`
+- role 別 prompt
+- skill descriptions と `SKILL.md`
+- prompt 管理文書、原則、checklist、失敗ログ
 
-If the request is only about recording a new failure, recommend `/report-failure`.
-If the request is mainly about adding one new capability with minimal scope, recommend `/add-capability`.
+存在しない層は、この実行では `存在しない` として扱う。
+1 つのシステムプロンプトしかない環境では、そのファイル内で共有規則、task 固有動作、詳細手順を分けて扱う。
 
-Follow this workflow exactly.
+## 0.5. triage の handoff と介入種別を確認する
 
-## 0. Detect available prompt surfaces
+依頼が `/triage-failure` レポートまたは failure-log の incident から続いている場合は、先にその資料を読む。
 
-Before reading or editing any files, determine which prompt layers and control documents actually exist in this environment.
+取り出す情報:
 
-Check for:
+- incident ids
+- cluster ids
+- current coverage status
+- recommended intervention type
+- 対象 surface
+- validation または退行確認シナリオ
+- rollback 条件
 
-- global rules files (for example `AGENTS.md` at the repository root or under a config directory)
-- command definitions and command stubs (for example `.opencode/commands/*.md` or `dot_config/opencode/commands/*.md`)
-- command-specific agent prompts (for example `dot_config/opencode/agents/report-failure.md`)
-- role- or mode-specific prompt files (for example `build.md`, `plan.md`, or other agent prompt files)
-- skill descriptions and corresponding `SKILL.md` files
-- prompt management documents such as principles, refactor checklists, or failure logs
+`/triage-failure` の続きなら、そのレポートを介入計画の正本にする。
 
-Rules:
+意図的な階層整理、統合、完全性確認なら `prompt_surface_change` として扱う。ただし単一能力追加なら `/add-capability` が適切か確認する。
 
-- Treat any missing category as "not available" for this run. Do not assume that every environment has all layers or documents.
-- In a single system-prompt environment with no clear separation between global rules, role prompts, and skills, treat that one prompt file as the main prompt surface. Still apply the hierarchy concepts (shared rules vs task-specific behavior vs detailed procedure) within that file.
-- When a repository provides additional control documents, prefer using them, but this command must remain usable even when only a single system prompt is available.
-
-## 0.5. Check triage handoff and intervention type
-
-Before editing, determine whether this request follows from a `/triage-failure` report or failure-log incident.
-
-If it does, read the relevant triage report or incident file first and extract:
-
-- incident ids;
-- cluster ids;
-- current coverage status;
-- recommended intervention type;
-- target surfaces;
-- validation or regression scenario;
-- rollback condition.
-
-When this command is invoked as a follow-up to `/triage-failure`, treat the triage report as the controlling intervention plan.
-
-If the request is an intentional hierarchy cleanup, consolidation, or completeness pass rather than a triage follow-up, classify it as `prompt_surface_change` unless it is actually a narrow capability addition better handled by `/add-capability`.
-
-Do not reinterpret historical, likely-addressed, obsolete-context, or covered-but-unvalidated failures as new prompt-edit requirements.
-
-Classify the requested intervention as one of:
+介入種別を 1 つ以上に分類する。
 
 - `prompt_surface_change`
 - `command_prompt_change`
@@ -99,236 +74,217 @@ Classify the requested intervention as one of:
 - `no_change`
 - `unclear`
 
-Proceed with direct prompt edits only for:
+直接編集してよいもの:
 
 - `prompt_surface_change`
 - `command_prompt_change`
 - `skill_change`
-- `agent_routing_change` when it is represented in prompt-owned routing or configuration files, not runtime enforcement code
+- prompt 側が持つ routing または config ファイルで表現される `agent_routing_change`
 
-For `artifact_schema_change`, edit only the prompt or documentation surfaces that define the schema. Do not implement runtime storage, validation, or enforcement in this command.
+`artifact_schema_change` では schema を定義する prompt または文書だけを直す。保存、検証、強制の runtime 実装はしない。
 
-For `hook_or_plugin_change`, `harness_change`, artifact implementation, or runtime enforcement changes, do not implement them here. Produce a handoff or recommend the appropriate implementation workflow.
+`hook_or_plugin_change`、`harness_change`、artifact 実装、実行時の強制処理はここで実装しない。handoff を作るか、適切な実装の流れを勧める。
 
-For `regression_validation_only` or `no_change`, do not edit prompts. Produce the validation result, validation handoff, or no-change rationale instead.
+`regression_validation_only` または `no_change` では prompt を編集しない。検証結果、検証 handoff、または no-change 理由を返す。
 
-For `unclear`, stop and recommend `/triage-failure`.
+`unclear` なら止まり、`/triage-failure` を勧める。
 
-Do not edit prompt surfaces for reports whose current coverage is:
+次の coverage のレポートから新規 prompt rule を作らない。
 
 - `likely_addressed`
 - `obsolete_context`
 - `covered_but_unvalidated`
 
-unless the triage report explicitly says validation failed or recurrence under the current system was confirmed.
+ただし、validation が失敗した、または現行 system での再発が確認された場合は別。
+`covered_but_unvalidated` は、原則として編集ではなく regression validation handoff にする。
 
-For `covered_but_unvalidated`, prefer creating or preserving a regression validation handoff over editing prompts.
+## 1. 管理文書を先に読む
 
-## 1. Read the control documents first
+存在する場合は、最初に読む。
 
-When they exist in this environment, read the control documents before doing anything else:
+- 見つけた global rules ファイル
+- `opencode-prompt-dev/prompt-principles.md` などの管理原則
+- `opencode-prompt-dev/prompt-refactor-checklist.md` などの checklist
 
-- any global rules file you found in step 0 (for example `AGENTS.md`)
-- any prompt-management principles document (for example `prompt-principles.md`)
-- any refactor checklist (for example `prompt-refactor-checklist.md`)
+専用のローカル失敗ログがある場合は、今回の依頼または triage の handoff に関係する incident、triage レポート、cluster だけ読む。
+失敗ログが存在するだけで、無関係な過去の失敗を編集要件にしない。
 
-If dedicated local failure logs exist (for example files under `~/.local/share/chezmoi/.opencode/local-failure-logs/`), read only the triage reports, incident files, or clusters that are relevant to the current request or the step 0.5 handoff. Do not treat the mere existence of failure logs as permission to mine unrelated historical failures into new prompt-edit requirements.
+原則や checklist がない環境でも、最低限次を守る。
 
-If no separate principles or checklists exist, still apply at least these minimal principles while using this command:
+- 追加より、既存規則の言い換え、統合、移設を優先する
+- 新規規則は、既存規則の整理で足りない場合だけ、短く正確に追加する
+- 共有規則は短く安定させ、詳細手順は最も近い層へ置く
+- 同じ原則を少し違う文で複数箇所に残さない
 
-- prefer rewording, consolidating, or moving existing rules over adding brand-new ones
-- add a new rule only when clarifying, relocating, or merging existing rules is insufficient and the new wording is short and precise
-- keep shared or global rules short and stable, and move detailed, task-specific procedure into the most local appropriate layer
-- avoid leaving the same principle expressed in multiple places in slightly different wording
+原則と checklist がある場合は、それらを削除禁止、介入種別、完全性確認の共有方針として扱う。
 
-When the principles and checklist do exist, treat them as the shared policy layer for intervention-type gates, no-drop preservation, and completeness checks. Keep command-local execution steps in this file.
+## 2. 階層の棚卸しを作る
 
-## 2. Build a hierarchy inventory
+今回の範囲に関係するプロンプト面を特定して読む。
 
-Before editing, identify all relevant prompt surfaces involved in the current scope that actually exist in this environment.
+確認するもの:
 
-Based on step 0, inspect as many of the following as are available:
+- global rules
+- 関連する command 定義 / command 雛形
+- 関連する command 専用 agent prompts
+- 依頼に関係する role 別 prompt ファイル
+- 関連する skill descriptions
+- 対応する `SKILL.md`
 
-- the global rules file or files
-- the relevant command definitions and command stubs
-- the relevant command-specific agent prompts
-- the role-specific prompt files relevant to the request
-- the relevant skill descriptions
-- the corresponding `SKILL.md` files
+明示すること:
 
-Explicitly determine:
+- 対象範囲内のファイル
+- 関係はあるが対象範囲外のファイル
+- 複数層で共有される動作
+- 1 つの role または skill に閉じる動作
 
-- which files are in scope
-- which files are related but out of scope
-- which behaviors are shared across layers
-- which behaviors are local to one role or one skill
+動作が複数の概念的なプロンプト面にまたがる場合は、物理的に 1 ファイルでも単一ファイル最適化にしない。
 
-In a single system-prompt environment, perform the same classification within that one file instead of across multiple files.
+## 3. 最適化範囲を決める
 
-Do not optimize a single file in isolation if the behavior spans multiple conceptual prompt surfaces, even when those surfaces live in one physical file.
+ユーザーがファイル、動作、失敗、最近の能力、最近の編集を名指しした場合は、それを主範囲にする。
 
-## 3. Determine the optimization scope
+指定が広い場合は、次を優先して見る。
 
-If the user request names specific files, behaviors, failures, recent capability additions, or recent edits, use them as the primary scope.
+- 複数層で重複する規則
+- つぎはぎで長くなった箇所
+- 暫定的な継ぎ当て箇所
+- 曖昧または責務過多な規則
+- skill description に漏れた詳細手順
+- `SKILL.md` に必要な詳細がなく、description が担っている箇所
+- 意図的な能力が弱い、重複している、または配置違いの箇所
+- 作業種別に必要な要素が欠けている箇所
 
-Otherwise, prioritize:
+## 4. 影響する作業種別を分類する
 
-- repeated or overlapping rules across multiple layers
-- provisionally patched areas that now look duplicative
-- long sections created by repeated patching
-- vague or overloaded rules that should be split or relocated
-- places where skill descriptions contain detailed procedure
-- places where `SKILL.md` is missing detail that a skill description currently carries
-- places where an intentional capability addition looks weak, duplicated, or misplaced
-- places where a task-specific prompt surface appears incomplete for its task type
-
-## 4. Classify the affected task archetypes
-
-For each affected command definition, command-specific agent prompt, role prompt, skill description, or `SKILL.md`, classify the task archetype it primarily supports.
-
-Use one or more of these archetypes as appropriate:
+各 command、agent prompt、role prompt、skill description、`SKILL.md` について、主に支える作業種別を分類する。
 
 - implementation
 - refactoring
-- public research
-- local investigation
+- 公開調査
+- ローカル調査
 - planning or requirements shaping
-- writing or output-quality control
+- 文章作成または出力品質管理
 - verification
 - other
 
-Do not assume that every archetype needs identical structure.
-Do use the archetype to decide what minimum elements must remain explicit somewhere in the hierarchy.
+すべての作業種別に同じ構造を押し付けない。
+ただし、その作業種別に必要な最小要素が階層のどこかに残るようにする。
 
-## 5. Extract REQUIRED BEHAVIORS before editing
+## 5. 必須動作を編集前に抽出する
 
-Before making changes, create an internal inventory of REQUIRED BEHAVIORS.
+編集前に、守るべき動作を 5 から 25 個ほど書き出す。
 
-Extract 5 to 25 concrete items, depending on scope.
+含めるもの:
 
-Each item must describe a real behavioral commitment, constraint, or required outcome that must remain true after refactoring.
+- 必須の tool 使用規則
+- 根拠の優先順と情報収集規則
+- private 情報を検索語に入れない制約
+- 検証義務
+- role boundary
+- 共有状態、status 語彙、保存先、作業契約
+- 階層ごとの責務
+- 文書作成または編集の制約
+- skill を使う条件、使わない条件
+- 返答または報告の期待値
+- 完了条件
 
-Include items such as:
+具体的な必須動作なしに編集へ進まない。
 
-- required tool-use rules
-- required search and source-priority behavior
-- privacy restrictions on search queries
-- validation obligations
-- role boundaries
-- shared states, status vocabularies, storage models, or workflow contracts used across multiple prompt surfaces
-- hierarchy responsibilities
-- writing or editing constraints
-- conditions for when a skill should or should not be used
-- output or reporting expectations
-- completion conditions
+## 6. 保持する能力と制約を分けて抽出する
 
-Do not continue until you have a concrete REQUIRED BEHAVIORS inventory.
+現行階層がすでに持つ能力と制約のうち、落としてはいけないものを別に洗い出す。
 
-## 6. Extract PRESERVED CAPABILITIES AND CONSTRAINTS before editing
+含めるもの:
 
-Separately identify the capabilities and constraints that the current hierarchy already provides and that must not be lost.
+- 最近意図的に追加された能力
+- 既知の再発失敗を防ぐ規則
+- 根拠確認の動作
+- 公開調査の安全策
+- private 情報の露出や検索を防ぐ制約
+- 特定 role だけに属する動作
+- skill description と `SKILL.md` の責務分担
+- 信頼性を保つ validation または completion check
 
-Include, when relevant:
+最近追加された、局所的、失敗ログに紐づかない、という理由だけで削除候補にしない。
 
-- recently added intentional capabilities
-- rules added to prevent known recurring failures
-- source-verification behavior
-- public-research safeguards
-- constraints on exposing or searching private information
-- behavior tied to one role but not others
-- responsibilities that belong in skill descriptions versus `SKILL.md`
-- validation or completion checks that keep the task reliable
+## 7. 編集前に完全性を監査する
 
-Do not treat something as removable merely because it is recent, local, or not tied to a logged failure.
+影響を受ける各プロンプト面が、作業種別を実行できるだけの要素を持つか確認する。
 
-## 7. Run a completeness audit before editing
+最低限見るもの:
 
-Before editing, verify whether each affected prompt surface is complete enough for its task archetype.
+- 目的
+- 使う条件
+- 使わない条件
+- 発火条件または期待入力
+- 必須の返答、成果物、判断
+- 禁止事項
+- 検証または完了条件
+- 必要な場合の返答制約
 
-Check whether the hierarchy, across the appropriate layers, still contains the minimum elements needed for reliable execution.
+これらは 1 ファイルに集めなくてよい。ただし階層全体の適切な層に明示されている必要がある。
+既存本文を保っただけでは不完全な場合は、最小の文を正しい層へ足す。
 
-Look for missing essentials such as:
+## 8. 追加調査の要否を決める
 
-- purpose
-- when to use
-- when not to use
-- triggers or expected inputs
-- required outputs or decisions
-- forbidden behavior
-- validation or completion criteria
-- output or reporting constraints when needed
+編集前に、ローカルのプロンプトファイルだけで足りるか、追加調査が必要か決める。
 
-These elements do not need to appear in one file.
-They do need to remain explicitly represented somewhere in the correct layer of the hierarchy.
+次の場合は追加調査が必要。
 
-Do not assume that preserving the current text is sufficient if the current text is incomplete.
+- 最新の公開事実が効く
+- 外部の実務慣行が中心になる
+- 再利用する手順、作業の流れ、レビュー枠組み、品質チェック、検証基準を定義する
+- 検索方針、根拠方針、根拠基準、引用期待値を変える
+- プライバシー、開示、セキュリティ上重要な挙動に触れる
+- 検証方針、完了条件、tool 選択を変える
+- 用語、手法、方針が曖昧、不慣れ、または解釈が複数ありそう
+- 公開調査、refactoring、technical writing、code review、investigation、verification の確立した実務が品質に影響する
+- ローカルのプロンプト文言だけでは、判断基準や制約が弱くなりそう
 
-If an element is missing and the task type cannot be performed reliably without it, plan to add or restore the smallest explicit wording needed in the correct layer.
+追加調査が必要な場合:
 
-## 8. Decide whether additional research is needed
+- 編集前に調査ツールを使う
+- 一次資料、公式文書、直接の製品文書を優先する
+- 事実と自分の整理を分ける
+- 非公開のリポジトリ情報を公開検索語に入れない
+- 正しく整理するために必要な最小限だけ調べる
 
-Before editing, decide whether local prompt files are enough, or whether additional research is needed.
+追加調査が不要な場合:
 
-Additional research is needed when any of the following are true:
+- ローカルのプロンプト文脈だけで進める
 
-- current public facts matter
-- external best practices are central to the refactor
-- the affected skill, prompt, or capability defines a reusable process, workflow, review framework, quality checklist, validation standard, or writing/research/investigation methodology
-- the affected capability changes search policy, source policy, evidence standards, or citation expectations
-- the affected capability touches privacy, disclosure, or security-sensitive behavior
-- the affected capability changes validation strategy, completion criteria, or tool choice
-- an important term, practice, or policy is ambiguous, unfamiliar, or likely to have multiple interpretations
-- the affected task archetype depends on established external practice, such as public research norms, refactoring standards, technical writing norms, code review norms, investigation procedure, or verification procedure
-- relying only on local prompt wording would likely produce incomplete review dimensions, weak decision criteria, or missing constraints
+## 9. 編集前に現行階層を批判的に読む
 
-Do not treat “no current facts are required” as sufficient reason to skip research when the skill or prompt being edited depends on external best practices or established quality criteria.
+次を探す。
 
-If research is needed:
+- 複数層に重複した考え
+- 1 つの規則に複数責務がある箇所
+- 短い命令で済むのに長い箇所
+- skill description に漏れた詳細手順
+- global rules に漏れた local exception
+- role prompt や `SKILL.md` に置くべき詳細を global rules が持っている箇所
+- つぎはぎされた規則で、統合候補になっている箇所
+- 追加済み能力が弱い、または配置違いの箇所
+- task に必須の要素が欠けている箇所
+- 短いが不十分な箇所
+- 共有 status、保存先、作業契約の層間不一致
 
-- use available research tools before editing
-- prefer primary sources, official documentation, or direct product documentation
-- separate facts from your own synthesis
-- do not include private repository information in public search queries
-- do only the minimum research needed to refactor correctly
+まだ編集しない。何が問題で、なぜ問題かを先に理解する。
 
-If research is not needed:
+## 10. 編集前に設計判断を明示する
 
-- continue using local prompt context only
+意味のある変更ごとに、次を決める。
 
-## 9. Critique the current hierarchy before editing
-
-Analyze the current state and identify concrete problems.
-
-Look for:
-
-- duplicated ideas written in multiple layers
-- one rule doing too many jobs
-- long wording where a short imperative would be clearer
-- detailed procedure leaking into a skill description
-- local exceptions incorrectly placed in global rules
-- global rules carrying details that belong in role prompts or `SKILL.md`
-- rules patched in quickly that are now good candidates for consolidation
-- capability additions that are present but weakly enforced or misplaced
-- task-essential elements that are missing for the affected archetype
-- places where the hierarchy is short but no longer sufficiently specific
-- cross-layer contradictions, especially when one layer depends on another layer's later output or gate, or when a shared status, storage model, or workflow contract changed in one surface but not the others
-
-Do not edit yet.
-First understand what is wrong and why.
-
-## 10. Make explicit design decisions before editing
-
-For each meaningful change you plan to make, decide all of the following:
-
-- what behavior is being preserved
-- what missing or weak element is being repaired, if any
-- what problem in the current hierarchy is being fixed
-- which other surfaces depend on any shared status vocabulary, storage model, or workflow contract you are changing
-- which layer should own the rule after refactoring
-- why that layer is better than nearby alternatives
-- why a prompt-surface edit is the correct intervention type, rather than validation-only, hook, harness, artifact, command implementation, or no change
-- whether the related failure reports are active gaps, high-risk unknowns, covered-but-unvalidated, likely-addressed, or obsolete-context cases
-- whether the change is:
+- 保つ動作
+- 修復する不足または弱点
+- 現行階層のどの問題を直すか
+- 共有 status、保存先、作業契約を変える場合の依存面
+- 変更後にどの層がその規則を持つか
+- 近い代替層ではなく、その層がよい理由
+- プロンプト面の編集が正しい介入種別である理由
+- 関連失敗報告が active gap、高リスク unknown、covered-but-unvalidated、likely-addressed、obsolete-context のどれか
+- 変更種別:
   - `reword_existing_rule`
   - `move_to_different_layer`
   - `merge_overlapping_rules`
@@ -336,260 +292,251 @@ For each meaningful change you plan to make, decide all of the following:
   - `restore_missing_essential`
   - `add_minimal_new_rule`
 
-Use this priority order:
+優先順:
 
-1. reword an existing rule
-2. move an existing rule to a better layer
-3. merge overlapping rules
-4. split one overloaded rule into a short shared rule plus detailed local guidance
-5. restore the smallest missing essential element if the task type is incomplete
-6. add a minimal new rule only if the above are insufficient
+1. 既存規則を言い換える
+2. 既存規則をより適切な層へ移す
+3. 重複規則を統合する
+4. 責務過多な規則を、短い共有規則と詳細な局所指針に分ける
+5. 作業種別が不完全なら、最小の必須要素を戻す
+6. 上記で足りない場合だけ、最小の新規規則を足す
 
-## 11. Apply strict hierarchy rules while editing
+## 11. 階層責務を守って編集する
 
-Use these layer responsibilities consistently:
+層の責務:
 
-- global rules:
-  short, stable, broadly shared constraints
-- command definitions and command stubs:
-  command entry points, argument handling, command-specific routing, and brief user-invoked workflow contracts
-- command-specific agent prompts:
-  detailed command execution roles, handoffs, artifact contracts, and command-local decision policy
-- role-specific prompt files:
-  behavior specific to one role, mode, or agent
-- skill descriptions:
-  short discovery guidance only:
-  when to use, when not to use, and expected result
-- `SKILL.md`:
-  detailed operational procedure, checks, examples, and local decision rules
+- global rules: 短く安定した共有制約
+- command 定義 / command 雛形: command の入口、引数処理、command 固有の routing、短い作業契約
+- command 専用 agent prompt: 詳細な command 実行 role、handoff、artifact 契約、command 内の判断方針
+- role 別 prompt ファイル: 1 つの role、mode、agent に固有の動作
+- skill descriptions: 発見用の案内だけ。when to use、when not to use、期待される結果
+- `SKILL.md`: 詳細手順、確認、例、局所判断規則
 
-Do not place detailed procedure into a skill description.
-Do not place local exceptions into the global rules layer unless they truly belong there.
-Do not duplicate the same instruction across layers unless the repetition is clearly necessary and minimal.
+禁止:
 
-## 12. Enforce the no-drop rule
+- 詳細手順を skill description に置く
+- local exception を、不必要に global rules へ置く
+- 同じ指示を複数層で不要に繰り返す
 
-Do not delete any behaviorally meaningful instruction unless, in the same edit, you either:
+## 12. 削除禁止ルールを守る
 
-- preserve it with clearer wording at the same layer, or
-- move it to a more appropriate layer and explicitly preserve it there
+意味のある指示を削除する場合は、同じ編集で必ずどちらかを行う。
 
-If you compress multiple rules into one shorter rule, verify that all original behavioral commitments are still covered.
+- 同じ層でより明確に言い換える
+- より適切な層へ明示的に移す
 
-Do not consider a capability preserved merely because a shorter sentence still sounds related.
-A capability is preserved only if the resulting hierarchy still makes the model's expected trigger, action, prohibition, and validation target materially recoverable.
+複数規則を短くまとめる場合は、元の動作上の約束がすべて残っているか確認する。
+似た短文が残っただけでは能力が保持されたとはみなさない。
+発火条件、必須行動、禁止行動、検証対象が復元できる場合だけ保持されたとみなす。
 
-Shorter is not better if it drops capability, constraint, or enforceability.
+短さを理由に、能力、制約、実効性を弱めてはいけない。
 
-## 13. Optimize for obedience under short instructions
+## 13. 短い指示でも従いやすい文にする
 
-While editing, prefer wording that is:
+編集時は次を優先する。
 
-- direct
-- imperative
-- specific
-- low in redundancy
-- easy to follow mechanically
+- 直接的
+- 命令として読める
+- 具体的
+- 重複が少ない
+- 機械的に従いやすい
 
-Avoid:
+避けるもの:
 
-- historical explanation inside normative prompt text
-- migration commentary
-- stacked near-synonymous reminders
-- abstract slogans that do not control behavior
-- vague advice that depends on model interpretation without an operational consequence
+- 規範本文の中の歴史説明
+- 移行メモ
+- 似た注意の積み重ね
+- 行動を制御しない抽象標語
+- 操作上の結果がない曖昧な助言
 
-Keep shared rules stable and high-level.
-Keep detailed operational steps local to the relevant role prompt or `SKILL.md`.
+共有規則は安定した短い文にする。詳細手順は関連する role prompt または `SKILL.md` へ置く。
 
-## 14. Use both failure evidence and intentional capability evidence
+## 14. 失敗根拠と意図的に追加された能力の根拠を両方使う
 
-Use the failure log as evidence when relevant.
-Respect the triage handoff and current coverage status from step 0.5 when deciding whether failure evidence justifies a prompt edit.
-Also treat intentional capability additions as protected evidence.
+関係する場合は失敗ログを根拠にする。
+triage handoff と current coverage status を尊重する。
+意図的に追加された能力も保護対象の根拠として扱う。
 
-For every meaningful edit, be able to answer:
+意味のある編集ごとに答えられるようにする。
 
-- which logged failure, failure cluster, intentional capability, or missing essential element this change addresses
-- why the chosen layer is correct
-- why rewording, moving, merging, splitting, or restoring is sufficient, or why a new rule was unavoidable
+- どの記録済みの失敗、失敗 cluster、意図的な能力、missing essential element に対応するか
+- なぜその層が正しいか
+- なぜ言い換え、移設、統合、分割、復元で足りるか。または新規規則が必要な理由
 
-Do not make failure-derived changes erase non-failure-derived capabilities.
-Do not make capability-driven cleanup erase failure protections.
-Do not preserve incompleteness merely because it already existed.
+失敗由来の変更で、失敗由来でない能力を消さない。
+能力整理で、失敗保護を消さない。
+既存の不完全さをそのまま保存しない。
 
-## 15. Edit the hierarchy
+## 15. 階層を編集する
 
-Now apply the changes.
+ここで初めて編集する。
 
-You may edit:
+編集してよいもの:
 
-- the relevant global rules
-- the relevant command definitions and command stubs
-- the relevant command-specific agent prompts
-- the relevant role prompts
-- the relevant skill descriptions
-- the relevant `SKILL.md` files
-- the relevant prompt-management documents when the requested change is about prompt-system policy
+- 関連する global rules
+- 関連する command 定義 / command 雛形
+- 関連する command 専用 agent prompts
+- 関連する role prompts
+- 関連する skill descriptions
+- 関連する `SKILL.md` ファイル
+- プロンプトシステム方針に関係する prompt-management documents
 
-If dedicated local failure logs exist in this environment (for example files under `~/.local/share/chezmoi/.opencode/local-failure-logs/`), you may also update the relevant incident file only when both conditions are true:
+専用のローカル失敗ログは、次の両方を満たす場合だけ短く更新してよい。
 
-- the edited hierarchy clearly addresses a logged failure
-- the log update is only a status or short follow-up note
+- 編集済みの階層が記録済みの失敗を明確に扱う
+- 更新が短い status、原因、是正対応、検証計画メモだけ
 
-Do not create new tracking files.
-Do not perform a broad rewrite beyond the scoped hierarchy problem you identified.
+禁止:
 
-## 16. Run the preservation and completeness audit before finalizing
+- 新しい追跡用ファイルを作る
+- 特定した階層問題を超えた広い書き換えをする
 
-Before finalizing, run all of these audits internally.
+## 16. 最終化前の監査
 
-### REQUIRED BEHAVIORS audit
+### 必須動作の監査
 
-For every REQUIRED BEHAVIOR, mark it as one of:
+各必須動作を次のどれかに分類する。
 
-- Preserved as-is
-- Preserved but clarified
-- Moved to a different layer
-- Modified for consistency or safety
+- そのまま保持
+- 明確化して保持
+- 別の層へ移設
+- 一貫性または安全性のために変更
 
-Do not leave any REQUIRED BEHAVIOR unaccounted for.
+未分類の必須動作を残さない。
 
-### intervention-type audit
+### 介入種別の監査
 
-Verify all of the following:
+確認する。
 
-- every edited prompt surface corresponds to an `active_gap` or high-risk `unknown`, or to an intentional non-failure capability request;
-- no `likely_addressed` or `obsolete_context` incident caused a new prompt rule;
-- no `covered_but_unvalidated` incident was converted into a prompt edit before validation failed or recurrence was confirmed;
-- no hook, harness, artifact, or runtime enforcement recommendation was downgraded into prose-only prompt guidance;
-- every non-prompt intervention discovered during this command is preserved as a handoff instead of silently ignored.
+- 編集したプロンプト面が `active_gap`、高リスク `unknown`、または失敗由来でない能力依頼に対応する
+- `likely_addressed` または `obsolete_context` incident から新規 prompt rule を作っていない
+- 検証失敗または再発確認なしに `covered_but_unvalidated` incident を prompt 編集にしていない
+- hook、harness、artifact、実行時強制の推奨を文章だけの prompt 上の案内へ格下げしていない
+- 見つけたプロンプト以外の介入を黙殺せず handoff として残した
 
-### capability preservation audit
+### 能力保持の監査
 
-Check all of the following:
+確認する。
 
-- every preserved capability still has an explicit home in the hierarchy
-- no detailed operational procedure remains only in a skill description
-- no local exception has leaked into the global rules layer without justification
-- no recent intentional capability addition has been removed merely because it was not failure-derived
-- no refactor silently downgraded source priority, privacy safeguards, validation requirements, or role boundaries
+- 保持した能力が階層のどこにあるか明確
+- 詳細手順が skill description にだけ残っていない
+- local exception が不適切に global rules へ漏れていない
+- 最近の意図的な能力を、失敗由来でないという理由だけで削除していない
+- 根拠の優先順、プライバシー保護、検証要件、role 境界を弱めていない
 
-### capability-contract audit
+### 能力契約の監査
 
-For each capability or procedure affected by this refactor, verify that the hierarchy still contains, in the appropriate place, the necessary elements of a usable prompt contract:
+影響を受ける能力または手順について、必要な要素が適切な層に残っているか確認する。
 
 - objective
 - scope
-- triggers or inputs
+- 発火条件または入力
 - required outputs or decisions
 - forbidden behavior
 - validation target
 
-These elements do not need to appear in one file, but they must remain explicitly represented somewhere in the hierarchy.
+1 ファイルに揃っていなくてもよいが、階層全体に明示されている必要がある。
 
-### research-gate audit
+### 調査ゲートの監査
 
-If a capability depends on current public facts, external best practices, source policy, privacy constraints, security-sensitive behavior, or validation strategy, verify that the hierarchy still makes the need for research or verification explicit.
+能力が最新の公開事実、外部の実務慣行、根拠方針、プライバシー制約、セキュリティ上重要な挙動、検証方針に依存する場合、調査または検証の必要性が明示されているか確認する。
 
-### validation-plan audit
+### validation-plan 監査
 
-For each meaningful capability affected by this refactor, verify that the hierarchy still makes it possible to tell whether the capability is correctly implemented, including at least one clear validation target or equivalent acceptance check.
+意味のある能力について、正しく実装されたか判断できる validation target または同等の acceptance check が残っているか確認する。
 
-### completeness audit
+### 完全性監査
 
-For each affected command definition, command-specific agent prompt, role prompt, skill description, or `SKILL.md`, verify that the hierarchy still contains, across the appropriate layers, the minimum elements needed for that task archetype.
+影響を受ける command、agent prompt、role prompt、skill description、`SKILL.md` について、作業種別に必要な最小要素を確認する。
 
-Check for missing essentials such as:
-
-- purpose
-- when to use
-- when not to use
-- triggers or expected inputs
-- required outputs or decisions
+- 目的
+- 使う条件
+- 使わない条件
+- 発火条件または expected inputs
+- required outputs または decisions
 - forbidden behavior
-- validation or completion criteria
-- output or reporting constraints when needed
+- validation または completion criteria
+- 必要な場合の output constraints
 
-If an element is missing and the task type cannot be performed reliably without it, add or restore the smallest explicit wording needed in the correct layer.
+欠けていて信頼できる実行に必要な場合は、最小の明示文を正しい層へ足す。
 
-### hierarchy quality audit
+### 階層品質監査
 
-Check all of the following:
+確認する。
 
-- the resulting hierarchy is shorter or clearer in the edited scope
-- duplicated wording has been reduced where safe
-- each edited rule now lives in the most appropriate layer
-- there are fewer overloaded rules than before
-- the edited prompts are easier to obey under short instructions than the previous version
-- the edited prompts are not shorter at the cost of losing critical structure
+- edited scope で短く、または明確になった
+- 安全な範囲で重複が減った
+- 各規則が最も適切な層にある
+- 責務過多な規則が減った
+- 短い指示でも従いやすくなった
+- 短さのために重要構造を落としていない
 
-If any audit fails, fix the hierarchy before finalizing.
+どれか失敗した場合は、最終化前に直す。
 
-## 17. Final response format
+## 17. 最終応答形式
 
-Provide these sections in order.
+次の順で返す。
 
-## Scope
+## 範囲
 
-- list the files you inspected
-- list the files you changed
-- state the main hierarchy problem you addressed
+- 確認したファイル
+- 変更したファイル
+- 直した主な階層問題
 
-## Task archetypes checked
+## 確認した作業種別
 
-- list the affected archetypes
-- mention any missing essential elements you found and repaired
+- 影響する作業種別
+- 見つけて修復した missing essential elements
 
-## Required behaviors preserved
+## 保持した必須動作
 
-For each important preserved behavior, state whether it was:
+重要な保持対象の動作ごとに、次のどれかを示す。
 
-- preserved as-is
-- preserved but clarified
-- moved to another layer
-- modified for consistency or safety
+- そのまま保持
+- 明確化して保持
+- 別の層へ移設
+- 一貫性または安全性のために変更
 
-## What changed
+## 変更内容
 
-For each changed file, state whether you:
+変更したファイルごとに、次のどれをしたか示す。
 
-- reworded
-- moved
-- merged
-- split
-- restored a missing essential
-- added minimal wording
+- 言い換え
+- 移設
+- 統合
+- 分割
+- 欠けていた必須要素の復元
+- 最小文言の追加
 
-## Why these layers
+## この層に置く理由
 
-Explain why each meaningful change belongs in its final layer rather than another one.
+各意味ある変更が、別の層ではなく最終的な層に属する理由を書く。
 
-## Capability and completeness preservation
+## 能力と完全性の保持
 
-Explain how intentional capabilities, failure-derived protections, and task-essential structure were preserved or repaired.
-Explicitly mention any behavior that was moved rather than deleted.
+意図的な能力、失敗由来の保護、task-essential structure をどう保ったか、または修復したかを書く。
+移した動作は、削除ではなく移設したことを明示する。
 
-## Research decision
+## 調査判断
 
-- state whether additional research was needed
-- if yes, why
-- if no, why not
+- 追加調査が必要だったか
+- 必要なら理由
+- 不要なら理由
 
-## Hierarchy improvements
+## 階層の改善
 
-Explain how the resulting hierarchy is shorter, clearer, less redundant, more complete, or easier to obey.
+結果として、短く、明確に、重複少なく、完全に、従いやすくなった点を書く。
 
-## Remaining risks
+## 残るリスク
 
-List any items that still look provisional, overloaded, incomplete, or likely to need a later pass.
+まだ暫定、責務過多、不完全、後続確認が必要そうな項目を書く。
 
-Important constraints:
+## 重要制約
 
-- This command is hierarchy-aware. Do not optimize one file while ignoring surrounding layers.
-- Do not perform a broad rewrite unless the current structure clearly prevents minimal consolidation.
-- Do not add a new rule when a wording change, merge, split, move, or minimal restoration is likely enough.
-- Do not drop behaviorally meaningful detail without preserving it at the same layer or moving it explicitly.
-- Do not use brevity as a reason to weaken source-verification rules, privacy rules, validation obligations, role boundaries, or task-essential structure.
-- If the request is actually only about recording a new failure, recommend `/report-failure` instead.
-- If the request is mainly about introducing one new capability with minimal scope, recommend `/add-capability` instead.
+- この command は階層を意識する。周辺層を無視して 1 ファイルだけ最適化しない。
+- 現構造が最小統合を妨げる場合以外、広い書き換えをしない。
+- 言い換え、統合、分割、移設、最小復元で足りるなら新規規則を追加しない。
+- 動作上意味のある詳細を、同層の言い換えまたは明示的な移設なしに落とさない。
+- 短さを理由に、根拠確認規則、プライバシー規則、検証義務、role 境界、task-essential structure を弱めない。
+- 失敗記録だけが目的なら `/report-failure` を勧める。
+- 単一能力追加が主目的なら `/add-capability` を勧める。

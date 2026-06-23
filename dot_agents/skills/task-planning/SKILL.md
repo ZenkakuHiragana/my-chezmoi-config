@@ -6,43 +6,43 @@ description: >
 
 # Task Planning
 
-clear requirements を、downstream execution が再開できる task file に変換する。
-implementation はしない。
+確定した requirements を、後続の実行者が再開できる task file に変換する。
+この skill では implementation しない。
 
 ## 入力
 
-- clear task description
-- requirements artifact or equivalent task contract
-- repository context
-- explicit user constraints / decisions
+- 明確な作業説明
+- requirements artifact または同等の task contract
+- リポジトリ文脈
+- 明示されたユーザー制約または決定
 
 ## 出力
 
 - `.opencode/work/<slug>.md`
-- `.opencode/work/current-task.md` with slug only
+- `.opencode/work/current-task.md` には slug だけ
 - next capability set
 
-`current-task.md` は continuation の task identity が会話から欠ける場合だけ見る。
+`current-task.md` は、継続依頼なのに task の識別子が会話から分からない場合だけ見る。
 現在依頼が明確なら無視する。
 
-## task file rules
+## task file のルール
 
-- 1 task = 1 file。
+- 1 task は 1 file にする。
 - `.opencode/work/current-task.md` には slug だけを書く。
-- work items は downstream が再構成なしで実行できる粒度にする。
+- 作業項目は、後続実行者が再設計せずに実行できる粒度にする。
 - dependencies、read set、write set、side effect mode、verification を明示する。
-- external/local facts が必要なら実行前 research として書く。
-- conversation-only constraints を task file に移す。
+- 外部またはローカルの事実が必要なら、実行前に集める事実として書く。
+- 会話にしかない制約を task file に移す。
 
 ## 手順
 
 1. requirements が task file 化できるほど確定しているか確認する。
 2. relevant repo context を読む。
-3. outcome、constraints、inputs を書く。
-4. relevant surfaces と chosen approach を書く。
-5. facts to gather と blocking unknowns を分ける。
-6. work items を phase、dependencies、parallel group、execution、side effect mode、read/write set、deliverables、verification 付きで書く。
-7. checks before completion を定義する。
+3. 結果、制約、入力を書く。
+4. 関連面と採用方針を書く。
+5. 集める事実と、作業を止める不明点を分ける。
+6. 作業項目を phase、dependencies、parallel group、execution、side effect mode、read/write set、deliverables、verification 付きで書く。
+7. 完了前の確認を定義する。
 8. task file と current-task pointer を書く。
 9. next capability set を示す。
 
@@ -120,10 +120,10 @@ implementation はしない。
 
 ## 完了チェック
 
-- task file が known requirements から埋まる
-- requirement obligations を保持した
-- relevant repo context を確認した
-- work items が具体的
-- dependencies と verification が明示
-- current-task は slug のみ
-- next capability set が最小十分
+- task file が known requirements から埋まっている。
+- requirement obligations を保持した。
+- relevant repo context を確認した。
+- 作業項目が具体的。
+- dependencies と verification が明示されている。
+- current-task は slug のみ。
+- next capability set が最小十分。

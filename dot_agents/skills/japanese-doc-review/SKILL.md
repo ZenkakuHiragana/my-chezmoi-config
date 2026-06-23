@@ -6,19 +6,19 @@ description: >
 
 # Japanese Doc Review
 
-日本語 reader-facing prose の問題を見つけ、後続修正に使える review result を返す。
-review 対象には README、設計メモ、仕様説明、運用手順、調査報告、prompt text、skill instructions を含む。
+日本語の読者向け本文をレビューし、後続修正に使えるレビュー結果を返す。
+対象には README、設計メモ、仕様説明、運用手順、調査報告、prompt text、skill instructions を含む。
 
-target がない場合は次だけ返す。
+対象本文がない場合は次だけ返す。
 
 ```markdown
 レビュー対象本文がないためレビューできません。
 ```
 
-## output format
+## 返答形式
 
-target がある場合は `references/review-result-format.md` を読む。
-review result は固定形式に従う。
+対象本文がある場合は `references/review-result-format.md` を読む。
+レビュー結果は固定形式に従う。
 
 常にこの順序で出す。
 
@@ -30,32 +30,32 @@ review result は固定形式に従う。
 対象外観点も省略しない。
 対象外なら `今回のレビュー範囲: 含まない`、理由、`指摘: - 今回はレビュー対象外。` を書く。
 
-## review file
+## レビュー結果ファイル
 
-review result file は、ユーザーが file output または既存 result 更新を明示した場合だけ使う。
+レビュー結果ファイルは、ユーザーがファイル出力または既存結果の更新を明示した場合だけ使う。
 
 - path 指定あり: その file
-- path 指定なし、target が既存 file: 同 directory に `foo.review.md`
-- target が pasted text または draft: file は作らず通常 review
+- path 指定なし、対象が既存 file: 同 directory に `foo.review.md`
+- 対象が貼り付け本文または草稿: file は作らず通常 review
 
-file を書いた場合、terminal には本文を出さず path だけ通知する。
-既存 result file は現在有効な review result の primary source として扱う。
-毎回 fixed format で全体を書き直す。
+file を書いた場合、端末には本文を出さず path だけ通知する。
+既存結果ファイルは、現在有効なレビュー結果の正本として扱う。
+毎回、固定形式で全体を書き直す。
 
-`NEXT_ISSUE_ID: ISSUE-001` は review result file の先頭だけに置く。
-通常 terminal review には置かない。
+`NEXT_ISSUE_ID: ISSUE-001` はレビュー結果ファイルの先頭だけに置く。
+通常の端末レビューには置かない。
 
 ## SCOPE / CONTEXT
 
-- `SCOPE`: 実際に review した本文範囲。target がある場合は必須。
-- `CONTEXT`: 複数指摘の判定に必要な正の制約だけ。本文要約や調査結果一覧にしない。
+- `SCOPE`: 実際に review した本文範囲。対象本文がある場合は必須。
+- `CONTEXT`: 複数指摘の判定に必要な正の制約だけを書く。本文要約や調査結果一覧にしない。
 
 `CONTEXT` に書けるもの:
 
 - ユーザーが本文判断基準として明示した定義、制約、目的、対象範囲
-- target text が明示する定義、制約、目的、対象範囲
-- target text から論理的に必然で、指摘判定に直接必要な事実
-- 指定 review result file の既存 `CONTEXT`
+- 対象本文が明示する定義、制約、目的、対象範囲
+- 対象本文から論理的に必然で、指摘判定に直接必要な事実
+- 指定レビュー結果ファイルの既存 `CONTEXT`
 
 推測、一般知識、今回の観点選択、内部ルールは `CONTEXT` に書かない。
 
@@ -63,9 +63,9 @@ file を書いた場合、terminal には本文を出さず path だけ通知す
 
 - 指定なし: `STRUCTURE` だけ
 - 単一観点指定: 指定観点だけ
-- 複数/全観点指定: dependency order を守る
+- 複数/全観点指定: 依存順序を守る
 
-Dependency order:
+依存順序:
 
 1. `STRUCTURE`
 2. `GRAMMAR`
@@ -73,7 +73,7 @@ Dependency order:
 4. `TYPO`
 
 上流観点に `高` または `中` がある場合、指定された下流観点は対象外にする。
-単一観点指定では upstream block しない。
+単一観点指定では上流観点による遮断をしない。
 
 観点別に必要な reference を読む。
 
@@ -82,7 +82,7 @@ Dependency order:
 - `STYLE`: `references/03-style.md`
 - `TYPO`: `references/04-typo.md`
 
-## severity
+## 重大度
 
 `STRUCTURE`、`GRAMMAR`、`STYLE`:
 
@@ -94,15 +94,15 @@ Dependency order:
 
 ## 指摘基準
 
-- concrete target と evidence がある問題だけ出す。
-- impression、taste、推測は出さない。
-- 本文外の user instructions、review history、draft constraints を根拠にしない。
+- 具体的な対象箇所と根拠がある問題だけ出す。
+- 印象、好み、推測は出さない。
+- 本文外の user instructions、レビュー履歴、草稿制約を根拠にしない。
 - 本文中のどの表現が、何を見えなくし、何を誤解させるかを書く。
 - 同じ原因の問題はまとめる。
 - `STRUCTURE`、`GRAMMAR`、`STYLE` は観点ごと最大 5 件。
 - `TYPO` は明らかで修正一択のものをすべて出す。
 
-## artifact leakage gate
+## 本文漏れ確認
 
 `指摘: - なし` の前に確認する。
 
@@ -121,10 +121,10 @@ review 前・中・更新時に質問しない。
 
 ## 完了チェック
 
-- target text が存在する
-- required references を読んだ
-- SCOPE が空でない
-- CONTEXT が判定基準だけを含む
-- fixed output format に従った
-- review result と repaired prose を混ぜていない
-- issue IDs は現在有効な問題だけに付けた
+- 対象本文が存在する。
+- 必要な references を読んだ。
+- SCOPE が空でない。
+- CONTEXT が判定基準だけを含む。
+- fixed output format に従った。
+- レビュー結果と修正済み本文を混ぜていない。
+- issue IDs は現在有効な問題だけに付けた。
