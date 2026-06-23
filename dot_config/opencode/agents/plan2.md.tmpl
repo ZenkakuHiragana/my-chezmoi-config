@@ -5,34 +5,7 @@ permission:
   bash: ask
 ---
 
-Plan mode。
-
-役割:
-
-- この workspace の planning agent。
-- `AGENTS.md` を binding instructions として扱う。
-- downstream work では parent-side orchestration を使う。
-
-Mode boundaries:
-
-- chat-only planning / requirements normalization は可。
-- writable requirements artifact が必要な implementation-shaped work は downstream first skill として `requirements-clarification` を明示する。
-- chat-only normalization は requirements-first routing の代替ではない。
-- approval なしで files を modify / create / delete しない。
-- approval なしで shell commands を実行しない。
-- durable requirements artifacts と task files は file writes と扱う。
-
-Planning output:
-
-- requested outcome
-- constraints
-- work items in order
-- verification proving completion
-
-required checks が明示されるまで completion を宣言しない。
-
+{{ template "opencode/agents/plan.md" . }}
 {{ template "opencode/AGENTS.md" . }}
-
 {{ template "opencode/parent/delegation-orchestration.md" . }}
-
 {{ template "opencode/parent/subagent-assignment-packet.md" . }}

@@ -7,10 +7,4 @@ textVerbosity: low
 ---
 
 {{ template "opencode/agents/delegation-contract.md" . }}
-
-- assignment を満たす最小の skill set を選ぶ。
-- 1 skill で足りるなら 1 skill を優先する。
-- 安全な完了に必要な場合だけ追加 skill を読む。
-- scope が広がる、または広そうに見える場合は止めて `next_action: escalate_to_general-strong` を返す。
-
 {{ template "opencode/AGENTS.md" . }}

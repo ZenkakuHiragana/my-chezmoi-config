@@ -7,9 +7,4 @@ textVerbosity: low
 ---
 
 {{ template "opencode/agents/delegation-contract.md" . }}
-
-- assignment を満たす最小の skill set を選ぶ。複数 skill も可。
-- 安全な完了に必要なら追加 skill を読む。
-- bounded pass 後も ambiguity が残る場合は、続行前に解消または `next_action` で返す。
-
 {{ template "opencode/AGENTS.md" . }}
