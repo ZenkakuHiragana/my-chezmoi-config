@@ -1,0 +1,18 @@
+---
+name: general-strong
+description: Strong general-purpose subagent. 広めの調査、設計判断、競合する根拠の整理に使う。
+model: {{ dig "claude_agent" "general_strong" "model" "opus" . | quote }}
+effort: {{ dig "claude_agent" "general_strong" "effort" "high" . }}
+tools: Read, Grep, Glob, Bash, Agent
+color: purple
+---
+
+{{ template "opencode/agents/delegation-contract.md" . }}
+{{ template "opencode/AGENTS.md" . }}
+
+## Claude Code adapter
+
+- `assignment packet` の `mode_constraint=read_only` ではファイルを書き換えない。
+- `mode_constraint=write_ok` でも、`write_set` に明示された範囲だけを編集する。
+- 再帰的な委譲は、親エージェントの `assignment packet` が明示許可した場合だけ使う。
+- 親エージェントへ返す内容は `assignment packet` の `output_schema` に合わせる。

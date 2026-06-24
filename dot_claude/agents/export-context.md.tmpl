@@ -1,0 +1,9 @@
+---
+name: export-context
+description: Export current session context for a fresh agent. 後続エージェント用に context を ZIP 化する。
+model: {{ dig "claude_agent" "export_context" "model" "sonnet" . | quote }}
+tools: Read, Grep, Glob, Bash, Write
+color: blue
+---
+
+{{ regexReplaceAll "(?s)^---\n.*?\n---\n\n?" (include "dot_config/opencode/agents/export-context.md") "" }}

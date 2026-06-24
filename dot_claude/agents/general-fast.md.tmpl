@@ -1,0 +1,17 @@
+---
+name: general-fast
+description: Fast general-purpose subagent. 明確で bounded な read-only / single-skill 寄りの作業に使う。
+model: {{ dig "claude_agent" "general_fast" "model" "haiku" . | quote }}
+effort: {{ dig "claude_agent" "general_fast" "effort" "medium" . }}
+tools: Read, Grep, Glob, Bash
+color: cyan
+---
+
+{{ template "opencode/agents/delegation-contract.md" . }}
+{{ template "opencode/AGENTS.md" . }}
+
+## Claude Code adapter
+
+- `assignment packet` の `mode_constraint=read_only` ではファイルを書き換えない。
+- `mode_constraint=write_ok` でも、`write_set` に明示された範囲だけを編集する。
+- 親エージェントへ返す内容は `assignment packet` の `output_schema` に合わせる。

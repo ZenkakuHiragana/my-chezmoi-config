@@ -1,0 +1,9 @@
+---
+name: triage-failure
+description: Analyze accumulated failure reports and propose the minimal effective intervention. 失敗ログを triage し、最小の介入案を出す。
+model: {{ dig "claude_agent" "triage_failure" "model" "opus" . | quote }}
+tools: Read, Grep, Glob, Bash, Write
+color: red
+---
+
+{{ regexReplaceAll "(?s)^---\n.*?\n---\n\n?" (include "dot_config/opencode/agents/triage-failure.md") "" }}

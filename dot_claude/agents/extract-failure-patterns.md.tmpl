@@ -1,0 +1,9 @@
+---
+name: extract-failure-patterns
+description: Extract failure patterns from past sessions. 過去セッションから失敗候補を抽出する。
+model: {{ dig "claude_agent" "extract_failure_patterns" "model" "sonnet" . | quote }}
+tools: Read, Grep, Glob, Bash, Write
+color: yellow
+---
+
+{{ regexReplaceAll "(?s)^---\n.*?\n---\n\n?" (include "dot_config/opencode/agents/extract-failure-patterns.md") "" }}
