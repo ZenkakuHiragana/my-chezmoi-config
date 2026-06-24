@@ -1,18 +1,20 @@
 ---
 name: task-planning
 description: >
-  Use when requirements are already clear but execution still needs ordered work items, dependencies, read/write surfaces, handoff points, or completion checks captured in a durable task file; not when requirements are still unclear or one focused pass can finish safely. 実行計画の固定専用。再開可能な task file と次の skill を返す。
+  Use when `Readiness record` is `pass` or `pass_with_assumption`, or when a fixed `Requirement contract` / other `task contract` already exists, but execution still needs ordered work items, dependencies, read/write surfaces, handoff points, or completion checks captured in a durable task file; not when stage, scope, acceptance criteria, or verification are still unsettled, or when one focused pass can finish safely. 実行計画の固定専用。再開可能な task file と次の skill を返す。
 ---
 
 # Task Planning
 
-確定した要件を、後続の実行者が再開できるタスクファイルに変換する。
+固定済みの作業契約を、後続の実行者が再開できる task file に変換する。
 この skill では実装しない。
+scope、invariants、acceptance criteria、verification method を新しく決めない。ここが動く場合は `context-clarification` に戻す。
 
 ## 入力
 
 - 明確な作業説明
-- requirements artifact または同等の task contract
+- `Readiness record` が `pass` または `pass_with_assumption`、または同等の準備完了判定
+- `Requirement contract`（`context-clarification` が出す `task contract`）または同等の `task contract`
 - リポジトリ文脈
 - 明示されたユーザー制約または決定
 
@@ -33,14 +35,15 @@ description: >
 - 依存関係、read set、write set、side_effect_mode、verification を明示する。
 - 外部またはローカルの事実が必要なら、実行前に集める事実として書く。
 - 会話にしかない制約をタスクファイルに移す。
+- `Blocking unknowns` には、固定済み契約を変えずに切り分けできるものだけを書く。scope や受け入れ条件を動かす不明点は `context-clarification` に戻す。
 
 ## 手順
 
-1. 要件がタスクファイル化できるほど確定しているか確認する。
+1. `Readiness record` が `pass` / `pass_with_assumption`、または同等の固定済み契約があるか確認する。
 2. 関連するリポジトリ文脈を読む。
 3. 結果、制約、入力を書く。
 4. 関連面と採用方針を書く。
-5. 集める事実と、作業を止める不明点を分ける。
+5. 集める事実と、契約を変えずに止める不明点を分ける。
 6. 作業項目を phase、dependencies、parallel group、execution、side effect mode、read/write set、deliverables、verification 付きで書く。
 7. 完了前の確認を定義する。
 8. タスクファイルと current-task の参照先を書く。
@@ -61,7 +64,7 @@ description: >
 
 ## Inputs
 
-- <requirements file, research note, issue, or user decision>
+- <`Requirement contract`、他の `task contract`、調査メモ、issue、ユーザー判断、または旧形式の requirements file>
 
 ## Relevant surfaces
 
@@ -78,7 +81,7 @@ description: >
 
 ## Binding rules
 
-- <binding rules from requirements-clarification>
+- <binding rules from context-clarification>
 
 ## Chosen approach
 
@@ -125,5 +128,6 @@ description: >
 - 関連するリポジトリ文脈を確認した。
 - 作業項目が具体的。
 - dependencies と verification が明示されている。
+- scope や acceptance criteria を勝手に増減していない。
 - current-task は slug のみ。
 - next capability set が最小十分。

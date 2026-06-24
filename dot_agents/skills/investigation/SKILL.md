@@ -1,13 +1,14 @@
 ---
 name: investigation
 description: >
-  Use when a claim, fix, review finding, or implementation decision depends on unread repository-local files, configs, logs, generated artifacts, runtime traces, or other local source-of-truth evidence; not for pure public facts or already-ready implementation. ローカル根拠の確認専用。観測事実、未解決点、次の行動を返す。
+  Use when a claim, fix, review finding, or implementation decision depends on unread repository-local files, configs, logs, generated artifacts, runtime traces, or other local source-of-truth evidence, especially unresolved `repo_derivable` or `subsystem_derivable` items; not for pure public facts, user-decision capture, or already-ready implementation. ローカル根拠の確認専用。観測事実、未解決点、次の行動を返す。
 ---
 
 # Investigation
 
 リポジトリ内の正本を確認してから、説明、修正方針、レビュー指摘、実装方針を決める。
-`repo_derivable` な要求属性を、観測した根拠で解決する。
+`repo_derivable` と `subsystem_derivable` を、観測した根拠で解決する。
+readiness 判定、`user_decision` の整理、`contract_gap` の固定は `context-clarification` が担当する。
 
 ## 確認する根拠
 
@@ -34,7 +35,7 @@ description: >
 
 - 事実確認の問い、または観測された挙動
 - 確認済みの観測と根拠
-- 解決した `repo_derivable` の項目
+- 解決した `repo_derivable` / `subsystem_derivable` の項目
 - 再現状況
 - 絞り込んだ範囲
 - 除外した項目

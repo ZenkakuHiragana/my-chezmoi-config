@@ -1,11 +1,12 @@
 ---
 name: implementation
-description: Use when the repository change, invariants, acceptance criteria, verification method, and affected tests/docs are already fixed well enough to execute; not for fact finding, unsettled requirements, or review-only work. 実装専用。必要な関連面の更新と検証まで完了させる。
+description: Use when `Readiness record` is `pass` or `pass_with_assumption`, or when a fixed `Requirement contract` / other `task contract` already covers the repository change, invariants, acceptance criteria, verification method, and affected tests/docs; not for fact finding, contract shaping, or review-only work. 実装専用。必要な関連面の更新と検証まで完了させる。
 ---
 
 # Implementation
 
 リポジトリ内容を変更し、依頼、周辺面、検証がそろった状態まで進める。
+`Readiness record` が `pass` / `pass_with_assumption`、または `Requirement contract` を含む同等の `task contract` が固定済みであることを前提にする。ここが崩れるなら `context-clarification` に戻す。
 単発編集ではなく、task contract の完了を扱う。
 
 ## 変更分類
@@ -35,7 +36,7 @@ description: Use when the repository change, invariants, acceptance criteria, ve
 
 ## 手順
 
-1. 期待する結果、完了条件、変更分類を確認する。
+1. 期待する結果、完了条件、固定済み契約、変更分類を確認する。
 2. 関連面を読む。
 3. まとまった最小差分を作る。
 4. 変更したファイルと依存する関連面を再読する。
@@ -63,6 +64,7 @@ description: Use when the repository change, invariants, acceptance criteria, ve
 ## 完了チェック
 
 - request と task contract を満たした。
+- 固定済み契約を勝手に組み替えていない。
 - 依存する関連面を確認した。
 - 変更したファイルを再読した。
 - 必須の確認を試した。

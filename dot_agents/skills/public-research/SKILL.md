@@ -1,13 +1,15 @@
 ---
 name: public-research
 description: >
-  Use when current public facts, official docs, specs, release notes, standards, APIs, or upstream practices must be verified with citations, especially for unresolved public_fact items or policy changes; not when repository-local sources already answer the question. 公開根拠の確認専用。検証済み事実、注意点、出典、次の判断材料を返す。
+  Use when current public facts, official docs, specs, release notes, standards, APIs, or upstream practices must be verified with citations, especially for unresolved `public_fact` items or policy changes; not when repository-local sources already answer the question or when the main need is user-decision capture or stage gating. 公開根拠の確認専用。検証済み事実、注意点、出典、次の判断材料を返す。
 ---
 
 # Public Research
 
 公開情報で確認すべき事実、公式ガイド、標準、API、上流の実務を扱う。
+主に `public_fact` を解決する。
 ローカルの正本がある場合は、先に `investigation` で確認する。
+readiness 判定や作業契約の固定は `context-clarification` が担当する。
 
 ## 機密保護
 

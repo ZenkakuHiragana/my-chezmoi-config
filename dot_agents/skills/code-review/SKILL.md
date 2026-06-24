@@ -1,12 +1,13 @@
 ---
 name: code-review
-description: Use when the task is to review a diff, patch, PR, or named code surface for issues, not to edit it; not for implementation, factual investigation, or public research. レビュー専用。根拠付き findings と severity を返す。
+description: Use when the task is to review a diff, patch, PR, or named code surface for issues and the review target already has stable intent and scope; not to edit it, resolve readiness gaps, or replace factual investigation/public research. レビュー専用。根拠付き findings と severity を返す。
 ---
 
 # Code Review
 
 コードの欠陥、退行、設計リスク、保守性の問題を探す。
 助言としてのレビュー専用。修正、`investigation`、公開調査、最終文章品質確認の代替にはしない。
+レビュー対象の意図、成功条件、検証条件が固まっていない場合は `context-clarification` に戻る。
 
 ## レビュー契約
 
@@ -34,7 +35,7 @@ description: Use when the task is to review a diff, patch, PR, or named code sur
 
 ## 手順
 
-1. 範囲と意図された挙動を確定する。
+1. 範囲、意図された挙動、受け入れ条件を確定する。固まっていなければ `context-clarification` に戻る。
 2. 変更行、周辺文脈、呼び出し元、テスト、文書、config を読む。
 3. 必要な場合だけ concern / profile ファイルを読む。
 4. 利用できる確認を調べ、必要なら実行する。

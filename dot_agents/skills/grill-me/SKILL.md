@@ -1,6 +1,6 @@
 ---
 name: grill-me
-description: Use only when the user explicitly wants a design grilling interview, or when one answer will change multiple design sections and requirements-clarification cannot finish without that decision; not for simple missing values or facts discoverable from repo/public sources. 設計判断の質問専用。短い質問で決定事項を固める。
+description: Use only when the user explicitly wants a design grilling interview, or when one answer will change multiple design sections and context-clarification cannot finish without that decision; not for simple missing values or facts discoverable from repo/public sources. 設計判断の質問専用。短い質問で決定事項を固める。
 ---
 
 # Grill Me
@@ -14,11 +14,11 @@ description: Use only when the user explicitly wants a design grilling interview
 2. 本当にユーザー判断が必要な決定だけを質問にする。
 3. 1 回に最大 5 問。
 4. 各質問に推奨回答と短い理由を添える。
-5. 要件の成果物に戻せる状態になったら止める。
-6. 確定した判断、残る未解決質問、要件への反映勧告を返す。
+5. `Readiness record` または `Requirement contract` に反映できる状態になったら止める。
+6. 確定した判断、残る未解決質問、`context-clarification` への反映勧告を返す。
 
 ## 返す内容
 
 - 確定した設計判断
 - 残る未解決質問
-- `requirements-clarification` に戻る推奨
+- `context-clarification` に戻る推奨
