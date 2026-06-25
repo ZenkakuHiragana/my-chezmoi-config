@@ -42,6 +42,7 @@ description: Use when `Readiness record` is `pass` or `pass_with_assumption`, or
 4. 変更したファイルと依存する関連面を再読する。
 5. acceptance criteria に直結する確認を実行する。
 6. 元の依頼、集めた事実、変更した成果物、実行した確認を照合する。
+7. `work_class` が `broad-or-unclear` のときは、完了前に別実行者による `code-review` を必須にする。自作の自己レビューでは代替しない。
 
 ## 検証
 
@@ -71,3 +72,4 @@ description: Use when `Readiness record` is `pass` or `pass_with_assumption`, or
 - 古い規範文が残っていない。
 - 不要な互換層を入れていない。
 - 部分編集を完了と呼んでいない。
+- `broad-or-unclear` では別実行者の `code-review` を通した。

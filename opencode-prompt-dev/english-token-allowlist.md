@@ -69,6 +69,8 @@
 - `verification method`
 - `output schema`
 - `assignment packet`
+- `Requirement contract`
+- `Readiness record`
 - `Decision Quality`
 - `DQ`
 - `DQ Weak Elements`
@@ -79,6 +81,15 @@
 - `repo_derivable`
 - `public_fact`
 - `user_provided`
+- `confirmed`
+- `not_needed`
+- `missing`
+- `blocked`
+- `user_decision`
+- `subsystem_derivable`
+- `contract_gap`
+- `implementation_discretion`
+- `pass_with_assumption`
 - `active_gap`
 - `covered_but_unvalidated`
 - `likely_addressed`

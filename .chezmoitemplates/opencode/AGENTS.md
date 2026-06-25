@@ -141,6 +141,13 @@
 - `implementation_discretion` で決める場合は、既存パターンに従い、後から変更しやすい形にする。
 - 進められない場合は、何が不足しているかを明示して止まる。
 
+### readiness 判定とゲート
+
+- 実作業（実装、計画、レビュー）に進む前に、`context-clarification` が `Readiness record` を作り、verdict を `pass` / `pass_with_assumption` / `fail` のいずれかに確定する。
+- verdict が `pass` または `pass_with_assumption` になるまで、実作業段階へ進んではいけない。
+- 例外: `work_class` が `tiny-local` のときは、`Readiness record` を記録すれば進んでよい。`tiny-local` の条件を満たさなくなった時点で緩和を取り消し、進行を止める。
+- verdict の構造、各 verdict の入口条件、`fail` 時の戻り先、契約の外部化と再開時の読み直しは `context-clarification` の出力契約に従う。
+
 ### 文脈の優先順位と衝突解決
 
 一般論は確認済みの文脈ではなく仮説として扱う。
