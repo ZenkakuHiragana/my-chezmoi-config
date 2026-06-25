@@ -33,6 +33,8 @@
 - [ ] 挙動上意味のある指示を削除した場合、同層の言い換えまたは別層への明示的な移設で保存した
 - [ ] 目的 / 発火条件 / 必須出力 / 禁止行動 / validation target が、該当 capability の階層全体から抜け落ちていない
 - [ ] command 名、handoff 先、slash command 表記が関連面で一致している
+- [ ] `python opencode-prompt-dev/check_vocabulary.py` を実行し、unaccounted / dangling / dead / drift がすべて 0 であることを確認した
+- [ ] obligation 監査の新規ヒットを triage し、要求挙動を許可形で任意化した leak を必須または禁止マーカーへ直した
 
 ## 品質ゲート
 
