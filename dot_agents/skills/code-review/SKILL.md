@@ -91,6 +91,8 @@ description: Use when the task is to review a diff, patch, PR, or named code sur
 ## 子エージェント分割
 
 委譲実行が利用できる広いレビューでは、concern 分割を使う。
+委譲実行が技術的に利用不能なとき以外は、広いレビューで concern 分割を省略してはならない。
+親の重複整理、根拠確認、severity 調整、根拠の読み直しは親の役割であり、concern 分割を回避する理由にしてはならない。差分が同じ pipeline に密結合していることも、回避の理由にしてはならない。
 
 既定パック:
 
