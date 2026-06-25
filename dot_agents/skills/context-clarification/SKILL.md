@@ -50,6 +50,9 @@ description: Use when work stage, scope, acceptance criteria, verification metho
 - verification method: 受け入れ条件をどう確認するか
 - 影響する tests と docs
 - ユーザー制約
+- verdict と前提とした仮定: `Readiness record` の verdict と、`pass_with_assumption` で置いた仮定（無ければ `None`）
+
+verdict と仮定を契約に畳み込むのは、圧縮を越えて再開するとき、最も取り違えやすい未検証の前提を契約と一緒に読み直せるようにするためである。
 
 ## verdict 判定
 
@@ -77,8 +80,9 @@ description: Use when work stage, scope, acceptance criteria, verification metho
 
 - verdict が `pass` / `pass_with_assumption` になるまで、実装・計画・レビューの実作業へ進ませない。
 - 例外は AGENTS.md の `readiness 判定とゲート` に従う（`tiny-local` は記録のみで進行を許す）。
-- `pass` / `pass_with_assumption` になったら `Requirement contract` を `.opencode/work/<slug>.md` に固定する。
-- 再開時、またはコンテキスト圧縮後は、実作業の前にこの契約ファイルを読み直してから進む。見えない session state から継続だと決めつけない。
+- `pass` / `pass_with_assumption` になったら `Requirement contract` を `.opencode/work/<slug>.contract.md` に固定する。verdict と置いた仮定も同じファイルに含める。
+- このパスは `task-planning` が書く `.opencode/work/<slug>.md`（task file）とは別にする。契約を task file で上書きしない。
+- 再開時、またはコンテキスト圧縮後は、実作業の前に `.opencode/work/<slug>.contract.md` を読み直してから進む。見えない session state から継続だと決めつけない。
 
 ## 完了チェック
 

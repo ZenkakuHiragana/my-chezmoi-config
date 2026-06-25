@@ -150,6 +150,37 @@ def collect_refs(repo: Path, files: list[Path]) -> dict[str, list[str]]:
     return hits
 
 
+def classification_consistency(repo: Path) -> dict[str, str]:
+    """AGENTS.md の分類定義が context-clarification に反映されているか。
+
+    `### 文脈状態` と `### 不足の分類と解消` で定義された分類トークンが、
+    context-clarification SKILL.md で参照されているかを確認する。理論
+    (AGENTS.md) に分類を足して手順 (skill) へ反映し忘れる方向のドリフトを
+    機械的に捕まえる。戻り値: 反映漏れトークン -> 定義元 section。
+    """
+    agents = repo / ".chezmoitemplates" / "opencode" / "AGENTS.md"
+    skill = repo / "dot_agents" / "skills" / "context-clarification" / "SKILL.md"
+    if not agents.is_file() or not skill.is_file():
+        return {}
+    sections = {"### 文脈状態", "### 不足の分類と解消"}
+    canonical: dict[str, str] = {}
+    current: str | None = None
+    for line in agents.read_text(encoding="utf-8").splitlines():
+        s = line.strip()
+        if s.startswith("#"):
+            current = s if s in sections else None
+            continue
+        if current:
+            m = DEF_BULLET.match(line)
+            if m:
+                canonical[m.group(1).strip()] = current
+    skill_tokens = {
+        m.group(1).strip()
+        for m in BACKTICK.finditer(skill.read_text(encoding="utf-8"))
+    }
+    return {tok: sec for tok, sec in canonical.items() if tok not in skill_tokens}
+
+
 def is_identifier(tok: str) -> bool:
     if not tok.isascii():
         return False
@@ -193,6 +224,9 @@ def main() -> int:
     # 3. dead allowlist: 制御語彙だがどこでも未使用。
     dead = sorted(t for t in allowlist if t not in all_refs)
 
+    # 4. 分類ドリフト: AGENTS.md の分類定義が context-clarification に未反映。
+    drift = classification_consistency(repo)
+
     def dump(title: str, rows: dict[str, list[str]]) -> None:
         print(f"\n## {title} ({len(rows)})")
         for tok in sorted(rows):
@@ -212,9 +246,14 @@ def main() -> int:
     for t in dead:
         print(f"  `{t}`")
 
-    total = len(unaccounted) + len(dead)
+    print(f"\n## classification drift "
+          f"(AGENTS.md defined, missing in context-clarification) ({len(drift)})")
+    for tok in sorted(drift):
+        print(f"  `{tok}`  <- {drift[tok]}")
+
+    total = len(unaccounted) + len(dead) + len(drift)
     print(f"\n# unaccounted: {len(unaccounted)} / dangling: {len(dangling)} "
-          f"/ dead: {len(dead)}")
+          f"/ dead: {len(dead)} / drift: {len(drift)}")
     return 1 if total else 0
 
 

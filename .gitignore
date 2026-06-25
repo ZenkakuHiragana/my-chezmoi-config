@@ -5,3 +5,4 @@
 .opencode/local-failure-logs/
 .opencode/work/
 .opencode/package-lock.json
+**/__pycache__/
