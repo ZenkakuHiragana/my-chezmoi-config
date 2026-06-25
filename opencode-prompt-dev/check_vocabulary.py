@@ -17,6 +17,9 @@
   2. dangling-routing: skill 名の形 (kebab) で参照されるのに、対応する skill が
      どこにも定義されていない識別子。routing 先が実在しない疑い。
   3. dead-allowlist: allowlist にあるが corpus のどこでも使われない制御語彙。
+  4. obligation-audit: 曖昧/ヘッジ義務表現の監査リスト。
+     有限ブロックリストで候補を拾うだけで、完全な義務文 parser ではない。
+     この監査リストは終了コードに影響しない。
 
 正本: opencode-prompt-dev/english-token-allowlist.md
 使い方: python opencode-prompt-dev/check_vocabulary.py [--repo <path>] [--verbose]
@@ -63,12 +66,38 @@ NAME_FIELD = re.compile(r"^\s*name:\s*([A-Za-z][A-Za-z0-9-]*)\s*$", re.M)
 FENCE = re.compile(r"```[^\n]*\n(.*?)```", re.S)
 # code block 内の `key:` 形 schema field。
 SCHEMA_KEY = re.compile(r"^\s*([a-z][a-z0-9_]*)\s*:", re.M)
+# Markdown の schema field 行: `- **Parallel group**:` など。
+BOLD_SCHEMA_FIELD = re.compile(
+    r"^[ \t]*[-*][ \t]+\*\*([A-Z][A-Za-z0-9]*(?: [A-Z][A-Za-z0-9]*)*)\*\*[ \t]*[:：]",
+    re.M,
+)
 
 SKILLSHAPE = re.compile(r"^[a-z]+(?:-[a-z]+)+$")
 # 制御識別子の形: ASCII。snake_case / kebab / 「Title Case の語句」。
 IDENT_OK = re.compile(r"^[A-Za-z][A-Za-z0-9 _-]*$")
 # コード片や path とみなす記号。
 NOISE_CHAR = re.compile(r"[(){}\[\]<>=;:*$|#@+%./\\,\"']")
+
+# 義務レベルを決めない曖昧/ヘッジ表現。
+# 完全な義務文 parser ではなく、監査候補を file:line で出す有限リスト。
+OBLIGATION_AMBIGUOUS_TERMS = [
+    "向いている",
+    "合う",
+    "場合だけ",
+    "使える場合だけ",
+    "可能なら",
+    "必要なら",
+    "できれば",
+    "するとよい",
+    "望ましい",
+]
+
+
+def _obligation_term_pattern(term: str) -> re.Pattern[str]:
+    # `合う` は複合動詞 (見合う / 似合う 等) の一部を義務表現と誤検出しない。
+    if term == "合う":
+        return re.compile(r"(?<![見似])合う")
+    return re.compile(re.escape(term))
 
 
 def load_files(repo: Path, globs: list[str]) -> list[Path]:
@@ -127,6 +156,8 @@ def harvest_definitions(repo: Path, files: list[Path]) -> set[str]:
             defined.add(m.group(1).strip())
         for m in NAME_FIELD.finditer(text):
             defined.add(m.group(1).strip())
+        for m in BOLD_SCHEMA_FIELD.finditer(text):
+            defined.add(m.group(1).strip())
         # fenced code block は schema / enum の定義帯として扱う。
         for block in FENCE.finditer(text):
             body = block.group(1)
@@ -148,6 +179,37 @@ def collect_refs(repo: Path, files: list[Path]) -> dict[str, list[str]]:
             if rel not in hits[tok]:
                 hits[tok].append(rel)
     return hits
+
+
+def obligation_audit(repo: Path, files: list[Path]) -> list[tuple[str, int, str, str]]:
+    """曖昧/ヘッジ義務表現の監査候補を返す。
+
+    有限ブロックリストの単純検出であり、完全な義務文 parser ではない。
+    検出結果は人間が必須 / 推奨 / 任意などの義務レベルへ分類するための
+    監査リストであり、終了コードには影響させない。
+    """
+    patterns = [(t, _obligation_term_pattern(t)) for t in OBLIGATION_AMBIGUOUS_TERMS]
+    rows: list[tuple[str, int, str, str]] = []
+    for p in files:
+        rel = p.relative_to(repo).as_posix()
+        for lineno, line in enumerate(p.read_text(encoding="utf-8").splitlines(), 1):
+            spans = [
+                (m.start(), m.end(), term)
+                for term, pat in patterns
+                for m in pat.finditer(line)
+            ]
+            # 同一行で長い語が短い語を包含する二重カウントを、最長一致で畳む。
+            for i, s in enumerate(spans):
+                covered = any(
+                    j != i
+                    and o[0] <= s[0]
+                    and o[1] >= s[1]
+                    and (o[1] - o[0]) > (s[1] - s[0])
+                    for j, o in enumerate(spans)
+                )
+                if not covered:
+                    rows.append((rel, lineno, s[2], line.strip()))
+    return rows
 
 
 def classification_consistency(repo: Path) -> dict[str, str]:
@@ -175,8 +237,7 @@ def classification_consistency(repo: Path) -> dict[str, str]:
             if m:
                 canonical[m.group(1).strip()] = current
     skill_tokens = {
-        m.group(1).strip()
-        for m in BACKTICK.finditer(skill.read_text(encoding="utf-8"))
+        m.group(1).strip() for m in BACKTICK.finditer(skill.read_text(encoding="utf-8"))
     }
     return {tok: sec for tok, sec in canonical.items() if tok not in skill_tokens}
 
@@ -194,6 +255,10 @@ def is_identifier(tok: str) -> bool:
 
 
 def main() -> int:
+    reconfigure = getattr(sys.stdout, "reconfigure", None)
+    if reconfigure is not None:
+        reconfigure(encoding="utf-8")
+
     ap = argparse.ArgumentParser()
     ap.add_argument("--repo", default=".")
     ap.add_argument("--verbose", action="store_true")
@@ -227,6 +292,9 @@ def main() -> int:
     # 4. 分類ドリフト: AGENTS.md の分類定義が context-clarification に未反映。
     drift = classification_consistency(repo)
 
+    # 5. 義務曖昧表現: 監査リスト。終了コードには含めない。
+    obligation_rows = obligation_audit(repo, surface_files)
+
     def dump(title: str, rows: dict[str, list[str]]) -> None:
         print(f"\n## {title} ({len(rows)})")
         for tok in sorted(rows):
@@ -235,10 +303,14 @@ def main() -> int:
             print(f"  `{tok}`  [{len(locs)} files]  {shown}")
 
     print("# vocabulary check")
-    print(f"control-surface files: {len(surface_files)} / "
-          f"definition-corpus files: {len(def_files)}")
-    print(f"allowlist: {len(allowlist)} / entities: {len(entities)} / "
-          f"defined-total: {len(defined)}")
+    print(
+        f"control-surface files: {len(surface_files)} / "
+        f"definition-corpus files: {len(def_files)}"
+    )
+    print(
+        f"allowlist: {len(allowlist)} / entities: {len(entities)} / "
+        f"defined-total: {len(defined)}"
+    )
 
     dump("unaccounted backtick identifiers", unaccounted)
     dump("dangling skill/capability routing targets", dangling)
@@ -246,14 +318,23 @@ def main() -> int:
     for t in dead:
         print(f"  `{t}`")
 
-    print(f"\n## classification drift "
-          f"(AGENTS.md defined, missing in context-clarification) ({len(drift)})")
+    print(
+        f"\n## classification drift "
+        f"(AGENTS.md defined, missing in context-clarification) ({len(drift)})"
+    )
     for tok in sorted(drift):
         print(f"  `{tok}`  <- {drift[tok]}")
 
+    print(f"\n## obligation ambiguity audit ({len(obligation_rows)})")
+    for rel, lineno, term, line in obligation_rows:
+        print(f"  {rel}:{lineno}: `{term}`  {line}")
+
     total = len(unaccounted) + len(dead) + len(drift)
-    print(f"\n# unaccounted: {len(unaccounted)} / dangling: {len(dangling)} "
-          f"/ dead: {len(dead)} / drift: {len(drift)}")
+    print(
+        f"\n# unaccounted: {len(unaccounted)} / dangling: {len(dangling)} "
+        f"/ dead: {len(dead)} / drift: {len(drift)} "
+        f"/ obligation-audit: {len(obligation_rows)}"
+    )
     return 1 if total else 0
 
 

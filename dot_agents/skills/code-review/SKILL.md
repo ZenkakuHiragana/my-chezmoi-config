@@ -90,7 +90,7 @@ description: Use when the task is to review a diff, patch, PR, or named code sur
 
 ## 子エージェント分割
 
-広いレビューで委譲実行が使える場合だけ concern 分割を使う。
+委譲実行が利用できる広いレビューでは、concern 分割を使う。
 
 既定パック:
 

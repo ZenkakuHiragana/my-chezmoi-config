@@ -45,6 +45,8 @@
 - `model`
 - `profile`
 - `reference`
+- `ast-grep`
+- `chezmoi source-path`
 
 ### プロンプト運用
 
@@ -71,9 +73,15 @@
 - `assignment packet`
 - `Requirement contract`
 - `Readiness record`
+- `Parallel group`
+- `Parallel basis`
+- `Execution`
+- `Side effect mode`
 - `Decision Quality`
 - `DQ`
 - `DQ Weak Elements`
+- `Blocking unknowns`
+- `Sources and References`
 
 ### 状態値と分類値
 
@@ -112,6 +120,20 @@
 - `medium`
 - `high`
 - `critical`
+- `None`
+- `read_only`
+- `write_ok`
+- `true`
+- `false`
+- `skip`
+- `no findings`
+- `needs_manual_review`
+
+### 失敗記録 schema 値
+
+- `create_historical_note`
+- `create_incident`
+- `create_regression_scenario`
 
 ### 介入種別
 
