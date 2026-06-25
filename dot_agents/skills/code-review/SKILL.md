@@ -37,8 +37,8 @@ description: Use when the task is to review a diff, patch, PR, or named code sur
 
 1. 範囲、意図された挙動、受け入れ条件を確定する。固まっていなければ `context-clarification` に戻る。
 2. 変更行、周辺文脈、呼び出し元、テスト、文書、config を読む。
-3. 必要な場合だけ concern / profile ファイルを読む。
-4. 利用できる確認を調べ、必要なら実行する。
+3. 発火条件に該当する concern / profile ファイルを読む。レビュー対象の正否を `Requirement contract`、設計仕様、公開 API 契約、互換契約、生成仕様のいずれかで判定するときは `concerns/spec-conformance.md` を必ず読む。
+4. 利用できる確認を調べる。指摘の確度を左右する確認は実行する。実行できない確認は理由を記録する。
 5. 正しさ、設計、性能、保守性、最小性、テスト、文書、セキュリティ、互換性の順で見る。
 6. 指摘を severity 順に整理する。
 7. 未確認の根拠種別は `Uncertain` として扱い、`investigation` / `public-research` を勧める。
@@ -60,8 +60,9 @@ description: Use when the task is to review a diff, patch, PR, or named code sur
 
 ## 詳細観点の読み分け
 
-必要時だけ読む。
+発火条件に該当するものを読む。レビュー対象の正否を `Requirement contract`、設計仕様、公開 API 契約、互換契約、生成仕様のいずれかで判定するときは `concerns/spec-conformance.md` を必ず読む。
 
+- `concerns/spec-conformance.md`
 - `concerns/correctness.md`
 - `concerns/performance.md`
 - `concerns/maintainability-idioms.md`
@@ -94,14 +95,15 @@ description: Use when the task is to review a diff, patch, PR, or named code sur
 委譲実行が技術的に利用不能なとき以外は、広いレビューで concern 分割を省略してはならない。
 親の重複整理、根拠確認、severity 調整、根拠の読み直しは親の役割であり、concern 分割を回避する理由にしてはならない。差分が同じ pipeline に密結合していることも、回避の理由にしてはならない。
 
-既定パック:
+広いレビューで concern 分割を行うときは、次の固定既定セットを割り当てる。対象に固有の concern / profile は追加してよい。
 
-- `correctness-tests`
-- `design-maintainability`
-- `performance-reliability`
-- `security-dependencies`
-- `compatibility-operations`
-- `language-profile`
+- `spec-conformance`: 仕様照合
+- `correctness-tests`: 正しさとテスト
+- `design-maintainability`: 設計と保守性
+- `performance-reliability`: 性能と信頼性
+- `security-dependencies`: セキュリティと依存関係
+- `compatibility-operations`: 互換性と運用
+- `language-profile`: 言語別観点
 
 子への assignment packet は読み取り専用、bounded、再帰委譲なし。
 親は重複整理、根拠確認、severity 調整、最終レビューを担う。
