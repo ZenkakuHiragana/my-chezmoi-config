@@ -73,6 +73,8 @@
 - `assignment packet`
 - `Requirement contract`
 - `Readiness record`
+- `Review finding record`
+- `Review response contract`
 - `Parallel group`
 - `Parallel basis`
 - `Execution`
@@ -82,6 +84,11 @@
 - `DQ Weak Elements`
 - `Blocking unknowns`
 - `Sources and References`
+- `finding_id`
+- `required source class`
+- `verification needed`
+- `response status`
+- `decision reason`
 
 ### 状態値と分類値
 
@@ -128,6 +135,14 @@
 - `skip`
 - `no findings`
 - `needs_manual_review`
+- `untriaged`
+- `accepted`
+- `rejected`
+- `needs-investigation`
+- `out-of-scope`
+- `review-triage`
+- `writing`
+- `audit`
 
 ### 失敗記録 schema 値
 

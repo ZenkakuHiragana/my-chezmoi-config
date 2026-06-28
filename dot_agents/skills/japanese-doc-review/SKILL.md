@@ -8,6 +8,8 @@ description: >
 
 日本語の読者向け本文をレビューし、後続修正に使えるレビュー結果を返す。
 対象には README、設計メモ、仕様説明、運用手順、調査報告、prompt text、skill instructions を含む。
+指摘は修正命令ではなく、日本語文章向けの `Review finding record` として扱う。
+採否と修正範囲は後続の指摘検証で決める。
 
 対象本文がない場合は次だけ返す。
 
@@ -102,6 +104,28 @@ file を書いた場合、端末には本文を出さず path だけ通知する
 - `STRUCTURE`、`GRAMMAR`、`STYLE` は観点ごと最大 5 件。
 - `TYPO` は明らかで修正一択のものをすべて出す。
 
+## `Review finding record`
+
+レビュー結果は `references/review-result-format.md` の固定形式だけで出す。
+固定形式の見出しや field を追加してはならない。
+後続の指摘検証では、固定形式の各指摘を次の対応で `Review finding record` として読む。
+
+- `finding_id`: 指摘ID
+- `severity`: `重要度`。`TYPO` では `None`
+- `location`: `対象`
+- `claim`: `問題`。`TYPO` では `修正方針`
+- `evidence`: `根拠`。`TYPO` では `対象`
+- `impact`: `問題` に書いた読者影響
+- `suggested next step`: `修正方針`
+- `confidence`: 本文だけで根拠が閉じていれば `high`、本文外確認で採否が決まるなら `low`
+- `required source class`: 原則 `user_provided` または本文内根拠。本文外の事実確認で採否が決まる指摘は `repo_derivable`、`subsystem_derivable`、`public_fact` のいずれか
+- `verification needed`: 採否前に確認する根拠。不要なら `None`
+- `response status`: 初期値は `untriaged`
+- `decision reason`: 初期値は `None`
+
+本文外の事実が必要な指摘は、断定せず `verification needed` に確認先を書く。
+レビュー中に修正してはならない。
+
 ## 本文漏れ確認
 
 `指摘: - なし` の前に確認する。
@@ -128,3 +152,4 @@ file を書いた場合、端末には本文を出さず path だけ通知する
 - fixed output format に従った。
 - レビュー結果と修正済み本文を混ぜていない。
 - issue IDs は現在有効な問題だけに付けた。
+- 指摘を採用済み修正として扱っていない。

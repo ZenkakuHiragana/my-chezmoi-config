@@ -34,6 +34,24 @@ description: Use when `Readiness record` is `pass` or `pass_with_assumption`, or
 - 代替経路、機能フラグ、互換用の薄い補助層、移行経路、警告抑制は要求または既存 contract がある場合だけ追加する。
 - 無関係なユーザー変更は戻さない。
 
+## レビュー対応
+
+レビュー指摘への対応では、`Review response contract` を固定してから編集する。
+`Review response contract` には次を含める。
+
+- 対応する `Review finding record`
+- `accepted` の指摘
+- 修正範囲
+- 非対象範囲
+- 保つ条件
+- 確認方法
+- 対応後監査の観点
+
+`accepted` 以外の指摘を修正してはならない。
+`needs-investigation` は `investigation` または `public-research` に戻す。
+`rejected` と `out-of-scope` は採否理由を残し、便乗修正しない。
+修正は、元指摘の解消に必要な最小差分にする。
+
 ## 手順
 
 1. 期待する結果、完了条件、固定済み契約、変更分類を確認する。
@@ -42,7 +60,8 @@ description: Use when `Readiness record` is `pass` or `pass_with_assumption`, or
 4. 変更したファイルと依存する関連面を再読する。
 5. acceptance criteria に直結する確認を実行する。
 6. 元の依頼、集めた事実、変更した成果物、実行した確認を照合する。
-7. `work_class` が `broad-or-unclear` のときは、完了前に別実行者による `code-review` を必須にする。自作の自己レビューでは代替しない。
+7. レビュー対応では、`Review response contract` の対象指摘が解消したことを確認する。
+8. `work_class` が `broad-or-unclear` のときは、完了前に別実行者による review を必須にする。自作の自己レビューでは代替しない。
 
 ## 検証
 
@@ -72,6 +91,8 @@ description: Use when `Readiness record` is `pass` or `pass_with_assumption`, or
 - 古い規範文が残っていない。
 - 不要な互換層を入れていない。
 - 部分編集を完了と呼んでいない。
+- レビュー対応では `Review response contract` の `accepted` だけを修正した。
+- レビュー対応では元指摘の解消と、別観点の新規問題がないことを確認した。
 - 変更後、差分に新しく現れた外部 API、リポジトリ内接続、識別子、パラメータ、パスを列挙し、
   4つの文脈層へ分類し正当性を検証する。生成した差分の全てが正当であると主張できるだけの根拠を提示する。
 - `broad-or-unclear` では、変更対象に対応する別実行者 review を通した。

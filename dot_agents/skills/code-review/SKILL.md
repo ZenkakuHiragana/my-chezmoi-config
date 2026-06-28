@@ -25,6 +25,8 @@ description: Use when the task is to review a diff, patch, PR, or named code sur
 
 指摘には具体的な場所、根拠、影響、次の行動案を持たせる。
 一般論だけの助言は出さない。
+指摘は修正命令ではなく `Review finding record` として扱う。
+採否は後続の指摘検証で決める。
 
 ## severity
 
@@ -32,6 +34,27 @@ description: Use when the task is to review a diff, patch, PR, or named code sur
 - `Major`: 重大な設計、保守性、性能、移行、テスト品質のリスク
 - `Minor`: 局所的な読みやすさ、命名、文書、一貫性
 - `Uncertain`: 危険そうだが根拠が足りない
+
+## `Review finding record`
+
+各指摘には次を含める。
+
+- `finding_id`
+- `severity`
+- `location`
+- `claim`
+- `evidence`
+- `impact`
+- `suggested next step`
+- `confidence`
+- `required source class`
+- `verification needed`
+- `response status`: 初期値は `untriaged`
+- `decision reason`: 初期値は `None`
+
+`required source class` は、採否判断に必要な根拠の種類を書く。
+ローカル実装挙動で採否が決まる指摘は `repo_derivable` または `subsystem_derivable`、外部仕様で採否が決まる指摘は `public_fact` とする。
+根拠が足りない指摘は `Uncertain` とし、`verification needed` に確認先を書く。
 
 ## 手順
 
@@ -42,6 +65,7 @@ description: Use when the task is to review a diff, patch, PR, or named code sur
 5. 正しさ、設計、性能、保守性、最小性、テスト、文書、セキュリティ、互換性の順で見る。子エージェント分割規則により委譲実行を行うことを原則とする。
 6. 指摘を severity 順に整理する。
 7. 未確認の根拠種別は `Uncertain` として扱い、`investigation` / `public-research` を勧める。
+8. 指摘は `Review finding record` として出す。採用、却下、修正実行はしない。
 
 ## 確認観点
 
@@ -132,6 +156,10 @@ description: Use when the task is to review a diff, patch, PR, or named code sur
 - impact
 - suggested next step
 - confidence
+- required source class
+- verification needed
+- response status
+- decision reason
 
 指摘がなければ、scope と確認済み範囲を明示して `no findings` と言う。
 

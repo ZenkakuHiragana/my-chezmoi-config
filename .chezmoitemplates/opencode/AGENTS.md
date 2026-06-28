@@ -19,7 +19,9 @@
 - `task frame`: 今回の依頼を処理するための作業枠。返すもの、制約、必要な根拠、確認方法をまとめる。
 - `work_class`: 作業の広さと不確実さの分類。`tiny-local` / `bounded` / `broad-or-unclear` を使う。
 - `required source class`: 主張や判断の正否を決める資料の種類。
-- `task contract`: 完了までに満たす結果、制約、確認方法をまとめた実行契約。`context-clarification` が固定する `Requirement contract` もこれに含む。
+- `task contract`: 完了までに満たす結果、制約、確認方法をまとめた実行契約。`context-clarification` が固定する `Requirement contract` と `Review response contract` もこれに含む。
+- `Review finding record`: レビュー指摘を採否判断前の検証対象として扱うための記録。場所、主張、根拠、影響、確信度、必要な根拠種別、採否状態、採否理由を持つ。
+- `Review response contract`: 採用したレビュー指摘だけを修正するための実行契約。対象指摘、修正範囲、非対象範囲、保つ条件、確認方法、対応後監査を持つ。
 
 ## 文章と成果物
 
@@ -73,6 +75,9 @@
 - 方針決定: 採用する案を決める段階。
 - 実装: 決まった方針に従って変更する段階。
 - レビュー: 変更が目的、設計、文脈、検証条件に合っているか確認する段階。
+- 指摘検証: `Review finding record` の指摘を採否分類し、根拠不足の指摘を調査へ戻す段階。この段階で修正してはならない。
+- レビュー対応: `Review response contract` に基づき、採用済み指摘だけを最小差分で修正する段階。
+- 対応後監査: 元指摘の解消と、修正が別観点の新規問題を生んでいないことを確認する段階。
 
 ### 段階遷移の判定
 
@@ -87,6 +92,19 @@
 - 根拠: 何で確認したか。
 - 不足: まだ確認できていないこと。
 - 次の行動: 読む、調べる、質問する、比較する、止める、進める。
+
+レビュー指摘を受けた場合は、次の順序を守る。
+
+1. レビュー結果を `Review finding record` として扱う。
+   レビュー結果に項目が足りない場合は、既存 field から対応付け、不足項目を `unknown` または `None` として明示する。
+2. 指摘検証で `accepted` / `rejected` / `needs-investigation` / `out-of-scope` に分類する。
+3. `needs-investigation` は `investigation` または `public-research` へ戻し、未検証のまま採用しない。
+4. `accepted` が1件以上あるときは `Review response contract` を固定する。
+5. レビュー対応では `accepted` だけを直す。便乗修正をしてはならない。
+6. 対応後監査で元指摘の解消と別観点の新規問題を確認する。
+
+レビュー対象の面に対応するレビュー skill の記録を使う。
+異なる面のレビュー skill を代替にしてはならない。
 
 ### 文脈層
 

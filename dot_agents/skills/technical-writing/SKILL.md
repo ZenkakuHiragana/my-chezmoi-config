@@ -70,6 +70,25 @@ description: >
 - 事実、注意点、提案を分ける。
 - 根拠のない断定を避ける。
 
+## レビュー対応
+
+`japanese-doc-review` などの文章レビュー指摘に対応する場合は、編集前に `Review response contract` を固定する。
+`Review response contract` には次を含める。
+
+- 対応する `Review finding record`
+- `accepted` の指摘
+- 修正範囲
+- 非対象範囲
+- 保つ条件
+- 確認方法
+- 対応後監査の観点
+
+`accepted` 以外の指摘を本文へ反映してはならない。
+`needs-investigation` は事実確認へ戻し、未確認のまま本文へ入れてはならない。
+`rejected` と `out-of-scope` は採否理由を残し、本文へ混ぜない。
+修正は、元指摘の解消に必要な最小差分にする。
+レビューコメント、採否理由、却下した案は制御入力であり、成果物本文へ混ぜてはならない。
+
 ## 日本語本文の手順
 
 1. 成果物の前提と確認済みの事実を確定する。
@@ -77,6 +96,7 @@ description: >
 3. `references/05-japanese-tech-writing.md` を読む。
 4. 本文を書く、または直す。
 5. 文ごとに、成果物へ入れてよい内容か確認する。
+6. レビュー対応では、`Review response contract` の対象指摘が解消したことを確認する。
 
 ## 見直し手順
 
@@ -119,3 +139,5 @@ description: >
 - 事実と注意点が混ざっていない。
 - 修正経緯や作業者視点が本文に漏れていない。
 - 必要な場合に日本語本文の手順を通した。
+- レビュー対応では `Review response contract` の `accepted` だけを修正した。
+- レビュー対応では元指摘の解消と、別観点の新規問題がないことを確認した。
