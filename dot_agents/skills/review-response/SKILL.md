@@ -47,6 +47,46 @@ description: Use when handling review findings before editing: triage `Review fi
 - 対応後監査の観点
 - 次に使う skill: code / diff は `implementation`、日本語文章は `technical-writing`
 
+契約は `.opencode/work/<slug>.review.md` または同等の `Review Response Artifact` に外部化する。
+slug は対象 task の slug を優先し、無い場合は今回のレビュー対応を一意に表す短い kebab-case にする。
+会話だけにある採否分類や契約を、レビュー対応の正本として扱ってはならない。
+
+`Review Response Artifact` は次の固定見出しを持つ。
+
+```markdown
+# Review Response Artifact
+
+## Source review
+
+- source: <レビュー出力 / file / PR comment / ユーザーが貼ったレビュー>
+- target task contract: <path または要約>
+
+## Findings
+
+### <finding_id>
+
+- original finding:
+- required source class:
+- verification action:
+- verification result:
+- response status: accepted | rejected | needs-investigation | out-of-scope
+- decision reason:
+- response contract id: <id or None>
+
+## Review response contracts
+
+### <contract_id>
+
+- accepted findings:
+- edit scope:
+- non-scope:
+- invariants:
+- verification method:
+- post-response audit:
+```
+
+空欄禁止。該当なしは `None` と書く。
+
 `accepted` がない場合は、契約を作らず理由を返す。
 このとき、次の対応先と対応後監査は `None` と明示し、未解決指摘の戻り先だけを書く。
 `None` とする理由は、修正対応が発生しないため対応後監査の対象も存在しないことだと明示する。
@@ -70,6 +110,7 @@ description: Use when handling review findings before editing: triage `Review fi
 - 採否理由
 - 追加調査が必要な指摘と戻り先
 - `Review response contract`、または作らない理由
+- `Review Response Artifact` の path、または作らない理由
 - 次に使う skill。`accepted` がない場合は修正用 skill と対応後監査 skill を `None` とする
 
 ## 完了チェック
@@ -78,5 +119,6 @@ description: Use when handling review findings before editing: triage `Review fi
 - `accepted` の根拠が確認済みである。
 - `needs-investigation` を修正対象にしていない。
 - `Review response contract` が修正範囲と非対象範囲を分けている。
+- `accepted` があるときは `Review Response Artifact` を外部化した。
 - 対応後監査の観点を指定した。
 - この skill 内で編集していない。

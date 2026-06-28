@@ -37,6 +37,8 @@ description: Use when `Readiness record` is `pass` or `pass_with_assumption`, or
 ## レビュー対応
 
 レビュー指摘への対応では、`Review response contract` を固定してから編集する。
+`.opencode/work/<slug>.review.md` または同等の `Review Response Artifact` を読む。
+`Review Response Artifact` が無い、または `accepted` の指摘、修正範囲、非対象範囲、保つ条件、確認方法、対応後監査が固定されていない場合は編集してはならない。
 `Review response contract` には次を含める。
 
 - 対応する `Review finding record`
@@ -92,6 +94,7 @@ description: Use when `Readiness record` is `pass` or `pass_with_assumption`, or
 - 不要な互換層を入れていない。
 - 部分編集を完了と呼んでいない。
 - レビュー対応では `Review response contract` の `accepted` だけを修正した。
+- レビュー対応では `Review Response Artifact` を読んだ。
 - レビュー対応では元指摘の解消と、別観点の新規問題がないことを確認した。
 - 変更後、差分に新しく現れた外部 API、リポジトリ内接続、識別子、パラメータ、パスを列挙し、
   4つの文脈層へ分類し正当性を検証する。生成した差分の全てが正当であると主張できるだけの根拠を提示する。

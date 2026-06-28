@@ -19,7 +19,7 @@ description: Use when work stage, scope, acceptance criteria, verification metho
 
 ## 手順
 
-1. 作業段階（診断 / 選択肢比較 / 方針決定 / 実装 / レビュー）の現在地と、進もうとする段階を確定する。
+1. 現在有効な上位指示の `コンテキスト収集規則` にある `作業段階` から、現在地と進もうとする段階を確定する。
 2. 4つの文脈層を、それぞれ `confirmed` / `not_needed` / `missing` / `blocked` に分類し、根拠を添える。
 3. 不足を `user_decision` / `repo_derivable` / `subsystem_derivable` / `public_fact` / `contract_gap` / `implementation_discretion` に分類する。
 4. 調査で解ける不足は、判定を出す前に `investigation` / `public-research` へ回す。`user_decision` は `grill-me` または直接質問へ回す。
@@ -35,6 +35,7 @@ description: Use when work stage, scope, acceptance criteria, verification metho
 - 未解決の不足: 各項目に分類（`user_decision` / `repo_derivable` / `subsystem_derivable` / `public_fact` / `contract_gap` / `implementation_discretion`）
 - 残る `user_decision`: 未解決のユーザー判断の一覧（無ければ `None`）
 - `Requirement contract`: 固定済みなら参照、未固定なら理由
+- `Review Response Artifact`: レビュー対応で固定済みなら参照、対象外なら `None`
 - verdict: `pass` / `pass_with_assumption` / `fail`
 - 仮定: `pass_with_assumption` のとき置いた仮定とその適用範囲（無ければ `None`）
 - 戻り先: `fail` のとき進む capability（`pass` 系なら `None`）

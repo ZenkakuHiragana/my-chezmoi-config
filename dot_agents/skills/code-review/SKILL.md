@@ -56,6 +56,27 @@ description: Use when the task is to review a diff, patch, PR, or named code sur
 ローカル実装挙動で採否が決まる指摘は `repo_derivable` または `subsystem_derivable`、外部仕様で採否が決まる指摘は `public_fact` とする。
 根拠が足りない指摘は `Uncertain` とし、`verification needed` に確認先を書く。
 
+指摘は次の固定テンプレートで出す。
+
+```markdown
+### <finding_id>
+
+- severity: <Blocker | Major | Minor | Uncertain>
+- location: <file:line または対象>
+- claim: <問題の主張>
+- evidence: <観測した根拠>
+- impact: <影響>
+- suggested next step: <最小の次行動>
+- confidence: <high | medium | low>
+- required source class: <repo_derivable | subsystem_derivable | public_fact | user_provided | None>
+- verification needed: <確認行動または None>
+- response status: untriaged
+- decision reason: None
+```
+
+field を省略してはならない。
+指摘が無いときは、このテンプレートを使わず `no findings` と scope と確認済み範囲を返す。
+
 ## 手順
 
 1. 範囲、意図された挙動、受け入れ条件を確定する。固まっていなければ `context-clarification` に戻る。
@@ -160,6 +181,8 @@ description: Use when the task is to review a diff, patch, PR, or named code sur
 - verification needed
 - response status
 - decision reason
+
+この field 順を維持する。
 
 指摘がなければ、scope と確認済み範囲を明示して `no findings` と言う。
 
