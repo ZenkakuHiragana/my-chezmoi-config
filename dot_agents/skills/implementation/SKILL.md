@@ -72,4 +72,8 @@ description: Use when `Readiness record` is `pass` or `pass_with_assumption`, or
 - 古い規範文が残っていない。
 - 不要な互換層を入れていない。
 - 部分編集を完了と呼んでいない。
-- `broad-or-unclear` では別実行者の `code-review` を通した。
+- 変更後、差分に新しく現れた外部 API、リポジトリ内接続、識別子、パラメータ、パスを列挙し、
+  4つの文脈層へ分類し正当性を検証する。生成した差分の全てが正当であると主張できるだけの根拠を提示する。
+- `broad-or-unclear` では、変更対象に対応する別実行者 review を通した。
+  code / diff / 実装面は `code-review`、再利用される日本語文章は `japanese-doc-review` を使う。
+  両方を変更した場合は両方を通す。一方を他方の代替にしてはならない。
