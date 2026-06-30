@@ -19,6 +19,10 @@
         "disable": true
       }
     },
+    "compaction": {
+      "auto": false,
+      "prune": false
+    },
     "formatter": {
       "prettier": {
         "command": [
@@ -47,7 +51,8 @@
     "lsp": {},
     "plugin": [
       "opencode-openai-compact",
-      "@prevalentware/opencode-goal-plugin"
+      "@prevalentware/opencode-goal-plugin",
+      "@cortexkit/opencode-magic-context@latest"
     ],
     "provider": {
       "github-copilot": {
