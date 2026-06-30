@@ -22,6 +22,12 @@
 - `stop_conditions`: どの時点で止まって返すか。何が起きたら打ち切るか。
 - `join_instructions`: 親エージェントがどう取り込む前提か
 
+### 読者向け成果物の review を委譲する場合の追加規則
+
+- `goal` と `inputs` には、本文だけを読んだ読者が持てる情報、または review の観点だけを書く。
+- `修正後の`、`直前の修正では`、`前回`、`再レビュー` など、読者から見えない修正履歴を前提にした表現は書いてはならない。
+- 例外は、履歴自体が成果物本文であるものに限る。例: `incident report`、`changelog`、`migration note`、`review result`
+
 ## 2. 子からの返答
 
 - `work_class`: `tiny-local` | `bounded` | `broad-or-unclear`
