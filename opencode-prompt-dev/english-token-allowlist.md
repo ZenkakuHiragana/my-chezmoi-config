@@ -93,16 +93,35 @@
 - `Readiness record`
 - `Review finding record`
 - `Review response contract`
+- `Review Response Artifact`
 - `Parallel group`
 - `Parallel basis`
-- `Execution`
-- `Side effect mode`
-- `Decision Quality`
-- `DQ`
-- `DQ Weak Elements`
-- `Blocking unknowns`
-- `Sources and References`
+- `goal`
+- `scope`
+- `inputs`
+- `constraints`
+- `read_set`
+- `write_set`
+- `must_not_do`
+- `evidence_required`
+- `output_schema`
+- `verification_hint`
+- `stop_conditions`
+- `join_instructions`
+- `chosen_skills`
+- `why_this_choice`
+- `result`
+- `evidence`
+- `verification_performed`
+- `risks_or_unknowns`
+- `next_action`
 - `finding_id`
+- `location`
+- `claim`
+- `impact`
+- `confidence`
+- `severity`
+- `suggested next step`
 - `required source class`
 - `verification needed`
 - `response status`
@@ -161,12 +180,50 @@
 - `review-triage`
 - `writing`
 - `audit`
+- `none`
+- `current`
+- `legacy`
+- `captured`
+- `obsolete`
+- `strong`
+- `weak`
+- `unclear`
+- `tiny-local`
+- `bounded`
+- `broad-or-unclear`
+- `escalate_to_write_ok`
+- `needs_parent_clarification`
+- `Blocker`
+- `Major`
+- `Minor`
+- `Uncertain`
+- `CONTEXT`
+- `SCOPE`
+- `STRUCTURE`
+- `GRAMMAR`
+- `STYLE`
+- `TYPO`
 
 ### 失敗記録 schema 値
 
+- `observed_prompt_context`
+- `observed_system_sha`
+- `current_system_sha`
+- `current_coverage`
+- `coverage_evidence`
+- `regression_needed`
 - `create_historical_note`
 - `create_incident`
 - `create_regression_scenario`
+
+### prompt 改善 action 値
+
+- `add_minimal_new_rule`
+- `restore_missing_essential`
+- `reword_existing_rule`
+- `merge_overlapping_rules`
+- `split_overloaded_rule`
+- `move_to_different_layer`
 
 ### 介入種別
 
@@ -190,6 +247,28 @@
 - `score`
 - `critical labels`
 - `A/B`
+
+### skill / agent / review 固定名
+
+- `code-review`
+- `context-clarification`
+- `empirical-prompt-tuning`
+- `general-fast`
+- `general-strong`
+- `grill-me`
+- `implementation`
+- `investigation`
+- `japanese-doc-review`
+- `public-research`
+- `task-planning`
+- `technical-writing`
+- `compatibility-operations`
+- `correctness-tests`
+- `design-maintainability`
+- `language-profile`
+- `performance-reliability`
+- `security-dependencies`
+- `spec-conformance`
 
 ## 日本語化する語
 

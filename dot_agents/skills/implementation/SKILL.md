@@ -13,9 +13,9 @@ description: Use when `Readiness record` is `pass` or `pass_with_assumption`, or
 
 編集前に分類する。
 
-- `new_feature`: 入口、接続、文書、テストを重視
-- `modify_existing`: 既存契約、呼び出し元、互換性、古い文書を重視
-- `bugfix`: 影響を受ける経路、退行リスク、意図された挙動の維持を重視
+- 新規機能: 入口、接続、文書、テストを重視
+- 既存変更: 既存契約、呼び出し元、互換性、古い文書を重視
+- 不具合修正: 影響を受ける経路、退行リスク、意図された挙動の維持を重視
 
 ## 読むもの
 

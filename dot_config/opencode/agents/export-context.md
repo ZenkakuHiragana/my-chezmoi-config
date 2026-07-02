@@ -57,122 +57,122 @@ ZIP に入れる。
 Markdown の構造:
 
 ```markdown
-# Context Export
+# 文脈エクスポート
 
-## 1. Export Metadata
+## 1. 書き出しメタデータ
 
-- Exported at:
-- Timezone:
-- Source session:
-- Exporting agent:
-- Conversation language:
-- User-specified preferences or constraints:
-- Scope of export:
+- 書き出し時刻:
+- 時間帯:
+- 元セッション:
+- 書き出し担当エージェント:
+- 会話の言語:
+- ユーザー指定の好みや制約:
+- 書き出し範囲:
 
 ## 2. 文脈概要
 
 - セッションの主題:
-- initial user request:
-- important information discovered:
-- current state:
-- established items:
-- unresolved / unknown items:
+- 最初のユーザー依頼:
+- 判明した重要情報:
+- 現在の状態:
+- 確定事項:
+- 未解決または不明な事項:
 
 ## 3. ユーザー意図と要件
 
-### 3.1 Primary Intent
+### 3.1 主要な意図
 
-### 3.2 Explicit Requirements
+### 3.2 明示要件
 
-### 3.3 Preferences and Style Constraints
+### 3.3 好みと文体制約
 
-### 3.4 Negative Requirements
+### 3.4 否定要件
 
 ## 4. 会話の時系列
 
 ### Step N: 短い見出し
 
 - ユーザー依頼:
-- Assistant response or action:
-- Information established:
-- Files or sources referenced:
-- Resulting state:
+- アシスタントの応答または行動:
+- 確定した情報:
+- 参照したファイルまたは出典:
+- 結果としての状態:
 
 ## 5. 確定した事実
 
-### 5.1 Facts provided by the user
+### 5.1 ユーザーが示した事実
 
-### 5.2 Facts found from referenced sources
+### 5.2 参照元から確認した事実
 
-### 5.3 Facts inferred during the session
+### 5.3 セッション中に推測した事実
 
-### 5.4 Facts that remain uncertain
+### 5.4 未確定の事実
 
-## 6. Sources and References
+## 6. 参照元と参考資料
 
-- Source title:
-- Source type:
+- 出典名:
+- 出典種別:
 - URL or identifier:
-- Accessed at:
-- Used for:
-- Key information extracted:
-- Reliability notes:
-- Local attachment path, if included:
+- 確認時刻:
+- 用途:
+- 抽出した重要情報:
+- 信頼性メモ:
+- 添付した場合のローカル path:
 
-## 7. Files, Images, and Attachments
+## 7. ファイル、画像、添付
 
-- Original name:
-- File type:
-- Role in the session:
-- Local path in ZIP:
-- Source or origin:
-- Was analyzed:
-- Was modified or generated:
-- Notes:
+- 元の名前:
+- ファイル種別:
+- セッションでの役割:
+- ZIP 内 path:
+- 出典または由来:
+- 分析したか:
+- 変更または生成したか:
+- メモ:
 
 ## 8. 生成または変更した成果物
 
-- Output name:
-- Output type:
-- Created or modified:
-- Purpose:
-- Local path in ZIP:
-- Summary of contents:
-- Dependencies or source materials:
+- 成果物名:
+- 成果物種別:
+- 作成または変更:
+- 目的:
+- ZIP 内 path:
+- 内容の要約:
+- 依存物または素材:
 
 ## 9. 決定、判断、根拠
 
-- Decision:
-- Context:
-- Options considered:
-- Rationale:
-- Evidence used:
-- Confidence level: High | Medium | Low
-- Remaining caveats:
+- 決定:
+- 文脈:
+- 比較した選択肢:
+- 理由:
+- 使用した根拠:
+- 確信度: 高 | 中 | 低
+- 残る注意点:
 
-## 10. Current State
+## 10. 現在の状態
 
-## 11. Constraints and Assumptions
+## 11. 制約と仮定
 
-## 12. Important Excerpts
+## 12. 重要な抜粋
 
-- Speaker or source:
-- Excerpt or summary:
-- Why it matters:
+- 話者または出典:
+- 抜粋または要約:
+- 重要な理由:
 
-## 13. Reproducibility Notes
+## 13. 再現性メモ
 
-## 14. Citation Map
+## 14. 引用対応表
 
-| Claim or context item | Source or evidence | Notes |
-| --------------------- | ------------------ | ----- |
+| 主張または文脈項目 | 出典または根拠 | メモ |
+| ------------------ | -------------- | ---- |
 
-## 15. Attachment Manifest
+## 15. 添付一覧
 
-| Path in ZIP | Original name | Type | Description | Source |
-| ----------- | ------------- | ---- | ----------- | ------ |
+| ZIP 内 path | 元の名前 | 種別 | 説明 | 出典 |
+| ----------- | -------- | ---- | ---- | ---- |
 
-## 16. Integrity and Limitations
+## 16. 完全性と制限
 ```
 
 該当なしの場合:
@@ -218,7 +218,7 @@ Markdown の構造:
 
 ## 根拠の書き方
 
-外部情報を参照した場合は必ず `Sources and References` に書く。
+外部情報を参照した場合は必ず「参照元と参考資料」に書く。
 
 各出典に含める。
 
