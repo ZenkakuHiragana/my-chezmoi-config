@@ -4,18 +4,20 @@
 要件捕捉とは独立した、体系それ自体の整合検査。「参照 vs 定義」モデルで、
 制御識別子が定義されないまま参照されている箇所を有限リストで出す。
 
-定義 (definition) とみなす位置:
+control surface の backtick 識別子を制御語彙として許可する位置:
   - allowlist (english-token-allowlist.md の維持制御語彙)
-  - filesystem の実体名 (skill dir / agent / command / concern / profile / reference)
-  - skill frontmatter の `name:` 値
-  - enumeration 行 `- `TOKEN`` または `- `TOKEN`: ...` (値の列挙・定義)
-参照 (reference): それ以外の backtick 出現。
+
+filesystem の実体名は routing / entity の存在確認だけに使う。
+skill frontmatter の `name:` 値、enumeration 行 `- `TOKEN`` または
+`- `TOKEN`: ...`、schema field 風の記述は診断用に収穫するが、
+control surface の語彙許可元にはしない。
+参照 (reference): control surface の backtick 出現。
 
 出力:
-  1. unaccounted: control surface で参照されるが、上のどの定義にも無い識別子。
+  1. unaccounted: control surface で参照されるが、allowlist に無い識別子。
      未定義・多義・allowlist 漏れの候補。
-  2. dangling-routing: skill 名の形 (kebab) で参照されるのに、対応する skill が
-     どこにも定義されていない識別子。routing 先が実在しない疑い。
+  2. dangling-routing: skill 名の形 (kebab) で参照されるのに、実体名や宣言値が
+     見つからない識別子。routing 先が実在しない疑い。
   3. dead-allowlist: allowlist にあるが corpus のどこでも使われない制御語彙。
   4. obligation-audit: 曖昧/ヘッジ義務表現の監査リスト。
      有限ブロックリストで候補を拾うだけで、完全な義務文 parser ではない。
@@ -48,7 +50,8 @@ CONTROL_SURFACE_GLOBS = [
     "dot_agents/skills/*/SKILL.md.tmpl",
 ]
 
-# 定義の母集団 (control surface に加えてドメイン content も含む)。
+# 診断用の定義母集団 (control surface に加えてドメイン content も含む)。
+# ここから収穫した語は、control surface の語彙許可元にはしない。
 DEFINITION_GLOBS = CONTROL_SURFACE_GLOBS + [
     "dot_agents/skills/*/references/*.md",
     "dot_agents/skills/*/concerns/*.md",
@@ -270,21 +273,26 @@ def main() -> int:
     def_files = load_files(repo, DEFINITION_GLOBS)
     surface_files = load_files(repo, CONTROL_SURFACE_GLOBS)
 
-    defined = harvest_definitions(repo, def_files) | allowlist | entities
+    harvested_definitions = harvest_definitions(repo, def_files)
     surface_refs = collect_refs(repo, surface_files)
     all_refs = collect_refs(repo, def_files)
 
-    # 1. unaccounted: 識別子の形なのに定義が無い参照。
+    # 1. unaccounted: 識別子の形なのに allowlist に無い参照。
     unaccounted: dict[str, list[str]] = {}
     for tok, locs in surface_refs.items():
-        if tok in defined:
+        if tok in allowlist:
             continue
         if not is_identifier(tok):
             continue
         unaccounted[tok] = locs
 
-    # 2. dangling routing: kebab 形の未定義参照 (routing 先が実在しない疑い)。
-    dangling = {t: l for t, l in unaccounted.items() if SKILLSHAPE.match(t)}
+    # 2. dangling routing: kebab 形の参照先が、実体名にも宣言値にも無い疑い。
+    declared_for_routing = harvested_definitions | allowlist | entities
+    dangling = {
+        t: l
+        for t, l in surface_refs.items()
+        if is_identifier(t) and SKILLSHAPE.match(t) and t not in declared_for_routing
+    }
 
     # 3. dead allowlist: 制御語彙だがどこでも未使用。
     dead = sorted(t for t in allowlist if t not in all_refs)
@@ -309,10 +317,10 @@ def main() -> int:
     )
     print(
         f"allowlist: {len(allowlist)} / entities: {len(entities)} / "
-        f"defined-total: {len(defined)}"
+        f"harvested-definitions-not-allowing: {len(harvested_definitions)}"
     )
 
-    dump("unaccounted backtick identifiers", unaccounted)
+    dump("unaccounted backtick identifiers (allowlist-only)", unaccounted)
     dump("dangling skill/capability routing targets", dangling)
     print(f"\n## dead allowlist entries ({len(dead)})")
     for t in dead:
