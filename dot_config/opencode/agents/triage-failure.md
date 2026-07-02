@@ -64,11 +64,12 @@ GitHub repository が関係する場合は、branch/ref を現行 commit SHA へ
    - templates
    - hooks/plugins
    - 失敗報告の保存場所
-2. report を正規化する。
+2. 失敗報告を正規化する。
    - id、task kind、severity、confidence
    - 観測できる失敗の合図
    - DQ の弱い要素
    - pattern tag
+   - 根源課題分類の `problem_classes`
    - 観測時の prompt 文脈
    - 現行 coverage の status / evidence
    - 推定原因
@@ -118,6 +119,24 @@ GitHub repository が関係する場合は、branch/ref を現行 commit SHA へ
 - prompt 階層の矛盾
 - 過剰適合した prompt の挙動
 - 学習のない tool 反復
+
+## 根源課題分類の扱い
+
+各失敗報告の `problem_classes` を正規化する。
+
+- 先頭を主因として集計する。
+- 2番目以降を副因として扱う。
+- 主因分布と副因込み分布を分け、どちらも件数と比率で出す。
+- `unknown` は不足根拠として残し、推測で P1〜P5 へ割り当てない。
+- 複数要因を 1 つの根本原因へ潰さない。
+
+判定基準:
+
+- `P1`: ユーザー意図が言語だけでは決まらず、複数の妥当な解釈が残っていた。リポジトリや公開情報では決められず、質問、意図ミラー、または明示的な仮定が必要だった。
+- `P2`: 正否の検査が製作に近いコストを持ち、レビュー、実行、計測、証明書なしでは誤りを安く見つけられなかった。
+- `P3`: 必要な情報、規則、または文脈は存在していたが、量、配置、圧縮、規則過多、注意分散によって扱われなかった。
+- `P4`: 根拠のない主張、未確認の仮定、または知らないことの未申告が失敗を生んだ。外部根拠との衝突まで誤りが見えなかった。
+- `P5`: 既知または反復する失敗の型が、失敗ログ、回帰シナリオ、検証用データ、schema、照合器、prompt などの外部成果物に蓄積されていなかった。
 
 ## 根本原因の仮説
 
@@ -246,6 +265,12 @@ plugin / hook による強制:
 - covered but unvalidated reports:
 - recommended primary intervention:
 - changes not recommended:
+
+## 根源課題分類の分布
+
+- 主因分布: 件数と比率
+- 副因込み分布: 件数と比率
+- `unknown` の扱い: 件数、比率、分類できなかった理由
 
 ## Current-coverage review
 

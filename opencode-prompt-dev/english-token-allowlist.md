@@ -212,6 +212,12 @@
 - `current_coverage`
 - `coverage_evidence`
 - `regression_needed`
+- `problem_classes`
+- `P1`
+- `P2`
+- `P3`
+- `P4`
+- `P5`
 - `create_historical_note`
 - `create_incident`
 - `create_regression_scenario`
