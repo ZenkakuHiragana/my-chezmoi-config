@@ -23,7 +23,7 @@ control surface の語彙許可元にはしない。
      有限ブロックリストで候補を拾うだけで、完全な義務文 parser ではない。
      この監査リストは終了コードに影響しない。
 
-正本: opencode-prompt-dev/english-token-allowlist.md
+原本: opencode-prompt-dev/english-token-allowlist.md
 使い方: python opencode-prompt-dev/check_vocabulary.py [--repo <path>] [--verbose]
 終了コード: 検出があれば 1、無ければ 0。
 """
