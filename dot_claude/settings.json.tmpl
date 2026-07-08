@@ -1,0 +1,7 @@
+{{- $existingSettingsPath := joinPath .chezmoi.homeDir ".claude" "settings.json" -}}
+{{- $rendererPath := joinPath .chezmoi.sourceDir ".chezmoitemplates" "claude" "render-settings.py" -}}
+{{- $targetTool := "Bash" -}}
+{{- if eq .chezmoi.os "windows" -}}
+{{- $targetTool = "PowerShell" -}}
+{{- end -}}
+{{- output "python3" $rendererPath $existingSettingsPath (.claude | toJson) $targetTool (.opencode.permission.bash | toJson) -}}

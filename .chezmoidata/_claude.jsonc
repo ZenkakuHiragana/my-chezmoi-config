@@ -1,0 +1,59 @@
+{
+  "claude": {
+    // 初回生成時の fallback。既存の ~/.claude/settings.json に値があればそちらを保持する。
+    "model": "sonnet",
+    "enabledPlugins": {
+      "lua-lsp@claude-plugins-official": true,
+    },
+    // 初回生成時の fallback。Claude Code 側の切り替えで既存値が変わった場合は保持する。
+    "effortLevel": "high",
+    "autoUpdatesChannel": "latest",
+    "theme": "auto",
+    "verbose": false,
+    "permissions": {
+      // - Agent ... 残す。
+      // - Artifact ... 消す。
+      // - AskUserQuestion ... 残す。
+      // - Bash / PowerShell ... Windows なので、Bash を消す。PowerShell を残す。
+      // - CronCreate / CronList / CronDelete ... 消す。
+      // - DesignSync ... とりあえず残す。ciaude.ai/design を見てみると、何やらスライドのデザインや GUI アプリケーションのモックとか、そういうのもあるみたい。使用感を確認したい。
+      // - Read / Glob / Grep / Edit / Write ... いる。
+      // - EnterPlanMode / ExitPlanMode ... 残す。
+      // - EnterWorktree / ExitWorktree ... まだ残す。
+      // - LSP ... 残す。
+      // - Monitor ... 一応残す。
+      // - NotebookEdit ... 消す。
+      // - PushNotification ... 一応残す。一度も使われないようなら消す。
+      // - RemoteTrigger ... 消す。
+      // - ReportFindings ... 一応残す。指摘事項の整形が勝手にされるらしい。
+      // - ScheduleWakeup ... 消す。
+      // - SendMessage ... 残す。
+      // - Skill ... 残す。
+      // - TaskCreate / TaskGet / TaskList / TaskUpdate ... 残す。
+      // - TaskOutput ... 消す。
+      // - TaskStop ... 残す。
+      // - WebFetch / WebSearch ... 残す。
+      "deny": [
+        "DesignSync",
+        "EnterWorktree",
+        "ExitWorktree",
+        "Monitor",
+        "PushNotification",
+        "ReportFindings",
+        // ------------------
+        "Artifact",
+        "Bash",
+        "CronCreate",
+        "CronDelete",
+        "CronList",
+        "NotebookEdit",
+        "RemoteTrigger",
+        "ScheduleWakeup",
+        "TaskOutput",
+        "Agent(Explore)",
+        "Agent(Plan)",
+        "Agent(general-purpose)",
+      ],
+    },
+  },
+}
