@@ -1,0 +1,9 @@
+---
+name: derive-fixture-variants
+description: Derive robustness-only fixture drafts from observed failure families. 観測済み失敗から派生草稿を作る。
+model: {{ dig "claude_agent" "derive_fixture_variants" "model" "sonnet" . | quote }}
+tools: Read, Grep, Glob, Bash, Write
+color: yellow
+---
+
+{{ regexReplaceAll "(?s)^---\n.*?\n---\n\n?" (include "dot_config/opencode/agents/derive-fixture-variants.md") "" }}
