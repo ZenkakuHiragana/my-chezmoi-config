@@ -4,6 +4,7 @@ import copy
 import functools
 import json
 import pathlib
+import re
 import sys
 from typing import Any
 
@@ -214,8 +215,102 @@ def merge_projected_permissions(
             del permissions_value[action]
 
 
+def load_opencode_mcp(json_text: str) -> dict[str, Any]:
+    value = json.loads(json_text)
+    if not isinstance(value, dict):
+        raise ValueError("opencode mcp must be a JSON object")
+    return value
+
+
+ENV_PLACEHOLDER_PATTERN = re.compile(r"\{env:([^}]+)\}")
+
+
+def translate_env_placeholders(text: str) -> str:
+    return ENV_PLACEHOLDER_PATTERN.sub(r"${\1}", text)
+
+
+def project_opencode_mcp(opencode_mcp: dict[str, Any]) -> dict[str, Any]:
+    projected: dict[str, Any] = {}
+
+    for name, definition in opencode_mcp.items():
+        if not isinstance(name, str):
+            raise ValueError("opencode mcp server names must be strings")
+        if not isinstance(definition, dict):
+            raise ValueError(f"opencode mcp {name!r} must be a JSON object")
+        if definition.get("enabled") is False:
+            continue
+
+        server_type = definition.get("type")
+        if server_type == "local":
+            command = definition.get("command")
+            if not isinstance(command, list) or not command:
+                raise ValueError(
+                    f"opencode mcp {name!r} local command must be a non-empty array"
+                )
+            if not all(isinstance(item, str) for item in command):
+                raise ValueError(
+                    f"opencode mcp {name!r} local command entries must be strings"
+                )
+
+            env = definition.get("env", {})
+            if not isinstance(env, dict) or not all(
+                isinstance(key, str) and isinstance(value, str)
+                for key, value in env.items()
+            ):
+                raise ValueError(
+                    f"opencode mcp {name!r} local env must be a string map"
+                )
+
+            projected[name] = {
+                "type": "stdio",
+                "command": command[0],
+                "args": command[1:],
+                "env": {
+                    key: translate_env_placeholders(value) for key, value in env.items()
+                },
+            }
+            continue
+
+        if server_type == "remote":
+            url = definition.get("url")
+            if not isinstance(url, str) or not url:
+                raise ValueError(f"opencode mcp {name!r} remote url must be a string")
+
+            projected_server = {
+                "type": "http",
+                "url": translate_env_placeholders(url),
+            }
+
+            headers = definition.get("headers")
+            if headers is not None:
+                if not isinstance(headers, dict) or not all(
+                    isinstance(key, str) and isinstance(value, str)
+                    for key, value in headers.items()
+                ):
+                    raise ValueError(
+                        f"opencode mcp {name!r} remote headers must be a string map"
+                    )
+                projected_server["headers"] = {
+                    key: translate_env_placeholders(value)
+                    for key, value in headers.items()
+                }
+
+            projected[name] = projected_server
+            continue
+
+        raise ValueError(
+            f"opencode mcp {name!r} has unsupported type: {server_type!r}"
+        )
+
+    return projected
+
+
 def render_settings(
-    existing_path: str, managed_json: str, target_tool: str, opencode_bash_json: str
+    existing_path: str,
+    managed_json: str,
+    target_tool: str,
+    opencode_bash_json: str,
+    opencode_mcp_json: str,
 ) -> str:
     managed = load_managed_settings(managed_json)
     existing = load_json_file(existing_path)
@@ -231,20 +326,30 @@ def render_settings(
     )
     merge_projected_permissions(output, target_tool, projected_permissions)
 
+    opencode_mcp = load_opencode_mcp(opencode_mcp_json)
+    projected_mcp = project_opencode_mcp(opencode_mcp)
+    if projected_mcp:
+        output["mcpServers"] = projected_mcp
+    elif "mcpServers" in output:
+        del output["mcpServers"]
+
     return json.dumps(output, ensure_ascii=False, indent=2) + "\n"
 
 
 def main() -> int:
-    if len(sys.argv) != 5:
+    if len(sys.argv) != 6:
         print(
             "usage: render-settings.py <existing-settings-path> "
-            "<managed-settings-json> <target-tool> <opencode-bash-json>",
+            "<managed-settings-json> <target-tool> <opencode-bash-json> "
+            "<opencode-mcp-json>",
             file=sys.stderr,
         )
         return 2
 
     try:
-        rendered = render_settings(sys.argv[1], sys.argv[2], sys.argv[3], sys.argv[4])
+        rendered = render_settings(
+            sys.argv[1], sys.argv[2], sys.argv[3], sys.argv[4], sys.argv[5]
+        )
     except (json.JSONDecodeError, OSError, ValueError) as error:
         print(f"render-settings.py: {error}", file=sys.stderr)
         return 1

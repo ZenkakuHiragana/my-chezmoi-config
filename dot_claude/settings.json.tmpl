@@ -4,4 +4,4 @@
 {{- if eq .chezmoi.os "windows" -}}
 {{- $targetTool = "PowerShell" -}}
 {{- end -}}
-{{- output "python3" $rendererPath $existingSettingsPath (.claude | toJson) $targetTool (.opencode.permission.bash | toJson) -}}
+{{- output "python3" $rendererPath $existingSettingsPath (.claude | toJson) $targetTool (.opencode.permission.bash | toJson) (.opencode.mcp | toJson) -}}
