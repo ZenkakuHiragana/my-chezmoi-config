@@ -55,6 +55,7 @@ file を書いた場合、端末には本文を出さず path だけ通知する
 `CONTEXT` に書けるもの:
 
 - ユーザーが本文判断基準として明示した定義、制約、目的、対象範囲
+- 親エージェントが判定基準として渡した acceptance criteria と invariants
 - 対象本文が明示する定義、制約、目的、対象範囲
 - 対象本文から論理的に必然で、指摘判定に直接必要な事実
 - 指定レビュー結果ファイルの既存 `CONTEXT`
@@ -94,6 +95,9 @@ file を書いた場合、端末には本文を出さず path だけ通知する
 
 `TYPO` に severity は付けない。
 
+acceptance criteria と invariants が判定基準として渡されている場合、`高` の手順ミス、判断ミス、危険な曖昧さは、読者がそれらの条件を満たす行動を誤るかどうかで判定する。
+条件の外に問題があると判断した指摘は、`対応する受け入れ条件` を `該当なし` にして出す。
+
 ## 指摘基準
 
 - 具体的な対象箇所と根拠がある問題だけ出す。
@@ -116,6 +120,7 @@ file を書いた場合、端末には本文を出さず path だけ通知する
 - `claim`: `問題`。`TYPO` では `修正方針`
 - `evidence`: `根拠`。`TYPO` では `対象`
 - `impact`: `問題` に書いた読者影響
+- `violated criterion`: `対応する受け入れ条件`。判定基準が渡されていない review では `None`
 - `suggested next step`: `修正方針`
 - `confidence`: 本文だけで根拠が閉じていれば `high`、本文外確認で採否が決まるなら `low`
 - `required source class`: 原則 `user_provided` または本文内根拠。本文外の事実確認で採否が決まる指摘は `repo_derivable`、`subsystem_derivable`、`public_fact` のいずれか

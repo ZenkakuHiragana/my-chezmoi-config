@@ -34,6 +34,10 @@ description: Use when handling review findings before editing: triage `Review fi
 未検証の指摘を `accepted` にしてはならない。
 好み、一般論、レビュー履歴だけを根拠に採用してはならない。
 
+`accepted` は、指摘が契約のどの acceptance criteria または invariants を侵害するかを名指しできるときに限る。
+名指しできない指摘を `accepted` にしてはならない。妥当性があり得る場合は `out-of-scope` とする。
+どの条件も侵害しないが、放置すると成果物の目的や安全を毀損すると判断した指摘は、`out-of-scope` のまま契約改定の提案として返す。ユーザー判断を経ずに修正へ進めてはならない。
+
 ## `Review response contract`
 
 `accepted` が1件以上あるときに作成する。
@@ -69,6 +73,7 @@ slug は対象 task の slug を優先し、無い場合は今回のレビュー
 - required source class:
 - verification action:
 - verification result:
+- violated criterion: <侵害する acceptance criteria / invariants、または None>
 - response status: accepted | rejected | needs-investigation | out-of-scope
 - decision reason:
 - response contract id: <id or None>
@@ -117,6 +122,7 @@ slug は対象 task の slug を優先し、無い場合は今回のレビュー
 
 - 全ての `Review finding record` を分類した。
 - `accepted` の根拠が確認済みである。
+- `accepted` の全てで `violated criterion` を名指しした。
 - `needs-investigation` を修正対象にしていない。
 - `Review response contract` が修正範囲と非対象範囲を分けている。
 - `accepted` があるときは `Review Response Artifact` を外部化した。

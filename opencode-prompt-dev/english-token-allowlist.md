@@ -119,6 +119,7 @@
 - `location`
 - `claim`
 - `impact`
+- `violated criterion`
 - `confidence`
 - `severity`
 - `suggested next step`
@@ -266,6 +267,7 @@
 - `investigation`
 - `japanese-doc-review`
 - `public-research`
+- `review-response`
 - `task-planning`
 - `technical-writing`
 - `compatibility-operations`

@@ -20,7 +20,7 @@
 - `work_class`: 作業の広さと不確実さの分類。`tiny-local` / `bounded` / `broad-or-unclear` を使う。
 - `required source class`: 主張や判断の正否を決める資料の種類。
 - `task contract`: 完了までに満たす結果、制約、確認方法をまとめた実行契約。`context-clarification` が固定する `Requirement contract` と `Review response contract` もこれに含む。
-- `Review finding record`: レビュー指摘を採否判断前の検証対象として扱うための記録。場所、主張、根拠、影響、確信度、必要な根拠種別、採否状態、採否理由を持つ。
+- `Review finding record`: レビュー指摘を採否判断前の検証対象として扱うための記録。場所、主張、根拠、影響、確信度、必要な根拠種別、侵害する契約条件、採否状態、採否理由を持つ。
 - `Review response contract`: 採用したレビュー指摘だけを修正するための実行契約。対象指摘、修正範囲、非対象範囲、保つ条件、確認方法、対応後監査を持つ。
 
 ## 文章と成果物
@@ -31,7 +31,8 @@
 - 成果物には README、文書、コメント、プロンプト本文、skill の指示文、コミットメッセージも含む。
 - ユーザーからの指示、レビューの指摘、採用しなかった案などの編集指示は制御入力であり、成果物本文とは厳密に区別される。成果物本文はいかなる場合でも **本文のみ、または本文に記載のある関連資料のみ** から主張や内容を把握できる形態でなければならない。
 - 章立てられた文章を生成する時、または文と文の間で論理的推移が重要になる成果物を扱う場合は `technical-writing` を使い、必要な参照資料を読む。
-- `technical-writing` により日本語文章の成果物を生成する場合は `japanese-doc-review` スキルによる生成物の校正をサブエージェントに依頼し、指摘点がなくなるまで修正を行う。
+- `technical-writing` により日本語文章の成果物を生成する場合は、成果物の acceptance criteria と invariants を固定してから `japanese-doc-review` による校正をサブエージェントに依頼し、判定基準としてレビュアーへ渡す。
+- レビュー修正は、acceptance criteria または invariants の侵害を名指しできる指摘がなくなるまで続ける。侵害を名指しできない指摘は修正せず、`review-response` の分類で処理する。
 
 ## `task frame` と `work_class`
 
@@ -97,7 +98,7 @@
 
 1. レビュー結果を `Review finding record` として扱う。
    レビュー結果に項目が足りない場合は、既存 field から対応付け、不足項目を `unknown` または `None` として明示する。
-2. 指摘検証で `accepted` / `rejected` / `needs-investigation` / `out-of-scope` に分類する。
+2. 指摘検証で `accepted` / `rejected` / `needs-investigation` / `out-of-scope` に分類する。`accepted` は、侵害する acceptance criteria または invariants を名指しできる指摘に限る。
 3. `needs-investigation` は `investigation` または `public-research` へ戻し、未検証のまま採用しない。
 4. `accepted` が1件以上あるときは `Review response contract` を固定する。
 5. レビュー対応では `accepted` だけを直す。便乗修正をしてはならない。

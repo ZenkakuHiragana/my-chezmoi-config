@@ -45,6 +45,7 @@ description: Use when the task is to review a diff, patch, PR, or named code sur
 - `claim`
 - `evidence`
 - `impact`
+- `violated criterion`
 - `suggested next step`
 - `confidence`
 - `required source class`
@@ -55,6 +56,8 @@ description: Use when the task is to review a diff, patch, PR, or named code sur
 `required source class` は、採否判断に必要な根拠の種類を書く。
 ローカル実装挙動で採否が決まる指摘は `repo_derivable` または `subsystem_derivable`、外部仕様で採否が決まる指摘は `public_fact` とする。
 根拠が足りない指摘は `Uncertain` とし、`verification needed` に確認先を書く。
+`violated criterion` には、指摘が侵害する契約の acceptance criteria または invariants を名指しする。
+名指しできない指摘は `None` とする。後続の指摘検証は `None` の指摘を契約改定の提案として扱い、ユーザー判断なしに `accepted` にしてはならない。
 
 指摘は次の固定テンプレートで出す。
 
@@ -66,6 +69,7 @@ description: Use when the task is to review a diff, patch, PR, or named code sur
 - claim: <問題の主張>
 - evidence: <観測した根拠>
 - impact: <影響>
+- violated criterion: <侵害する acceptance criteria / invariants、または None>
 - suggested next step: <最小の次行動>
 - confidence: <high | medium | low>
 - required source class: <repo_derivable | subsystem_derivable | public_fact | user_provided | None>
@@ -175,6 +179,7 @@ field を省略してはならない。
 - claim
 - evidence
 - impact
+- violated criterion
 - suggested next step
 - confidence
 - required source class
