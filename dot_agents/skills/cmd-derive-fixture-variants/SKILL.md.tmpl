@@ -1,6 +1,0 @@
----
-name: cmd-derive-fixture-variants
-description: Derive robustness-only fixture drafts from observed failure reports. Use only when the user explicitly wants safe variants of existing failure cases; not for inventing incidents or adding tracked fixtures directly. 観測済み失敗の派生草稿を作る。
----
-
-{{ regexReplaceAll "(?s)^---\n.*?\n---\n\n?" (include "dot_config/opencode/agents/derive-fixture-variants.md") "" }}
