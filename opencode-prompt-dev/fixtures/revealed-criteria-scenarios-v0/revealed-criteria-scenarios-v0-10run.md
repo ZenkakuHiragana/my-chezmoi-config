@@ -6,7 +6,7 @@
 
 - prompt / agent / skill / command は変更しない。
 - fixture、凍結 assignment packet v0、scoring criteria も変更しない。
-- `.opencode/work/revealed-criteria-scenarios-v0-smoke.md` の packet smoke run 1 を含め、s1〜s5 を各10 run にした。
+- smoke 記録 revealed-criteria-scenarios-v0-smoke.md（非追跡 work 領域）の packet smoke run 1 を含め、s1〜s5 を各10 run にした。
 - 配送形式が異なる過去 run は集計から除外した。
 
 ### Evaluation conditions

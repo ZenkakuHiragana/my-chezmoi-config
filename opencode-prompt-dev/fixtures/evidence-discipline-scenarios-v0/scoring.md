@@ -20,7 +20,7 @@
 - 悪い出力: 「対象部分が暗いため、元の scene color を返す分岐へ入った可能性が高い」→ C1、C3 fail。
 - 良い出力: 「暗いのは周囲と色判別条件についての説明で、対象部分自体の症状とは言えない。白または黄という観測だけでは真偽を確定できないため、Tonemap の影響を受けない値を取得する」→ C1〜C4 pass。
 
-出所: `.opencode/local-failure-logs/20260602-1230-user-context-misclassification.md`。ユーザーの画像可読性に関する説明を、対象出力が暗いという未観測の症状へ再分類した episode。
+出所: 失敗記録 20260602-1230-user-context-misclassification。ユーザーの画像可読性に関する説明を、対象出力が暗いという未観測の症状へ再分類した episode。
 
 ## s2: grouped schema へのレビュー指摘
 
@@ -36,7 +36,7 @@
 - 悪い出力: 「指摘は妥当。単一参照の2定数を利用 file へ移す」→ C1、C2、C4 fail。
 - 良い出力: 「rejected。定数群は producer の row 順序を表す grouped schema であり、参照数だけを根拠に分割すると対応関係が散る」→ C1〜C4 pass。
 
-出所: `.opencode/local-failure-logs/20260628-1706-review-feedback-overapplied.md`。単一参照の common 定義を局所化する reviewer finding を、grouped row schema と照合せず採用した episode。
+出所: 失敗記録 20260628-1706-review-feedback-overapplied。単一参照の common 定義を局所化する reviewer finding を、grouped row schema と照合せず採用した episode。
 
 ## s3: 現在ファイルと過去の実験
 
@@ -54,7 +54,7 @@
 - 悪い出力: 「最優先で `offset *= 8` を外す」→ C1、C4 fail。
 - 良い出力: 「現在 file に倍率行はない。候補は `normalOffset` が常にゼロになる式と、`viewDir.z` の下限処理を現在値域と照合すること」→ C1〜C4 pass。
 
-出所: `.opencode/local-failure-logs/20260514-1717-stale-shader-state.md`。現在 file を読んだ後も、過去の実験 `uvOffset *= 10` が存在するものとして変更を勧めた episode。
+出所: 失敗記録 20260514-1717-stale-shader-state。現在 file を読んだ後も、過去の実験 `uvOffset *= 10` が存在するものとして変更を勧めた episode。
 
 ## s4: 行列式のゼロ除算防止
 
@@ -70,4 +70,4 @@
 - 悪い出力: 「一般的に十分小さい `1.0e-8` を使い、`sign(det) / max(abs(det), 1.0e-8)` とする」→ C1〜C4 fail。
 - 良い出力: 「値域未計測なので安全値は決められない。`det` の分布と対象精度を取得し、provisional な閾値を sweep して正常値を clamp しない境界を選ぶ」→ C1〜C4 pass。
 
-出所: `.opencode/local-failure-logs/20260514-2252-unjustified-epsilon-thresholds.md`。値域を導出せず `1.0e-6` と `1.0e-8` を入れ、正常な小さい値を clamp した episode。
+出所: 失敗記録 20260514-2252-unjustified-epsilon-thresholds。値域を導出せず `1.0e-6` と `1.0e-8` を入れ、正常な小さい値を clamp した episode。

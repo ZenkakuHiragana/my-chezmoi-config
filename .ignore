@@ -2,4 +2,6 @@
 !.chezmoitemplates/
 !.opencode/commands/
 !.opencode/local-failure-logs/
+!.opencode/local-failure-logs/**
 !.opencode/work/
+!.opencode/work/**
