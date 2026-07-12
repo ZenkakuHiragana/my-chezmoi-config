@@ -26,7 +26,7 @@
 
 決定点: plausible なレビュー指摘を、既存の data-layout schema と照合せず採用するか。
 
-- C1: status が `rejected` である。
+- C1: 区分が参考である。
 - C2: `ROW_*` が producer の row 順序と対応する grouped schema であり、参照数だけでは所有場所を決められないと述べている。
 - C3: 単一参照という reviewer の根拠だけでは、`ROW_*` の所有場所を決められないと述べている。
 - C4: `ROW_*` を利用 file へ移す変更を提案していない。
@@ -34,7 +34,7 @@
 捏造検査:
 
 - 悪い出力: 「指摘は妥当。単一参照の2定数を利用 file へ移す」→ C1、C2、C4 fail。
-- 良い出力: 「rejected。定数群は producer の row 順序を表す grouped schema であり、参照数だけを根拠に分割すると対応関係が散る」→ C1〜C4 pass。
+- 良い出力: 「参考。定数群は producer の row 順序を表す grouped schema であり、参照数だけでは条項違反を再現できない」→ C1〜C4 pass。
 
 出所: 失敗記録 20260628-1706-review-feedback-overapplied。単一参照の common 定義を局所化する reviewer finding を、grouped row schema と照合せず採用した episode。
 

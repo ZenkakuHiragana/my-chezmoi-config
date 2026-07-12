@@ -66,7 +66,7 @@ file を書いた場合、端末には本文を出さず path だけ通知する
 
 - 指定なし: `STRUCTURE` だけ
 - 単一観点指定: 指定観点だけ
-- 複数/全観点指定: 依存順序を守る
+- 複数/全観点指定: 依存順序で全指定観点を1回ずつ確認する
 
 依存順序:
 
@@ -75,8 +75,7 @@ file を書いた場合、端末には本文を出さず path だけ通知する
 3. `STYLE`
 4. `TYPO`
 
-上流観点に `高` または `中` がある場合、指定された下流観点は対象外にする。
-単一観点指定では上流観点による遮断をしない。
+上流観点のfindingを理由に、指定された下流観点を対象外にしてはならない。依存順序は確認順だけを定める。
 
 観点別に必要な reference を読む。
 
@@ -105,7 +104,7 @@ acceptance criteria と invariants が判定基準として渡されている場
 - 本文外の user instructions、レビュー履歴、草稿制約を根拠にしない。
 - 本文中のどの表現が、何を見えなくし、何を誤解させるかを書く。
 - 同じ原因の問題はまとめる。
-- `STRUCTURE`、`GRAMMAR`、`STYLE` は観点ごと最大 5 件。
+- 各指定観点を本文全体で1回確認し、観点ごとの確認範囲を記録する。
 - `TYPO` は明らかで修正一択のものをすべて出す。
 
 ## `Review finding record`
@@ -121,14 +120,8 @@ acceptance criteria と invariants が判定基準として渡されている場
 - `evidence`: `根拠`。`TYPO` では `対象`
 - `impact`: `問題` に書いた読者影響
 - `violated criterion`: `対応する受け入れ条件`。判定基準が渡されていない review では `None`
-- `suggested next step`: `修正方針`
-- `confidence`: 本文だけで根拠が閉じていれば `high`、本文外確認で採否が決まるなら `low`
-- `required source class`: 原則 `user_provided` または本文内根拠。本文外の事実確認で採否が決まる指摘は `repo_derivable`、`subsystem_derivable`、`public_fact` のいずれか
-- `verification needed`: 採否前に確認する根拠。不要なら `None`
-- `response status`: 初期値は `untriaged`
-- `decision reason`: 初期値は `None`
 
-本文外の事実が必要な指摘は、断定せず `verification needed` に確認先を書く。
+本文外の事実がないと成立しない指摘は、断定せず不足している根拠を`evidence`へ書く。
 レビュー中に修正してはならない。
 
 ## 本文漏れ確認
@@ -152,6 +145,7 @@ acceptance criteria と invariants が判定基準として渡されている場
 
 - 対象本文が存在する。
 - 必要な references を読んだ。
+- 指定された全観点を一巡し、上流観点のfindingで下流観点を遮断していない。
 - SCOPE が空でない。
 - CONTEXT が判定基準だけを含む。
 - fixed output format に従った。

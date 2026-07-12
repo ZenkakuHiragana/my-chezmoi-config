@@ -125,8 +125,6 @@
 - `suggested next step`
 - `required source class`
 - `verification needed`
-- `response status`
-- `decision reason`
 
 ### 状態値と分類値
 
@@ -173,11 +171,6 @@
 - `skip`
 - `no findings`
 - `needs_manual_review`
-- `untriaged`
-- `accepted`
-- `rejected`
-- `needs-investigation`
-- `out-of-scope`
 - `review-triage`
 - `writing`
 - `audit`

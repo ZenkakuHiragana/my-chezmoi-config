@@ -11,7 +11,7 @@ description: Use when the task is to review a diff, patch, PR, or named code sur
 
 ## レビュー契約
 
-最低限見る軸:
+観点候補。`work_class`と依頼から開始前に有限集合を選ぶ。
 
 - 正しさ / 境界事例 / 仕様準拠
 - 設計 / 統合 / 責務配置
@@ -23,7 +23,7 @@ description: Use when the task is to review a diff, patch, PR, or named code sur
 - 性能 / 信頼性
 - 互換性 / 移行 / 運用
 
-指摘には具体的な場所、根拠、影響、次の行動案を持たせる。
+指摘には具体的な場所、根拠、影響、侵害する契約条件を持たせる。
 一般論だけの助言は出さない。
 指摘は修正命令ではなく `Review finding record` として扱う。
 採否は後続の指摘検証で決める。
@@ -46,18 +46,10 @@ description: Use when the task is to review a diff, patch, PR, or named code sur
 - `evidence`
 - `impact`
 - `violated criterion`
-- `suggested next step`
-- `confidence`
-- `required source class`
-- `verification needed`
-- `response status`: 初期値は `untriaged`
-- `decision reason`: 初期値は `None`
 
-`required source class` は、採否判断に必要な根拠の種類を書く。
-ローカル実装挙動で採否が決まる指摘は `repo_derivable` または `subsystem_derivable`、外部仕様で採否が決まる指摘は `public_fact` とする。
-根拠が足りない指摘は `Uncertain` とし、`verification needed` に確認先を書く。
+根拠が足りない指摘は`Uncertain`とし、不足している根拠を`evidence`へ書く。
 `violated criterion` には、指摘が侵害する契約の acceptance criteria または invariants を名指しする。
-名指しできない指摘は `None` とする。後続の指摘検証は `None` の指摘を契約改定の提案として扱い、ユーザー判断なしに `accepted` にしてはならない。
+名指しできない指摘は`None`とする。
 
 指摘は次の固定テンプレートで出す。
 
@@ -70,12 +62,6 @@ description: Use when the task is to review a diff, patch, PR, or named code sur
 - evidence: <観測した根拠>
 - impact: <影響>
 - violated criterion: <侵害する acceptance criteria / invariants、または None>
-- suggested next step: <最小の次行動>
-- confidence: <high | medium | low>
-- required source class: <repo_derivable | subsystem_derivable | public_fact | user_provided | None>
-- verification needed: <確認行動または None>
-- response status: untriaged
-- decision reason: None
 ```
 
 field を省略してはならない。
@@ -83,14 +69,12 @@ field を省略してはならない。
 
 ## 手順
 
-1. 範囲、意図された挙動、受け入れ条件を確定する。固まっていなければ `context-clarification` に戻る。
-2. 変更行、周辺文脈、呼び出し元、テスト、文書、config を読む。
-3. 発火条件に該当する concern / profile ファイルを読む。レビュー対象の正否を `Requirement contract`、設計仕様、公開 API 契約、互換契約、生成仕様のいずれかで判定するときは `concerns/spec-conformance.md` を必ず読む。
-4. 利用できる確認を調べる。指摘の確度を左右する確認は実行する。実行できない確認は理由を記録する。
-5. 正しさ、設計、性能、保守性、最小性、テスト、文書、セキュリティ、互換性の順で見る。子エージェント分割規則により委譲実行を行うことを原則とする。
-6. 指摘を severity 順に整理する。
-7. 未確認の根拠種別は `Uncertain` として扱い、`investigation` / `public-research` を勧める。
-8. 指摘は `Review finding record` として出す。採用、却下、修正実行はしない。
+1. 凍結した対象、意図された挙動、受け入れ条件を確定する。固まっていなければ`context-clarification`に戻る。
+2. `work_class`から今回の有限なconcern集合を開始前に固定する。
+3. 変更行、周辺文脈、呼び出し元、テスト、文書、configを読む。
+4. 固定したconcern / profileファイルを読む。契約や仕様への適合を見る場合は`concerns/spec-conformance.md`を含める。
+5. 各concernを1回だけ確認し、確認した範囲を記録する。
+6. 指摘をseverity順に整理し、確認範囲と`Review finding record`だけを返す。
 
 ## 確認観点
 
@@ -140,7 +124,7 @@ field を省略してはならない。
 
 ## 子エージェント分割
 
-レビューの実行は原則として「広いレビュー」として扱い、委譲実行により concern の分割を行う。
+`broad-or-unclear`のレビューは、開始前に固定したconcern集合を委譲実行で分割する。
 以下の条件の全てに当てはまる場合に限り例外として分割を回避する理由としてもよい。
 
 - `work_class` が `tiny-local`
@@ -149,8 +133,8 @@ field を省略してはならない。
 - 呼び出し元、生成物、ドキュメント、テストへの影響がない
 - 仕様照合や互換性判断を主目的にしない
 
-委譲実行が技術的に利用不能なとき以外は、広いレビューで concern 分割を省略してはならない。
-親の重複整理、根拠確認、severity 調整、根拠の読み直しは親の役割であり、concern 分割を回避する理由にしてはならない。差分が同じ pipeline に密結合していることも、回避の理由にしてはならない。
+委譲実行が技術的に利用不能なとき以外は、固定したconcern集合の分割を省略してはならない。
+子は割り当てられたconcernを1回だけ確認し、再帰委譲しない。親は重複整理と確認範囲の統合だけを行い、新しいconcernを追加しない。
 
 広いレビューで concern 分割を行うときは、次の固定既定セットを割り当てる。対象に固有の concern / profile は追加してよい。
 
@@ -180,12 +164,6 @@ field を省略してはならない。
 - evidence
 - impact
 - violated criterion
-- suggested next step
-- confidence
-- required source class
-- verification needed
-- response status
-- decision reason
 
 この field 順を維持する。
 
@@ -200,5 +178,5 @@ field を省略してはならない。
 - 根拠、影響、場所がある。
 - 軽微な整えと取り込みを妨げる問題を分けた。
 - 不足と過剰の両方を見た。
-- 提案する次の行動が最小。
 - 不確実性を隠していない。
+- 固定したconcern集合を各1回確認し、確認範囲を記録した。
