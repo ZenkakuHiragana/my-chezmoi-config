@@ -91,9 +91,6 @@
 - `assignment packet`
 - `Requirement contract`
 - `Readiness record`
-- `Review finding record`
-- `Review response contract`
-- `Review Response Artifact`
 - `Parallel group`
 - `Parallel basis`
 - `goal`
@@ -171,7 +168,6 @@
 - `skip`
 - `no findings`
 - `needs_manual_review`
-- `review-triage`
 - `writing`
 - `audit`
 - `none`
@@ -260,7 +256,7 @@
 - `investigation`
 - `japanese-doc-review`
 - `public-research`
-- `review-response`
+- `requirement-review`
 - `task-planning`
 - `technical-writing`
 - `compatibility-operations`

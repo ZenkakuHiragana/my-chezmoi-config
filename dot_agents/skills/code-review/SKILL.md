@@ -1,182 +1,78 @@
 ---
 name: code-review
-description: Use when the task is to review a diff, patch, PR, or named code surface for issues and the review target already has stable intent and scope; not to edit it, resolve readiness gaps, or replace factual investigation/public research. レビュー専用。根拠付き findings と severity を返す。
+description: Use when reviewing code or a diff after intent, scope, and verification are fixed; examines selected code concerns and returns only reproducible defects, without editing or reviewing prose/specifications. Codeとdiffの独立review専用。
 ---
 
 # Code Review
 
-コードの欠陥、退行、設計リスク、保守性の問題を探す。
-助言としてのレビュー専用。修正、`investigation`、公開調査、最終文章品質確認の代替にはしない。
-レビュー対象の意図、成功条件、検証条件が固まっていない場合は `context-clarification` に戻る。
+凍結したcodeまたはdiffを、固定した観点と実行可能な確認方法で検査する。仕様、作業契約、日本語文章の品質は扱わない。
 
-## レビュー契約
+## 入力
 
-観点候補。`work_class`と依頼から開始前に有限集合を選ぶ。
+- 凍結した対象とbase
+- task contract
+- `work_class`
+- 今回確認するconcern / profile
+- 実行できるtest、lint、再現command
 
-- 正しさ / 境界事例 / 仕様準拠
-- 設計 / 統合 / 責務配置
-- 複雑さ / 保守性
-- テスト / テスト品質
-- 命名 / 読みやすさ / コメント / 文書
-- 文体 / 一貫性
-- セキュリティ / プライバシー
-- 性能 / 信頼性
-- 互換性 / 移行 / 運用
+## 観点
 
-指摘には具体的な場所、根拠、影響、侵害する契約条件を持たせる。
-一般論だけの助言は出さない。
-指摘は修正命令ではなく `Review finding record` として扱う。
-採否は後続の指摘検証で決める。
+既存の`concerns/`と`profiles/`を観点の正本にする。
 
-## severity
+- `tiny-local`: 変更箇所と直接testだけ
+- `bounded`: 依頼で指定した観点と変更経路に接続するconcernだけ
+- `broad-or-unclear`: 開始前に有限のconcern集合を固定し、独立実行者へ分割する
 
-- `Blocker`: 取り込むと危険な正しさ、セキュリティ、プライバシー、データ消失、契約違反
-- `Major`: 重大な設計、保守性、性能、移行、テスト品質のリスク
-- `Minor`: 局所的な読みやすさ、命名、文書、一貫性
-- `Uncertain`: 危険そうだが根拠が足りない
+途中で観点を追加しない。別の観点が判明した場合は未確認事項へ記録し、現在の結果へ混ぜない。
 
-## `Review finding record`
+## 方法
 
-各指摘には次を含める。
+1. task contractから意図された挙動と外部観測を確認する。
+2. diff、呼び出し元、test、config、生成物を読む。
+3. 固定したconcernごとに、破綻を示すtest、command、または有限なcode pathを探す。
+4. 修正前の対象で失敗を確認できた問題だけを「確認済みの問題」へ入れる。
+5. 実行不能な確認と一般的な改善案は「未確認事項」へ分け、修正要求にしない。
 
-- `finding_id`
-- `severity`
-- `location`
-- `claim`
-- `evidence`
-- `impact`
-- `violated criterion`
+完全なcodeを要求してはならない。技術的事実とtestを好みより優先し、現在の変更がtask contractを満たすかを判定する。
 
-根拠が足りない指摘は`Uncertain`とし、不足している根拠を`evidence`へ書く。
-`violated criterion` には、指摘が侵害する契約の acceptance criteria または invariants を名指しする。
-名指しできない指摘は`None`とする。
-
-指摘は次の固定テンプレートで出す。
+## 出力
 
 ```markdown
-### <finding_id>
+# Code review結果
 
-- severity: <Blocker | Major | Minor | Uncertain>
-- location: <file:line または対象>
-- claim: <問題の主張>
-- evidence: <観測した根拠>
-- impact: <影響>
-- violated criterion: <侵害する acceptance criteria / invariants、または None>
+## 確認範囲
+
+- 対象:
+- base:
+- 観点:
+- 実行した確認:
+
+## 確認済みの問題
+
+### ISSUE-001
+
+- 重要度:
+- 対象箇所:
+- 破綻:
+- 根拠:
+- 確認方法:
+
+## 未確認事項
+
+- <None または確認できなかった事項と理由>
+
+## 判定
+
+- 合格 / 不合格
 ```
 
-field を省略してはならない。
-指摘が無いときは、このテンプレートを使わず `no findings` と scope と確認済み範囲を返す。
-
-## 手順
-
-1. 凍結した対象、意図された挙動、受け入れ条件を確定する。固まっていなければ`context-clarification`に戻る。
-2. `work_class`から今回の有限なconcern集合を開始前に固定する。
-3. 変更行、周辺文脈、呼び出し元、テスト、文書、configを読む。
-4. 固定したconcern / profileファイルを読む。契約や仕様への適合を見る場合は`concerns/spec-conformance.md`を含める。
-5. 各concernを1回だけ確認し、確認した範囲を記録する。
-6. 指摘をseverity順に整理し、確認範囲と`Review finding record`だけを返す。
-
-## 確認観点
-
-- 反復経路 / 高コスト処理
-- 参照と定義のずれ
-- 変更関数まわりのずれ
-- 閉じた領域の表現不足
-- 責務のずれ
-- 複雑さの増加
-- 不足または弱いテスト
-- 古い文書または否定中心の文書
-- セキュリティ / プライバシー境界
-- 並行処理 / 資源
-- 互換性 / 移行
-- 過剰設計 / 方針の膨張
-
-## 詳細観点の読み分け
-
-発火条件に該当するものを読む。レビュー対象の正否を `Requirement contract`、設計仕様、公開 API 契約、互換契約、生成仕様のいずれかで判定するときは `concerns/spec-conformance.md` を必ず読む。
-
-- `concerns/spec-conformance.md`
-- `concerns/correctness.md`
-- `concerns/performance.md`
-- `concerns/maintainability-idioms.md`
-- `concerns/responsibility-boundaries.md`
-- `concerns/complexity.md`
-- `concerns/tests.md`
-- `concerns/test-quality.md`
-- `concerns/comments-and-docs.md`
-- `concerns/security.md`
-- `concerns/concurrency-and-async.md`
-- `concerns/resource-lifecycle.md`
-- `concerns/compatibility-and-migration.md`
-- `concerns/observability-and-operability.md`
-- `concerns/dependencies.md`
-- `concerns/minimality-and-intentionality.md`
-
-プロファイル:
-
-- `profiles/rust-cargo.md`
-- `profiles/python.md`
-- `profiles/cpp-cmake.md`
-- `profiles/csharp-dotnet.md`
-- `profiles/lua-generic.md`
-- `profiles/lua-neovim.md`
-- `profiles/shell.md`
-
-## 子エージェント分割
-
-`broad-or-unclear`のレビューは、開始前に固定したconcern集合を委譲実行で分割する。
-以下の条件の全てに当てはまる場合に限り例外として分割を回避する理由としてもよい。
-
-- `work_class` が `tiny-local`
-- 変更対象が単一の局所面に閉じている
-- 公開 API、スキーマ、設定、プロンプト契約、永続形式に触れない
-- 呼び出し元、生成物、ドキュメント、テストへの影響がない
-- 仕様照合や互換性判断を主目的にしない
-
-委譲実行が技術的に利用不能なとき以外は、固定したconcern集合の分割を省略してはならない。
-子は割り当てられたconcernを1回だけ確認し、再帰委譲しない。親は重複整理と確認範囲の統合だけを行い、新しいconcernを追加しない。
-
-広いレビューで concern 分割を行うときは、次の固定既定セットを割り当てる。対象に固有の concern / profile は追加してよい。
-
-- `spec-conformance`: 仕様照合
-- `correctness-tests`: 正しさとテスト
-- `design-maintainability`: 設計と保守性
-- `performance-reliability`: 性能と信頼性
-- `security-dependencies`: セキュリティと依存関係
-- `compatibility-operations`: 互換性と運用
-- `language-profile`: 言語別観点
-
-子への assignment packet は読み取り専用、bounded、再帰委譲なし。
-親は重複整理、根拠確認、severity 調整、最終レビューを担う。
-
-## 返す内容
-
-1. 確認した範囲
-2. 重大度別の指摘
-3. 未解決の質問 / 不確実性
-4. 総合評価
-
-指摘に含める項目:
-
-- severity
-- location
-- claim
-- evidence
-- impact
-- violated criterion
-
-この field 順を維持する。
-
-指摘がなければ、scope と確認済み範囲を明示して `no findings` と言う。
+確認済みの問題が0件なら合格。1件以上なら不合格。問題ごとに、同じ確認方法を修正前後で使える形にする。
 
 ## 完了チェック
 
-- 実際のコードまたは差分を読んだ。
-- scope が明確。
-- 関連する concern / profile を検討した。
-- 指摘が優先順に並んでいる。
-- 根拠、影響、場所がある。
-- 軽微な整えと取り込みを妨げる問題を分けた。
-- 不足と過剰の両方を見た。
-- 不確実性を隠していない。
-- 固定したconcern集合を各1回確認し、確認範囲を記録した。
+- 対象とbaseを凍結した。
+- concern集合を開始前に固定した。
+- 各concernの確認範囲を記録した。
+- 確認済みの問題を再現した。
+- 好みと一般論を修正要求にしていない。
+- code以外を代替reviewしていない。

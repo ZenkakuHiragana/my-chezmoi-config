@@ -24,8 +24,10 @@ description: Use when work stage, scope, acceptance criteria, verification metho
 3. 不足を `user_decision` / `repo_derivable` / `subsystem_derivable` / `public_fact` / `contract_gap` / `implementation_discretion` に分類する。
 4. 調査で解ける不足は、判定を出す前に `investigation` / `public-research` へ回す。`user_decision` は `grill-me` または直接質問へ回す。
 5. 解決できた範囲で `Requirement contract` を固定する。
-6. verdict 判定の規則に従って `pass` / `pass_with_assumption` / `fail` を確定する。
-7. `pass` / `pass_with_assumption` のときは契約を外部化する。`fail` のときは戻り先 capability を示す。
+6. `bounded`と`broad-or-unclear`では、独立実行者が`requirement-review`で契約を確認する。
+7. 不合格なら失敗した行だけを修正し、同じ確認を再実行する。失敗行が減らない場合は`fail`にする。
+8. verdict判定の規則に従って`pass` / `pass_with_assumption` / `fail`を確定する。
+9. `pass` / `pass_with_assumption`のときは契約と要件review結果を外部化する。`fail`のときは戻り先capabilityを示す。
 
 ## `Readiness record`（出力契約）
 
@@ -35,7 +37,7 @@ description: Use when work stage, scope, acceptance criteria, verification metho
 - 未解決の不足: 各項目に分類（`user_decision` / `repo_derivable` / `subsystem_derivable` / `public_fact` / `contract_gap` / `implementation_discretion`）
 - 残る `user_decision`: 未解決のユーザー判断の一覧（無ければ `None`）
 - `Requirement contract`: 固定済みなら参照、未固定なら理由
-- `Review Response Artifact`: レビュー対応で固定済みなら参照、対象外なら `None`
+- 要件review結果: `bounded`と`broad-or-unclear`では参照、`tiny-local`では`None`
 - verdict: `pass` / `pass_with_assumption` / `fail`
 - 仮定: `pass_with_assumption` のとき置いた仮定とその適用範囲（無ければ `None`）
 - 戻り先: `fail` のとき進む capability（`pass` 系なら `None`）
@@ -45,10 +47,12 @@ description: Use when work stage, scope, acceptance criteria, verification metho
 ## `Requirement contract`（出力契約）
 
 - 達成すべき結果
+- 依頼対応表: 明示要求の逐語引用 / 対応条項、明示除外、または後続指示による覆り
 - scope: 対象に含むもの / 含まないもの
 - invariants: 変更を通じて保つ条件
 - acceptance criteria: 文言として検証可能な受け入れ条件
 - verification method: 受け入れ条件をどう確認するか
+- 条項根拠表: 各条項 / 根拠 / 情報の所有先 / 確認に使う資料またはcommand
 - 影響する tests と docs
 - ユーザー制約
 - verdict と前提とした仮定: `Readiness record` の verdict と、`pass_with_assumption` で置いた仮定（無ければ `None`）
@@ -63,6 +67,7 @@ verdict と仮定を契約に畳み込むのは、圧縮を越えて再開する
 - 残る `user_decision` がゼロ。
 - `Requirement contract` の acceptance criteria と verification method が文言として埋まっている。
 - scope の含む / 含まないが確定している。
+- `bounded`と`broad-or-unclear`では`requirement-review`が合格している。
 
 `pass_with_assumption` を許す範囲:
 
@@ -82,6 +87,7 @@ verdict と仮定を契約に畳み込むのは、圧縮を越えて再開する
 - verdict が `pass` / `pass_with_assumption` になるまで、実装・計画・レビューの実作業へ進ませない。
 - 例外は AGENTS.md の `readiness 判定とゲート` に従う（`tiny-local` は記録のみで進行を許す）。
 - `pass` / `pass_with_assumption` になったら `Requirement contract` を `.opencode/work/<slug>.contract.md` に固定する。verdict と置いた仮定も同じファイルに含める。
+- `bounded`と`broad-or-unclear`では要件review結果を`.opencode/work/<slug>.requirements.md`に固定する。
 - このパスは `task-planning` が書く `.opencode/work/<slug>.md`（task file）とは別にする。契約を task file で上書きしない。
 - 再開時、またはコンテキスト圧縮後は、実作業の前に `.opencode/work/<slug>.contract.md` を読み直してから進む。見えない session state から継続だと決めつけない。
 
@@ -93,4 +99,5 @@ verdict と仮定を契約に畳み込むのは、圧縮を越えて再開する
 - verdict のハード条件を実際に照合した。
 - `pass_with_assumption` の仮定が `implementation_discretion` に限られている。
 - `pass` 系なら `Requirement contract` を外部化した。
+- `bounded`と`broad-or-unclear`の`pass`系なら要件review結果を外部化した。
 - `fail` なら戻り先 capability を1つ示した。
