@@ -2,7 +2,7 @@
 {{- $tablesPath := ".chezmoitemplates/codex/config.tables.toml" -}}
 {{- $specificPath := ".chezmoitemplates/codex/config-specific.toml" -}}
 {{- $existingConfigPath := joinPath .chezmoi.homeDir ".codex" "config.toml" -}}
-{{- $extractorPath := joinPath .chezmoi.sourceDir ".chezmoitemplates" "codex" "extract-project-trust.py" -}}
+{{- $extractorPath := joinPath .chezmoi.sourceDir ".chezmoitemplates" "codex" "extract-project-trust.js" -}}
 {{- $base := include $basePath | trim -}}
 {{- $tables := include $tablesPath | trim -}}
 {{- $specific := "" -}}
@@ -11,7 +11,7 @@
 {{- end -}}
 {{- $preservedProjects := "" -}}
 {{- if stat $existingConfigPath -}}
-{{- $preservedProjects = output "python3" $extractorPath $existingConfigPath | trim -}}
+{{- $preservedProjects = output "node" $extractorPath $existingConfigPath | trim -}}
 {{- end -}}
 {{ $base }}
 {{- if $specific }}

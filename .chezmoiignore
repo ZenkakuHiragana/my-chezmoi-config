@@ -6,6 +6,7 @@ opencode-prompt-dev/**
 packages/**
 {{- if eq .chezmoi.os "windows" }}
 .config/nvim/**
+.config/zellij/
 .config/lazygit/
 {{- else if eq .chezmoi.os "linux" }}
 AppData/

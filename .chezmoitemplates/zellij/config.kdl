@@ -1,0 +1,51 @@
+plugins {
+    strider { path "strider"; }
+}
+
+keybinds {
+    locked {
+        bind "Ctrl b" { SwitchToMode "tmux"; }
+    }
+
+    tmux {
+        bind "Ctrl b" { Write 2; SwitchToMode "locked"; }
+        bind "esc" { SwitchToMode "locked"; }
+        bind "left" { MoveFocus "left"; SwitchToMode "locked"; }
+        bind "down" { MoveFocus "down"; SwitchToMode "locked"; }
+        bind "up" { MoveFocus "up"; SwitchToMode "locked"; }
+        bind "right" { MoveFocus "right"; SwitchToMode "locked"; }
+        bind "space" { NextSwapLayout; SwitchToMode "locked"; }
+        bind "\"" { NewPane "down"; SwitchToMode "locked"; }
+        bind "%" { NewPane "right"; SwitchToMode "locked"; }
+        bind "," { SwitchToMode "renametab"; }
+        bind "[" { SwitchToMode "scroll"; }
+        bind "c" { NewTab; SwitchToMode "locked"; }
+        bind "d" { Detach; SwitchToMode "locked"; }
+        bind "h" { MoveFocus "left"; SwitchToMode "locked"; }
+        bind "j" { MoveFocus "down"; SwitchToMode "locked"; }
+        bind "k" { MoveFocus "up"; SwitchToMode "locked"; }
+        bind "l" { MoveFocus "right"; SwitchToMode "locked"; }
+        bind "n" { GoToNextTab; SwitchToMode "locked"; }
+        bind "o" { FocusNextPane; SwitchToMode "locked"; }
+        bind "p" { GoToPreviousTab; SwitchToMode "locked"; }
+        bind "x" { CloseFocus; SwitchToMode "locked"; }
+        bind "z" { ToggleFocusFullscreen; SwitchToMode "locked"; }
+    }
+
+    scroll {
+        bind "Ctrl c" { ScrollToBottom; SwitchToMode "locked"; }
+        bind "Ctrl s" "esc" { SwitchToMode "locked"; }
+    }
+
+    search {
+        bind "Ctrl c" { ScrollToBottom; SwitchToMode "locked"; }
+        bind "Ctrl s" "esc" { SwitchToMode "locked"; }
+    }
+
+    renametab {
+        bind "Ctrl c" "enter" { SwitchToMode "locked"; }
+        bind "esc" { UndoRenameTab; SwitchToMode "locked"; }
+    }
+}
+
+default_mode "locked"
