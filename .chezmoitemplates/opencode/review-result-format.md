@@ -8,15 +8,15 @@
 - `反例未確認`: 指定した確認方法を完了し、失敗を観測しなかった。
 - `判定不能`: 確認を試みたが、情報、環境、権限の不足により結果を決められなかった。
 
-`判定不能`はcoverageの欠損である。findingまたは調査待ちの指摘へ変換してはならない。
+`判定不能`は検査被覆の欠損である。finding または調査待ちの指摘へ変換してはならない。
 
 ### 検査単位
 
-- code-review: 開始前に固定した各concern / profile
-- requirement-review: 各明示要求、各契約条項、各acceptance criterion、各scope行
+- code-review: 開始前に固定した各 concern / profile
+- requirement-review: 各明示要求、各契約条項、各 acceptance criterion、各 scope 行
 - japanese-doc-review: 開始前に選択した各観点
 
-各検査項目をcoverage表へ一度だけ記録する。検査中に項目を追加してはならない。
+各検査項目を coverage 表へ一度だけ記録する。検査中に項目を追加してはならない。
 
 ### 出力形式
 
@@ -33,7 +33,7 @@
 ## Coverage
 
 | 検査ID | 検査項目 | 確認方法 | 結果 | 根拠または判定不能理由 |
-| --- | --- | --- | --- | --- |
+| ------ | -------- | -------- | ---- | ---------------------- |
 
 ## Findings
 
