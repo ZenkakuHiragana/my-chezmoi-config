@@ -14,7 +14,8 @@
       // - Agent ... 残す。
       // - Artifact ... 消す。
       // - AskUserQuestion ... 残す。
-      // - Bash / PowerShell ... Windows なので、Bash を消す。PowerShell を残す。
+      // - Bash / PowerShell ... OS ごとに使わない方を消す。"{shell:other}" は render-settings.js が
+      //   targetTool (Windows なら PowerShell、それ以外なら Bash) の反対側に解決する。
       // - CronCreate / CronList / CronDelete ... 消す。
       // - DesignSync ... とりあえず残す。ciaude.ai/design を見てみると、何やらスライドのデザインや GUI アプリケーションのモックとか、そういうのもあるみたい。使用感を確認したい。
       // - Read / Glob / Grep / Edit / Write ... いる。
@@ -42,7 +43,7 @@
         "ReportFindings",
         // ------------------
         "Artifact",
-        "Bash",
+        "{shell:other}",
         "CronCreate",
         "CronDelete",
         "CronList",

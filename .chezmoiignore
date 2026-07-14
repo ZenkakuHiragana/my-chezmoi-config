@@ -4,6 +4,7 @@ AGENTS.md
 .opencode/**
 opencode-prompt-dev/**
 packages/**
+scripts/**
 {{- if eq .chezmoi.os "windows" }}
 .config/nvim/**
 .config/zellij/

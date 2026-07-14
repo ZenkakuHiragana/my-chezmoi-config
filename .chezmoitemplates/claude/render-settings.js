@@ -7,6 +7,7 @@ const PRESERVED_KEYS = ["model", "effortLevel"];
 const PERMISSION_ACTIONS = ["allow", "ask", "deny"];
 const PERMISSION_PRIORITY = { allow: 1, ask: 2, deny: 3 };
 const TARGET_TOOLS = ["PowerShell", "Bash"];
+const OTHER_SHELL_TOOL_PLACEHOLDER = "{shell:other}";
 const ENV_PLACEHOLDER_PATTERN = /\{env:([^}]+)\}/g;
 const OTHER_SYMBOL = Symbol("other");
 
@@ -194,6 +195,30 @@ function assertPortableRules(rules) {
   }
 }
 
+function resolveOtherShellTool(targetTool) {
+  if (!TARGET_TOOLS.includes(targetTool)) {
+    throw new RenderError(
+      `unsupported target tool: ${JSON.stringify(targetTool)}`,
+    );
+  }
+  return TARGET_TOOLS.find((tool) => tool !== targetTool);
+}
+
+function resolvePermissionPlaceholders(settings, otherTool) {
+  if (!("permissions" in settings)) return;
+  const permissions = requireObject(settings.permissions, "managed permissions");
+  for (const action of PERMISSION_ACTIONS) {
+    if (!(action in permissions)) continue;
+    const list = permissions[action];
+    if (!Array.isArray(list)) {
+      throw new RenderError(`managed permissions.${action} must be an array`);
+    }
+    permissions[action] = list.map((item) =>
+      item === OTHER_SHELL_TOOL_PLACEHOLDER ? otherTool : item,
+    );
+  }
+}
+
 function projectOpencodeBashRules(rules, targetTool) {
   if (!TARGET_TOOLS.includes(targetTool)) {
     throw new RenderError(
@@ -359,9 +384,11 @@ function renderSettings(
   opencodeBashJson,
   opencodeMcpJson,
 ) {
+  const otherTool = resolveOtherShellTool(targetTool);
   const managed = loadManagedSettings(managedJson);
   const existing = loadJsonFile(existingPath);
   const output = structuredClone(managed);
+  resolvePermissionPlaceholders(output, otherTool);
 
   for (const key of PRESERVED_KEYS) {
     if (key in existing) output[key] = existing[key];

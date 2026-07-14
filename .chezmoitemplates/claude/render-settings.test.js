@@ -65,6 +65,41 @@ test("projects permissions to Bash on non-Windows targets", () => {
   });
 });
 
+test("resolves the shell:other placeholder to the tool not being targeted", () => {
+  const renderedForWindows = renderSettings(
+    "missing-settings.json",
+    JSON.stringify({ permissions: { deny: ["{shell:other}"] } }),
+    "PowerShell",
+    "{}",
+    "{}",
+  );
+  assert.deepEqual(JSON.parse(renderedForWindows).permissions, {
+    deny: ["Bash"],
+  });
+
+  const renderedForLinux = renderSettings(
+    "missing-settings.json",
+    JSON.stringify({ permissions: { deny: ["{shell:other}"] } }),
+    "Bash",
+    "{}",
+    "{}",
+  );
+  assert.deepEqual(JSON.parse(renderedForLinux).permissions, {
+    deny: ["PowerShell"],
+  });
+});
+
+test("CLI rejects an unsupported target tool", () => {
+  const result = spawnSync(
+    process.execPath,
+    [rendererPath, "missing-settings.json", "{}", "zsh", "{}", "{}"],
+    { encoding: "utf8" },
+  );
+
+  assert.equal(result.status, 1);
+  assert.match(result.stderr, /unsupported target tool: "zsh"/);
+});
+
 test("CLI identifies malformed existing settings by path and location", () => {
   const directory = fs.mkdtempSync(path.join(os.tmpdir(), "render-settings-"));
   const existingPath = path.join(directory, "settings.json");
