@@ -137,6 +137,9 @@
 - `not_needed`
 - `missing`
 - `blocked`
+- `ready_for_exit_check`
+- `reset_required`
+- `rollback_required`
 - `user_decision`
 - `subsystem_derivable`
 - `contract_gap`
@@ -251,6 +254,8 @@
 ### skill / agent / review 固定名
 
 - `code-review`
+- `review-response`
+- `review-orchestration`
 - `context-clarification`
 - `empirical-prompt-tuning`
 - `general-fast`
