@@ -1,11 +1,11 @@
 ---
 name: japanese-doc-review
-description: Use only for user-facing Japanese prose whose meaning and requirements are already fixed; checks selected language concerns and concrete reader failures, not specifications, task contracts, prompts, code, or requirement completeness. 利用者向け日本語本文の文章review専用。
+description: Use only for Japanese prose artifacts, including prompt text and skill instructions, whose meaning and requirements are already fixed; checks selected language concerns and concrete reader failures, not specifications, task contracts, code, or requirement completeness. 日本語成果物の文章review専用。
 ---
 
 # Japanese Doc Review
 
-意味と要求が固定済みの利用者向け日本語本文を、読者が誤読せず利用できるか確認する。仕様、`Requirement contract`、作業契約、prompt、code を対象にしてはならない。
+意味と要求が固定済みの日本語成果物を、想定読者が誤読せず利用できるか確認する。対象には利用者向け本文、prompt、skill 本文を含む。仕様、`Requirement contract`、作業契約、code を対象にしてはならない。
 
 ## 入力
 
@@ -32,7 +32,7 @@ description: Use only for user-facing Japanese prose whose meaning and requireme
 3. `破綻確認` では対象箇所を引用し、本文から生じる誤読、操作不能、参照不能、文法違反、表記誤りを具体化する。
 4. finding には同じ本文と正本から問題を確認できる方法を書く。`判定不能` は検査被覆の欠損として残す。
 
-要求の欠落、実装方法、仕様完全性を推測してはならない。一般論、好み、別案、完全化を問題として出してはならない。
+対象が prompt または skill 本文でも、要求の欠落、実装方法、仕様完全性を推測してはならない。一般論、好み、別案、完全化を問題として出してはならない。
 
 ## 出力
 
@@ -45,8 +45,9 @@ description: Use only for user-facing Japanese prose whose meaning and requireme
 
 ## 完了チェック
 
-- 対象が利用者向け日本語本文である。
-- 仕様、契約、prompt、code を代替 review していない。
+- 対象が意味と要求の固定済み日本語成果物である。
+- 仕様、契約、code を代替 review していない。
+- prompt または skill 本文の review で、要求の欠落、実装方法、仕様完全性を判定していない。
 - 指定された全観点を coverage 表へ一度ずつ記録した。
 - finding に対象箇所、読者への破綻、根拠、確認方法がある。
 - `判定不能` を finding へ変換していない。

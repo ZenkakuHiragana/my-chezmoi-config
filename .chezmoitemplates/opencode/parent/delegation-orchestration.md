@@ -64,18 +64,3 @@ review で `work_class` が `broad-or-unclear` のとき、観点別に fan-out 
 ## 8. review と fan-out の接続
 
 `review-orchestration` が起動した場合、7節の fan-out 規則は `review-orchestration` の固定済み検査集合に対してだけ実行する。fan-out の発動条件と手順は 7節に従う。`review-orchestration` の発動条件と運営手順は、AGENTS.md の「文章と成果物」と `review-orchestration` skill の正本に従う。
-
-## 9. 終了判定の外部化
-
-`review-orchestration` が `ready_for_exit_check` を返した場合、親は次の条件を全て満たす証拠を集めてから review loop を終了する。親は条件を満たす証拠を集める主体であって、条件を緩める主体ではない。
-
-- 割り当てた全 review unit が完了している。
-- 新規指摘の受付を閉鎖している。
-- 全候補を裁定済みである。
-- 未裁定の指摘（`needs-investigation`）が 0 件である。
-- `accepted` の全件に修正前の失敗と修正後の成功を記録している。
-- task contract の tests が成功している。
-- 全ての変更が受理済み指摘または契約条項へ追跡可能である。
-- 判定不能領域と再開条件を記録している。
-
-親が `rejected`、`out-of-scope`、契約解釈の変更、または `判定不能` の受容を判断した場合は、その判断を fresh な別実行者の独立確認へ渡す。親の自己承認だけでこれらを確定してはならない。

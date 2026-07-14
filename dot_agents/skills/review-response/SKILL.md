@@ -14,7 +14,7 @@ description: Use whenever a frozen review finding set must be reproduced and cla
 - 開始前に固定した Review finding record 集合
 - 再現に使う引用、command、test、log、生成物
 
-Review finding record の正本は、W-2 review skill へ展開される `.chezmoitemplates/opencode/review-result-format.md` とする。入力 record に次の field が全てあることを確認し、正本を再読する追加手順は要求しない。
+Review finding record は、review skill が共通出力形式で生成した finding を入力とする。入力 record に次の field が全てあることを確認し、共通出力形式を再読する追加手順は要求しない。
 
 Review finding record は次の field を持つ。
 

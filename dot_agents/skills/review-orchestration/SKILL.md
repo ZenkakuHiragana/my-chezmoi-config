@@ -1,11 +1,11 @@
 ---
 name: review-orchestration
-description: Use before fan-out for every broad-or-unclear review; freezes one finite review cycle, routes fan-out and review-response, closes intake, audits affected units, and returns ready_for_exit_check/blocked/reset_required/rollback_required for external exit checking. review loop の有限運営専用。
+description: Use before fan-out for every broad-or-unclear review; freezes one finite review cycle, routes fan-out and review-response, closes intake, audits affected units, and records exactly one of ready_for_exit_check/blocked/reset_required/rollback_required in the review loop ledger. review loop の有限運営専用。
 ---
 
 # Review Orchestration
 
-`broad-or-unclear` の review loop を、固定入力と順序付きチェックリストによる有限な 1 周として運営する。結果を W-5 の終了確認へ渡す。
+`broad-or-unclear` の review loop を、固定入力と順序付きチェックリストによる有限な 1 周として運営する。終端 status と根拠を review loop 台帳へ記録する。
 
 ## 入力
 
@@ -60,7 +60,7 @@ review の `work_class` が `broad-or-unclear` のとき、最初の review unit
 
 ## 2. Fan-out と受付閉鎖
 
-固定した検査集合だけを W-1 の規則で観点別に fan-out する。先行結果を他の reviewer へ見せない。
+固定した検査集合だけを、親エージェント用の review fan-out 規則に従って観点別に fan-out する。先行結果を他の reviewer へ見せない。
 
 全 review unit が結果を返すか、実行不能の理由と再開条件を返した時点で候補受付を閉鎖する。
 
@@ -71,18 +71,18 @@ review の `work_class` が `broad-or-unclear` のとき、最初の review unit
 
 ## 3. Finding 分類
 
-受付閉鎖時点の finding 集合を W-3 `review-response` へ 1 回だけ渡す。
+受付閉鎖時点の finding 集合について、`review-response` の 1 パス分類を実行する。
 
 - `needs-investigation` が 1 件以上なら、不足と再開条件を記録して `blocked` とする。
-- `accepted` だけを一括修正へ渡す。
+- `accepted` だけを一括修正の対象とする。
 - `rejected` と `out-of-scope` は分類根拠を台帳へ保持する。
 - 分類後に finding を追加してはならない。
 
-`accepted` が 0 件なら一括修正を作らず、対応後監査の task contract tests へ進む。
+`accepted` が 0 件なら一括修正を作らず、対応後監査の post-fix verification set へ進む。
 
 ## 4. 一括修正と失効判定
 
-親は W-3 の修正契約にある accepted finding だけを最大 1 回の一括修正で修正する。`review-orchestration` 自身は成果物を編集しない。
+親は修正契約にある accepted finding だけを最大 1 回の一括修正で修正する。`review-orchestration` 自身は成果物を編集しない。
 
 修正後、`write_set` を各 review unit の `read_set` と観測出力へ照合する。
 
@@ -111,12 +111,25 @@ review の `work_class` が `broad-or-unclear` のとき、最初の review unit
 
 ## 6. 終端
 
-次のいずれかを返す。
+次のいずれかを review loop の終端 status として台帳に記録する。
 
-- `ready_for_exit_check`: 全ての `必須` unit、finding 分類、必要な再実行、contract tests が完了した。W-5 の終了確認へ渡す。
+- `ready_for_exit_check`: 全ての `必須` unit、finding 分類、必要な再実行、post-fix verification set、fresh 独立確認が完了した。
 - `blocked`: 必須 unit、必須の判定不能領域、`needs-investigation`、失効範囲のいずれかを解消できない。
 - `reset_required`: `review authority snapshot` の変更、受付閉鎖後の候補、または固定入力を保てない変更がある。
-- `rollback_required`: accepted 修正後の同一 `verification method` または contract tests が失敗した。
+- `rollback_required`: accepted 修正後の同一 `verification method` または post-fix verification set が失敗した。
+
+## 7. fresh 独立確認
+
+親が `rejected`、`out-of-scope`、契約解釈の変更、または `判定不能` の受容を判断した場合、`ready_for_exit_check` を台帳に記録する前に fresh 独立確認を行う。
+
+- 親の裁定**後**に起動する。
+- review loop の fan-out で起動した reviewer は**再利用しない**。別主体を起動する。
+- 確認対象は親の分類（`rejected` / `out-of-scope` / `判定不能`）とその根拠。
+- 確認者は、確認対象と同じ入力から同じ分類へ到達できるかを判定する。
+- 確認者が同じ分類へ到達できなかった場合は、親の裁定を取り消し、該当する finding を `accepted` または `needs-investigation` へ戻す。
+- 確認者、入力、実行時点、判定結果を review loop 台帳へ記録する。
+
+fresh 独立確認を行わずに `ready_for_exit_check` を台帳へ記録してはならない。
 
 ## review loop 台帳
 
@@ -166,10 +179,15 @@ review の `work_class` が `broad-or-unclear` のとき、最初の review unit
 
 ## 対応後監査
 
-- contract tests:
+- post-fix verification set:
 - 残存記録の判定不能領域:
 - 次の周の候補:
 - 再開条件:
+
+## fresh 独立確認
+
+| 分類 | 確認対象 | 確認者 | 入力 | 実行時点 | 判定 |
+| ---- | -------- | ------ | ---- | -------- | ---- |
 
 ## 結果
 
@@ -190,8 +208,9 @@ review の `work_class` が `broad-or-unclear` のとき、最初の review unit
 - 初回 fan-out、`review-response`、一括修正、対応後監査が上限内である。
 - 候補受付を閉鎖した。
 - 判定不能（検査被覆の欠損）を finding へ変換していない。
-- `accepted` だけを一括修正へ渡した。
+- `accepted` だけを一括修正の対象にした。
 - 変更と交差する unit だけを同じ検査で再実行した。
-- contract tests を確認した。
+- post-fix verification set を確認した。
 - 残存領域と再開条件を記録した。
-- W-5 へ渡す status を 1 つだけ返した。
+- `rejected`、`out-of-scope`、`判定不能` の受容について fresh 独立確認を行った。
+- review loop の終端 status を 1 つだけ台帳に記録した。

@@ -1,11 +1,11 @@
 ---
 name: context-clarification
-description: Use when work stage, scope, acceptance criteria, verification method, or unresolved user decisions are not yet settled enough to safely start implementation, planning, or review, and a readiness verdict plus a frozen requirement contract are needed; not for pure local fact-finding (use investigation), public fact verification (use public-research), or design-decision interviews (use grill-me). Produces a `Readiness record` and freezes a `Requirement contract`, and gates downstream work until the verdict is `pass` or `pass_with_assumption`. 準備完了判定と要件契約の固定専用。文脈の充足を判定し `Readiness record` と `Requirement contract` を返す。
+description: Use when work stage, scope, acceptance criteria, verification method, or unresolved user decisions are not yet settled enough to safely start implementation, planning, or review, and a readiness verdict plus a frozen requirement contract are needed; not for pure local fact-finding (use investigation), public fact verification (use public-research), or design-decision interviews (use grill-me). Produces a `Readiness record` and freezes a `Requirement contract`, and gates downstream work until the verdict is `pass` or `pass_with_assumption`. 準備完了判定と要件契約の固定専用。文脈の充足を判定し `Readiness record` と `Requirement contract` を作成する。
 ---
 
 # Context Clarification
 
-実作業の前に、文脈の充足を判定し、`Readiness record` と `Requirement contract` を固定する。
+実作業の前に、文脈の充足を判定し、`Readiness record` を作成する。要件reviewを通過した候補だけを `Requirement contract` として正式に固定する。
 判定の理論（作業段階、文脈層、文脈状態、不足の分類）は AGENTS.md の `コンテキスト収集規則` に従う。
 この skill は、その理論を適用して verdict を確定し、契約を成果物として産出する手順を担う。
 ローカル根拠の確認は `investigation`、公開根拠は `public-research`、相互依存する設計判断の質問は `grill-me` に委ね、ここでは判定と固定だけを行う。
@@ -25,7 +25,7 @@ description: Use when work stage, scope, acceptance criteria, verification metho
 4. 調査で解ける不足は、判定を出す前に `investigation` / `public-research` へ回す。`user_decision` は `grill-me` または直接質問へ回す。
 5. 解決できた範囲で `Requirement contract candidate` を作成し、`review target version` として凍結する。この時点では正式な `Requirement contract` として固定しない。
 6. `bounded`と`broad-or-unclear`では、`review-orchestration`経由で`requirement-review`を行う。`review target version`は`Requirement contract candidate`とし、`review authority snapshot`は依頼引用、後続訂正、確認済みの技術制約、安全上の不変条件、情報所有先とする。
-7. `review-orchestration`が`ready_for_exit_check`を返した候補だけを正式な`Requirement contract`として固定する。`blocked`、`reset_required`、`rollback_required`の場合は`fail`とし、戻り先を示す。契約候補を修正して新しいreview周を自動開始してはならない。
+7. `review-orchestration`の台帳に`ready_for_exit_check`が記録された候補だけを正式な`Requirement contract`として固定する。`blocked`、`reset_required`、`rollback_required`の場合は`fail`とし、戻り先を示す。契約候補を修正して新しいreview周を自動開始してはならない。
 8. verdict判定の規則に従って`pass` / `pass_with_assumption` / `fail`を確定する。
 9. `pass` / `pass_with_assumption`のときは契約と要件review結果を外部化する。`fail`のときは戻り先capabilityを示す。
 
@@ -67,7 +67,7 @@ verdict と仮定を契約に畳み込むのは、圧縮を越えて再開する
 - 残る `user_decision` がゼロ。
 - `Requirement contract` の acceptance criteria と verification method が文言として埋まっている。
 - scope の含む / 含まないが確定している。
-- `bounded`と`broad-or-unclear`では`review-orchestration`が`ready_for_exit_check`を返している。
+- `bounded`と`broad-or-unclear`では`review-orchestration`の台帳に`ready_for_exit_check`が記録されている。
 
 `pass_with_assumption` を許す範囲:
 
@@ -80,7 +80,7 @@ verdict と仮定を契約に畳み込むのは、圧縮を越えて再開する
 - 残りが `user_decision` → `grill-me` または直接質問。
 - 残りが `repo_derivable` / `subsystem_derivable` → `investigation`。
 - 残りが `public_fact` → `public-research`。
-- 残りが `contract_gap` だけ → 契約を固定して再判定する。
+- 残りが `contract_gap` だけ → 契約候補を作成して再判定する。
 
 ## ゲートと外部化
 

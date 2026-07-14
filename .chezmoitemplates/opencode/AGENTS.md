@@ -165,6 +165,7 @@ review結果へ対応する場合は、次の順序を守る。
 - 実作業（実装、計画、レビュー）に進む前に、`context-clarification` が `Readiness record` を作り、verdict を `pass` / `pass_with_assumption` / `fail` のいずれかに確定する。
 - verdict が `pass` または `pass_with_assumption` になるまで、実作業段階へ進んではいけない。
 - `bounded`と`broad-or-unclear`の`Requirement contract candidate`は、`context-clarification`が起動する1周の`review-orchestration`を通す。`ready_for_exit_check`と終了条件を満たした候補だけを`Requirement contract`として固定し、計画・実装へ進める。`blocked`、`reset_required`、`rollback_required`の場合は`fail`とする。
+- `review-orchestration` の台帳に `ready_for_exit_check` が記録されていても、それだけで作業全体を終了してはならない。親は台帳と task contract を照合し、全 review unit の完了、候補受付の閉鎖、全候補の裁定、未裁定の `needs-investigation` が 0 件であること、accepted 修正の前後結果、post-fix verification set の成功、必要な fresh 独立確認の記録、変更の追跡可能性、判定不能領域と再開条件の記録を確認する。条件を緩めてはならない。
 - 例外: `work_class` が `tiny-local` のときは、`Readiness record` を記録すれば進んでよい。`tiny-local` の条件を満たさなくなった時点で緩和を取り消し、進行を止める。
 - verdict の構造、各 verdict の入口条件、`fail` 時の戻り先、契約の外部化と再開時の読み直しは `context-clarification` の出力契約に従う。
 
