@@ -5,51 +5,51 @@ description: Use when reviewing code or a diff after intent, scope, and verifica
 
 # Code Review
 
-凍結したcodeまたはdiffを、固定した観点と実行可能な確認方法で検査する。仕様、作業契約、日本語文章の品質は扱わない。
+凍結した code または diff を、固定した観点と実行可能な確認方法で検査する。仕様、作業契約、日本語文章の品質は扱わない。
 
 ## 入力
 
-- 凍結した対象とbase
+- 凍結した対象と base
 - task contract
 - `work_class`
-- 今回確認するconcern / profile
-- 実行できるtest、lint、再現command
+- 今回確認する concern / profile
+- 実行できる test、lint、再現 command
 
 ## 観点
 
-既存の`concerns/`と`profiles/`を観点の正本にする。
+既存の `concerns/` と `profiles/` を観点の正本にする。
 
-- `tiny-local`: 変更箇所と直接testだけ
-- `bounded`: 依頼で指定した観点と変更経路に接続するconcernだけ
-- `broad-or-unclear`: 開始前に有限のconcern集合を固定する。親エージェントが各concernを独立実行者へ割り当て、各reviewerは割り当てられたconcernのみを検査する
+- `tiny-local`: 変更箇所と直接 test だけ
+- `bounded`: 依頼で指定した観点と変更経路に接続する concern だけ
+- `broad-or-unclear`: 開始前に有限の concern 集合を固定する。親エージェントが各 concern を独立実行者へ割り当て、各 reviewer は割り当てられた concern のみを検査する
 
 途中で観点を追加しない。別の観点が判明した場合は未確認事項へ記録し、現在の結果へ混ぜない。
 
 ## 方法
 
-1. task contractから意図された挙動と外部観測を確認する。
+1. task contract から意図された挙動と外部観測を確認する。
 2. diff、呼び出し元、test、config、生成物を読む。
-3. 固定した各concern / profileについて、破綻を示すtest、command、または有限なcode pathを確認する。
-4. 各検査項目の方法、結果、根拠をcoverage表へ一度ずつ記録する。
-5. `破綻確認`からだけfindingを生成し、`判定不能`はcoverage欠損として残す。
+3. 固定した各 concern / profile について、破綻を示す test、command、または有限な code path を確認する。
+4. 各検査項目の方法、結果、根拠を coverage 表へ一度ずつ記録する。
+5. `破綻確認` からだけ finding を生成し、`判定不能` は検査被覆の欠損として残す。
 
-完全なcodeを要求してはならない。技術的事実とtestを好みより優先し、現在の変更がtask contractを満たすかを判定する。
+完全な code を要求してはならない。技術的事実と test を好みより優先し、現在の変更が task contract を満たすかを判定する。
 
 ## 出力
 
 {{ include ".chezmoitemplates/opencode/review-result-format.md" }}
 
-- 検査IDは`CR-<concernまたはprofile>-<連番>`とする。
-- `検査項目`にはconcern / profile名と確認範囲を書く。
-- findingの`侵害する条件`にはtask contractのacceptance criterionまたはinvariantを書く。該当しない場合は`該当なし`とする。
+- 検査 ID は `CR-<concern または profile>-<連番>` とする。
+- `検査項目` には concern / profile 名と確認範囲を書く。
+- finding の `侵害する条件` には task contract の acceptance criterion または invariant を書く。該当しない場合は `該当なし` とする。
 
 ## 完了チェック
 
-- 対象とbaseを凍結した。
-- concern / profile集合を開始前に固定した。
-- 固定した全項目をcoverage表へ一度ずつ記録した。
-- findingの破綻を再現した。
-- `判定不能`をfindingへ変換していない。
-- statusと3値の件数がcoverage表に一致する。
-- 好みと一般論をfindingにしていない。
-- code以外を代替reviewしていない。
+- 対象と base を凍結した。
+- concern / profile 集合を開始前に固定した。
+- 固定した全項目を coverage 表へ一度ずつ記録した。
+- finding の破綻を再現した。
+- `判定不能` を finding へ変換していない。
+- status と 3 値の件数が coverage 表に一致する。
+- 好みと一般論を finding にしていない。
+- code 以外を代替 review していない。

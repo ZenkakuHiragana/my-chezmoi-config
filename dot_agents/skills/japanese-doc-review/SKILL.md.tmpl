@@ -5,7 +5,7 @@ description: Use only for user-facing Japanese prose whose meaning and requireme
 
 # Japanese Doc Review
 
-意味と要求が固定済みの利用者向け日本語本文を、読者が誤読せず利用できるか確認する。仕様、`Requirement contract`、作業契約、prompt、codeを対象にしてはならない。
+意味と要求が固定済みの利用者向け日本語本文を、読者が誤読せず利用できるか確認する。仕様、`Requirement contract`、作業契約、prompt、code を対象にしてはならない。
 
 ## 入力
 
@@ -16,21 +16,21 @@ description: Use only for user-facing Japanese prose whose meaning and requireme
 
 ## 観点
 
-既存の4 referenceを観点の正本にする。
+既存の 4 reference を観点の正本にする。
 
 - `references/01-structure.md`
 - `references/02-grammar.md`
 - `references/03-style.md`
 - `references/04-typo.md`
 
-指定なしは`STRUCTURE`だけ、単一指定はその観点だけ、複数指定は全てを各1回確認する。上流観点の問題を理由に下流観点を省略しない。
+指定なしは `STRUCTURE` だけ、単一指定はその観点だけ、複数指定は全てを各 1 回確認する。上流観点の問題を理由に下流観点を省略しない。
 
 ## 方法
 
 1. 本文、読者、利用目的、観点を凍結する。
-2. 各観点について本文全体を確認し、方法、結果、根拠をcoverage表へ一度ずつ記録する。
-3. `破綻確認`では対象箇所を引用し、本文から生じる誤読、操作不能、参照不能、文法違反、表記誤りを具体化する。
-4. findingには同じ本文と正本から問題を確認できる方法を書く。`判定不能`はcoverage欠損として残す。
+2. 各観点について本文全体を確認し、方法、結果、根拠を coverage 表へ一度ずつ記録する。
+3. `破綻確認` では対象箇所を引用し、本文から生じる誤読、操作不能、参照不能、文法違反、表記誤りを具体化する。
+4. finding には同じ本文と正本から問題を確認できる方法を書く。`判定不能` は検査被覆の欠損として残す。
 
 要求の欠落、実装方法、仕様完全性を推測してはならない。一般論、好み、別案、完全化を問題として出してはならない。
 
@@ -38,17 +38,17 @@ description: Use only for user-facing Japanese prose whose meaning and requireme
 
 {{ include ".chezmoitemplates/opencode/review-result-format.md" }}
 
-- 検査IDは`JD-<観点>-<連番>`とする。
-- `検査項目`には観点と本文の確認範囲を書く。
-- findingの`破綻`には読者に起きる具体的な破綻を書く。
-- findingの`侵害する条件`には意味内容の正本または観点referenceの該当条件を書く。該当しない場合は`該当なし`とする。
+- 検査 ID は `JD-<観点>-<連番>` とする。
+- `検査項目` には観点と本文の確認範囲を書く。
+- finding の `破綻` には読者に起きる具体的な破綻を書く。
+- finding の `侵害する条件` には意味内容の正本または観点 reference の該当条件を書く。該当しない場合は `該当なし` とする。
 
 ## 完了チェック
 
 - 対象が利用者向け日本語本文である。
-- 仕様、契約、prompt、codeを代替reviewしていない。
-- 指定された全観点をcoverage表へ一度ずつ記録した。
-- findingに対象箇所、読者への破綻、根拠、確認方法がある。
-- `判定不能`をfindingへ変換していない。
-- statusと3値の件数がcoverage表に一致する。
-- 一般論や好みをfindingにしていない。
+- 仕様、契約、prompt、code を代替 review していない。
+- 指定された全観点を coverage 表へ一度ずつ記録した。
+- finding に対象箇所、読者への破綻、根拠、確認方法がある。
+- `判定不能` を finding へ変換していない。
+- status と 3 値の件数が coverage 表に一致する。
+- 一般論や好みを finding にしていない。
