@@ -48,3 +48,15 @@
 
 - `general-fast`: 範囲が限定され、根拠集め中心で、read-only、1 skill で済み、止めどころが明確なとき
 - `general-strong`: 調査範囲が広い、仮説が競合する、設計比較が要る、または複数結果の突き合わせが要るとき
+
+## 7. review の fan-out
+
+review で `work_class` が `broad-or-unclear` のとき、観点別に fan-out する。
+
+- 発動条件: review 対象の `work_class` が `broad-or-unclear`。
+- 分割単位: review skill が提供する観点（concern / profile）ごと。
+- 各サブエージェントは割り当てられた観点のみを検査し、他の観点へ踏み込まない。
+- 各サブエージェントの `mode_constraint` は `read_only` とする。
+- 結果の統合は親が担当する。各サブエージェントの結果を事前に相互に見せない。
+- 1節の禁止条件（同じ file を複数サブエージェントが書き込む等）に該当する場合は fan-out しない。ただし review は読み込みのみであり、同じ成果物を複数観点で読み比べる操作は禁止条件に該当しない。
+- fan-out しない場合は、その理由を明示する。

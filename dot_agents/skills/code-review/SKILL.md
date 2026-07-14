@@ -21,7 +21,7 @@ description: Use when reviewing code or a diff after intent, scope, and verifica
 
 - `tiny-local`: 変更箇所と直接testだけ
 - `bounded`: 依頼で指定した観点と変更経路に接続するconcernだけ
-- `broad-or-unclear`: 開始前に有限のconcern集合を固定し、独立実行者へ分割する
+- `broad-or-unclear`: 開始前に有限のconcern集合を固定する。親エージェントが各concernを独立実行者へ割り当て、各reviewerは割り当てられたconcernのみを検査する
 
 途中で観点を追加しない。別の観点が判明した場合は未確認事項へ記録し、現在の結果へ混ぜない。
 
