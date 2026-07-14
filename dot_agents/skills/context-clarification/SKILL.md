@@ -24,8 +24,8 @@ description: Use when work stage, scope, acceptance criteria, verification metho
 3. 不足を `user_decision` / `repo_derivable` / `subsystem_derivable` / `public_fact` / `contract_gap` / `implementation_discretion` に分類する。
 4. 調査で解ける不足は、判定を出す前に `investigation` / `public-research` へ回す。`user_decision` は `grill-me` または直接質問へ回す。
 5. 解決できた範囲で `Requirement contract` を固定する。
-6. `bounded`と`broad-or-unclear`では、独立実行者が`requirement-review`で契約を確認する。
-7. 不合格なら失敗した行だけを修正し、同じ確認を再実行する。失敗行が減らない場合は`fail`にする。
+6. `bounded`と`broad-or-unclear`では、`review-orchestration`経由で`requirement-review`を行う。`review target version`は`Requirement contract candidate`とし、`review authority snapshot`は依頼引用、後続訂正、確認済みの技術制約、安全上の不変条件、情報所有先とする。
+7. `review-orchestration`が`ready_for_exit_check`を返した候補だけを正式な`Requirement contract`として固定する。`blocked`、`reset_required`、`rollback_required`の場合は`fail`とし、戻り先を示す。契約候補を修正して新しいreview周を自動開始してはならない。
 8. verdict判定の規則に従って`pass` / `pass_with_assumption` / `fail`を確定する。
 9. `pass` / `pass_with_assumption`のときは契約と要件review結果を外部化する。`fail`のときは戻り先capabilityを示す。
 
@@ -67,7 +67,7 @@ verdict と仮定を契約に畳み込むのは、圧縮を越えて再開する
 - 残る `user_decision` がゼロ。
 - `Requirement contract` の acceptance criteria と verification method が文言として埋まっている。
 - scope の含む / 含まないが確定している。
-- `bounded`と`broad-or-unclear`では`requirement-review`が合格している。
+- `bounded`と`broad-or-unclear`では`review-orchestration`が`ready_for_exit_check`を返している。
 
 `pass_with_assumption` を許す範囲:
 

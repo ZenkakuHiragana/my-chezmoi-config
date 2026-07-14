@@ -30,6 +30,7 @@
 - ユーザーからの指示、レビューの指摘、採用しなかった案などの編集指示は制御入力であり、成果物本文とは厳密に区別される。成果物本文はいかなる場合でも **本文のみ、または本文に記載のある関連資料のみ** から主張や内容を把握できる形態でなければならない。
 - 章立てられた文章を生成する時、または文と文の間で論理的推移が重要になる成果物を扱う場合は `technical-writing` を使い、必要な参照資料を読む。
 - review対象は役割で分ける。仕様、`Requirement contract`、作業契約は`requirement-review`、codeとdiffは`code-review`、利用者向け日本語本文は`japanese-doc-review`を使う。別の対象を代替してはならない。
+- review の `work_class` が `broad-or-unclear` のとき、`review-orchestration` を使う。`review-orchestration` は有限な1周として review を運営し、fan-out、受付閉鎖、`review-response`、対応後監査、終端を管理する。
 - review前に対象、利用者、利用経路、観点、合否を確認する方法を固定する。`tiny-local`は直接確認、`bounded`は指定観点、`broad-or-unclear`は独立実行者が固定した観点を確認する。
 - reviewerは確認した範囲と、同じ入力から再現できる問題だけを返す。一般的な改善案、完全化、好み、未確認の懸念を修正要求にしてはならない。
 - review結果へ対応する前に、各問題の確認方法が修正前に失敗することを再現する。再現できない問題は変更理由にしない。
@@ -163,7 +164,7 @@ review結果へ対応する場合は、次の順序を守る。
 
 - 実作業（実装、計画、レビュー）に進む前に、`context-clarification` が `Readiness record` を作り、verdict を `pass` / `pass_with_assumption` / `fail` のいずれかに確定する。
 - verdict が `pass` または `pass_with_assumption` になるまで、実作業段階へ進んではいけない。
-- `bounded`と`broad-or-unclear`の`Requirement contract`は、独立実行者の`requirement-review`が合格するまで計画・実装へ進んではいけない。
+- `bounded`と`broad-or-unclear`の`Requirement contract candidate`は、`context-clarification`が起動する1周の`review-orchestration`を通す。`ready_for_exit_check`と終了条件を満たした候補だけを`Requirement contract`として固定し、計画・実装へ進める。`blocked`、`reset_required`、`rollback_required`の場合は`fail`とする。
 - 例外: `work_class` が `tiny-local` のときは、`Readiness record` を記録すれば進んでよい。`tiny-local` の条件を満たさなくなった時点で緩和を取り消し、進行を止める。
 - verdict の構造、各 verdict の入口条件、`fail` 時の戻り先、契約の外部化と再開時の読み直しは `context-clarification` の出力契約に従う。
 

@@ -36,13 +36,18 @@ review の `work_class` が `broad-or-unclear` のとき、最初の review unit
 最初の review unit を起動する前に、review loop 台帳へ次を記録する。
 
 - cycle ID
-- 成果物版
-- 契約版
+- review target version: 検査対象となる成果物の版
+- review authority snapshot: review target の正否を判定する根拠集合の版
+  - code-review: task contract、仕様、invariants、tests
+  - japanese-doc-review: 意味内容の正本、想定読者、利用目的
+  - requirement-review: 依頼引用、後続訂正、確認済みの技術制約、安全上の不変条件、情報所有先
 - `work_class`
 - 観点集合
 - 有限な検査集合
 - review unit ごとの担当、`read_set`、観測出力、`verification method`
 - review unit ごとの `必須` または `残存記録`
+
+`requirement-review` では、`Requirement contract candidate` を `review target version` として扱う。検査対象となる契約候補を、それ自身の `review authority snapshot` に含めてはならない。
 
 固定後に検査を追加してはならない。
 
@@ -81,9 +86,19 @@ review の `work_class` が `broad-or-unclear` のとき、最初の review unit
 
 修正後に contract の tests を実行する。失敗した場合は `rollback_required` とする。
 
-## 5. Contract 変更
+## 5. 判定基準の変更
 
-周の中で契約版が変わった場合は、旧契約に基づく検査、候補、分類、対応後監査を全て失効し、`reset_required` とする。新しい周を自動開始してはならない。
+周の中で `review authority snapshot` が変わった場合は、旧根拠に基づく検査、候補、分類、対応後監査を全て失効し、`reset_required` とする。新しい周を自動開始してはならない。
+
+`review target version` の変更（accepted 修正による）は判定基準の変更として扱わず、4節の対応後監査として処理する。
+
+`review authority snapshot` の変更となるのは次の場合だけである。
+
+- ユーザー要求または後続訂正の変更
+- 確認済みの技術制約の変更
+- 安全上の不変条件の変更
+- 情報所有先または正本の変更
+- review の scope または判定基準の変更
 
 ## 6. 終端
 
@@ -102,8 +117,8 @@ review の `work_class` が `broad-or-unclear` のとき、最初の review unit
 ## 固定入力
 
 - cycle ID:
-- 成果物版:
-- 契約版:
+- review target version:
+- review authority snapshot:
 - work_class:
 - 観点集合:
 

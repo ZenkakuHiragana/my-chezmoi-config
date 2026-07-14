@@ -61,16 +61,9 @@ review で `work_class` が `broad-or-unclear` のとき、観点別に fan-out 
 - 1節の禁止条件（同じ file を複数サブエージェントが書き込む等）に該当する場合は fan-out しない。ただし review は読み込みのみであり、同じ成果物を複数観点で読み比べる操作は禁止条件に該当しない。
 - fan-out しない場合は、その理由を明示する。
 
-## 8. review-orchestration
+## 8. review と fan-out の接続
 
-review の `work_class` が `broad-or-unclear` のとき、fan-out 前に `review-orchestration` を必ず使用する。
-
-- 成果物版、契約版、観点集合、有限な検査集合、割当を最初の review unit 起動前に固定する。
-- 7節の fan-out は、固定済み検査集合に対してだけ実行する。
-- 親は review loop 台帳を保持し、受付閉鎖、`review-response`、失効判定、対応後監査を `review-orchestration` に従って行う。
-- `ready_for_exit_check` を外部化された W-5 の終了確認へ渡す。
-- `blocked`、`reset_required`、`rollback_required` を成功へ丸めてはならない。
-- 次の周を自動開始してはならない。
+`review-orchestration` が起動した場合、7節の fan-out 規則は `review-orchestration` の固定済み検査集合に対してだけ実行する。fan-out の発動条件と手順は 7節に従う。`review-orchestration` の発動条件と運営手順は、AGENTS.md の「文章と成果物」と `review-orchestration` skill の正本に従う。
 
 ## 9. 終了判定の外部化
 

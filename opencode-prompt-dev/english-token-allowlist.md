@@ -276,6 +276,12 @@
 - `security-dependencies`
 - `spec-conformance`
 
+### review-orchestration 固定 field
+
+- `Requirement contract candidate`
+- `review target version`
+- `review authority snapshot`
+
 ## 日本語化する語
 
 次の用途の英語は原則として日本語化する。
