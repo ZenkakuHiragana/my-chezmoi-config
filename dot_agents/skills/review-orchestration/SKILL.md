@@ -9,14 +9,21 @@ description: Use before fan-out for every broad-or-unclear review; freezes one f
 
 ## 入力
 
-- 成果物版と base
-- 契約版、scope、acceptance criteria、invariants、tests
+- `review target version`: 検査対象となる成果物の版と base
+- `review authority snapshot`: review target の正否を判定する根拠集合の版
+  - code-review: task contract、仕様、invariants、tests
+  - japanese-doc-review: 意味内容の正本、想定読者、利用目的
+  - requirement-review: 依頼引用、後続訂正、確認済みの技術制約、安全上の不変条件、情報所有先
 - `work_class`
 - 開始前に固定する観点集合と検査集合
 - review unit ごとの担当、`read_set`、観測出力、`verification method`
 - review unit ごとの終了判定への扱い: `必須` または `残存記録`
-- W-1 の fan-out 規則
-- W-3 の `review-response`
+- fan-out 規則（delegation-orchestration.md 7節）
+- `review-response`
+- post-fix verification set: review 種別ごとの一括修正後検証
+  - code-review: finding の確認方法と task contract の実行可能な tests
+  - japanese-doc-review: finding の確認方法と読者利用経路の確認
+  - requirement-review: accepted finding の確認方法と、影響を受けた `RR-*` 検査項目の再実行。実装後の acceptance test は実行しない
 
 ## 発動
 
@@ -84,7 +91,7 @@ review の `work_class` が `broad-or-unclear` のとき、最初の review unit
 - 交差を判定できない場合は `blocked` とし、不足と再開条件を記録する。
 - 再実行で失敗した場合は新しい候補を作らず `rollback_required` とする。
 
-修正後に contract の tests を実行する。失敗した場合は `rollback_required` とする。
+修正後に post-fix verification set を実行する。失敗した場合は `rollback_required` とする。`requirement-review` では実装後の acceptance test は実行しない。
 
 ## 5. 判定基準の変更
 
@@ -100,13 +107,15 @@ review の `work_class` が `broad-or-unclear` のとき、最初の review unit
 - 情報所有先または正本の変更
 - review の scope または判定基準の変更
 
+`Requirement contract candidate` 内の scope 条項を accepted finding に基づいて修正することは、`review target version` の変更であり、`review authority snapshot` の変更ではない。
+
 ## 6. 終端
 
 次のいずれかを返す。
 
 - `ready_for_exit_check`: 全ての `必須` unit、finding 分類、必要な再実行、contract tests が完了した。W-5 の終了確認へ渡す。
 - `blocked`: 必須 unit、必須の判定不能領域、`needs-investigation`、失効範囲のいずれかを解消できない。
-- `reset_required`: contract 変更、受付閉鎖後の候補、または固定入力を保てない変更がある。
+- `reset_required`: `review authority snapshot` の変更、受付閉鎖後の候補、または固定入力を保てない変更がある。
 - `rollback_required`: accepted 修正後の同一 `verification method` または contract tests が失敗した。
 
 ## review loop 台帳
