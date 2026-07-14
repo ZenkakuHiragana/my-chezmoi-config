@@ -126,6 +126,10 @@
 ### 状態値と分類値
 
 - `unknown`
+- `accepted`
+- `rejected`
+- `needs-investigation`
+- `out-of-scope`
 - `repo_derivable`
 - `public_fact`
 - `user_provided`
