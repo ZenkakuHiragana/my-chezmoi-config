@@ -1,0 +1,96 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1200 920" role="img" aria-labelledby="title desc">
+  <title id="title">委任の4面の層状図</title>
+  <desc id="desc">意図面、推論面、評価面の4象限を同じ事実・主張の線が通り、実態面へ到達する。線分は順に意図の表現・解釈、推論の外部化、直接照合を表す。</desc>
+
+  <defs>
+    <filter id="shadow" x="-15%" y="-15%" width="130%" height="140%">
+      <feDropShadow dx="0" dy="5" stdDeviation="5" flood-color="#0f172a" flood-opacity="0.15"/>
+    </filter>
+    <style>
+      .background { fill: #ffffff; }
+      .subject-plane { fill: #eff6ff; fill-opacity: 0.78; stroke: #475569; stroke-width: 2.5; }
+      .actual-plane { fill: #ecfdf5; fill-opacity: 0.84; stroke: #3f6212; stroke-width: 3; }
+      .divider { stroke: #94a3b8; stroke-width: 1.7; }
+      .face-label { fill: #0f172a; font-family: "Noto Sans JP", sans-serif; font-size: 25px; font-weight: 700; }
+      .state-label { fill: #334155; font-family: "Noto Sans JP", sans-serif; font-size: 17px; font-weight: 600; }
+      .actual-label { fill: #365314; font-family: "Noto Sans JP", sans-serif; font-size: 21px; font-weight: 600; }
+      .path { fill: none; stroke: #c2410c; stroke-width: 6; stroke-linecap: round; stroke-linejoin: round; }
+      .path-front { fill: none; stroke: #c2410c; stroke-width: 6; stroke-linecap: round; stroke-linejoin: round; }
+      .point { fill: #ea580c; stroke: #ffffff; stroke-width: 4; }
+      .endpoint { fill: #3f6212; stroke: #ffffff; stroke-width: 4; }
+      .segment-label-bg { fill: #ffffff; fill-opacity: 0.96; stroke: #fed7aa; stroke-width: 1.5; }
+      .segment-label { fill: #7c2d12; font-family: "Noto Sans JP", sans-serif; font-size: 19px; font-weight: 600; text-anchor: middle; }
+    </style>
+  </defs>
+
+  <rect class="background" width="1200" height="920"/>
+
+  <!-- 同じ事実・主張を追う連続線。面の背後を通り、交点だけを前面へ出す。 -->
+  <path class="path" d="M470 164 L735 374 L430 524 L330 775"/>
+
+  <!-- 意図面 -->
+  <g filter="url(#shadow)">
+    <polygon class="subject-plane" points="180,70 720,70 790,190 250,190"/>
+    <line class="divider" x1="450" y1="70" x2="520" y2="190"/>
+    <line class="divider" x1="215" y1="130" x2="755" y2="130"/>
+  </g>
+  <text class="face-label" x="62" y="140">意図面</text>
+  <text class="state-label" x="260" y="108">Known Knowns</text>
+  <text class="state-label" x="535" y="108">Unknown Knowns</text>
+  <text class="state-label" x="280" y="169">Known Unknowns</text>
+  <text class="state-label" x="555" y="169">Unknown Unknowns</text>
+
+  <!-- 推論面 -->
+  <g filter="url(#shadow)">
+    <polygon class="subject-plane" points="180,280 720,280 790,400 250,400"/>
+    <line class="divider" x1="450" y1="280" x2="520" y2="400"/>
+    <line class="divider" x1="215" y1="340" x2="755" y2="340"/>
+    <path class="path-front" d="M616.4 280 L735 374"/>
+  </g>
+  <text class="face-label" x="62" y="350">推論面</text>
+  <text class="state-label" x="260" y="318">Known Knowns</text>
+  <text class="state-label" x="535" y="318">Unknown Knowns</text>
+  <text class="state-label" x="280" y="379">Known Unknowns</text>
+  <text class="state-label" x="540" y="379">Unknown Unknowns</text>
+
+  <!-- 評価面 -->
+  <g filter="url(#shadow)">
+    <polygon class="subject-plane" points="180,490 720,490 790,610 250,610"/>
+    <line class="divider" x1="450" y1="490" x2="520" y2="610"/>
+    <line class="divider" x1="215" y1="550" x2="755" y2="550"/>
+    <path class="path-front" d="M499.1 490 L430 524"/>
+  </g>
+  <text class="face-label" x="62" y="560">評価面</text>
+  <text class="state-label" x="260" y="528">Known Knowns</text>
+  <text class="state-label" x="535" y="528">Unknown Knowns</text>
+  <text class="state-label" x="280" y="589">Known Unknowns</text>
+  <text class="state-label" x="555" y="589">Unknown Unknowns</text>
+
+  <!-- 実態面 -->
+  <g filter="url(#shadow)">
+    <polygon class="actual-plane" points="95,710 805,710 925,865 215,865"/>
+    <path class="path-front" d="M355.9 710 L330 775"/>
+  </g>
+  <text class="face-label" x="22" y="800">実態面</text>
+  <text class="actual-label" x="575" y="805" text-anchor="middle">原本・環境・成果物・実際の挙動</text>
+
+  <!-- 各面との交点 -->
+  <circle class="point" cx="470" cy="164" r="11"/>
+  <circle class="point" cx="735" cy="374" r="11"/>
+  <circle class="point" cx="430" cy="524" r="11"/>
+  <rect class="endpoint" x="319" y="764" width="22" height="22" rx="3" transform="rotate(45 330 775)"/>
+
+  <!-- 線分の意味 -->
+  <g>
+    <rect class="segment-label-bg" x="700" y="210" width="230" height="42" rx="10"/>
+    <text class="segment-label" x="815" y="238">意図の表現・解釈</text>
+  </g>
+  <g>
+    <rect class="segment-label-bg" x="700" y="410" width="200" height="42" rx="10"/>
+    <text class="segment-label" x="800" y="438">推論の外部化</text>
+  </g>
+  <g>
+    <rect class="segment-label-bg" x="500" y="638" width="130" height="42" rx="10"/>
+    <text class="segment-label" x="565" y="666">直接照合</text>
+  </g>
+</svg>
