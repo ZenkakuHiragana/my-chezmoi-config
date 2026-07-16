@@ -3,7 +3,7 @@
 ## 目的と位置づけ
 
 - 観測された失敗事例（セッション引用、失敗記録）を、blind eval で定量評価できる試験項目（fixture）へ変換する手続きを固定する。
-- 「失敗記録は fixtures の在庫である」（`fundamental-problem-map.md` P5 管理戦略）の在庫→計器の変換工程にあたる。
+- 「失敗記録は fixtures の在庫である」（`fundamental-problem-map.md` P5 蓄積と複利）の在庫→計器の変換工程にあたる。
 - fixture は機械可読な固定書式を持たない。下位モデルが解釈できる平易な自然言語で書く。
 - 適用例: `opencode-prompt-dev/fixtures/revealed-criteria-scenarios-v0/`（本手続きで作られた最初のパック）。
 
