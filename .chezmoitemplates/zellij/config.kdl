@@ -1,9 +1,11 @@
 plugins {
     strider { path "strider"; }
+    compact-bar location="zellij:status-bar"
 }
 
 keybinds {
     locked {
+        unbind "Ctrl g";
         bind "Ctrl b" { SwitchToMode "tmux"; }
     }
 
