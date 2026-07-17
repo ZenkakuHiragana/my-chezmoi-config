@@ -2,11 +2,8 @@ local wezterm = require("wezterm")
 local act = wezterm.action
 local config = wezterm.config_builder()
 
--- 最初から PowerShell 7
-config.default_prog = {
-  "C:\\Program Files\\PowerShell\\7\\pwsh.exe",
-  "-NoLogo",
-}
+config.default_gui_startup_args = { "connect", "unix" }
+config.unix_domains = { { name = "unix" } }
 
 -- フォント
 config.font = wezterm.font_with_fallback({
@@ -55,9 +52,25 @@ config.keys = {
     mods = "CTRL|SHIFT",
     action = wezterm.action.CloseCurrentPane({ confirm = true }),
   },
+  {
+    key = "d",
+    mods = "CTRL|SHIFT",
+    action = act.DetachDomain("CurrentPaneDomain"),
+  },
+  -- domainを選択してattach
+  {
+    key = "s",
+    mods = "CTRL|SHIFT|ALT",
+    action = act.ShowLauncherArgs({
+      flags = "FUZZY|DOMAINS",
+      title = "Select multiplexer domain",
+    }),
+  },
 }
 
 if wezterm.target_triple:find("windows") then
+  -- 最初から PowerShell 7
+  config.default_prog = { "pwsh.exe", "-NoLogo" }
   config.keys[#config.keys + 1] = {
     key = "t",
     mods = "CTRL|SHIFT|ALT",
@@ -66,5 +79,22 @@ if wezterm.target_triple:find("windows") then
     }),
   }
 end
+
+wezterm.on("update-status", function(window, pane)
+  local domain = pane:get_domain_name()
+  local host = domain:match("^SSHMUX:(.+)$")
+
+  local label
+  if host then
+    label = " SSH: " .. host .. " "
+  else
+    label = " LOCAL "
+  end
+
+  window:set_right_status(wezterm.format({
+    { Attribute = { Intensity = "Bold" } },
+    { Text = label },
+  }))
+end)
 
 return config
