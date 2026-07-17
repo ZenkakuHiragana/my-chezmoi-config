@@ -7,3 +7,6 @@ unified_exec = true
 
 [windows]
 sandbox = "elevated"
+
+[tui.keymap.editor]
+insert_newline = ["alt-n", "shift-enter", "ctrl-j"]

@@ -19,6 +19,26 @@ if vim.fn.has("win32") == 1 then
   vim.opt.shellxquote = ""
 end
 
+local function paste()
+  return {
+    vim.fn.split(vim.fn.getreg(""), "\n"),
+    vim.fn.getregtype(""),
+  }
+end
+
+-- クリップボードの設定
+vim.g.clipboard = {
+  name = "osc52",
+  copy = {
+    ["+"] = require("vim.ui.clipboard.osc52").copy("+"),
+    ["*"] = require("vim.ui.clipboard.osc52").copy("*"),
+  },
+  paste = {
+    ["-"] = paste,
+    ["*"] = paste,
+  },
+}
+
 -- treesitter パーサーのビルドに gcc を使う（Windows では cl.exe が見つからないため）
 vim.env.CC = "gcc"
 
