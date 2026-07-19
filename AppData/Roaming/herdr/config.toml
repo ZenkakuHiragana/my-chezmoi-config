@@ -1,0 +1,7 @@
+onboarding = false
+[terminal]
+default_shell = "pwsh.exe"
+
+[theme]
+name = "tokyo-night"
+auto_switch = false
