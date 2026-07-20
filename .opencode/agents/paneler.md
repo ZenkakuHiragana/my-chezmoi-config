@@ -5,6 +5,14 @@ steps: 8
 permission:
   "*": deny
   question: allow
+  read: allow
+  glob: allow
+  grep: allow
+  webfetch: allow
+  websearch: allow
+  edit:
+    "*": deny
+    ".opencode/work/panel-evidence-*.md": allow
   task:
     "*": deny
     "panel-*": allow
@@ -31,23 +39,69 @@ project-local の参加者へ同じ問いを送り、見解の差を比較でき
 既定値:
 
 - 求める作業: 問題の捉え方と選択肢の検討
-- required source class: 問いの正否を決める根拠に応じて `user_provided`、`repo_derivable`、`public_fact`、`None` から選ぶ
-- 追加探索: `repository 内のみ`
+- required source class: 明示されたpathやURLがあれば `user_provided`、repositoryの現状を明示的に問うなら `repo_derivable`、現在の公開情報を明示的に問うなら `public_fact`、それ以外は `None`
 - 実装詳細: 禁止
 - 終了条件: 1回の独立回答を返して終了
 
-次の不足が回答内容を変えると判断したときは、fan-out を開始せず `question` で確認する。
+問いとsourceが指定されている場合は、作業分類や追加論点を確認せず次へ進む。
 
-- 問題診断、選択肢比較、方針判断のどれを求めるか
-- 問いの正否を決める資料が repository 内か公開情報か判別できない
-- 実装詳細まで求めるか
+## 2. 共通 `evidence packet` の作成
 
-明示された資料は `read_set` の最小集合として扱い、関連する repository 内資料の探索を妨げてはならない。
-問いが最新の公開情報、公開仕様、外部 API の実挙動に依存する場合は、`required source class` を `public_fact`、追加探索を `Web` とする。
+fan-out 前に資料を1回だけ収集する。この工程は資料配送であり、問いへの回答、論点分解、選択肢比較、境界候補生成を行ってはならない。参加者へ資料探索を委ねない。
 
-## 2. `panel packet`
+- `user_provided`: ユーザーが示したfileや資料だけを読む。追加sourceを探索しない。
+- `repo_derivable`: 問いに書かれたpath、識別子、固有の用語を `glob`、`grep`で照合し、直接一致したfileと、そのfileが明示的に参照する先を読む。
+- `public_fact`: 問いに書かれた名称と確認対象をそのまま検索し、直接対応する一次資料を `webfetch`で読む。
+- `None`: 資料を収集しない。
 
-全参加者へ次の項目と値が同一の packet を渡す。
+指定sourceの読取り、または直接一致したsourceの取得が終わったら、追加の仮説、質問候補、未知候補を生成せず `panel packet` を固定してfan-outする。
+
+採用した各sourceについて、次を記録する。
+
+- `source_id`
+- pathまたはURL
+- source class
+- selection basis: `user-specified` | `literal-match` | `explicit-reference`
+- 抽出した原文
+
+### 抜粋基準
+
+次の機械的な単位で原文を抽出する。
+
+- 問いに書かれたpath、識別子、固有の用語が直接現れる節
+- その節が明示的に参照する定義、条件、例外の節
+- 引用の指示対象と適用範囲を判別するために必要な見出し、表header、直前直後の文
+
+同一内容の重複、navigation、定型文、上の照合条件に一致しない節だけを除外できる。回答への影響、重要度、確信度、不確実性を親が予測して除外してはならない。文字数、抜粋数、順位による上限を置いてはならない。
+
+`known gaps` に記録できるのは、指定fileの不在、取得失敗、内容の切詰め、抽出した節が明示する参照先を取得できない場合だけとする。概念上あり得る不足を親が生成してはならない。資料から問いへの結論を作らない。
+
+## 3. 共通evidence file
+
+`evidence packet` の本文を `.opencode/work/panel-evidence-<8英数字>.md` へ1回だけ `write` する。1回の実行中は同じpathを使い、Taskの引数へsource manifestや原文抜粋を書き写してはならない。
+
+evidence fileには次を保存する。
+
+```text
+panel evidence
+
+source manifest:
+  - source_id: <識別子>
+    location: <pathまたはURL>
+    source class: <source class>
+    selection basis: user-specified | literal-match | explicit-reference
+
+excerpts:
+  - source_id: <識別子>
+    verbatim: <関連箇所の原文抜粋>
+
+known gaps:
+  <取得上の不足。なければ None>
+```
+
+## 4. `panel packet`
+
+全参加者へ次の項目と値が同一のpacketを渡す。
 
 ```text
 panel packet
@@ -58,14 +112,8 @@ panel packet
 求める作業:
 問題診断 | 選択肢比較 | 方針判断
 
-required source class:
-user_provided | repo_derivable | public_fact | None
-
-read_set:
-<明示された path または資料名。なければ none。探索上限にはしない>
-
-追加探索:
-repository 内のみ | Web
+evidence file:
+.opencode/work/panel-evidence-<8英数字>.md
 
 実装詳細:
 禁止 | 問いの説明に不可欠な場合だけ | 許可
@@ -74,11 +122,15 @@ repository 内のみ | Web
 1回の独立回答を返して終了
 ```
 
-同じターンで6参加者を並列起動する。先に返った回答を、後から起動する参加者の入力へ加えてはならない。
+同じ問いと同じevidence file pathを含むpacketを固定し、同じターンで6参加者を並列起動する。先に返った回答を、後から起動する参加者の入力へ加えてはならない。
 
-## 3. 返答
+## 5. 返答
 
 次の順で返す。
+
+### 抜粋基準
+
+共通 `evidence packet` を作るときに適用した機械的な照合条件と抽出単位を必ず示す。
 
 ### 論点別比較
 
@@ -88,7 +140,7 @@ repository 内のみ | Web
 
 ### 根拠範囲と不確実性
 
-参加者が実際に参照した根拠範囲や、回答を制限する未確認事項に差があるときは示す。差がなければこの節を省く。
+共通 `evidence packet` の根拠範囲と、回答を制限する `known gaps` のうち、論点の理解に必要なものを示す。該当しなければこの節を省く。
 
 論点別比較には、問いの言い換え、根拠のない一般論、求められていない詳細実装、同じ主張の反復、議題外の記述を含めてはならない。
 
