@@ -42,17 +42,30 @@ function Test-InteractiveShell {
         return $script:IsInteractiveShell
     }
 
-    $cmdLineArgs = [Environment]::GetCommandLineArgs()
-    $normalizedArgs = @($cmdLineArgs | ForEach-Object { $_.ToLowerInvariant() })
+    $normalizedArgs = @(
+        [Environment]::GetCommandLineArgs() |
+            ForEach-Object { $_.ToLowerInvariant() }
+    )
+
+    $hasNoExit = $normalizedArgs -contains '-noexit'
+    $hasNonInteractive = $normalizedArgs -contains '-noninteractive'
+    $hasCommand =
+        ($normalizedArgs -contains '-command') -or
+        ($normalizedArgs -contains '-c') -or
+        ($normalizedArgs -contains '-encodedcommand') -or
+        ($normalizedArgs -contains '-e')
+    $hasFile =
+        ($normalizedArgs -contains '-file') -or
+        ($normalizedArgs -contains '-f')
 
     $script:IsInteractiveShell =
         [Environment]::UserInteractive -and
         $Host.Name -ne 'ServerRemoteHost' -and
         -not [Console]::IsInputRedirected -and
         -not [Console]::IsOutputRedirected -and
-        -not ($normalizedArgs -contains '-noninteractive') -and
-        -not ($normalizedArgs -contains '-file') -and
-        -not ($normalizedArgs -contains '-command')
+        -not $hasNonInteractive -and
+        -not ($hasCommand -and -not $hasNoExit) -and
+        -not ($hasFile -and -not $hasNoExit)
 
     return $script:IsInteractiveShell
 }
