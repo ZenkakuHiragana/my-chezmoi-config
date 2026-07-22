@@ -1,11 +1,11 @@
 {
   "opencode_agent": {
     "general_fast": {
-      "model": "openai/gpt-5.6-luna",
-      "reasoningEffort": "medium"
+      "model": "openai/gpt-5.5",
+      "reasoningEffort": "low"
     },
     "general_strong": {
-      "model": "openai/gpt-5.6-sol",
+      "model": "openai/gpt-5.5",
       "reasoningEffort": "high"
     }
   },
@@ -84,6 +84,29 @@
           "gpt-5.4-mini": {
             "options": {
               "textVerbosity": "low"
+            }
+          }
+        }
+      },
+      "bailian-token-plan-personal": {
+        "npm": "@ai-sdk/openai-compatible",
+        "name": "Qwen Cloud",
+        "options": {
+          "baseURL": "https://token-plan.ap-southeast-1.maas.aliyuncs.com/compatible-mode/v1",
+          "apiKey": "{env:QWEN_API_KEY}"
+        },
+        "models": {
+          "qwen3.8-max-preview": {
+            "name": "Qwen3.8 Max Preview",
+            "contextWindow": 983616,
+            "maxOutputTokens": 131072,
+            "options": {
+              "thinking": {
+                "type": "enabled",
+                "budgetTokens": 99072
+              },
+              "temperature": 0.6,
+              "reasoning": true
             }
           }
         }
