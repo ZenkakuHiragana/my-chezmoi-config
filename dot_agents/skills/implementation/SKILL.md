@@ -34,6 +34,18 @@ description: Use when `Readiness record` is `pass` or `pass_with_assumption`, or
 - 代替経路、機能フラグ、互換用の薄い補助層、移行経路、警告抑制は要求または既存 contract がある場合だけ追加する。
 - 無関係なユーザー変更は戻さない。
 
+## 判断露出時の戻り
+
+実装中に新しい選択が露出し、その選択が次のいずれかを変える場合、内部判断で閉じず`context-clarification`へ戻す。
+
+- 受け入れ可否
+- 公開interface
+- 永続状態または所有先
+- 結果を生む実経路
+- verification methodが支持する意味
+
+既存の所有境界と認可範囲内にあり、どの選択でも受け入れ結果が変わらないものだけを低水準の実装裁量として処理する。
+
 ## review結果への対応
 
 - 対象、観点、場所、破綻、根拠、確認方法がそろった問題だけを扱う。
@@ -82,6 +94,6 @@ description: Use when `Readiness record` is `pass` or `pass_with_assumption`, or
 - 不要な互換層を入れていない。
 - 部分編集を完了と呼んでいない。
 - review結果への対応では修正前に問題を再現し、修正後に同じ確認方法を通した。
-- 変更後、差分に新しく現れた外部 API、リポジトリ内接続、識別子、パラメータ、パスを列挙し、
-  4つの文脈層へ分類し正当性を検証する。生成した差分の全てが正当であると主張できるだけの根拠を提示する。
+- 実装中に新しい選択が露出し、受け入れ可否、公開interface、永続状態または所有先、結果を生む実経路、verification methodが支持する意味のいずれかを変える場合は、内部判断で閉じずcontext-clarificationへ戻す。
+- 新しく現れた外部interface、永続状態、所有境界、実経路を、対応する契約条項またはDEC-IDと照合する。
 - `broad-or-unclear`では対象面ごとの独立reviewを通した。code / diffは`code-review`、仕様と契約は`requirement-review`、利用者向け日本語本文は`japanese-doc-review`を使った。

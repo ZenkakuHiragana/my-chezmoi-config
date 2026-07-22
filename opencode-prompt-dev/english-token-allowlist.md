@@ -128,6 +128,8 @@
 - `unknown`
 - `accepted`
 - `rejected`
+- `no-decision`
+- `resolved`
 - `needs-investigation`
 - `out-of-scope`
 - `repo_derivable`
