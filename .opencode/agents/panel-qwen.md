@@ -2,7 +2,7 @@
 description: Provides one response to a project-local panel question using only supplied evidence. project-local の問いへ送付された根拠を使って見解を返す。
 mode: subagent
 hidden: true
-model: opencode/hy3-free
+model: qwen-token-plan/qwen-3.8-max-preview
 steps: 3
 permission:
   "*": deny
