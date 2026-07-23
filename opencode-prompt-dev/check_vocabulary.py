@@ -271,11 +271,15 @@ def main() -> int:
     allowlist = parse_allowlist(repo)
     entities = entity_names(repo)
     def_files = load_files(repo, DEFINITION_GLOBS)
+    allowlist_path = (
+        repo / "opencode-prompt-dev" / "english-token-allowlist.md"
+    ).resolve()
+    dead_ref_files = [p for p in def_files if p.resolve() != allowlist_path]
     surface_files = load_files(repo, CONTROL_SURFACE_GLOBS)
 
     harvested_definitions = harvest_definitions(repo, def_files)
     surface_refs = collect_refs(repo, surface_files)
-    all_refs = collect_refs(repo, def_files)
+    dead_refs = collect_refs(repo, dead_ref_files)
 
     # 1. unaccounted: 識別子の形なのに allowlist に無い参照。
     unaccounted: dict[str, list[str]] = {}
@@ -294,8 +298,10 @@ def main() -> int:
         if is_identifier(t) and SKILLSHAPE.match(t) and t not in declared_for_routing
     }
 
-    # 3. dead allowlist: 制御語彙だがどこでも未使用。
-    dead = sorted(t for t in allowlist if t not in all_refs)
+    # 3. dead allowlist: 制御語彙だが allowlist 自身以外で未使用。
+    # allowlist は全登録語を backtick で列挙するため、参照母集団に含めると
+    # 自己参照だけで全語が使用済みになり、dead 判定が常に 0 件へ潰れる。
+    dead = sorted(t for t in allowlist if t not in dead_refs)
 
     # 4. 分類ドリフト: AGENTS.md の分類定義が context-clarification に未反映。
     drift = classification_consistency(repo)

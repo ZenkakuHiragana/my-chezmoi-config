@@ -124,3 +124,5 @@ if (Test-InteractiveShell) {
         }
     }.ToString()).BeginInvoke()
 }
+
+$env:OPENCODE_DISABLE_CLAUDE_CODE=1
