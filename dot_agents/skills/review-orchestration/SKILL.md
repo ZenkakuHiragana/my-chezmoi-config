@@ -124,8 +124,8 @@ description: Use before fan-out for every broad-or-unclear review; freezes one f
 
 親が `rejected`、`out-of-scope`、契約解釈の変更、または `判定不能` の受容を判断した場合、`ready_for_exit_check` を台帳に記録する前に新規独立確認を行う。
 
-- 親の裁定**後**に起動する。
-- レビュー周回の並列展開で起動したレビュアーは**再利用しない**。別主体を起動する。
+- 親の裁定後に起動する。
+- レビュー周回の並列展開で起動したレビュアーを再利用しない。別主体を起動する。
 - 確認対象は親の分類（`rejected` / `out-of-scope` / `判定不能`）とその根拠。
 - 確認者は、確認対象と同じ入力から同じ分類へ到達できるかを判定する。
 - 確認者が同じ分類へ到達できなかった場合は、親の裁定を取り消し、該当する指摘を `accepted` または `needs-investigation` へ戻す。

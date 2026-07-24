@@ -15,7 +15,7 @@ description: Use when work stage, scope, acceptance criteria, verification metho
 - 今回の依頼本文と明示制約
 - 作業枠と選んだ `work_class`
 - 既に集めた根拠（`investigation` / `public-research` / `grill-me` の結果を含む）
-- 関連する既存の作業契約資料（旧要件ファイル、タスクファイル）
+- 関連する既存の作業契約資料（旧要件ファイル、作業ファイル）
 
 ## 手順
 
@@ -27,7 +27,7 @@ description: Use when work stage, scope, acceptance criteria, verification metho
    - 境界1 基準化: 入力された条件の役割、強さ、範囲、認可元を確認する。
    - 境界2 判断: 複数の選択肢で受け入れ結果や後続判断が変わる箇所を露出する。
    - 境界3 実現: 何を変え、何を保ち、どの所有境界へ置くかを確認する。
-   - 境界4 実行: 誰が、どの入口、ツール、環境、実経路で結果を生むかを確認する。
+   - 境界4 実行: 誰が、どの入口、道具、環境、実経路で結果を生むかを確認する。
    - 境界5 評価: どの観測が、どの受け入れ条件を、どの利用者文脈で支持するか確認する。
      走査の結果から新しい走査を自動開始してはならない。同じ判断を複数境界で発見した場合は統合する。
 6. 解決できた範囲で `要件契約候補` を作成し、レビュー対象版として凍結する。この時点では正式な `要件契約` として固定しない。
@@ -40,7 +40,7 @@ description: Use when work stage, scope, acceptance criteria, verification metho
 
 - `work_class`: `tiny-local` / `bounded` / `broad-or-unclear`
 - 作業段階: 現在地と、進もうとする段階
-- 文脈層の状態: 依頼 / サブシステム / ワークスペース / 外部基盤 の各層について `confirmed` / `not_needed` / `missing` / `blocked` と根拠
+- 文脈層の状態: 依頼 / サブシステム / ワークスペース / 外部基盤の各層について `confirmed` / `not_needed` / `missing` / `blocked` と根拠
 - 未解決の不足: 各項目に分類（`user_decision` / `repo_derivable` / `subsystem_derivable` / `public_fact` / `contract_gap` / `implementation_discretion`）
 - 残る `user_decision`: 未解決のユーザー判断の一覧（無ければ `なし`）
 - `要件契約`: 固定済みなら参照、未固定なら理由
@@ -71,8 +71,8 @@ description: Use when work stage, scope, acceptance criteria, verification metho
 - 不変条件: 変更を通じて保つ条件
 - 受け入れ条件と確認
 
-| 条件 | 結果を生む実経路 | 観測する結果 | 確認主体・ツール・環境 | 利用者または情報所有先 |
-| ---- | ---------------- | ------------ | ---------------------- | ---------------------- |
+| 条件 | 結果を生む実経路 | 観測する結果 | 確認主体・道具・環境 | 利用者または情報所有先 |
+| ---- | ---------------- | ------------ | -------------------- | ---------------------- |
 
 - 判断と認可
 
@@ -117,8 +117,8 @@ description: Use when work stage, scope, acceptance criteria, verification metho
 - 例外は AGENTS.md の `準備完了判定とゲート` に従う（`tiny-local` は記録のみで進行を許す）。
 - `pass` / `pass_with_assumption` になったら `要件契約` を固定する。判定と置いた仮定も同じ契約に含める。
 - `bounded` と `broad-or-unclear` では要件レビュー結果も固定する。
-- 要件契約は `task-planning` が書くタスクファイルとは別にする。契約をタスクファイルで上書きしない。
-- 再開時、またはコンテキスト圧縮後は、実作業の前に要件契約を読み直してから進む。見えないセッション状態から継続だと決めつけない。
+- 要件契約は `task-planning` が書く作業ファイルとは別にする。契約を作業ファイルで上書きしない。
+- 再開時、または文脈圧縮後は、実作業の前に要件契約を読み直してから進む。見えないセッション状態から継続だと決めつけない。
 
 ## 完了チェック
 

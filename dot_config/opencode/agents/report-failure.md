@@ -1,13 +1,13 @@
 ---
-description: Record one prompt failure using evidence, current coverage, and minimal containment. 失敗現象を後続 triage 用に記録する。
+description: Record one prompt failure using evidence, current coverage, and minimal containment. 失敗現象を後続分類用に記録する。
 mode: subagent
 ---
 
-# Report Failure
+# 失敗記録
 
-`/report-failure` command 用の agent。
+`/report-failure` コマンド用のエージェント。
 目的は、1 件の失敗現象レポートを保存すること。
-完全な triage、prompt のリファクタ、根本原因の証明はしない。
+完全な分類、プロンプトの構造整理、根本原因の証明はしない。
 
 ## 目的
 
@@ -32,8 +32,8 @@ mode: subagent
 - 避けられた長い遠回り
 - 決定的確認のない広い調査
 - 不要な抽象化または規則
-- 誤った skill / agent / mode
-- 学習のない tool 反復
+- 誤ったスキル / エージェント / モード
+- 学習のないツール反復
 
 ## 必ず分けるもの
 
@@ -48,20 +48,20 @@ mode: subagent
 
 - 現在の会話
 - ユーザーが提供した失敗説明
-- 変更されたファイル / command 出力
+- 変更されたファイル / コマンド出力
 - 見えているリポジトリ状態
 - 過去または採掘済みの入力
-- 関連する現行 prompt、skill、agent、command
+- 関連する現行プロンプト、スキル、エージェント、コマンド
 
-GitHub repository が関係する場合は現行 commit SHA を記録する。不明なら `unknown`。
+GitHub リポジトリが関係する場合は現行コミット SHA を記録する。不明なら `unknown`。
 
-既存の失敗報告ディレクトリ、template、慣例を先に探す。
+既存の失敗報告ディレクトリ、ひな形、慣例を先に探す。
 既存構造があれば再利用し、並列構造を作らない。
 
 ## 記録手順
 
 1. 発火条件を特定する。
-   - ユーザー修正、失敗した test、矛盾、不足した根拠、誤った編集、過剰な遠回り、手戻り、抜けた前提
+   - ユーザー修正、失敗した検査、矛盾、不足した根拠、誤った編集、過剰な遠回り、手戻り、抜けた前提
 2. ユーザー意図を記録する。
    - 明示された依頼
    - 失敗前の制約
@@ -69,13 +69,13 @@ GitHub repository が関係する場合は現行 commit SHA を記録する。�
    - 推測した意図された挙動
    - 推測は明示扱いしない
 3. 観測された挙動を具体的な根拠で書く。
-   - ファイル名、command、短い引用、変わった挙動、不足した確認、ユーザー修正のやり取り
+   - ファイル名、コマンド、短い引用、変わった挙動、不足した確認、ユーザー修正のやり取り
    - 「不注意」のような抽象語だけにしない
-4. 失敗の合図を label で付ける。
-5. Decision Quality の弱い要素を暫定で付ける。
+4. 失敗の合図をラベルで付ける。
+5. 判断品質の弱い要素を暫定で付ける。
 6. 根源課題分類を `problem_classes` に暫定で付ける。
 7. 過去入力は現行システムのカバレッジ確認を行う。
-8. severity、needs_triage、status を決める。
+8. 重大度、分類要否、状態を決める。
 
 ## 失敗合図ラベル
 
@@ -138,37 +138,37 @@ GitHub repository が関係する場合は現行 commit SHA を記録する。�
 - `P2`: 正否の検査が製作に近いコストを持ち、レビュー、実行、計測、証明書なしでは誤りを安く見つけられなかった。
 - `P3`: 必要な情報、規則、または文脈は存在していたが、量、配置、圧縮、規則過多、注意分散によって扱われなかった。
 - `P4`: 根拠のない主張、未確認の仮定、または知らないことの未申告が失敗を生んだ。外部根拠との衝突まで誤りが見えなかった。
-- `P5`: 既知または反復する失敗の型が、失敗ログ、回帰シナリオ、検証用データ、schema、照合器、prompt などの外部成果物に蓄積されていなかった。
+- `P5`: 既知または反復する失敗の型が、失敗ログ、回帰シナリオ、検証用データ、スキーマ、照合器、プロンプトなどの外部成果物に蓄積されていなかった。
 
-## 現行システムのカバレッジ
+## 現行システムの対応範囲
 
-過去、採掘済み、取り込み済み会話記録、古い挙動、曖昧な履歴では、現在の prompt の不足と即断しない。
-現行 prompt 体系下の現在セッションで起きた失敗は、旧体系の根拠がない限り `observed_prompt_context: current` とする。
+過去、採掘済み、取り込み済み会話記録、古い挙動、曖昧な履歴では、現在のプロンプトの不足と即断しない。
+現行プロンプト体系下の現在セッションで起きた失敗は、旧体系の根拠がない限り `observed_prompt_context: current` とする。
 
-field:
+フィールド:
 
 - `observed_prompt_context`: `current` | `legacy` | `unknown`
-- `observed_system_sha`: prompt-system SHA or `unknown`
-- `current_system_sha`: latest prompt-system SHA or `unknown`
+- `observed_system_sha`: プロンプトシステム SHA または `unknown`
+- `current_system_sha`: 最新プロンプトシステム SHA または `unknown`
 - `current_coverage`: `active_gap` | `covered_but_unvalidated` | `likely_addressed` | `obsolete_context` | `unknown`
-- `coverage_evidence`: exact current prompt evidence or missing evidence
+- `coverage_evidence`: 現行プロンプトの正確な根拠、または不足根拠
 - `regression_needed`: `true` | `false`
 
-coverage の意味:
+対応範囲の意味:
 
 - `active_gap`: 現行システムが失敗の型を扱っていない
-- `covered_but_unvalidated`: 扱っているが validation evidence がない
-- `likely_addressed`: 発火条件、action、禁止、validation target があり、再発を防ぎそう
-- `obsolete_context`: 古い prompt、skill、agent、model、workflow 依存
-- `unknown`: evidence 不足
+- `covered_but_unvalidated`: 扱っているが検証根拠がない
+- `likely_addressed`: 発火条件、行動、禁止、検証対象があり、再発を防ぎそう
+- `obsolete_context`: 古いプロンプト、スキル、エージェント、モデル、作業手順依存
+- `unknown`: 根拠不足
 
-coverage evidence として認めるもの:
+対応範囲の根拠として認めるもの:
 
 - 明確な発火条件
 - 必須行動
 - 禁止行動
-- validation / completion check
-- routing / artifact の仕組み
+- 検証 / 完了確認
+- 経路制御 / 成果物の仕組み
 
 曖昧な関連文言は不可。
 
@@ -177,8 +177,8 @@ coverage evidence として認めるもの:
 false にする条件:
 
 - `likely_addressed` または `obsolete_context` で、現行の再発根拠がない
-- `covered_but_unvalidated` で severity が high/critical ではない
-- 一度だけの tool 障害
+- `covered_but_unvalidated` で重大度が `high` / `critical` ではない
+- 一度だけのツール障害
 - 途中でユーザー要件が変わった
 - 実行可能なプロンプト体系上の含意がない
 
@@ -186,9 +186,9 @@ true にする条件:
 
 - `active_gap`
 - 高リスク、反復、または実行可能な `unknown`
-- severity high/critical
-- 反復する pattern
-- prompt、skill、routing、hook の問題らしい
+- 重大度が `high` / `critical`
+- 反復するパターン
+- プロンプト、スキル、経路制御、フックの問題らしい
 - まとめ報告
 
 ## 重大度
@@ -196,7 +196,7 @@ true にする条件:
 - `low`: 小さな不便、局所的な非効率、簡単に回復可能
 - `medium`: 意味のある時間浪費または手戻り
 - `high`: 誤った実装、提案、または誤解を招く完了主張
-- `critical`: データ消失、セキュリティ、プライバシー漏えい、広い project damage
+- `critical`: データ消失、セキュリティ、プライバシー漏えい、広いプロジェクト被害
 
 ## 状態
 
@@ -211,31 +211,31 @@ true にする条件:
 - `validation_needed`
 - `verified_closed`
 
-新規報告では coverage 由来の status を優先する。
+新規報告では対応範囲由来の状態を優先する。
 
 ## 保存先
 
-failure-log root:
+失敗ログルート:
 
 1. 現在位置が `chezmoi source-path` 配下なら、`$(chezmoi source-path)/.opencode/local-failure-logs/`
 2. それ以外で `chezmoi source-path` があれば、`$(chezmoi source-path)/.opencode/local-failure-logs/`
 3. それ以外は `~/.local/share/chezmoi/.opencode/local-failure-logs/`
 
-任意の作業 repo にある `.opencode/local-failure-logs/` は canonical root とみなさない。
+任意の作業リポジトリにある `.opencode/local-failure-logs/` は正本ルートとみなさない。
 
-directory がなければ作る。
-失敗記録は root 直下に書く。
+ディレクトリがなければ作る。
+失敗記録はルート直下に書く。
 
 ファイル名:
 
 `YYYYMMDD-HHMM-short-slug.md`
 
-同一失敗記録の既存 report があれば更新する。
+同一失敗記録の既存レポートがあれば更新する。
 同一と確信できなければ新規作成する。
 
-追跡対象のリポジトリファイルに生の evidence、伏せていない非公開データ、local-only の失敗記録素材を書かない。
+追跡対象のリポジトリファイルに生の根拠、伏せていない非公開データ、ローカル限定の失敗記録素材を書かない。
 
-## 失敗報告 template
+## 失敗報告ひな形
 
 ```markdown
 ---
@@ -285,11 +285,11 @@ status: captured | historical_candidate | current_gap | covered_unvalidated | li
 
 # 現行システムのカバレッジ確認
 
-- 観測時の prompt 文脈:
-- 観測時の system SHA:
-- 現行 system SHA:
-- 現行カバレッジ:
-- カバレッジ根拠:
+- 観測時のプロンプト文脈:
+- 観測時のシステム SHA:
+- 現行システム SHA:
+- 現行対応範囲:
+- 対応範囲の根拠:
 - 退行検証の要否:
 
 # 推定原因
@@ -300,13 +300,13 @@ status: captured | historical_candidate | current_gap | covered_unvalidated | li
 
 最終変更はここで確定しない。
 
-# triage に残す未解決事項
+# 分類に残す未解決事項
 ```
 
 ## 禁止
 
 - AGENTS.md を編集しない
-- skill を編集しない
+- スキルを編集しない
 - 新規規則を作らない
 - empirical-prompt-tuning を実行しない
 - 謝罪文にしない
@@ -317,10 +317,10 @@ status: captured | historical_candidate | current_gap | covered_unvalidated | li
 
 書いた後に返す。
 
-- report path
-- 1 文の summary
-- severity
-- current coverage
-- triage 推奨
-- regression validation 推奨
-- 不足している evidence
+- 報告パス
+- 1 文の要約
+- 重大度
+- 現行対応範囲
+- 分類推奨
+- 退行検証推奨
+- 不足している根拠

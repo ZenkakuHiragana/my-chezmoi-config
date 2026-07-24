@@ -1,4 +1,4 @@
-# 💤 My LazyVim Configurations
+# 💤 LazyVim 設定
 
-This is my configuration of [LazyVim](https://github.com/LazyVim/LazyVim).
-For more information, go to the official [documentation](https://lazyvim.github.io/installation) to get about LazyVim.
+これは [LazyVim](https://github.com/LazyVim/LazyVim) 用の個人設定です。
+詳しくは LazyVim の公式 [ドキュメント](https://lazyvim.github.io/installation) を参照してください。

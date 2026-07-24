@@ -64,7 +64,7 @@ description: Use when a stated obstacle or problem setup is suspected to conflat
 
 - 適用域が明示されている。
 - 3つの区分に再分割されている。
-- 各再定義が煙検出を通過するか 煙 と印付されている。
+- 各再定義が煙検査を通過したか、煙検査として印付けされている。
 - 残差が名前付きで明示されている（隠されていない）。
 
 ## 使わない場面

@@ -1,5 +1,5 @@
 ---
-description: Analyze accumulated failure reports and propose the minimal effective intervention. 失敗ログを triage する。
+description: Analyze accumulated failure reports and propose the minimal effective intervention. 失敗ログを分類する。
 agent: triage-failure
 subtask: true
 ---

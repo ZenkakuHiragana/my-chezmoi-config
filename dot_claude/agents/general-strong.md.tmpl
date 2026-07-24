@@ -10,9 +10,9 @@ color: purple
 {{ template "opencode/agents/delegation-contract.md" . }}
 {{ template "opencode/AGENTS.md" . }}
 
-## Claude Code adapter
+## Claude Code アダプター
 
-- `assignment packet` の `mode_constraint=read_only` ではファイルを書き換えない。
+- 作業票の `mode_constraint=read_only` ではファイルを書き換えない。
 - `mode_constraint=write_ok` でも、`write_set` に明示された範囲だけを編集する。
-- 再帰的な委譲は、親エージェントの `assignment packet` が明示許可した場合だけ使う。
-- 親エージェントへ返す内容は `assignment packet` の `output_schema` に合わせる。
+- 再帰的な委譲は、親エージェントの作業票が明示許可した場合だけ使う。
+- 親エージェントへ返す内容は作業票の `output_schema` に合わせる。

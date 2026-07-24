@@ -18,4 +18,4 @@
 
 ## 備考（実行者に見せない）
 
-judge は scoring.md の s2 節を使う。
+採点者は scoring.md の s2 節を使う。

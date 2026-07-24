@@ -1,4 +1,4 @@
-# s2: grouped schema へのレビュー指摘
+# s2: グループ化スキーマへのレビュー指摘
 
 ## 実行者への提示文
 
@@ -28,7 +28,7 @@ rows[3] = buildMaterial();
 
 `color_ps.hlsl` は `ROW_COLOR` と `ROW_EDGE`、`geometry_ps.hlsl` は `ROW_GEOMETRY`、`material_ps.hlsl` は `ROW_MATERIAL` だけを参照する。レビュー担当から次の指摘が来た。
 
-> `ROW_GEOMETRY` と `ROW_MATERIAL` は参照元が各1ファイルだけです。共通 file に置く理由がないので、それぞれの利用 file へ移してください。
+> `ROW_GEOMETRY` と `ROW_MATERIAL` は参照元が各1ファイルだけです。共通ファイルに置く理由がないので、それぞれの利用ファイルへ移してください。
 
 この指摘を有限に追試して。ファイルは変更せず、修正対象か参考かと根拠だけを答えて。
 

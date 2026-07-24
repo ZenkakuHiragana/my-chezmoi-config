@@ -27,7 +27,7 @@
 
 必要な根拠を制約内で集められない場合:
 
-- unresolved / planned inspection と明示する
+- 未解決または調査予定と明示する
 - 未読資料を、確認済みの観測結果として出さない
 - その場しのぎの一般論に逃げない
 
@@ -36,10 +36,10 @@
 - `mode_constraint=read_only`: ファイル編集と副作用のあるコマンド実行が禁じられる。タスクが書き込みを要求する場合は不可能である旨を返し、制約を守ることを優先する
 - `mode_constraint=write_ok`: 書き込み可能。ただし `write_set` の外は編集しない。
 
-## 5. skill の選び方
+## 5. スキルの選び方
 
 - 作業票を満たす最小のスキル組み合わせを選ぶ。
-- 正しく処理するために必要な skill が `mode_constraint` と衝突するなら、無理に代用品を選ばず `next_action: escalate_to_write_ok` を返す。
+- 正しく処理するために必要なスキルが `mode_constraint` と衝突するなら、無理に代用品を選ばず `next_action: escalate_to_write_ok` を返す。
 
 ## 6. 返答に必ず含める項目
 

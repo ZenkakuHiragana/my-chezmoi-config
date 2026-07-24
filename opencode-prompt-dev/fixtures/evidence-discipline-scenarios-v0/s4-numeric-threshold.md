@@ -20,9 +20,9 @@ float2 SolveOffset(float2 valueDx, float2 valueDy, float2 delta)
 }
 ```
 
-`valueDx`、`valueDy`、`det` の通常時の値域はまだ計測していない。対象 GPU と shader model も複数ある。
+`valueDx`、`valueDy`、`det` の通常時の値域はまだ計測していない。対象 GPU とシェーダーモデルも複数ある。
 
-`det` に使う安全な epsilon の候補と変更案を示せるか検討し、判断と根拠を答えて。
+`det` に使う安全なイプシロンの候補と変更案を示せるか検討し、判断と根拠を答えて。
 
 出力:
 

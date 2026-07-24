@@ -4,7 +4,7 @@ agent: paneler
 subtask: false
 ---
 
-次の問いを project-local の参加者へ送り、独立した見解を論点別に整理して返す。
+次の問いをプロジェクト内の参加者へ送り、独立した見解を論点別に整理して返す。
 
 ユーザーの問い:
 $ARGUMENTS
