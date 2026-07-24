@@ -1,37 +1,37 @@
-# Test Quality Review
+# テスト品質レビュー
 
-Do not accept tests merely because they exist. Review whether they prove meaningful behavior.
+テストが存在するだけで受け入れてはならない。意味のある挙動を証明しているか確認する。
 
-## Triggers
+## きっかけ
 
-- tests assert interactions with mocks but not observable outcomes
-- tests have no meaningful assertion, only check that code ran, or assert broad truthy/falsey values
-- mocks/fakes are less faithful than the real dependency in the behavior being tested
-- tests duplicate implementation logic instead of checking results
-- names are too vague to explain the behavior under test
-- fixtures are overly broad, magical, or unrelated to the assertion
-- test data hides important cases in unreadable blobs
-- tests depend on timing, order, environment, network, locale, or shared state without control
-- snapshots are too broad and make intentional changes hard to review
-- a test would pass even if the bug or contract violation returned
-- test code contains multiple Acts, conditional logic, generated expected values, sleeps, shared global state, or order dependence
-- skipped/ignored tests, catch-all exception handling, or swallowed failures make the test suite look greener than it is
+- テストがモックとのやり取りを表明しているが、観測可能な結果を表明していない。
+- 意味のある表明がなく、コードが動いたことだけを確認している、または広い真偽値だけを表明している。
+- モックやフェイクが、テスト対象の挙動において実際の依存先より忠実でない。
+- テストが結果確認ではなく実装ロジックを複写している。
+- 名前が曖昧すぎて、テスト対象の挙動を説明していない。
+- フィクスチャが広すぎる、魔法的である、または表明と無関係である。
+- テストデータが読みにくい塊の中に重要ケースを隠している。
+- テストが、時刻、順序、環境、ネットワーク、ロケール、共有状態に制御なしで依存している。
+- スナップショットが広すぎて、意図した変更をレビューしにくい。
+- 不具合または契約違反が戻っても、そのテストが通ってしまう。
+- テストコードに、複数の実行、条件ロジック、生成された期待値、待ち時間、共有グローバル状態、順序依存がある。
+- スキップまたは無視されたテスト、例外の一括捕捉、飲み込まれた失敗により、テスト群が実際より健全に見える。
 
-## Questions
+## 質問
 
-- What exact behavior would make this test fail?
-- Is the assertion tied to a user/caller-visible result?
-- Are mocks necessary, or are they hiding integration risk?
-- Would a reader understand the case from the test name and data?
-- Should test cases and test data be separated for readability?
-- Is the test arranged, acted, and asserted clearly enough to diagnose a failure?
-- Is it testing public behavior rather than private implementation details unless the detail is the contract?
+- どの具体的な挙動なら、このテストは失敗するか。
+- 表明は、利用者または呼び出し元から見える結果に結び付いているか。
+- モックは必要か。それとも結合リスクを隠しているか。
+- 読者はテスト名とデータからケースを理解できるか。
+- 読みやすさのために、テストケースとテストデータを分けるべきか。
+- テストの準備、実行、表明は、失敗を診断しやすいほど明確か。
+- 詳細が契約である場合を除き、非公開の実装詳細ではなく公開挙動をテストしているか。
 
-## Prefer
+## 優先すること
 
-- precise names describing the scenario and expected behavior
-- small fixtures that expose the relevant distinction
-- deterministic tests
-- tests that fail for the regression they claim to protect
-- simple assertions over complex expected-value generators
-- real collaborators when they are fast and deterministic; mocks mainly for slow, remote, nondeterministic, or failure-injection boundaries
+- シナリオと期待挙動を説明する正確な名前を付ける。
+- 関連する違いを見せる小さなフィクスチャを使う。
+- 決定的なテストにする。
+- 守ると主張する退行が起きたときに失敗するテストにする。
+- 複雑な期待値生成器より、単純な表明を使う。
+- 高速で決定的な場合は実際の協力部品を使う。モックは主に、遅い、遠隔、非決定的、または失敗注入の境界に使う。

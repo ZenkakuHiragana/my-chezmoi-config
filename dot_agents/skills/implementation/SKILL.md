@@ -1,13 +1,13 @@
 ---
 name: implementation
-description: Use when `Readiness record` is `pass` or `pass_with_assumption`, or when a fixed `Requirement contract` / other `task contract` already covers the repository change, invariants, acceptance criteria, verification method, and affected tests/docs; not for fact finding, contract shaping, or review-only work. 実装専用。必要な関連面の更新と検証まで完了させる。
+description: Use when readiness is `pass` or `pass_with_assumption`, or when a fixed requirement contract / other task contract already covers the repository change, invariants, acceptance criteria, verification method, and affected tests/docs; not for fact finding, contract shaping, or review-only work. 実装専用。必要な関連面の更新と検証まで完了させる。
 ---
 
-# Implementation
+# 実装
 
 リポジトリ内容を変更し、依頼、周辺面、検証がそろった状態まで進める。
-`Readiness record` が `pass` / `pass_with_assumption`、または `Requirement contract` を含む同等の `task contract` が固定済みであることを前提にする。ここが崩れるなら `context-clarification` に戻す。
-単発編集ではなく、task contract の完了を扱う。
+`準備完了記録` が `pass` / `pass_with_assumption`、または `要件契約` を含む同等の作業契約が固定済みであることを前提にする。ここが崩れるなら `context-clarification` に戻す。
+単発編集ではなく、作業契約の完了を扱う。
 
 ## 変更分類
 
@@ -23,26 +23,26 @@ description: Use when `Readiness record` is `pass` or `pass_with_assumption`, or
 
 - 対象ファイル
 - 近くの呼び出し元や利用側
-- 関連する schema/type/config
+- 関連するスキーマ / 型 / 設定
 - 挙動を定義するテスト / 文書
 
 ## 編集原則
 
-- task contract の acceptance criteria を満たす、まとまった最小変更にする。
-- 公開 interface、config の key、prompt contract、文書化された workflow を変えたら依存する関連面も確認する。
+- 作業契約の受け入れ条件を満たす、まとまった最小変更にする。
+- 公開インターフェイス、設定キー、プロンプト契約、文書化された作業手順を変えたら依存する関連面も確認する。
 - 規範的な成果物には現在有効な内容を直接書く。旧状態の墓標を残さない。
-- 代替経路、機能フラグ、互換用の薄い補助層、移行経路、警告抑制は要求または既存 contract がある場合だけ追加する。
+- 代替経路、機能フラグ、互換用の薄い補助層、移行経路、警告抑制は要求または既存契約があるときに限り追加する。
 - 無関係なユーザー変更は戻さない。
 
 ## 判断露出時の戻り
 
-実装中に新しい選択が露出し、その選択が次のいずれかを変える場合、内部判断で閉じず`context-clarification`へ戻す。
+実装中に新しい選択が露出し、その選択が次のいずれかを変える場合、内部判断で閉じず `context-clarification` へ戻す。
 
 - 受け入れ可否
-- 公開interface
+- 公開インターフェイス
 - 永続状態または所有先
 - 結果を生む実経路
-- verification methodが支持する意味
+- 確認方法が支持する意味
 
 既存の所有境界と認可範囲内にあり、どの選択でも受け入れ結果が変わらないものだけを低水準の実装裁量として処理する。
 
@@ -54,12 +54,12 @@ description: Use when `Readiness record` is `pass` or `pass_with_assumption`, or
 - 検証が失敗し、検証方法や完了条件を変更する必要が生じたとき
 - 関連面の調査により、変更範囲が当初の計画より広がる、または狭まるとき
 
-## review結果への対応
+## レビュー結果への対応
 
 - 対象、観点、場所、破綻、根拠、確認方法がそろった問題だけを扱う。
 - 確認方法が修正前に失敗することを再現する。再現できない問題を変更理由にしてはならない。
-- 再現した問題をまとめて最小修正する。reviewに無い便乗修正をしてはならない。
-- 修正後に同じ確認方法とtask contractのtestsを実行する。
+- 再現した問題をまとめて最小修正する。レビューに無い便乗修正をしてはならない。
+- 修正後に同じ確認方法と作業契約のテストを実行する。
 - 失敗する変更は縮小または巻き戻し、完了扱いにしない。
 
 ## 手順
@@ -68,17 +68,17 @@ description: Use when `Readiness record` is `pass` or `pass_with_assumption`, or
 2. 関連面を読む。
 3. まとまった最小差分を作る。
 4. 変更したファイルと依存する関連面を再読する。
-5. acceptance criteria に直結する確認を実行する。
+5. 受け入れ条件に直結する確認を実行する。
 6. 元の依頼、集めた事実、変更した成果物、実行した確認を照合する。
-7. review結果への対応では、修正前後に同じ確認方法を実行する。
-8. `broad-or-unclear`の実装は、完了前に対象面ごとの独立reviewとtestsを実行する。
+7. レビュー結果への対応では、修正前後に同じ確認方法を実行する。
+8. `broad-or-unclear` の実装は、完了前に対象面ごとの独立レビューとテストを実行する。
 
 ## 検証
 
 優先順:
 
 1. 変更したファイルの再読
-2. 関連する診断 / 型検査 / lint
+2. 関連する診断 / 型検査 / 静的検査
 3. 対象テスト
 4. より広い確認
 
@@ -87,13 +87,13 @@ description: Use when `Readiness record` is `pass` or `pass_with_assumption`, or
 ## 返す内容
 
 - 変更したファイル
-- 挙動、文書、config の変更有無
+- 挙動、文書、設定の変更有無
 - 実行した確認と具体的な結果
-- 本当に残る場合だけ未解決の制限
+- 実際に残る未解決の制限だけ
 
 ## 完了チェック
 
-- request と task contract を満たした。
+- 依頼と作業契約を満たした。
 - 固定済み契約を勝手に組み替えていない。
 - 依存する関連面を確認した。
 - 変更したファイルを再読した。
@@ -101,7 +101,7 @@ description: Use when `Readiness record` is `pass` or `pass_with_assumption`, or
 - 古い規範文が残っていない。
 - 不要な互換層を入れていない。
 - 部分編集を完了と呼んでいない。
-- review結果への対応では修正前に問題を再現し、修正後に同じ確認方法を通した。
-- 実装中に新しい選択が露出し、受け入れ可否、公開interface、永続状態または所有先、結果を生む実経路、verification methodが支持する意味のいずれかを変える場合は、内部判断で閉じずcontext-clarificationへ戻す。
-- 新しく現れた外部interface、永続状態、所有境界、実経路を、対応する契約条項またはDEC-IDと照合する。
-- `broad-or-unclear`では対象面ごとの独立reviewを通した。code / diffは`code-review`、仕様と契約は`requirement-review`、利用者向け日本語本文は`japanese-doc-review`を使った。
+- レビュー結果への対応では修正前に問題を再現し、修正後に同じ確認方法を通した。
+- 実装中に新しい選択が露出し、受け入れ可否、公開インターフェイス、永続状態または所有先、結果を生む実経路、確認方法が支持する意味のいずれかを変える場合は、内部判断で閉じず `context-clarification` へ戻す。
+- 新しく現れた外部インターフェイス、永続状態、所有境界、実経路を、対応する契約条項または判断 ID と照合する。
+- `broad-or-unclear` では対象面ごとの独立レビューを通した。コード / 差分は `code-review`、仕様と契約は `requirement-review`、利用者向け日本語本文は `japanese-doc-review` を使った。

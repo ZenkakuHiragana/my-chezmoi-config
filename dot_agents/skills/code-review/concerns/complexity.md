@@ -1,39 +1,39 @@
-# Complexity Review
+# 複雑さレビュー
 
-Review both excessive concentration and excessive fragmentation.
+過度な集中と過度な分割の両方を確認する。
 
-Treat code as too complex when a reader cannot quickly understand the main path or when a future change is likely to introduce a bug.
+読む人が主要経路をすぐ理解できない場合、または将来の変更で不具合を入れやすい場合、そのコードは複雑すぎるものとして扱う。
 
-## Too much in one place
+## 1 か所に詰め込みすぎている状態
 
-- long functions that perform multiple separable jobs
-- files that mix unrelated responsibilities
-- deeply nested branches or loops
-- repeated condition blocks that form a hidden state machine
-- duplicated logic caused by missing ownership or missing helper discovery
-- complex boolean expressions without named concepts
-- test code with complex control flow, generated expectations, or broad fixtures that hide the behavior under test
+- 分けられる複数の仕事を行う長い関数
+- 無関係な責務を混ぜたファイル
+- 深く入れ子になった分岐やループ
+- 隠れた状態機械を作る、繰り返しの条件分岐
+- 所有者が不明、または既存の補助関数を見つけていないことによる重複ロジック
+- 名前付き概念になっていない複雑な真偽式
+- 複雑な制御流れ、生成された期待値、または広すぎるフィクスチャによって、テスト対象の挙動を隠すテストコード
 
-## Too much splitting or indirection
+## 分割や間接化が多すぎる状態
 
-- tiny functions that hide a simple straight-line flow
-- new interfaces, factories, managers, strategies, or registries for one known case
-- files split so readers must jump constantly to understand one operation
-- abstractions named after implementation mechanics rather than domain meaning
-- configuration-driven behavior where direct code would be clearer
+- 単純な直線的処理を隠す小さすぎる関数
+- 既知の 1 ケースだけのために追加されたインターフェイス、ファクトリ、管理用部品、戦略、レジストリ
+- 1 つの操作を理解するために読者が何度も移動しなければならないファイル分割
+- ドメイン上の意味ではなく実装の仕組みにちなんだ抽象化
+- 直接コードで書いた方が明確な、設定駆動の挙動
 
-## Questions
+## 質問
 
-- Does each unit have one coherent reason to change?
-- Is the split aligned with domain boundaries or merely with line count?
-- Would another maintainer find the main path quickly?
-- Does indirection reduce duplication or merely obscure control flow?
-- Did the reviewer need an explanation that should instead be captured by simpler code, a better name, or a focused comment?
+- 各単位には、一貫した変更理由が 1 つあるか。
+- 分割はドメイン境界に沿っているか。それとも単に行数に沿っているだけか。
+- 別の保守者は主要経路をすぐ見つけられるか。
+- 間接化は重複を減らしているか。それとも制御の流れを隠しているだけか。
+- レビュアーが必要とした説明は、本来、より単純なコード、より良い名前、焦点の合ったコメントで表すべきものではないか。
 
-## Prefer
+## 優先すること
 
-- extracting named concepts that carry real domain meaning
-- keeping simple local logic local
-- reducing nesting with early returns only when it improves clarity
-- avoiding future-proof abstractions without a concrete second use case
-- keeping tests simple enough that a failing assertion is easy to diagnose
+- ドメイン上の実質的な意味を持つ名前付き概念を抽出する。
+- 単純な局所ロジックは局所に置く。
+- 早期リターンは、明確さが上がる場合にだけ使って入れ子を減らす。
+- 具体的な 2 つ目の用途がない将来対応の抽象化を避ける。
+- 失敗した表明の原因を診断しやすい、十分に単純なテストにする。

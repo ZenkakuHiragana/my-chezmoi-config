@@ -1,160 +1,160 @@
 ---
 name: review-orchestration
-description: Use before fan-out for every broad-or-unclear review; freezes one finite review cycle, routes fan-out and review-response, closes intake, audits affected units, and records exactly one of ready_for_exit_check/blocked/reset_required/rollback_required in the review loop ledger. review loop の有限運営専用。
+description: Use before fan-out for every broad-or-unclear review; freezes one finite review cycle, routes fan-out and review-response, closes intake, audits affected units, and records exactly one of ready_for_exit_check/blocked/reset_required/rollback_required in the review loop ledger. レビュー周回の有限運営専用。
 ---
 
-# Review Orchestration
+# レビュー周回の運営
 
-`broad-or-unclear` の review loop を、固定入力と順序付きチェックリストによる有限な 1 周として運営する。終端 status と根拠を review loop 台帳へ記録する。
+`broad-or-unclear` のレビュー周回を、固定入力と順序付きチェックリストによる有限な 1 周として運営する。終端状態と根拠をレビュー周回台帳へ記録する。
 
 ## 入力
 
-- `review target version`: 検査対象となる成果物の版と base
-- `review authority snapshot`: review target の正否を判定する根拠集合の版
-  - code-review: task contract、仕様、invariants、tests
-  - japanese-doc-review: 意味内容の正本、想定読者、利用目的
-  - requirement-review: 依頼引用、後続訂正、確認済みの技術制約、安全上の不変条件、情報所有先
+- レビュー対象版: 検査対象となる成果物の版と基準版
+- レビュー判定根拠版: 検査対象の正否を判定する根拠集合の版
+  - `code-review`: 作業契約、仕様、不変条件、テスト
+  - `japanese-doc-review`: 意味内容の正本、想定読者、利用目的
+  - `requirement-review`: 依頼引用、後続訂正、確認済みの技術制約、安全上の不変条件、情報所有先
 - `work_class`
 - 開始前に固定する観点集合と検査集合
-- review unit ごとの担当、`read_set`、観測出力、`verification method`
-- review unit ごとの終了判定への扱い: `必須` または `残存記録`
-- fan-out 規則（delegation-orchestration.md 7節）
+- レビュー単位ごとの担当、`read_set`、観測出力、確認方法
+- レビュー単位ごとの終了判定への扱い: `必須` または `残存記録`
+- 親エージェントの並列展開規則
 - `review-response`
-- post-fix verification set: review 種別ごとの一括修正後検証
-  - code-review: finding の確認方法と task contract の実行可能な tests
-  - japanese-doc-review: finding の確認方法と読者利用経路の確認
-  - requirement-review: accepted finding の確認方法と、影響を受けた `RR-*` 検査項目の再実行。実装後の acceptance test は実行しない
+- 修正後確認一式: レビュー種別ごとの一括修正後検証
+  - `code-review`: 指摘の確認方法と作業契約の実行可能なテスト
+  - `japanese-doc-review`: 指摘の確認方法と読者利用経路の確認
+  - `requirement-review`: `accepted` 指摘の確認方法と、影響を受けた `RR-*` 検査項目の再実行。実装後の受け入れテストは実行しない
 
 ## 発動
 
-review の `work_class` が `broad-or-unclear` のとき、最初の review unit を起動する前に必ず使用する。固定前に fan-out してはならない。
+レビューの `work_class` が `broad-or-unclear` のとき、最初のレビュー単位を起動する前に必ず使用する。固定前に並列展開してはならない。
 
 1 周の上限を次のように固定する。
 
-- 初回 fan-out: 1 回
+- 初回並列展開: 1 回
 - `review-response`: 1 回
-- accepted 一括修正: 最大 1 回
+- `accepted` 一括修正: 最大 1 回
 - 対応後監査: 1 回
 
 次の周を自動開始してはならない。
 
 ## 1. 周の固定
 
-最初の review unit を起動する前に、review loop 台帳へ次を記録する。
+最初のレビュー単位を起動する前に、レビュー周回台帳へ次を記録する。
 
-- cycle ID
-- review target version: 検査対象となる成果物の版
-- review authority snapshot: review target の正否を判定する根拠集合の版
-  - code-review: task contract、仕様、invariants、tests
-  - japanese-doc-review: 意味内容の正本、想定読者、利用目的
-  - requirement-review: 依頼引用、後続訂正、確認済みの技術制約、安全上の不変条件、情報所有先
+- 周回ID
+- レビュー対象版: 検査対象となる成果物の版
+- レビュー判定根拠版: 検査対象の正否を判定する根拠集合の版
+  - `code-review`: 作業契約、仕様、不変条件、テスト
+  - `japanese-doc-review`: 意味内容の正本、想定読者、利用目的
+  - `requirement-review`: 依頼引用、後続訂正、確認済みの技術制約、安全上の不変条件、情報所有先
 - `work_class`
 - 観点集合
 - 有限な検査集合
-- review unit ごとの担当、`read_set`、観測出力、`verification method`
-- review unit ごとの `必須` または `残存記録`
+- レビュー単位ごとの担当、`read_set`、観測出力、確認方法
+- レビュー単位ごとの `必須` または `残存記録`
 
-`requirement-review` では、`Requirement contract candidate` を `review target version` として扱う。検査対象となる契約候補を、それ自身の `review authority snapshot` に含めてはならない。
+`requirement-review` では、`要件契約候補` をレビュー対象版として扱う。検査対象となる契約候補を、それ自身のレビュー判定根拠版に含めてはならない。
 
 固定後に検査を追加してはならない。
 
-## 2. Fan-out と受付閉鎖
+## 2. 並列展開と受付閉鎖
 
-固定した検査集合だけを、親エージェント用の review fan-out 規則に従って観点別に fan-out する。先行結果を他の reviewer へ見せない。
+固定した検査集合だけを、親エージェント用のレビュー並列展開規則に従って観点別に展開する。先行結果を他のレビュアーへ見せない。
 
-全 review unit が結果を返すか、実行不能の理由と再開条件を返した時点で候補受付を閉鎖する。
+全レビュー単位が結果を返すか、実行不能の理由と再開条件を返した時点で候補受付を閉鎖する。
 
-- `必須` unit が完了不能または `判定不能` なら `blocked` とする。
-- `残存記録` unit の `判定不能` は理由と再開条件を台帳へ記録する。それだけで `blocked` にしない。
-- `判定不能`（検査被覆の欠損）を finding へ変換してはならない。
+- `必須` 単位が完了不能または `判定不能` なら `blocked` とする。
+- `残存記録` 単位の `判定不能` は理由と再開条件を台帳へ記録する。それだけで `blocked` にしない。
+- `判定不能`（検査被覆の欠損）を指摘へ変換してはならない。
 - 受付閉鎖後に候補が現れた場合は現周へ追加せず、次の周の候補へ記録して `reset_required` とする。
 
-## 3. Finding 分類
+## 3. 指摘分類
 
-受付閉鎖時点の finding 集合について、`review-response` の 1 パス分類を実行する。
+受付閉鎖時点の指摘集合について、`review-response` の 1 パス分類を実行する。
 
 - `needs-investigation` が 1 件以上なら、不足と再開条件を記録して `blocked` とする。
 - `accepted` だけを一括修正の対象とする。
 - `rejected` と `out-of-scope` は分類根拠を台帳へ保持する。
-- 分類後に finding を追加してはならない。
+- 分類後に指摘を追加してはならない。
 
-`accepted` が 0 件なら一括修正を作らず、対応後監査の post-fix verification set へ進む。
+`accepted` が 0 件なら一括修正を作らず、対応後監査の修正後確認一式へ進む。
 
 ## 4. 一括修正と失効判定
 
-親は修正契約にある accepted finding だけを最大 1 回の一括修正で修正する。`review-orchestration` 自身は成果物を編集しない。
+親は修正契約にある `accepted` 指摘だけを最大 1 回の一括修正で修正する。`review-orchestration` 自身は成果物を編集しない。
 
-修正後、`write_set` を各 review unit の `read_set` と観測出力へ照合する。
+修正後、`write_set` を各レビュー単位の `read_set` と観測出力へ照合する。
 
-- 交差する unit だけを、同じ検査と同じ `verification method` で 1 回再実行する。
-- 交差しない unit の検査被覆は有効のままとする。
+- 交差する単位だけを、同じ検査と同じ確認方法で 1 回再実行する。
+- 交差しない単位の検査被覆は有効のままとする。
 - 交差を判定できない場合は `blocked` とし、不足と再開条件を記録する。
 - 再実行で失敗した場合は `rollback_required` とする。再実行中に現れた新しい候補は現周へ追加せず、次の周の候補として台帳へ記録する。
 
-修正後に post-fix verification set を実行する。失敗した場合は `rollback_required` とする。`requirement-review` では実装後の acceptance test は実行しない。
+修正後に修正後確認一式を実行する。失敗した場合は `rollback_required` とする。`requirement-review` では実装後の受け入れテストは実行しない。
 
 ## 5. 判定基準の変更
 
-周の中で `review authority snapshot` が変わった場合は、旧根拠に基づく検査、候補、分類、対応後監査を全て失効し、`reset_required` とする。新しい周を自動開始してはならない。
+周の中でレビュー判定根拠版が変わった場合は、旧根拠に基づく検査、候補、分類、対応後監査を全て失効し、`reset_required` とする。新しい周を自動開始してはならない。
 
-`review target version` の変更（accepted 修正による）は判定基準の変更として扱わず、4節の対応後監査として処理する。
+レビュー対象版の変更（`accepted` 修正による）は判定基準の変更として扱わず、4節の対応後監査として処理する。
 
-`review authority snapshot` の変更となるのは次の場合だけである。
+レビュー判定根拠版の変更となるのは次に該当するときに限る。
 
 - ユーザー要求または後続訂正の変更
 - 確認済みの技術制約の変更
 - 安全上の不変条件の変更
 - 情報所有先または正本の変更
-- review の scope または判定基準の変更
+- レビューの範囲または判定基準の変更
 
-`Requirement contract candidate` 内の scope 条項を accepted finding に基づいて修正することは、`review target version` の変更であり、`review authority snapshot` の変更ではない。
+`要件契約候補` 内の範囲条項を `accepted` 指摘に基づいて修正することは、レビュー対象版の変更であり、レビュー判定根拠版の変更ではない。
 
 ## 6. 終端
 
-次のいずれかを review loop の終端 status として台帳に記録する。
+次のいずれかをレビュー周回の終端状態として台帳に記録する。
 
-- `ready_for_exit_check`: 全ての `必須` unit、finding 分類、必要な再実行、post-fix verification set、fresh 独立確認が完了した。
-- `blocked`: 必須 unit、必須の判定不能領域、`needs-investigation`、失効範囲のいずれかを解消できない。
-- `reset_required`: `review authority snapshot` の変更、受付閉鎖後の候補、または固定入力を保てない変更がある。
-- `rollback_required`: accepted 修正後の同一 `verification method` または post-fix verification set が失敗した。
+- `ready_for_exit_check`: 全ての `必須` 単位、指摘分類、必要な再実行、修正後確認一式、新規独立確認が完了した。
+- `blocked`: 必須単位、必須の判定不能領域、`needs-investigation`、失効範囲のいずれかを解消できない。
+- `reset_required`: レビュー判定根拠版の変更、受付閉鎖後の候補、または固定入力を保てない変更がある。
+- `rollback_required`: `accepted` 修正後の同じ確認方法または修正後確認一式が失敗した。
 
 複数の終端条件が同時に成立した場合は、`rollback_required` > `reset_required` > `blocked` の優先順位で 1 つだけを記録する。採用しなかった成立条件と根拠は台帳の「結果」へ記録する。
 
-## 7. fresh 独立確認
+## 7. 新規独立確認
 
-親が `rejected`、`out-of-scope`、契約解釈の変更、または `判定不能` の受容を判断した場合、`ready_for_exit_check` を台帳に記録する前に fresh 独立確認を行う。
+親が `rejected`、`out-of-scope`、契約解釈の変更、または `判定不能` の受容を判断した場合、`ready_for_exit_check` を台帳に記録する前に新規独立確認を行う。
 
 - 親の裁定**後**に起動する。
-- review loop の fan-out で起動した reviewer は**再利用しない**。別主体を起動する。
+- レビュー周回の並列展開で起動したレビュアーは**再利用しない**。別主体を起動する。
 - 確認対象は親の分類（`rejected` / `out-of-scope` / `判定不能`）とその根拠。
 - 確認者は、確認対象と同じ入力から同じ分類へ到達できるかを判定する。
-- 確認者が同じ分類へ到達できなかった場合は、親の裁定を取り消し、該当する finding を `accepted` または `needs-investigation` へ戻す。
-- 確認者、入力、実行時点、判定結果を review loop 台帳へ記録する。
+- 確認者が同じ分類へ到達できなかった場合は、親の裁定を取り消し、該当する指摘を `accepted` または `needs-investigation` へ戻す。
+- 確認者、入力、実行時点、判定結果をレビュー周回台帳へ記録する。
 
-fresh 独立確認を行わずに `ready_for_exit_check` を台帳へ記録してはならない。
+新規独立確認を行わずに `ready_for_exit_check` を台帳へ記録してはならない。
 
-## review loop 台帳
+## レビュー周回台帳
 
 ```markdown
-# review loop 台帳
+# レビュー周回台帳
 
 ## 固定入力
 
-- cycle ID:
-- review target version:
-- review authority snapshot:
+- 周回ID:
+- レビュー対象版:
+- レビュー判定根拠版:
 - work_class:
 - 観点集合:
 
 ## 検査集合
 
-| unit | skill | 担当観点 | read_set | 観測出力 | verification method | 終了判定への扱い |
-| ---- | ----- | -------- | -------- | -------- | ------------------- | ---------------- |
+| 単位 | スキル | 担当観点 | 読む範囲 | 観測出力 | 確認方法 | 終了判定への扱い |
+| ---- | ------ | -------- | -------- | -------- | -------- | ---------------- |
 
-## 初回 review
+## 初回レビュー
 
-| unit | 3値件数 | status | finding | 判定不能理由 | 再開条件 |
-| ---- | ------- | ------ | ------- | ------------ | -------- |
+| 単位 | 3値件数 | 状態 | 指摘 | 判定不能理由 | 再開条件 |
+| ---- | ------- | ---- | ---- | ------------ | -------- |
 
 ## 受付閉鎖
 
@@ -162,38 +162,38 @@ fresh 独立確認を行わずに `ready_for_exit_check` を台帳へ記録し�
 - 固定候補:
 - 閉鎖後候補:
 
-## review response
+## レビュー指摘の分類
 
-| finding | 分類 | 根拠 | 再開条件 |
-| ------- | ---- | ---- | -------- |
+| 指摘 | 分類 | 根拠 | 再開条件 |
+| ---- | ---- | ---- | -------- |
 
 ## 一括修正
 
-- accepted finding:
-- write_set:
+- `accepted` 指摘:
+- 書き込み範囲:
 - 非対象範囲:
 - 保つ条件:
 
 ## 失効と再実行
 
-| unit | write_set との交差 | 処遇 | 同じ verification method の結果 |
-| ---- | ------------------ | ---- | ------------------------------- |
+| 単位 | 書き込み範囲との交差 | 処遇 | 同じ確認方法の結果 |
+| ---- | -------------------- | ---- | ------------------ |
 
 ## 対応後監査
 
-- post-fix verification set:
+- 修正後確認一式:
 - 残存記録の判定不能領域:
 - 次の周の候補:
 - 再開条件:
 
-## fresh 独立確認
+## 新規独立確認
 
 | 分類 | 確認対象 | 確認者 | 入力 | 実行時点 | 判定 |
 | ---- | -------- | ------ | ---- | -------- | ---- |
 
 ## 結果
 
-- status: ready_for_exit_check / blocked / reset_required / rollback_required
+- 状態: `ready_for_exit_check` / `blocked` / `reset_required` / `rollback_required`
 - 根拠:
 - 採用しなかった同時成立条件と根拠:
 ```
@@ -201,19 +201,19 @@ fresh 独立確認を行わずに `ready_for_exit_check` を台帳へ記録し�
 ## 禁止事項
 
 - 開始後に検査または候補を追加してはならない。
-- review finding の内容を代替検査してはならない。
+- レビュー指摘の内容を代替検査してはならない。
 - `review-response` の 4 値分類を上書きしてはならない。
 - `accepted` 以外を一括修正へ入れてはならない。
 
 ## 完了チェック
 
-- 最初の review unit 起動前に固定入力を台帳へ記録した。
-- 初回 fan-out、`review-response`、一括修正、対応後監査が上限内である。
+- 最初のレビュー単位を起動する前に固定入力を台帳へ記録した。
+- 初回並列展開、`review-response`、一括修正、対応後監査が上限内である。
 - 候補受付を閉鎖した。
-- 判定不能（検査被覆の欠損）を finding へ変換していない。
+- 判定不能（検査被覆の欠損）を指摘へ変換していない。
 - `accepted` だけを一括修正の対象にした。
-- 変更と交差する unit だけを同じ検査で再実行した。
-- post-fix verification set を確認した。
+- 変更と交差する単位だけを同じ検査で再実行した。
+- 修正後確認一式を確認した。
 - 残存領域と再開条件を記録した。
-- `rejected`、`out-of-scope`、`判定不能` の受容について fresh 独立確認を行った。
-- review loop の終端 status を 1 つだけ台帳に記録した。
+- `rejected`、`out-of-scope`、`判定不能` の受容について新規独立確認を行った。
+- レビュー周回の終端状態を 1 つだけ台帳に記録した。

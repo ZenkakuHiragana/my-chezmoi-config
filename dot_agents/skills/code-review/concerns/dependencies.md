@@ -1,36 +1,36 @@
-# Dependency Review
+# 依存関係レビュー
 
-Use this concern when the change adds, removes, upgrades, vendors, or newly relies on a dependency.
+変更が依存関係の追加、削除、更新、取り込み、または新しい利用に触れる場合に使う。
 
-## Triggers
+## きっかけ
 
-- new package, crate, library, plugin, tool, binary, or service
-- dependency version changes or feature flags
-- vendored source or generated code
-- duplicated functionality that may already exist in the project or standard library
-- license, platform, supply-chain, or maintenance implications
-- lockfile, checksums, vendored code, build-time tools, generated artifacts, or package-manager features changed
-- dependency source, provenance, release signing, or maintainer activity is unclear
+- 新しいパッケージ、クレート、ライブラリ、プラグイン、道具、実行ファイル、サービス
+- 依存関係の版変更や機能フラグ
+- 取り込み済みソースまたは生成コード
+- プロジェクト内または標準ライブラリに既存機能があるかもしれない重複機能
+- ライセンス、対象プラットフォーム、供給網、保守への影響
+- ロックファイル、チェックサム、取り込み済みコード、ビルド時の道具、生成物、パッケージ管理機能の変更
+- 依存関係の取得元、由来、リリース署名、保守者の活動が不明
 
-## Questions
+## 質問
 
-- Is the dependency necessary, or is existing project functionality sufficient?
-- Is the dependency maintained and compatible with project policy?
-- Does it affect binary size, startup time, build time, target platforms, or licenses?
-- Are transitive dependencies or optional features understood?
-- Is the dependency used in a narrow, replaceable way?
-- Is the dependency pinned or locked reproducibly, including build and CI tools when relevant?
-- Are known vulnerabilities, licenses, transitive dependencies, abandoned packages, and update cadence checked?
-- Is an SBOM, vulnerability alert, or dependency update workflow expected for this project?
-- Is the vulnerability actually reachable or relevant, or only present in an unused transitive path?
+- その依存関係は必要か。既存のプロジェクト機能で足りないか。
+- その依存関係は保守されており、プロジェクト方針に合うか。
+- 実行ファイルサイズ、起動時間、ビルド時間、対象プラットフォーム、ライセンスに影響するか。
+- 推移的な依存関係や任意機能を理解しているか。
+- その依存関係は、狭く置き換えやすい形で使われているか。
+- 関連する場合、ビルドや CI の道具を含めて、依存関係の版は再現可能に固定されているか。
+- 既知の脆弱性、ライセンス、推移的な依存関係、放棄されたパッケージ、更新頻度を確認しているか。
+- このプロジェクトでは、ソフトウェア部品表（SBOM）、脆弱性通知、依存関係更新の流れが期待されているか。
+- その脆弱性は実際に到達可能または関連するものか。それとも未使用の推移経路に存在するだけか。
 
-## Prefer
+## 優先すること
 
-- existing project helpers or standard library when adequate
-- small and well-maintained dependencies for real needs
-- documenting rationale when the dependency carries cost or policy risk
-- least-privilege package-manager and CI permissions for dependency retrieval and release
+- 十分な場合は、既存のプロジェクト補助機能や標準ライブラリを使う。
+- 実際の必要に対して、小さく保守の良い依存関係を使う。
+- 依存関係が費用や方針リスクを持つ場合は、理由を文書化する。
+- 依存関係の取得とリリースでは、パッケージ管理と CI の権限を最小にする。
 
-## Avoid overcorrection
+## 過剰修正を避ける
 
-Do not reject every dependency by default. Judge cost against the concrete problem and project norms.
+すべての依存関係を既定で拒否してはならない。具体的な問題とプロジェクト慣習に対して費用を判断する。

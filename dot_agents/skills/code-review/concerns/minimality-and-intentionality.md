@@ -1,46 +1,46 @@
-# Minimality and Intentionality Review
+# 最小性と意図性レビュー
 
-Review not only missing concerns, but also excessive or unrequested handling.
+不足している観点だけでなく、過剰な処理や求められていない処理も確認する。
 
-## Suspicious additions without an explicit reason
+## 明示的な理由のない疑わしい追加
 
-- feature flags
-- environment-variable switches
-- fallback paths
-- compatibility shims
-- legacy code paths
-- duplicated functions with similar names
-- preprocessor or build-time conditionals
-- optional behavior modes
-- broad abstractions for a single known use case
-- config knobs that no user asked for
-- documentation explaining absent or non-existent mechanisms
-- comments that justify an agent's edit rather than explaining code behavior
-- excessive function/file splitting that makes the main path harder to follow
-- migrations, rollout mechanisms, metrics, docs, or operational procedures whose need is not tied to a real contract or failure mode
+- 機能フラグ
+- 環境変数による切り替え
+- 予備経路
+- 互換性のための薄い補助層
+- 旧式コード経路
+- 似た名前の重複関数
+- 前処理器またはビルド時の条件分岐
+- 任意の挙動モード
+- 既知の 1 用途だけに対する広い抽象化
+- 利用者が求めていない設定つまみ
+- 存在しない仕組みや不在の仕組みを説明する文書
+- コードの挙動ではなく、エージェントによる編集を正当化するコメント
+- 主要経路を追いにくくする過度な関数分割やファイル分割
+- 実際の契約または失敗モードに必要性が結び付いていない移行、段階的公開の仕組み、メトリクス、文書、運用手順
 
-## Questions
+## 質問
 
-- Was this mechanism explicitly requested?
-- Is there an existing released API, persisted data, save file, database schema, CLI contract, plugin interface, or public workflow that requires it?
-- Is the software public/shared, or private/unreleased/prototype code?
-- Does the fallback hide real errors?
-- Is every compatibility path tested?
-- Who will maintain both paths?
-- Would the smallest correct change be simpler?
-- Is the code preserving behavior intentionally, or just avoiding a decision?
-- What are the build cost, carry cost, repair cost, and reader cost of this extra mechanism?
-- Is this future-proofing a feature, or improving today's ability to safely change the code?
+- この仕組みは明示的に求められたか。
+- 既存のリリース済み API、永続化データ、セーブファイル、データベーススキーマ、コマンドライン契約、プラグインインターフェイス、公開ワークフローがこれを必要としているか。
+- そのソフトウェアは公開済みまたは共有済みか。それとも非公開、未リリース、試作品のコードか。
+- 予備経路は実際のエラーを隠していないか。
+- すべての互換性経路がテストされているか。
+- 両方の経路は誰が保守するか。
+- 最小の正しい変更の方が単純ではないか。
+- コードは意図的に挙動を保っているか。それとも判断を避けているだけか。
+- この追加の仕組みには、ビルド費用、維持費用、修復費用、読者への負荷がどれだけあるか。
+- これは機能の将来対応か。それとも現在のコードを安全に変更する能力を高めているのか。
 
-## Prefer
+## 優先すること
 
-- direct implementation when there is no compatibility contract
-- explicit migration when persisted data or public contracts exist
-- failing loudly rather than silently falling back when recovery semantics are unclear
-- removing obsolete paths instead of adding switches
-- asking for a compatibility design only when compatibility is truly in scope
-- recording intentional trade-offs only when they affect future maintenance or operation
+- 互換性契約がない場合は、直接実装する。
+- 永続化データまたは公開契約がある場合は、移行を明示する。
+- 復旧の意味が不明な場合は、静かに予備経路へ落ちるのではなく、見える形で失敗させる。
+- 切り替えを足すより、古い経路を削る。
+- 互換性が本当に範囲内にある場合だけ、互換性設計を求める。
+- 将来の保守または運用に影響する場合だけ、意図的なトレードオフを記録する。
 
-## Apply to review suggestions too
+## レビュー提案にも適用する
 
-Before recommending a fix, check whether your suggestion would introduce an unrequested mechanism. If it would, present the minimal direct fix first and mention broader compatibility work only as a conditional follow-up.
+修正を勧める前に、その提案が求められていない仕組みを導入しないか確認する。導入する場合は、まず最小の直接修正を示し、広い互換性対応は条件付きの続きとしてだけ触れる。

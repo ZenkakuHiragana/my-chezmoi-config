@@ -1,39 +1,39 @@
-# Resource Lifecycle Review
+# 資源寿命レビュー
 
-Use this concern when code opens, allocates, owns, borrows, caches, or shares resources.
+コードが資源を開く、割り当てる、所有する、借りる、キャッシュする、共有する場合に使う。
 
-## Resources to inspect
+## 確認する資源
 
-- files, sockets, handles, database connections, transactions, cursors
-- memory buffers, native resources, GPU/audio/game engine resources
-- locks, semaphores, timers, subscriptions, event listeners
-- temporary files/directories, caches, generated artifacts
-- processes, threads, tasks, channels, streams
+- ファイル、ソケット、ハンドル、データベース接続、トランザクション、カーソル
+- メモリバッファ、ネイティブ資源、GPU、音声、ゲームエンジン資源
+- ロック、セマフォ、タイマー、購読、イベントリスナー
+- 一時ファイル、一時ディレクトリ、キャッシュ、生成物
+- プロセス、スレッド、タスク、チャネル、ストリーム
 
-## Triggers
+## きっかけ
 
-- ownership is unclear across layers or callbacks
-- cleanup depends on only the happy path
-- disposal/drop/defer/RAII/finally behavior is missing or bypassed
-- resources are cached without invalidation or size limits
-- references outlive the object they point to
-- temporary artifacts can collide or leak
-- shutdown or reload paths are not considered
-- allocation, queueing, retries, or buffering are unbounded
-- release/close/dispose is not idempotent or can race with in-flight work
+- 層やコールバックをまたぐ所有権が不明
+- 後始末が成功経路だけに依存している。
+- 破棄、`drop`、`defer`、RAII、`finally` の挙動が欠けている、または迂回されている。
+- 無効化またはサイズ上限なしで資源がキャッシュされている。
+- 参照先のオブジェクトより参照が長生きする。
+- 一時生成物が衝突または漏出しうる。
+- 終了または再読み込み経路が考慮されていない。
+- 割り当て、キュー投入、再試行、バッファリングに上限がない。
+- 解放、クローズ、破棄が冪等でない、または実行中の作業と競合しうる。
 
-## Questions
+## 質問
 
-- Who owns this resource?
-- When is it released on success, failure, cancellation, and panic/exception?
-- Can repeated calls leak or double-release?
-- Is the lifetime coupled to a broader object or system lifecycle?
-- What happens when allocation or acquisition fails halfway through initialization?
-- Are pools, queues, caches, and subscriptions bounded, observable, and cleaned up on shutdown/reload?
+- この資源は誰が所有しているか。
+- 成功、失敗、キャンセル、パニック、例外では、いつ解放されるか。
+- 繰り返し呼び出しで漏出または二重解放が起きないか。
+- 寿命は、より広いオブジェクトまたはシステムの寿命に結び付いているか。
+- 初期化の途中で割り当てまたは取得に失敗した場合、何が起きるか。
+- プール、キュー、キャッシュ、購読には上限と観測手段があり、終了時または再読み込み時に片付けられるか。
 
-## Prefer
+## 優先すること
 
-- language-native lifetime and cleanup mechanisms
-- narrow ownership transfer
-- explicit cleanup tests for risky resources
-- deterministic cleanup patterns such as RAII, `defer`, `finally`, scope guards, or context-managed lifetimes
+- 言語標準の寿命管理と後始末の仕組みを使う。
+- 所有権の移転を狭くする。
+- 危険な資源には、後始末を明示的に確認するテストを用意する。
+- RAII、`defer`、`finally`、スコープガード、文脈管理された寿命など、決定的な後始末パターンを使う。

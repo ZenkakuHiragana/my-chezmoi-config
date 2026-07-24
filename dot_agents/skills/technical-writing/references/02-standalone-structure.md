@@ -1,32 +1,32 @@
-# Standalone document structure
+# 単独で読める文書構造
 
-When a document is meant to be shared or reused on its own, make the structure stand on its own.
+文書を単独で共有または再利用する場合は、構造だけで主題と流れが分かる形にする。
 
-Prefer this order unless the artifact form clearly requires another one:
+成果物の形式が別の順序を明確に要求しない限り、次の順序を推奨する。
 
-1. subject and background
-2. scope and definitions
-3. main findings or decisions
-4. implications, classification, or required actions
-5. narrow caveats only where they affect interpretation
+1. 主題と背景
+2. 範囲と定義
+3. 主な発見または決定
+4. 影響、分類、または必要な行動
+5. 解釈に影響する狭い注意点
 
-Structure by reader need, not by author history.
+書き手の履歴ではなく、読者の必要に沿って構成する。
 
-If a sentence depends on an unseen comparison target, rewrite it around the current subject instead of preserving the drafting contrast.
+見えない比較対象に依存する文は、下書き時の対比を残さず、現在の主題を中心に書き換える。
 
-Avoid section titles that only make sense from the writer's perspective, such as:
+書き手の視点でしか意味が通らない見出しは避ける。例:
 
-- points for sharing
-- notes for handoff
-- what the other team should know
-- caveats and leftovers
+- 共有用の要点
+- 引き継ぎメモ
+- 相手チームが知るべきこと
+- 注意点と残り物
 
-If the information is important to the reader, integrate it into the relevant subject section or a normal conclusion.
+読者にとって重要な情報は、関連する主題の節または通常の結論に組み込む。
 
-Use a separate appendix or caveat section only when the material is truly secondary and cross-cutting.
+内容が本当に副次的で、複数の節にまたがる場合に限り、別の付録または注意点の節を使ってよい。
 
-Use negative contrast such as `not A but B` only when rejecting `A` prevents a real reader misunderstanding or when the reader must compare live alternatives. Otherwise, state `B` directly.
+「甲ではなく乙」のような否定による対比は、甲を否定しなければ読者が実際に誤解する場合、または読者が有効な選択肢を比較しなければならない場合に限り使う。それ以外では、乙を直接述べる。
 
-Do not create standalone sections merely to preserve drafting residue.
+下書きの残りかすを残すためだけに、独立した節を作ってはならない。
 
-Do not preserve sentences or sections that exist only to acknowledge discarded structures, prompt constraints, or review feedback.
+採用しなかった構成、プロンプト上の制約、レビュー指摘を記録するためだけに存在する文や節を残してはならない。

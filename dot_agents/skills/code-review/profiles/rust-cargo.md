@@ -1,27 +1,27 @@
-# Rust + Cargo Review Profile
+# Rust + Cargo レビュー観点集
 
-Use this profile in addition to core concerns for Rust projects that use Cargo.
+Cargo を使う Rust プロジェクトでは、共通の確認観点に加えてこの観点集を使う。
 
-## Common checks
+## 共通確認
 
-- Prefer existing project commands such as `cargo check`, `cargo test`, `cargo clippy`, and `cargo fmt --check` when configured and feasible.
-- Inspect `Cargo.toml`, workspace layout, features, `build.rs`, examples, benches, and integration tests when touched.
+- `cargo check`、`cargo test`、`cargo clippy`、`cargo fmt --check` など、既存のプロジェクトコマンドが設定済みで実行可能なら、それらを優先する。
+- `Cargo.toml`、ワークスペース構成、フィーチャー、`build.rs`、`examples`、`benches`、統合テストが触られている場合は確認する。
 
-## Rust-specific triggers
+## Rust 固有の着眼点
 
-- unnecessary `collect`, `clone`, `to_vec`, `String` allocation, or temporary `Vec` creation in repeated paths
-- `unwrap`/`expect` in non-test code without a clear invariant
-- error types or `map_err` losing context
-- non-exhaustive or catch-all `match` hiding new cases
-- ownership/lifetime workarounds that hide misplaced responsibility
-- `unsafe` blocks without a narrow invariant and local justification
-- accidental blocking inside async code
-- `Send`/`Sync`, cancellation, and task lifetime assumptions
-- feature flags added without a compatibility or build-target reason
+- 反復される経路での不要な `collect`、`clone`、`to_vec`、`String` 割り当て、一時的な `Vec` 作成
+- 明確な不変条件なしにテスト以外のコードで使われる `unwrap`/`expect`
+- 文脈を失わせるエラー型または `map_err`
+- 新しい場合を隠す、網羅的でない `match` または全部受けの `match`
+- 責務の置き場所の誤りを隠す所有権/生存期間の回避策
+- 狭い不変条件と局所的な正当化がない `unsafe` ブロック
+- 非同期コード内の意図しないブロック
+- `Send`/`Sync`、キャンセル、タスク生存期間に関する仮定
+- 互換性またはビルド対象の理由なしに追加された Cargo フィーチャー
 
-## Prefer
+## 優先する形
 
-- enums and exhaustive `match` for closed domains
-- borrowing over allocation when the API can express it cleanly
-- project error-handling conventions over ad hoc strings
-- small feature sets whose purpose is documented by real consumers
+- 閉じた領域には列挙型と網羅的な `match` を使う
+- API で明快に表現できる場合は、割り当てより借用を優先する
+- その場限りの文字列より、プロジェクトのエラー処理慣例を優先する
+- 実際の利用者によって目的が文書化された、小さい Cargo フィーチャー集合

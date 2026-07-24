@@ -1,64 +1,64 @@
-# Comments and Documentation Review
+# コメントと文書レビュー
 
-Review both missing documentation and documentation noise.
+文書不足と文書ノイズの両方を確認する。
 
-## Useful comments and docs explain
+## 有用なコメントと文書が説明するもの
 
-- non-obvious intent
-- invariants and constraints future maintainers must preserve
-- public API behavior
-- migration steps and operational procedures
-- generated-documentation requirements
-- examples that users or contributors need
-- trade-offs that cannot be expressed clearly in code, types, or tests
-- security, privacy, compatibility, or operational assumptions that future maintainers must not accidentally break
+- 自明でない意図
+- 将来の保守者が守らなければならない不変条件と制約
+- 公開 API の挙動
+- 移行手順と運用手順
+- 生成文書の要求
+- 利用者または貢献者が必要とする例
+- コード、型、テストでは明確に表しにくいトレードオフ
+- 将来の保守者が誤って壊してはならない、セキュリティ、プライバシー、互換性、運用上の仮定
 
-## Factual alignment
+## 事実との一致
 
-Flag comments or docs when the described behavior, option, flag, API, default, file, command, or limitation does not match the current code.
+説明されている挙動、任意項目、フラグ、API、既定値、ファイル、コマンド、制限が現在のコードと一致しないコメントや文書を指摘する。
 
-This includes documentation for non-existent behavior, stale comments after a refactor, and prose that contradicts tests or implementation.
+これには、存在しない挙動の文書、リファクタリング後に古くなったコメント、テストや実装と矛盾する文章が含まれる。
 
-## Placement
+## 置き場所
 
-Flag documentation placed where the intended reader will not find it, where it interrupts local code comprehension, or where it belongs in a more durable surface such as API docs, README, migration notes, generated reference, or tests.
+想定読者が見つけられない場所、局所コードの理解を妨げる場所、または API 文書、README、移行メモ、生成されたリファレンス、テストなど、より長く残る面に置くべき場所にある文書を指摘する。
 
-Prefer moving text to the surface that owns the contract instead of duplicating it across comments, examples, and user docs.
+コメント、例、利用者文書へ重複させるより、契約を所有する面へ文章を移すことを優先する。
 
-## Reader-context alignment
+## 読者文脈との一致
 
-Flag comments or docs that may be true but do not help the intended reader because they depend on private conversation history, obsolete names, temporary implementation history, or agent self-justification.
+真である可能性はあるが、非公開の会話履歴、古い名前、一時的な実装履歴、エージェントの自己正当化に依存しているため、想定読者の役に立たないコメントや文書を指摘する。
 
-Examples include comments that memorialize a rename, explain why a discarded feature flag does not exist, or describe an internal edit decision that is not part of the public or maintenance contract.
+例として、改名を記念するコメント、捨てた機能フラグが存在しない理由の説明、公開契約または保守契約の一部ではない内部編集判断の説明がある。
 
-## Negative documentation
+## 否定形の文書
 
-Flag documentation that mainly says what the code does not do, what was not implemented, or which rejected approach was avoided unless that absence is part of a real public contract, security boundary, compatibility promise, migration warning, or operational constraint.
+その不在が実際の公開契約、セキュリティ境界、互換性約束、移行警告、運用制約の一部でない限り、主に「コードが何をしないか」「何が実装されていないか」「どの不採用案を避けたか」を述べる文書を指摘する。
 
-Prefer documenting supported behavior, invariants, limits, and required actions over preserving internal non-decisions.
+内部の非判断を残すより、対応している挙動、不変条件、制限、必要な作業を文書化する。
 
-## Other suspicious patterns
+## その他の疑わしいパターン
 
-- comments that restate obvious code line by line
-- README sections for internal details not relevant to users or contributors
-- comments added only to satisfy a perceived "needs comments" rule
-- long prose that should be replaced by a clearer name, smaller function, type, or test
-- documentation updates that hide an unnecessary design choice instead of fixing it
-- examples, logs, screenshots, or snippets that contain secrets, tokens, private URLs, PII, or real credentials
-- release notes that omit breaking changes, migration requirements, rollback/roll-forward notes, or operational readiness when users/operators need them
+- 明らかなコードを行ごとに言い換えるコメント
+- 利用者または貢献者に関係しない内部詳細の README 節
+- 「コメントが必要」という思い込みを満たすためだけに追加されたコメント
+- より明確な名前、小さな関数、型、テストで置き換えるべき長い文章
+- 不要な設計判断を直すのではなく隠している文書更新
+- 秘密情報、トークン、非公開 URL、個人識別情報、実際の資格情報を含む例、ログ、スクリーンショット、断片
+- 利用者または運用者が必要とする破壊的変更、移行要求、ロールバックや前進復旧のメモ、運用準備を省いたリリースノート
 
-## Questions
+## 質問
 
-- Who is the reader?
-- What action or understanding does this text enable?
-- Is the information part of a public or maintenance contract?
-- Would this be better expressed by clearer code or tests?
-- Will this become stale quickly?
-- Is the document a tutorial, how-to, reference, or explanation, and does the content match that reader need?
-- Does the doc change track build, test, release, configuration, deprecation, or migration changes introduced by the code?
+- 読者は誰か。
+- この文章は、どの作業または理解を可能にするか。
+- その情報は公開契約または保守契約の一部か。
+- より明確なコードまたはテストで表す方がよいか。
+- これはすぐ古くならないか。
+- その文書はチュートリアル、手順、リファレンス、解説のどれか。内容はその読者の必要に合っているか。
+- 文書変更は、コードが導入したビルド、テスト、リリース、設定、非推奨化、移行の変更を追跡しているか。
 
-## Prefer
+## 優先すること
 
-- no comment over a misleading or performative comment
-- replacing obsolete normative text instead of layering history around it
-- keeping history in changelogs, migration notes, or commit messages when history matters
+- 誤解を招くコメントや形だけのコメントより、コメントなしを選ぶ。
+- 古い規範文の周囲に履歴を重ねるのではなく、置き換える。
+- 履歴が重要な場合は、変更履歴、移行メモ、コミットメッセージに置く。

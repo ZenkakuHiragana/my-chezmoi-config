@@ -3,22 +3,22 @@ name: review-response
 description: Use whenever a frozen review finding set must be reproduced and classified before any review-response edit; performs one bounded pass and returns accepted/rejected/needs-investigation/out-of-scope plus a response contract for accepted findings, without editing or deciding loop termination. レビュー指摘の再現・4値分類専用。
 ---
 
-# Review Response
+# レビュー対応
 
-凍結した finding 集合を現成果物と task contract へ 1 回だけ再現し、修正対象を決める。この skill では成果物を編集せず、review loop の終了を判定しない。
+凍結した指摘集合を現成果物と作業契約へ 1 回だけ再現し、修正対象を決める。このスキルでは成果物を編集せず、レビュー周回の終了を判定しない。
 
 ## 入力
 
-- 凍結した成果物版と base
-- task contract の scope、acceptance criteria、invariants、verification method
-- 開始前に固定した Review finding record 集合
-- 再現に使う引用、command、test、log、生成物
+- 凍結した成果物版と基準版
+- 作業契約の範囲、受け入れ条件、不変条件、確認方法
+- 開始前に固定したレビュー指摘記録の集合
+- 再現に使う引用、コマンド、テスト、ログ、生成物
 
-Review finding record は、review skill が共通出力形式で生成した finding を入力とする。入力 record に次の field が全てあることを確認し、共通出力形式を再読する追加手順は要求しない。
+レビュー指摘記録は、レビュースキルが共通出力形式で生成した指摘を入力とする。入力記録に次の項目が全てあることを確認し、共通出力形式を再読する追加手順は要求しない。
 
-Review finding record は次の field を持つ。
+レビュー指摘記録は次の項目を持つ。
 
-- finding ID
+- 指摘 ID
 - 検査 ID
 - 重要度
 - 対象箇所
@@ -27,57 +27,57 @@ Review finding record は次の field を持つ。
 - 確認方法
 - 侵害する条件
 
-`判定不能`（検査被覆の欠損）は finding ではない。入力に混在している場合は入力不正として分離し、4 値分類へ入れてはならない。
+`判定不能`（検査被覆の欠損）は指摘ではない。入力に混在している場合は入力不正として分離し、4 値分類へ入れてはならない。
 
 ## 1 パス処理
 
-入力 finding 集合、成果物版、task contract、verification method を開始前に固定する。各 finding を次の順で 1 回だけ処理する。
+入力された指摘集合、成果物版、作業契約、確認方法を開始前に固定する。各指摘を次の順で 1 回だけ処理する。
 
-1. finding の対象と侵害する条件を task contract へ逐語で照合する。
-2. scope、acceptance criterion、invariant のいずれにも属さない場合は `out-of-scope` とする。
-3. 対応する verification method を修正前の成果物へ適用する。
+1. 指摘の対象と侵害する条件を作業契約へ逐語で照合する。
+2. 範囲、受け入れ条件、不変条件のいずれにも属さない場合は `out-of-scope` とする。
+3. 対応する確認方法を修正前の成果物へ適用する。
 4. 情報、環境、権限が不足して結果を決められない場合は `needs-investigation` とする。
 5. 契約条件の観測可能な失敗を再現した場合は `accepted` とする。
 6. 再現を完了し、指摘された失敗が存在しない、または根拠が対象と一致しない場合は `rejected` とする。
 
-途中で finding を追加してはならない。同じ finding を複数の分類へ入れてはならない。
+途中で指摘を追加してはならない。同じ指摘を複数の分類へ入れてはならない。
 
 ## 分類条件
 
-### accepted
+### `accepted`
 
-verification method のどの手順が、現成果物のどの観測値で失敗したかを記録する。criterion との関連、重要度、一般論、将来危険の推測だけで `accepted` にしてはならない。
+確認方法のどの手順が、現成果物のどの観測値で失敗したかを記録する。条件との関連、重要度、一般論、将来危険の推測だけで `accepted` にしてはならない。
 
-### rejected
+### `rejected`
 
-同じ verification method を完了した結果、指摘された失敗を確認しなかった根拠、または finding の根拠が対象と一致しない箇所を記録する。親の感想だけで `rejected` にしてはならない。
+同じ確認方法を完了した結果、指摘された失敗を確認しなかった根拠、または指摘の根拠が対象と一致しない箇所を記録する。親の感想だけで `rejected` にしてはならない。
 
-### needs-investigation
+### `needs-investigation`
 
-試みた verification method、不足する情報・環境・権限、再開条件を記録する。`accepted` または `rejected` へ丸めてはならない。
+試みた確認方法、不足する情報・環境・権限、再開条件を記録する。`accepted` または `rejected` へ丸めてはならない。
 
-### out-of-scope
+### `out-of-scope`
 
-finding の対象と、task contract の scope、acceptance criteria、invariants を逐語で照合した結果を記録する。scope 判断を新しい要求の生成に使ってはならない。
+指摘の対象と、作業契約の範囲、受け入れ条件、不変条件を逐語で照合した結果を記録する。範囲判断を新しい要求の生成に使ってはならない。
 
-## Review Response Artifact
+## レビュー対応成果物
 
-次の形式で返す。親が `.opencode/work/<slug>.review-response.md` へ外部化する。
+次の形式で返す。親がレビュー対応成果物として外部化する。
 
 ```markdown
-# Review Response Artifact
+# レビュー対応成果物
 
 ## 入力
 
-- source:
+- 情報源:
 - 凍結した成果物版:
-- task contract:
-- 固定した finding:
+- 作業契約:
+- 固定した指摘:
 
 ## 分類
 
-| finding | 分類 | 契約条件 | verification method | 修正前の観測 | 根拠または不足 | 再開条件 |
-| ------- | ---- | -------- | ------------------- | ------------ | -------------- | -------- |
+| 指摘 | 分類 | 契約条件 | 確認方法 | 修正前の観測 | 根拠または不足 | 再開条件 |
+| ---- | ---- | -------- | -------- | ------------ | -------------- | -------- |
 
 ## 件数
 
@@ -86,9 +86,9 @@ finding の対象と、task contract の scope、acceptance criteria、invariant
 - needs-investigation:
 - out-of-scope:
 
-## Review response contract
+## レビュー対応契約
 
-- accepted finding:
+- accepted 指摘:
 - 修正範囲:
 - 非対象範囲:
 - 保つ条件:
@@ -97,21 +97,21 @@ finding の対象と、task contract の scope、acceptance criteria、invariant
 - 失敗時の縮小または巻き戻し:
 ```
 
-`accepted` が 0 件なら修正契約へ `None` と書く。`accepted` だけを修正契約へ入れる。
+`accepted` が 0 件なら修正契約へ「なし」と書く。`accepted` だけを修正契約へ入れる。
 
 ## 禁止事項
 
 - 成果物を編集してはならない。
-- 新しい finding を探索または生成してはならない。
-- reviewer の検査被覆を再実行してはならない。
-- review loop の収束または終了を判定してはならない。
+- 新しい指摘を探索または生成してはならない。
+- レビュアーの検査被覆を再実行してはならない。
+- レビュー周回の収束または終了を判定してはならない。
 - `needs-investigation` または `out-of-scope` を黙示的に解消してはならない。
 
 ## 完了チェック
 
-- 入力 finding 集合、成果物版、task contract、verification method を凍結した。
-- 入力 finding を各 1 回だけ 4 値分類した。
-- `accepted` の全件で verification method の修正前失敗を再現した。
+- 入力指摘集合、成果物版、作業契約、確認方法を凍結した。
+- 入力指摘を各 1 回だけ 4 値分類した。
+- `accepted` の全件で確認方法の修正前失敗を再現した。
 - `rejected` の全件に反証根拠がある。
 - `needs-investigation` の全件に不足と再開条件がある。
 - `out-of-scope` の全件に逐語照合がある。

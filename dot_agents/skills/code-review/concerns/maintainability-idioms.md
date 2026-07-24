@@ -1,44 +1,44 @@
-# Maintainability and Idioms Review
+# 保守性と慣用表現レビュー
 
-Look for code that works today but is fragile, non-idiomatic, or bypasses language/project mechanisms that would make errors detectable.
+現在は動くが壊れやすいコード、慣用から外れたコード、またはエラーを検出しやすくする言語機構やプロジェクト機構を迂回しているコードを探す。
 
-Judge maintainability by long-term code health: modularity, analysability, modifiability, testability, readability, and consistency with the surrounding codebase.
+保守性は、長期的なコード健全性で判断する。見る観点は、部品化、分析しやすさ、変更しやすさ、テストしやすさ、読みやすさ、周辺コードとの一貫性とする。
 
-## Stringly-typed and weakly-typed logic
+## 文字列頼み、弱い型付けのロジック
 
-Actively search for closed or well-known domains represented as raw strings, numbers, maps, or unstructured objects.
+閉じた集合またはよく知られた領域が、生の文字列、数値、マップ、構造のないオブジェクトで表されていないか積極的に探す。
 
-Suspicious examples:
+疑わしい例:
 
-- concrete type names compared as strings
-- command, event, status, role, mode, field, or error-code literals repeated across branches
-- reflection or dynamic lookup where static dispatch is possible
-- conditionals or switch chains over raw literals
-- manual type tags when the language has enums, variants, pattern matching, virtual dispatch, traits, interfaces, visitors, or registries
-- literals that must match an external schema but are not centralized or generated
+- 具体的な型名を文字列として比較している。
+- コマンド、イベント、状態、役割、モード、項目、エラーコードのリテラルが分岐間で繰り返されている。
+- 静的な呼び分けが可能なのに、リフレクションや動的検索を使っている。
+- 生のリテラルに対する条件分岐や switch 文の連鎖がある。
+- 言語に列挙型、バリアント、パターン照合、仮想呼び出し、トレイト、インターフェイス、ビジター、レジストリがあるのに、手作業の型タグを使っている。
+- 外部スキーマと一致しなければならないリテラルが、集約も生成もされていない。
 
-Ask:
+質問:
 
-- Is this a closed set?
-- Can the compiler, type checker, or project convention enforce exhaustiveness?
-- Will renaming a type, field, or command silently break this code?
-- Is there an existing enum, constant, helper, trait, interface, base class, registry, or pattern-matching construct?
+- これは閉じた集合か。
+- コンパイラ、型検査器、プロジェクト慣習で網羅性を強制できるか。
+- 型、項目、コマンドの改名で、このコードは静かに壊れないか。
+- 既存の列挙型、定数、補助関数、トレイト、インターフェイス、基底クラス、レジストリ、パターン照合構文はあるか。
 
-## Existing idioms and helpers
+## 既存の慣用表現と補助機能
 
-Search nearby code before calling something a new pattern.
+新しいパターンと呼ぶ前に、近くのコードを探す。
 
-- Is a helper, extension point, utility, or abstraction already available?
-- Does the code reinvent validation, parsing, formatting, logging, retry, or mapping behavior?
-- Does it ignore newer or clearer language constructs used elsewhere in the project?
-- Does it introduce local conventions that conflict with existing names, modules, or error handling?
-- Does it make future changes more local, or does it spread knowledge across unrelated files?
-- Is any technical debt accepted intentionally, with scope and payback path clear?
+- 補助関数、拡張点、ユーティリティ、抽象化はすでにあるか。
+- 検証、解析、整形、ログ記録、再試行、対応付けの挙動を作り直していないか。
+- プロジェクト内の別の場所で使われている、より新しい、または明確な言語構文を無視していないか。
+- 既存の名前、モジュール、エラー処理と衝突する局所慣習を導入していないか。
+- 将来の変更をより局所化しているか。それとも無関係なファイルへ知識を広げているか。
+- 技術的負債を意図的に受け入れている場合、その範囲と返済経路は明確か。
 
-## Naming
+## 命名
 
-Check whether names are accurate, specific enough, and consistent with the codebase.
+名前が正確で、十分に具体的で、コードベースと一貫しているか確認する。
 
-Avoid names that are misleading, overly broad, redundant, tied to obsolete history, or inconsistent with domain vocabulary.
+誤解を招く名前、広すぎる名前、冗長な名前、古い経緯に結びついた名前、ドメイン語彙と合わない名前を避ける。
 
-Prefer one name per concept and one concept per name. Flag abbreviations, vague words, implementation-mechanic names, and names that hide domain intent.
+1 つの概念に 1 つの名前、1 つの名前に 1 つの概念を優先する。略語、曖昧な語、実装の仕組みに寄った名前、ドメイン上の意図を隠す名前を指摘する。

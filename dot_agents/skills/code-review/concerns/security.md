@@ -1,34 +1,34 @@
-# Security and Privacy Review
+# セキュリティとプライバシーレビュー
 
-Use this concern when the change touches external input, trust boundaries, secrets, permissions, or execution boundaries.
+変更が外部入力、信頼境界、秘密情報、権限、実行境界に触れる場合に使う。
 
-## Triggers
+## きっかけ
 
-- authentication or authorization
-- input validation, parsing, deserialization, or schema handling
-- filesystem paths, archives, symlinks, or generated files
-- command execution, subprocesses, shell quoting, or plugin execution
-- SQL/query construction, template rendering, HTML/Markdown output, or redirects
-- secrets, credentials, tokens, keys, or sensitive user data
-- logging, telemetry, crash reports, or debug output
-- cryptography, randomness, hashing, signatures, or certificates
-- network calls, CORS/origin checks, proxy behavior, or remote content
-- dependency loading, sandbox boundaries, permissions, or capability checks
-- new entry points, trust boundaries, privileged operations, admin functions, or cross-tenant/data-isolation behavior
-- security-relevant logs, audit events, telemetry, examples, docs, or error messages
+- 認証または認可
+- 入力検証、解析、復元、スキーマ処理
+- ファイルシステムのパス、アーカイブ、シンボリックリンク、生成ファイル
+- コマンド実行、子プロセス、シェル引用、プラグイン実行
+- SQL やクエリの組み立て、テンプレート描画、HTML や Markdown 出力、リダイレクト
+- 秘密情報、資格情報、トークン、鍵、機微な利用者データ
+- ログ記録、遠隔計測、クラッシュ報告、デバッグ出力
+- 暗号、乱数、ハッシュ、署名、証明書
+- ネットワーク呼び出し、CORS やオリジンの確認、プロキシ挙動、遠隔コンテンツ
+- 依存関係の読み込み、サンドボックス境界、権限、能力確認
+- 新しい入口、信頼境界、特権操作、管理機能、テナント間またはデータ分離の挙動
+- セキュリティに関係するログ、監査イベント、遠隔計測、例、文書、エラーメッセージ
 
-## Questions
+## 質問
 
-- What input is attacker-controlled or untrusted?
-- What authority does this code execute with?
-- Could this leak secrets or private data through logs, errors, docs, or telemetry?
-- Is validation centralized and consistent with existing policy?
-- Does fallback behavior hide security failures?
-- Does this change require a threat-model update: assets, attackers, trust boundaries, abuse cases, and mitigations?
-- Are authentication, authorization, and audit decisions enforced at the right boundary and tested negatively?
-- Are secrets centrally managed, rotated, least-privileged, and never printed or documented in plain text?
-- Could logs or errors enable log injection, information disclosure, or credential exposure?
+- どの入力が攻撃者の制御下、または信頼できないものか。
+- このコードはどの権限で実行されるか。
+- ログ、エラー、文書、遠隔計測を通じて、秘密情報や私的データが漏れないか。
+- 検証は集約されており、既存方針と一貫しているか。
+- 予備挙動がセキュリティ上の失敗を隠していないか。
+- この変更は脅威モデルの更新を必要とするか。資産、攻撃者、信頼境界、悪用例、緩和策を確認する。
+- 認証、認可、監査の判断は正しい境界で強制され、否定ケースもテストされているか。
+- 秘密情報は集約管理され、ローテーションされ、最小権限であり、平文で出力または文書化されていないか。
+- ログやエラーにより、ログ注入、情報開示、資格情報露出が起きないか。
 
-## Avoid overcorrection
+## 過剰修正を避ける
 
-Do not request security theater, unused abstraction, or blanket denial that breaks intended workflows without reducing a concrete risk.
+具体的なリスクを減らさず、意図された作業の流れを壊すだけの見せかけのセキュリティ、未使用の抽象化、一律拒否を要求してはならない。

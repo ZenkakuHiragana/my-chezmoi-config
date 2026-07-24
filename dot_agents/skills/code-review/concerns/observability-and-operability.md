@@ -1,30 +1,30 @@
-# Observability and Operability Review
+# 観測性と運用性レビュー
 
-Use this concern when the change affects production operation, supportability, troubleshooting, or user-visible failure modes.
+変更が本番運用、支援しやすさ、原因調査、または利用者から見える失敗モードに影響する場合に使う。
 
-## Triggers
+## きっかけ
 
-- new background jobs, daemons, services, queues, migrations, or scheduled tasks
-- changes to startup, shutdown, retries, timeouts, or configuration
-- new external services, files, caches, or generated artifacts
-- errors that users or operators must diagnose
-- behavior that can fail partially or recover later
-- changes that affect latency, traffic, error rate, saturation, SLI/SLO, alerting, dashboards, or runbooks
-- rollouts, canaries, background migrations, backfills, queues, retries, or external dependency changes
+- 新しい背景ジョブ、常駐処理、サービス、キュー、移行、定期タスク
+- 起動、終了、再試行、タイムアウト、設定の変更
+- 新しい外部サービス、ファイル、キャッシュ、生成物
+- 利用者または運用者が診断しなければならないエラー
+- 部分的に失敗する、または後で復旧しうる挙動
+- 遅延、通信量、エラー率、飽和度、SLI/SLO、アラート、ダッシュボード、運用手順書に影響する変更
+- 段階的公開、カナリア、背景移行、データ補完、キュー、再試行、外部依存関係の変更
 
-## Questions
+## 質問
 
-- Are errors reported with enough context to debug without leaking secrets?
-- Are logs actionable, appropriately leveled, and not too noisy?
-- Are metrics, traces, or counters needed for a new operational path?
-- Can operators tell whether a migration, backfill, or background process succeeded?
-- Is rollback or recovery behavior documented where users/operators need it?
-- Are config defaults safe and understandable?
-- Which user-visible signal changes: latency, traffic, errors, saturation, or another SLI?
-- Can logs, metrics, and traces be correlated without leaking secrets or high-cardinality user data?
-- Are alerts urgent, actionable, user-impacting, and understandable, rather than pages for symptoms with no response?
-- For canaries or staged rollout, can control and canary behavior be compared with clear success and stop criteria?
+- エラーは、秘密情報を漏らさずにデバッグできる十分な文脈付きで報告されるか。
+- ログは対処可能で、適切な重大度になっており、うるさすぎないか。
+- 新しい運用経路にメトリクス、トレース、カウンターは必要か。
+- 運用者は、移行、データ補完、背景処理が成功したか分かるか。
+- 利用者または運用者が必要とする場所に、ロールバックまたは復旧の挙動が文書化されているか。
+- 設定の既定値は安全で理解しやすいか。
+- 利用者から見えるどの信号が変わるか。遅延、通信量、エラー、飽和度、または別の SLI か。
+- ログ、メトリクス、トレースは、秘密情報や高基数の利用者データを漏らさず対応付けられるか。
+- アラートは、対応できない症状だけの呼び出しではなく、緊急で、対処可能で、利用者影響があり、理解しやすいものか。
+- カナリアまたは段階的公開では、対照側とカナリア側の挙動を、明確な成功基準と停止基準で比較できるか。
 
-## Avoid overcorrection
+## 過剰修正を避ける
 
-Do not request logging, metrics, or docs for every internal detail. Operational visibility should serve a concrete reader and failure mode.
+すべての内部詳細にログ、メトリクス、文書を要求してはならない。運用上の可視性は、具体的な読者と失敗モードに役立つ必要がある。

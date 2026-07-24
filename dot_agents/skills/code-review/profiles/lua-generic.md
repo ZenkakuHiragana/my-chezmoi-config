@@ -1,26 +1,26 @@
-# Lua Review Profile
+# Lua レビュー観点集
 
-Use this profile in addition to core concerns for Lua projects.
+Lua プロジェクトでは、共通の確認観点に加えてこの観点集を使う。
 
-## Common checks
+## 共通確認
 
-- Prefer existing luacheck, formatter, and test commands when configured.
-- Inspect module boundaries, globals policy, plugin/config conventions, and test fixtures when touched.
+- luacheck、整形、テストの既存コマンドが設定済みなら、それらを優先する。
+- モジュール境界、グローバル変数の方針、プラグインや設定の慣例、テストフィクスチャが触られている場合は確認する。
 
-## Lua-specific triggers
+## Lua 固有の着眼点
 
-- accidental globals or implicit shared state
-- `nil` handling and truthiness surprises
-- tables used ambiguously as arrays and maps
-- repeated table construction, deep copy, or string concatenation in hot paths
-- mutation of shared tables or module-level state across calls/tests
-- metatable behavior that is hard to discover
-- stringly-typed commands, event names, plugin names, or config keys without centralization
-- weak assertions around plugin/config behavior
+- 意図しないグローバル変数、または暗黙の共有状態
+- `nil` の扱いと真偽値判定による予想外の挙動
+- 配列とマップのどちらとして使うか曖昧なテーブル
+- 高頻度経路で反復されるテーブル構築、深いコピー、文字列連結
+- 呼び出し間またはテスト間で共有テーブルやモジュールレベル状態を変更している箇所
+- 見つけにくいメタテーブルの挙動
+- 一元管理なしに文字列頼みで扱われるコマンド、イベント名、プラグイン名、設定キー
+- プラグインや設定の挙動に対する弱いアサーション
 
-## Prefer
+## 優先する形
 
-- local variables and explicit module exports
-- constant tables or registries for known string domains
-- small table shapes with clear ownership
-- tests that cover nil, missing keys, and repeated invocation
+- ローカル変数と明示的なモジュール公開
+- 既知の文字列領域には定数テーブルまたはレジストリーを使う
+- 所有権が明確な小さいテーブル形状
+- `nil`、欠落キー、反復呼び出しを覆うテスト

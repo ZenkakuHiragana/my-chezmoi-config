@@ -1,51 +1,51 @@
-# Compatibility and Migration Review
+# 互換性と移行レビュー
 
-Use this concern when the change touches externally visible or persisted contracts.
+外部から見える契約、または永続化される契約に変更が触れる場合に使う。
 
-## Contracts to inspect
+## 確認する契約
 
-- database schema and migration files
-- save data and persisted game state
-- serialized file formats and cache formats
-- config file formats
-- CLI options, stdout/stderr behavior, and exit codes
-- public APIs, plugin APIs, extension points, and network protocols
-- message/event schemas
-- generated artifacts consumed by other tools
-- observable contracts such as metric names, log formats consumed by tools, dashboards, and alert labels
+- データベースのスキーマと移行ファイル
+- セーブデータと永続化されたゲーム状態
+- 直列化されたファイル形式とキャッシュ形式
+- 設定ファイルの形式
+- コマンドラインの引数、標準出力、標準エラー、終了コード
+- 公開 API、プラグイン API、拡張点、通信プロトコル
+- メッセージとイベントのスキーマ
+- 他の道具が読む生成物
+- メトリクス名、道具が読むログ形式、ダッシュボード、アラートラベルなど、観測可能な契約
 
-## Questions
+## 質問
 
-- Is old data, old config, or an old API already in the wild?
-- Is this released/shared software, or private/unreleased code?
-- Is backward compatibility explicitly required, or is a breaking change acceptable?
-- What exact public or persisted contract is affected? Do not infer compatibility risk without a contract, user, or stored data.
-- If semantic versioning or a similar policy is used, does the version impact match the public API change?
-- Is there a migration path, and is it one-way or reversible?
-- Are old fixtures or sample files tested?
-- Are corrupt, partial, or unknown-version inputs handled intentionally?
-- Is rollback possible when deployment fails?
-- Do version numbers, schema versions, changelogs, or release notes need updates?
-- Can old and new application versions safely run together during rolling deployment?
+- 古いデータ、古い設定、古い API はすでに使われているか。
+- 対象はリリース済みまたは共有済みのソフトウェアか、非公開または未リリースのコードか。
+- 後方互換性は明示的に必要か。それとも破壊的変更を許容できるか。
+- どの公開契約または永続化契約が影響を受けるか。契約、利用者、保存済みデータが無いなら、互換性リスクを推測しない。
+- セマンティックバージョニングや類似の方針が使われている場合、公開 API の変更に対して版の影響は合っているか。
+- 移行経路はあるか。その経路は一方向か、戻せるか。
+- 古いフィクスチャやサンプルファイルをテストしているか。
+- 壊れた入力、途中までの入力、版が不明な入力を意図的に扱っているか。
+- 配備に失敗したとき、ロールバックできるか。
+- 版番号、スキーマ版、変更履歴、リリースノートの更新が必要か。
+- 段階的な配備中に、古いアプリケーション版と新しいアプリケーション版を安全に同時実行できるか。
 
-## Database-specific checks
+## データベース固有の確認
 
-- migration and rollback presence when required
-- data backfill and default values for existing rows
-- deploy order across old and new application versions
-- index, constraint, and lock cost for expected table size
-- staging execution with production-like data volume when risk warrants it
-- forward-only or irreversible migration explicitly documented with recovery plan
+- 必要な場合に、移行とロールバックが用意されているか。
+- 既存行に対するデータ補完と既定値があるか。
+- 古いアプリケーション版と新しいアプリケーション版をまたぐ配備順序が妥当か。
+- 想定される表サイズに対して、索引、制約、ロックの費用が妥当か。
+- リスクがある場合に、本番に近いデータ量で検証環境実行をしているか。
+- 一方向または不可逆の移行には、復旧計画付きの明示文書があるか。
 
-## Save-data-specific checks
+## セーブデータ固有の確認
 
-- save version fields and compatibility policy
-- deterministic migration with old-save fixtures
-- partial migration failure and corruption risk
-- mod/plugin-created data handling when relevant
+- セーブ版の項目と互換性方針があるか。
+- 古いセーブのフィクスチャで決定的な移行を確認しているか。
+- 部分的な移行失敗と破損リスクを扱っているか。
+- 関連する場合、MOD やプラグインが作ったデータを扱っているか。
 
-## Important constraint
+## 重要な制約
 
-Do not request compatibility machinery by default.
+互換性の仕組みを既定で要求してはならない。
 
-If there is no released contract, no persisted user data, and no explicit compatibility requirement, prefer a simple intentional breaking change over speculative fallback paths.
+リリース済み契約、永続化された利用者データ、明示的な互換性要求が無い場合は、推測で予備経路を足すより、単純で意図的な破壊的変更を優先する。

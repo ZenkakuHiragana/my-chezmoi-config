@@ -1,47 +1,47 @@
-# Performance Review
+# 性能レビュー
 
-Do not only look for obviously slow algorithms. Search repeated paths and estimate cost using plausible input sizes.
+明らかに遅いアルゴリズムだけを見てはならない。繰り返し経路を探し、ありそうな入力規模で費用を見積もる。
 
-Frame performance as time behavior, resource utilization, and capacity. Review response time, throughput, CPU, memory, storage, network, queue length, file descriptors, connection counts, and concurrency limits when relevant.
+性能は、時間の挙動、資源利用、容量として捉える。関連する場合は、応答時間、処理量、CPU、メモリ、保存領域、ネットワーク、キュー長、ファイル記述子、接続数、並行数制限を確認する。
 
-## Repeated paths to inspect
+## 確認する繰り返し経路
 
-- loops, nested loops, recursion, iterator/stream chains
-- request handlers, render/update ticks, event handlers, polling loops
-- batch jobs, queue consumers, retries, scheduled tasks
-- per-item validation, logging, serialization, formatting, or conversion
+- ループ、入れ子ループ、再帰、イテレータやストリームの連鎖
+- リクエストハンドラー、描画や更新の刻み、イベントハンドラー、ポーリングループ
+- 一括処理、キュー消費処理、再試行、定期タスク
+- 要素ごとの検証、ログ記録、直列化、整形、変換
 
-## Expensive work inside repeated paths
+## 繰り返し経路内の高価な処理
 
-- collection materialization: `toList`, `collect`, `list`, `Array.from`, `to_vec`, temporary vector/table/map creation
-- copying or cloning: `clone`, `copy`, `deepcopy`, pass-by-value of large objects, string duplication
-- repeated sorting, filtering, grouping, deduplication, or linear search over another collection
-- repeated parsing or compilation: regex, SQL/query builders, JSON/schema parsers, format strings
-- repeated IO, DB, filesystem, network, logging, or subprocess calls
-- repeated serialization/deserialization or representation conversion
-- task/thread creation, lock acquisition, unbounded async fan-out, or synchronization inside hot paths
-- unbounded allocation, queue growth, recursion, retries, logging, or payload expansion
+- コレクション実体化: `toList`、`collect`、`list`、`Array.from`、`to_vec`、一時的なベクター、テーブル、マップの作成
+- 複写や複製: `clone`、`copy`、`deepcopy`、大きなオブジェクトの値渡し、文字列の複製
+- 別コレクションに対する並べ替え、絞り込み、グループ化、重複除去、線形検索の繰り返し
+- 解析やコンパイルの繰り返し: 正規表現、SQL やクエリ組み立て器、JSON やスキーマの解析器、書式文字列
+- 入出力、データベース、ファイルシステム、ネットワーク、ログ記録、子プロセス呼び出しの繰り返し
+- 直列化と復元、または表現変換の繰り返し
+- 高頻度経路内でのタスクやスレッドの作成、ロック取得、上限のない非同期の扇状実行、同期
+- 上限のない割り当て、キュー増加、再帰、再試行、ログ記録、ペイロード拡大
 
-## Questions
+## 質問
 
-- What is the expected input cardinality? Could it be thousands, tens of thousands, or larger?
-- Is the work invariant across iterations and movable outside the repeated region?
-- Does the code turn streaming data into a collection without needing random access?
-- Does the algorithm become O(n^2) or allocation-heavy for plausible inputs?
-- Are caches, precomputation, batching, or better data structures justified by real scale?
-- What is the capacity limit: users, requests, records, payload size, queue depth, DB size, or bandwidth?
-- Is overload handled by backpressure, throttling, bounded queues, batching, or cheap rejection rather than resource exhaustion?
-- Are benchmarks, load tests, or production metrics needed to validate the claim?
+- 想定される入力の要素数はいくつか。数千、数万、それ以上になりうるか。
+- その処理は繰り返し間で不変で、繰り返し領域の外へ移せるか。
+- ランダムアクセスが不要なのに、流れてくるデータをコレクションに変えていないか。
+- ありそうな入力で、アルゴリズムが O(n^2) になる、または割り当て過多にならないか。
+- キャッシュ、事前計算、一括化、より良いデータ構造は、実際の規模によって正当化されるか。
+- 容量上限は何か。利用者数、リクエスト数、レコード数、ペイロードサイズ、キュー深さ、データベースサイズ、帯域幅のどれか。
+- 過負荷は、資源枯渇ではなく、背圧、流量制限、上限付きキュー、一括化、低費用の拒否で扱われているか。
+- 主張を検証するために、ベンチマーク、負荷テスト、本番メトリクスは必要か。
 
-## Prefer
+## 優先すること
 
-- moving invariant work outside loops
-- streaming instead of materializing when possible
-- lookup tables, sets, maps, or indexes for repeated membership/search
-- batching IO or DB operations
-- benchmarks or regression tests for performance-sensitive behavior
-- measuring the user-visible path and the limiting resource, not only a local microbenchmark
+- 不変の処理をループ外へ移す。
+- 可能な場合は、実体化ではなくストリーム処理を使う。
+- 繰り返しの所属判定や検索には、検索表、集合、マップ、索引を使う。
+- 入出力またはデータベース操作を一括化する。
+- 性能に敏感な挙動には、ベンチマークまたは退行テストを用意する。
+- 局所的な小規模ベンチマークだけでなく、利用者から見える経路と制限資源を測る。
 
-## Avoid overcorrection
+## 過剰修正を避ける
 
-Do not request premature optimization, unclear caching, manual resource management, or readability-hostile rewrites without evidence that the path is hot or the input scale is meaningful.
+その経路が高頻度である、または入力規模に意味があるという根拠なしに、早すぎる最適化、不明確なキャッシュ、手作業の資源管理、読みやすさを損なう書き換えを要求してはならない。

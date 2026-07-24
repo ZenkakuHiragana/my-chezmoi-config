@@ -1,27 +1,27 @@
-# C++ + CMake Review Profile
+# C++ + CMake レビュー観点集
 
-Use this profile in addition to core concerns for C++ projects, especially those using CMake.
+C++ プロジェクト、特に CMake を使うプロジェクトでは、共通の確認観点に加えてこの観点集を使う。
 
-## Common checks
+## 共通確認
 
-- Prefer existing compiler, CMake preset, test, formatter, and static-analysis commands when configured.
-- Inspect `CMakeLists.txt`, presets, compile definitions, generated files, and target/link changes when touched.
+- コンパイラー、CMake プリセット、テスト、整形、静的解析の既存コマンドが設定済みなら、それらを優先する。
+- `CMakeLists.txt`、プリセット、コンパイル定義、生成ファイル、ターゲットやリンクの変更が触られている場合は確認する。
 
-## C++-specific triggers
+## C++ 固有の着眼点
 
-- accidental copies in loops or pass-by-value of large objects
-- temporary `std::vector`, `std::string`, map, or set construction in hot paths
-- raw owning pointers or missing RAII
-- dangling references, iterator invalidation, and lifetime coupling
-- undefined behavior, strict-aliasing assumptions, out-of-bounds access
-- implicit conversions and overload surprises
-- non-virtual destructor on polymorphic bases
-- exception-safety and partial-construction cleanup
-- thread-safety, lock ordering, and data races
-- preprocessor branches or compatibility macros added without a concrete contract
+- ループ内の意図しないコピー、または大きいオブジェクトの値渡し
+- 高頻度経路での一時的な `std::vector`、`std::string`、`std::map`、`std::set` の構築
+- 所有権を持つ生ポインター、または RAII の欠落
+- ダングリング参照、イテレーター無効化、生存期間の結合
+- 未定義動作、厳密なエイリアシング規則の仮定、範囲外アクセス
+- 暗黙変換とオーバーロードによる予想外の挙動
+- 多態的な基底クラスの非仮想デストラクター
+- 例外安全性と、途中まで構築された状態の後片付け
+- スレッド安全性、ロック順序、データ競合
+- 具体的な契約なしに追加されたプリプロセッサ分岐または互換性マクロ
 
-## Prefer
+## 優先する形
 
-- RAII and standard-library ownership types
-- `enum class`, `std::variant`, virtual dispatch, or visitor patterns for closed domains when appropriate
-- local clarity over speculative template or macro abstraction
+- RAII と標準ライブラリーの所有権型
+- 閉じた領域には、適切なら `enum class`、`std::variant`、仮想関数による振り分け、ビジターパターンを使う
+- 推測でテンプレートやマクロに抽象化するより、局所的な分かりやすさを優先する

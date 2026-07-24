@@ -1,41 +1,41 @@
-# Responsibility Boundaries Review
+# 責務境界レビュー
 
-Do not only ask whether the implementation works. Ask whether the code lives in the correct layer or module.
+実装が動くかだけを問わない。コードが正しい層またはモジュールに置かれているかを問う。
 
-## Inspect
+## 確認するもの
 
-- directory structure and nearby implementations
-- interfaces, adapters, domain/application/infrastructure boundaries
-- public API boundaries and extension points
-- dependency direction and ownership of business rules
-- helper functions and project conventions already used for similar behavior
-- stakeholders and concerns affected by the decision, such as maintainers, users, operators, plugin authors, or downstream API consumers
+- ディレクトリ構造と近くの実装
+- インターフェイス、アダプター、ドメイン、アプリケーション、基盤の境界
+- 公開 API 境界と拡張点
+- 依存方向と業務ルールの所有者
+- 類似挙動で既に使われている補助関数とプロジェクト慣習
+- 保守者、利用者、運用者、プラグイン作者、下流 API 利用者など、その判断に影響を受ける関係者と関心事
 
-## Trigger patterns
+## きっかけになるパターン
 
-- adapter, controller, route, UI, or command layer contains business policy
-- infrastructure code decides domain rules
-- domain code imports framework, database, filesystem, HTTP, UI, or plugin details
-- new code bypasses an existing abstraction or extension point
-- concrete implementation details leak through an interface boundary
-- dependency direction is reversed
-- logic is duplicated because the right owner was not found
-- tests require excessive mocks because responsibilities are misplaced
-- a single layer performs parsing, validation, policy, persistence, and presentation
+- アダプター、制御器、経路、UI、コマンド層が業務方針を含んでいる。
+- 基盤コードがドメインルールを決めている。
+- ドメインコードが、フレームワーク、データベース、ファイルシステム、HTTP、UI、プラグイン詳細を取り込んでいる。
+- 新しいコードが既存の抽象化または拡張点を迂回している。
+- 具体的な実装詳細がインターフェイス境界から漏れている。
+- 依存方向が逆転している。
+- 正しい所有者が見つかっていないため、ロジックが重複している。
+- 責務の置き場所が不適切なため、テストで過剰なモックが必要になっている。
+- 1 つの層が、解析、検証、方針、永続化、表示をすべて行っている。
 
-## Questions
+## 質問
 
-- Which layer owns this decision?
-- Is this behavior already represented elsewhere?
-- Would another implementation need to duplicate this logic?
-- Does the change make the abstraction more honest or more leaky?
-- Is the adapter merely adapting, or is it implementing policy?
-- Is the architectural decision important enough to need an ADR, design note, or code comment explaining rationale and rejected alternatives?
-- Does the boundary still make the change easy to analyze, modify, test, and reuse?
+- この判断はどの層が所有するか。
+- この挙動はすでに別の場所で表現されているか。
+- 別の実装でもこのロジックを重複させる必要があるか。
+- その変更は抽象化をより正直にしているか。それとも漏れやすくしているか。
+- アダプターは単に変換しているだけか。それとも方針を実装しているか。
+- その設計判断は、理由と不採用案を説明する ADR、設計メモ、コードコメントが必要なほど重要か。
+- その境界は、変更を分析、修正、テスト、再利用しやすいままにしているか。
 
-## Prefer
+## 優先すること
 
-- moving policy to the owner that can enforce it consistently
-- keeping adapters thin unless the architecture intentionally says otherwise
-- using existing extension points rather than bypassing them
-- naming uncertainty as `Uncertain` if architecture context is missing
+- 方針を、一貫して強制できる所有者へ移す。
+- アーキテクチャが意図的に別の方針を示していない限り、アダプターを薄く保つ。
+- 既存の拡張点を迂回せずに使う。
+- アーキテクチャ文脈が不足している場合は、不確実性を判定保留として名付ける。

@@ -1,36 +1,36 @@
-# Concurrency and Async Review
+# 並行処理と非同期レビュー
 
-Use this concern when the change touches threads, async tasks, event loops, callbacks, shared state, ordering, or timeouts.
+変更がスレッド、非同期タスク、イベントループ、コールバック、共有状態、順序、タイムアウトに触れる場合に使う。
 
-## Triggers
+## きっかけ
 
-- shared mutable state without clear synchronization
-- lock acquisition in new order or inside callbacks
-- blocking IO inside async/event-loop code
-- unbounded task creation or fan-out
-- missing cancellation, timeout, backpressure, or shutdown handling
-- races between initialization, disposal, retry, or reconnect paths
-- assumptions about callback ordering or single-thread execution
-- fire-and-forget work whose errors are ignored
-- sleep-based synchronization in tests or production code
-- check-then-act, read-modify-write, time-of-check/time-of-use, double initialization, or cache update windows
-- retries, deadlines, cancellation, and cleanup that interact across multiple async layers
+- 明確な同期がない共有可変状態
+- 新しい順序、またはコールバック内でのロック取得
+- 非同期コードやイベントループ内のブロックする入出力
+- 上限のないタスク作成や扇状の並列実行
+- キャンセル、タイムアウト、背圧、終了処理の欠落
+- 初期化、破棄、再試行、再接続の経路間の競合
+- コールバック順序や単一スレッド実行への仮定
+- エラーが無視される投げっぱなしの処理
+- テストまたは本番コードでの、待ち時間に依存した同期
+- 確認してから実行、読んでから書く更新、確認時と使用時のずれ、二重初期化、キャッシュ更新中の隙間
+- 複数の非同期層をまたいで相互作用する、再試行、期限、キャンセル、後始末
 
-## Questions
+## 質問
 
-- What owns task lifetime and cancellation?
-- Can this code run concurrently for the same resource?
-- Are locks acquired in a consistent order?
-- What happens on timeout, cancellation, or partial completion?
-- Are tests deterministic without relying on real time?
-- Are locks held while awaiting, blocking on IO, invoking callbacks, or calling external code?
-- Are errors from background tasks observed and surfaced?
-- Is there a stress, race-window, or cancellation test for high-risk concurrent behavior?
+- タスクの寿命とキャンセルは何が所有しているか。
+- このコードは同じ資源に対して並行実行されうるか。
+- ロックは一貫した順序で取得されているか。
+- タイムアウト、キャンセル、部分完了では何が起きるか。
+- テストは実時間に依存せず決定的か。
+- 待機中、入出力でのブロック中、コールバック呼び出し中、外部コード呼び出し中にロックを保持していないか。
+- 背景タスクのエラーは観測され、表に出るか。
+- 高リスクの並行挙動に対して、負荷、競合の隙間、キャンセルを確認するテストはあるか。
 
-## Prefer
+## 優先すること
 
-- explicit ownership and cancellation boundaries
-- bounded queues or concurrency limits when scale is unknown
-- deterministic synchronization in tests
-- failing visibly when async work cannot complete safely
-- cooperative cancellation propagation and deadlines that prevent wasted work
+- 所有権とキャンセル境界を明示する。
+- 規模が不明な場合は、上限付きキューまたは並行数制限を使う。
+- テストでは決定的な同期を使う。
+- 非同期処理が安全に完了できない場合は、見える形で失敗させる。
+- 協調的なキャンセル伝播と、無駄な作業を防ぐ期限を使う。

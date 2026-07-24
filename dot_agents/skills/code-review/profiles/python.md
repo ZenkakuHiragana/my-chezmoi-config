@@ -1,33 +1,33 @@
-# Python Review Profile
+# Python レビュー観点集
 
-Use this profile to add high-risk Python semantic checks to the core concerns for Python source, tests, and Python API documentation. It is not a complete Python style guide.
+Python ソース、テスト、Python API 文書では、共通の確認観点に高リスクな Python の意味確認を加えるためにこの観点集を使う。完全な Python スタイルガイドとして扱ってはならない。
 
-## Common checks
+## 共通確認
 
-- Prefer existing pytest, tox, nox, ruff, mypy, pyright, and coverage commands when configured.
-- Inspect supported Python versions, dependency versions, public API compatibility, and warning/deprecation policy when relevant.
+- pytest、tox、nox、ruff、mypy、pyright、coverage の既存コマンドが設定済みなら、それらを優先する。
+- 関連する場合は、対応 Python 版、依存関係の版、公開 API 互換性、警告や非推奨の方針を確認する。
 
-## High-risk Python semantic triggers
+## 高リスクな Python 意味確認の着眼点
 
-- regex validators where `$` is used as an absolute end check; in Python, `$` can match before a final newline, so `\Z`, `fullmatch`, or explicit length checks may be required
-- cache-key, dispatch, or deduplication logic that changes between identity, equality, hashing, ordering, or string coercion
-- equality or truthiness on user-provided values; `__eq__` may raise, return non-bool results such as array-like masks, or be expensive for large objects
-- removed or rewritten comments that documented Python semantic hazards, especially correctness/performance trade-offs in repeated cache, fixture, dispatch, or validation paths
-- exception, error-handler, middleware, context manager, generator, fixture, teardown, cleanup, or finalization paths that must run on both handled and unhandled failures
-- framework lifecycle hooks such as `finally`, `__exit__`, async cleanup, teardown handlers, `after_*` hooks, session persistence, signals, metrics, and response finalization
-- docs or changelog text that names Python attributes, exception types, decorators, context managers, fixtures, warning classes, or public import paths changed by the diff
+- 正規表現バリデーターで、絶対的な末尾確認として `$` を使っている箇所。Python では `$` が末尾の改行の直前にも一致するため、`\Z`、`fullmatch`、または明示的な長さ確認が必要になる場合がある
+- 同一性、等価性、ハッシュ化、順序付け、文字列への強制変換の間で変わるキャッシュキー、振り分け、重複排除の処理
+- 利用者から渡された値に対する等価性や真偽値判定。`__eq__` は例外を投げたり、配列風のマスクなど bool ではない結果を返したり、大きいオブジェクトで高コストになったりする場合がある
+- Python の意味上の危険を記録していたコメントの削除または書き換え。特に、反復されるキャッシュ、フィクスチャ、振り分け、検証経路での正しさと性能の兼ね合いに注意する
+- 処理済みの失敗と未処理の失敗の両方で実行される必要がある、例外、エラー処理、ミドルウェア、コンテキストマネージャー、ジェネレーター、フィクスチャ、後片付け、最終処理の経路
+- `finally`、`__exit__`、非同期後片付け、後片付けハンドラー、`after_*` フック、セッション永続化、シグナル、メトリクス、応答の最終処理など、フレームワークのライフサイクルフック
+- 差分で変わった Python 属性、例外型、デコレーター、コンテキストマネージャー、フィクスチャ、警告クラス、公開インポート経路に言及する文書または変更履歴
 
-## Python review checks
+## Python レビュー確認
 
-- For regex validation changes, check absolute start/end semantics, `re.MULTILINE`, trailing-newline behavior, byte/string parity, empty input behavior, and boundary tests for rejected characters.
-- For equality/cache changes, separately review correctness, exception safety, and cost. Check equal-but-not-identical values, identical-but-non-equal fallbacks, array-like comparisons, custom `__eq__`, and large parameter values.
-- If prior code or comments named an expensive equality, hashing, conversion, or allocation concern, either report the cost as a separate finding or explicitly state why the repeated path, input scale, or compatibility contract makes it non-material.
-- For exception or handler changes, enumerate the success path, handled-error path, unhandled-error path, default/no-handler path, and nested-error path. Confirm each required path still reaches finalization or deliberately skips it.
-- For framework or test-runner lifecycle changes, verify that teardown, finalizers, session writes, signals, hooks, context resets, and resource cleanup still run when user callbacks raise.
-- For public docs, compare every mentioned attribute, exception class, decorator, fixture name, import path, config key, and warning type against the implementation.
+- 正規表現検証の変更では、絶対的な開始/終了の意味、`re.MULTILINE`、末尾改行の挙動、バイト列と文字列の同等性、空入力の挙動、拒否される文字の境界テストを確認する。
+- 等価性やキャッシュの変更では、正しさ、例外安全性、コストを分けてレビューする。等しいが同一ではない値、同一だが等しくない場合の代替処理、配列風の比較、独自の `__eq__`、大きいパラメーター値を確認する。
+- 以前のコードまたはコメントが、高コストな等価性、ハッシュ化、変換、割り当ての懸念に言及していた場合は、そのコストを別の指摘として報告するか、反復経路、入力規模、互換性契約により重要でない理由を明示する。
+- 例外またはハンドラーの変更では、成功経路、処理済みエラー経路、未処理エラー経路、既定/ハンドラーなし経路、入れ子エラー経路を列挙する。必要な各経路が最終処理に到達するか、意図的に飛ばしていることを確認する。
+- フレームワークまたはテスト実行器のライフサイクル変更では、利用者コールバックが例外を投げても、後片付け、ファイナライザー、セッション書き込み、シグナル、フック、コンテキストリセット、リソース後片付けが実行され続けるか確認する。
+- 公開文書では、言及されているすべての属性、例外クラス、デコレーター、フィクスチャ名、インポート経路、設定キー、警告型を実装と照合する。
 
-## Prefer
+## 優先する形
 
-- targeted regression tests that fail on the old behavior and cover the risky Python semantic edge case
-- small local guards around Python semantic hazards instead of broad cache, regex, or framework rewrites
-- explicit uncertainty when the excerpt omits surrounding lifecycle, callback, or equality semantics
+- 古い挙動で失敗し、危険な Python の意味上の境界事例を覆う、焦点を絞った退行テスト
+- キャッシュ、正規表現、フレームワークを広く書き換えるのではなく、Python の意味上の危険の周囲に置く小さい局所的な保護処理
+- 抜粋が周辺のライフサイクル、コールバック、等価性の意味を省いている場合は、不確実性を明示する

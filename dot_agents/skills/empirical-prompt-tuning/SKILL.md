@@ -3,7 +3,7 @@ name: empirical-prompt-tuning
 description: Use when a prompt, skill, command, or agent instruction has been created or substantially changed and needs empirical validation with frozen scenarios and fresh executors; not for one-off prompts or preference-only wording tweaks. 実験的な検証専用。比較可能な評価結果と改善判断を返す。
 ---
 
-# Empirical Prompt Tuning
+# プロンプトの実験的調整
 
 プロンプト作成者の読み直しだけを検証扱いしない。
 固定した検証シナリオ、新しい実行者、分離した採点を使い、指示変更が実際に効くか確認する。
@@ -16,15 +16,15 @@ description: Use when a prompt, skill, command, or agent instruction has been cr
 - 評価設計を実行前に固定する。
 - 実行者は採点チェックリスト、変種ラベル、意図した改善点を見ない。
 - 採点は実行者と分離する。
-- requirement ごとに根拠付き score を付ける。
+- 要件ごとに根拠付きの採点を付ける。
 - 1 回の実行だけで採用判断しない。
-- validation で改善しても hold-out の退行を確認する。
+- 検証用集合で改善しても保留集合の退行を確認する。
 
 ## 反復 0
 
-委譲実行前に、description と本文の対応を確認する。
+委譲実行前に、説明文と本文の対応を確認する。
 
-- frontmatter `description` の約束
+- フロントマター `description` の約束
 - 本文が実際に命じる行動
 - 使用条件 / 不使用条件
 - 期待される返答
@@ -35,13 +35,13 @@ description: Use when a prompt, skill, command, or agent instruction has been cr
 
 固定する項目:
 
-- 対象 prompt
+- 対象プロンプト
 - 失敗の型
 - 対象に含める / 除外する作業種別
 - 検証シナリオの集合または分割
-- requirement チェックリスト
-- `[critical]` labels
-- scoring 規則
+- 要件チェックリスト
+- `[critical]` ラベル
+- 採点規則
 - 反復回数
 - ランダム化 / 均衡化
 - 比較規則
@@ -49,36 +49,36 @@ description: Use when a prompt, skill, command, or agent instruction has been cr
 - 採用規則
 - 固定後に許す変更
 
-計画を見た後に検証シナリオ、チェックリスト、critical labels を動かすなら版を上げ、baseline からやり直す。
+計画を見た後に検証シナリオ、チェックリスト、重要ラベルを動かすなら版を上げ、基準版からやり直す。
 
 ## 検証シナリオの分割
 
-重要 prompt:
+重要プロンプト:
 
 - `train`: 修正設計に使う
 - `validation`: 反復ごとに固定再実行
 - `hold-out`: 採用前だけ確認
 
-検証シナリオには典型、境界、情報不足、tool 多用、既知失敗、不使用条件の事例を混ぜる。
+検証シナリオには典型、境界、情報不足、ツール多用、既知失敗、不使用条件の事例を混ぜる。
 
 ## 渡す情報
 
 実行者に渡す情報:
 
-- 対象 prompt
+- 対象プロンプト
 - 検証シナリオ
-- 必要な入力 path / ファイル
-- task
+- 必要な入力パス / ファイル
+- タスク
 - 報告形式
 
 採点者に渡す情報:
 
 - 固定済みチェックリスト
-- scoring 規則
-- critical labels
+- 採点規則
+- 重要ラベル
 - 採用可能な根拠
 
-実行者に scoring 情報一式を渡さない。
+実行者に採点情報一式を渡さない。
 
 ## 実行者の報告
 
@@ -96,15 +96,15 @@ description: Use when a prompt, skill, command, or agent instruction has been cr
 {
   "requirement_id": "R3",
   "judgment": "pass | partial | fail",
-  "evidence": "artifact or admissible evidence",
-  "missing": "what is absent",
+  "evidence": "成果物または採用可能な根拠",
+  "missing": "不足しているもの",
   "confidence": "high | medium | low"
 }
 ```
 
 成功条件:
 
-- すべての `[critical]` requirement が `pass`
+- すべての `[critical]` 要件が `pass`
 
 合格率:
 
@@ -114,32 +114,32 @@ description: Use when a prompt, skill, command, or agent instruction has been cr
 
 ## 比較
 
-prompt の変種は A/B として匿名化し、必要なら順序をランダム化または均衡化する。
+プロンプトの変種は A/B として匿名化し、順序が結果に影響しうるときはランダム化または均衡化する。
 文章量が多い出力では対比較を追加してよい。
 
 ## 採用判断の材料
 
 主な材料:
 
-- critical 通過率
-- requirement 通過率
+- 重要通過率
+- 要件通過率
 - 停止実行率
 - 新しい曖昧さ
 - 新しい裁量補完
 
 補助材料:
 
-- tool 使用回数の中央値
+- ツール使用回数の中央値
 - 所要時間の中央値
-- retries
+- 再試行回数
 - 疑わしい場合の出力量
 
 採用判断の目安:
 
-- validation critical 通過率が baseline 以上
-- 合計 score が改善、または実行負荷が下がり critical 失敗が増えない
+- 検証用集合の重要通過率が基準版以上
+- 合計点が改善、または実行負荷が下がり重要失敗が増えない
 - 採点者の不一致が悪化しない
-- hold-out が崩れない
+- 保留集合が崩れない
 
 ## 手順
 
@@ -149,40 +149,40 @@ prompt の変種は A/B として匿名化し、必要なら順序をランダ�
 4. 新しい盲検実行者を走らせる。
 5. 固定済み出力を別の採点者が採点する。
 6. 変種または反復を比較する。
-7. 最小の prompt 変更を 1 つのまとまったテーマだけ適用する。
-8. 同じ validation 検証シナリオを新しい実行者で再実行する。
-9. 改善が頭打ちになったら hold-out を確認する。
+7. 最小のプロンプト変更を 1 つのまとまったテーマだけ適用する。
+8. 同じ検証用集合の検証シナリオを新しい実行者で再実行する。
+9. 改善が頭打ちになったら保留集合を確認する。
 10. 採用、次の変更、または取り消しを決める。
 
 ## 返す形式
 
 ```markdown
-## Iteration N
+## 反復 N
 
-### Change from previous iteration
+### 前回反復からの変更
 
-- <summary>
+- <要約>
 
-### Validation summary
+### 検証要約
 
-| Scenario | Runs | Critical pass rate | Pass rate | median steps | median duration | blocked rate |
-| -------- | ---: | -----------------: | --------: | -----------: | --------------: | -----------: |
+| シナリオ | 実行数 | 重要要件通過率 | 通過率 | 手順数中央値 | 所要時間中央値 | 停止率 |
+| -------- | -----: | -------------: | -----: | -----------: | -------------: | -----: |
 
-### New ambiguities
+### 新しい曖昧さ
 
-- <scenario>: <requirement and reason>
+- <シナリオ>: <要件と理由>
 
-### New discretionary fill-ins
+### 新しい裁量補完
 
-- <scenario>: <fill-in>
+- <シナリオ>: <補完内容>
 
-### Scorer disagreement
+### 採点者間の不一致
 
-- <scenario / requirement>: <summary>
+- <シナリオ / 要件>: <要約>
 
-### Next prompt change
+### 次のプロンプト変更
 
-- <smallest next change>
+- <最小の次変更>
 ```
 
 ## 完了チェック
@@ -190,6 +190,6 @@ prompt の変種は A/B として匿名化し、必要なら順序をランダ�
 - 評価設計を固定した。
 - 実行者は評価条件を伏せた新規セッション。
 - 採点者は実行者と分離した別工程で採点する。
-- requirement-level evidence がある。
-- critical failures を平均点で隠していない。
-- hold-out の退行を確認した、または未実施理由を明示した。
+- 要件単位の根拠がある。
+- 重要失敗を平均点で隠していない。
+- 保留集合の退行を確認した、または未実施理由を明示した。

@@ -1,164 +1,127 @@
-# Artifact integrity
+# 成果物の整合性
 
-Use this reference to decide whether a sentence may exist inside a final artifact.
+最終成果物の本文に文を入れてよいかを判断するときに使う。
 
-A final artifact is text that an intended reader will read later, such as a
-README, specification, operation guide, design note, code comment, prompt text,
-skill instruction, release note, reusable chat-produced draft, or ordinary
-documentation section.
+最終成果物とは、意図した読者が後で読む文章である。例として、README、仕様、運用ガイド、設計メモ、コードコメント、プロンプト本文、スキル指示、リリースノート、会話から作った再利用可能な下書き、通常の文書節がある。
 
-## Core rule
+## 中心規則
 
-User instructions, review comments, drafting constraints, old states, rejected
-structures, implementation notes, and completion reports are control inputs for
-producing the artifact. They are not artifact content unless the artifact is
-explicitly a review result, changelog, migration note, decision record, incident
-report, or editing report.
+ユーザー指示、レビューコメント、執筆上の制約、古い状態、採用しなかった構成、実装メモ、完了報告は、成果物を作るための制御入力である。成果物がレビュー結果、変更履歴、移行案内、意思決定記録、障害報告、編集報告であると明示されていない限り、それらは成果物本文ではない。
 
-Apply control inputs by changing the artifact's current subject content. Do not
-narrate the control input inside the artifact.
+制御入力は、成果物の現在の主題内容を変えることで反映する。成果物の中で制御入力を説明してはならない。
 
-Feedback updates the subject model. It is not a fact to record in ordinary
-artifact prose.
+指摘は主題モデルを更新する。通常の成果物本文に記録する事実ではない。
 
-## Artifact contract
+## 成果物契約
 
-Before drafting or revising a reusable artifact, identify:
+再利用可能な成果物を書く、または直す前に、次を特定する。
 
-- artifact kind
-- intended reader
-- reader context
-- artifact purpose
-- temporal stance
-- whether companion context is allowed
-- allowed discourse acts
-- forbidden discourse acts
+- 成果物の種類
+- 想定読者
+- 読者の文脈
+- 成果物の目的
+- 時間上の立場
+- 併用する文脈を許すか
+- 許可する言説行為
+- 禁止する言説行為
 
-The final artifact may contain only discourse acts licensed by that contract.
+最終成果物には、その契約が許可した言説行為だけを入れる。
 
-## Sentence admission test
+## 文の採用判定
 
-Before finalizing an artifact, classify each sentence or paragraph as one of:
+成果物を確定する前に、各文または各段落を次のいずれかに分類する。
 
-- current subject content
-- reader action guidance
-- artifact-required metadata
-- domain caveat needed by the reader
-- historical or migration note licensed by the artifact kind
-- operational report
-- review meta
-- response to current user feedback
-- instruction-to-content leakage
-- rejected-frame contrast
-- deprecated-state tombstone
-- author self-evaluation
-- chat-context-dependent text
+- 現在の主題内容
+- 読者への行動案内
+- 成果物に必要なメタ情報
+- 読者に必要な領域上の注意点
+- 成果物の種類が許可する履歴または移行注記
+- 運用報告
+- レビューに関する付帯情報
+- 現在のユーザー指摘への返答
+- 指示から本文への漏れ
+- 採用しなかった枠組みとの対比
+- 廃止済み状態の墓標
+- 書き手の自己評価
+- 会話文脈に依存する文章
 
-For normative artifacts such as README files, specifications, ordinary
-documentation, code comments, prompt instructions, and skill instructions, keep
-only:
+README、仕様、通常の文書、コードコメント、プロンプト指示、スキル指示などの規範的な成果物では、次だけを残す。
 
-- current subject content
-- reader action guidance
-- artifact-required metadata
-- domain caveat needed by the reader
+- 現在の主題内容
+- 読者への行動案内
+- 成果物に必要なメタ情報
+- 読者に必要な領域上の注意点
 
-Remove or transform the others unless the artifact kind explicitly licenses them.
+成果物の種類が明示的に許可しない限り、その他は削るか変換する。
 
-## Do not turn constraints into content
+## 制約を本文にしてはならない
 
-When the user says how the artifact should be written, treat that as a writing constraint.
+ユーザーが成果物の書き方を指定した場合は、執筆上の制約として扱う。
 
-Do not state that the artifact avoids a rejected structure, incorporates
-feedback, changes from a previous version, or follows the latest instruction
-unless the artifact is explicitly a changelog, review result, decision record,
-or editing report.
+成果物が変更履歴、レビュー結果、意思決定記録、編集報告であると明示されていない限り、採用しなかった構成を避けたこと、指摘を取り込んだこと、前版から変えたこと、最新の指示に従ったことを書いてはならない。
 
-Apply the constraint by changing the artifact's structure and subject content.
-Do not narrate the constraint inside the artifact.
+制約は、成果物の構造と主題内容を変えることで反映する。成果物の中で制約を説明してはならない。
 
-A sentence is suspect when it only makes sense as a contrast against a draft,
-review comment, or alternative structure that the final reader cannot see.
+最終読者が見られない下書き、レビューコメント、別構成との対比としてしか意味を持たない文は疑う。
 
-Bad:
+悪い例:
 
-```text
-This document does not organize the change history commit by commit.
-It summarizes the final changes by area.
-```
+    この文書は変更履歴をコミット単位では整理しない。
+    最終的な変更を領域別に要約する。
 
-Better:
+より良い例:
 
-```text
-This document summarizes the main changes and their intent by area.
-```
+    この文書は主な変更とその意図を領域別に要約する。
 
-Best when the surrounding text already establishes the scope:
+周囲の本文で範囲がすでに分かるなら最良:
 
-```text
-Delete the sentence.
-```
+    その文を削る。
 
-## Do not leave old states as tombstones
+## 古い状態を墓標として残してはならない
 
-When the user provides old state as background for an update, replace the old
-state with the current state. Do not leave a warning-shaped tombstone in a
-current-state overview.
+ユーザーが更新の背景として古い状態を示した場合は、古い状態を現在の状態で置き換える。現在状態の概要に、警告の形をした墓標を残してはならない。
 
-Bad:
+悪い例:
 
-```text
-The old documentation directories are not used.
-Treat the normalized documentation directory as the source of truth.
-```
+    古い文書ディレクトリは使われていない。
+    正規化された文書ディレクトリを正本として扱う。
 
-Better:
+より良い例:
 
-```text
-Related documents are centralized under the normalized documentation directory.
-```
+    関連文書は正規化された文書ディレクトリに集約されている。
 
-Better in a directory overview:
+ディレクトリ概要でのより良い例:
 
-```markdown
-- `knowledge` ... Normalized design and dependency documents.
-```
+    - 設計資料 ... 正規化された設計文書と依存文書。
 
-Mention old directories, old APIs, old workflows, or rejected structures only
-when the reader will actually encounter them, or when the artifact is a
-migration guide, changelog, deprecation note, compatibility note, incident
-report, review result, or decision record.
+古いディレクトリ、古い API、古い作業手順、採用しなかった構成は、読者が実際に遭遇する場合、または成果物が移行案内、変更履歴、廃止予定の注記、互換性注記、障害報告、レビュー結果、意思決定記録である場合に限り言及する。
 
-## Keep review results out of repaired prose
+## 直した本文にレビュー結果を混ぜてはならない
 
-Review result formats are licensed only for review-result artifacts.
+レビュー結果の形式は、レビュー結果という成果物にだけ許可される。
 
-When turning a review finding into revised artifact prose, do not copy:
+レビュー指摘を成果物本文へ反映するときは、次を写してはならない。
 
-- review headings
-- scope fields
-- context fields
-- issue IDs
-- importance labels
-- rationale paragraphs
-- out-of-scope placeholders
-- statements about what was reviewed this time
+- レビュー見出し
+- 範囲欄
+- 文脈欄
+- 課題 ID
+- 重要度ラベル
+- 理由説明の段落
+- 範囲外の穴埋め
+- 今回レビューした内容の説明
 
-Use the review result as a control input. Convert the finding into current subject content that fits the target artifact contract.
+レビュー結果は制御入力として扱う。指摘は、対象成果物の契約に合う現在の主題内容へ変換する。
 
-## Output separation
+## 出力の分離
 
-If the final answer needs both an artifact and a completion report, keep them separate.
+最終回答に成果物と完了報告の両方が必要な場合は、分けて出す。
 
-Never put completion reports, verification notes, change summaries, or
-explanations of what was fixed inside the artifact body unless the artifact kind
-explicitly asks for that history.
+成果物の種類が履歴を明示的に求めない限り、完了報告、検証メモ、変更要約、修正内容の説明を成果物本文に入れてはならない。
 
-Before finishing, ask:
+完了前に次を確認する。
 
-- Does every sentence have a legitimate reason to exist for the intended reader?
-- Does any sentence depend on a hidden draft, rejected frame, user correction,
-  review result, or chat exchange?
-- Would deleting the sentence remove subject information the reader needs, or
-  only remove evidence of the writing process?
-- If the sentence is a contrast, does the reader truly need the contrasted item?
+- すべての文に、想定読者にとって存在すべき正当な理由があるか
+- 見えない下書き、採用しなかった枠組み、ユーザー修正、レビュー結果、会話に依存する文があるか
+- その文を削ると、読者に必要な主題情報が消えるか、それとも執筆過程の痕跡だけが消えるか
+- 対比文である場合、読者は対比対象を本当に必要とするか

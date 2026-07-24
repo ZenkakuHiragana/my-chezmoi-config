@@ -1,15 +1,15 @@
-# Rendered artifact checks
+# 表示済み成果物の確認
 
-For Typst, slide decks, PDFs, and other rendered outputs, validate presentation early enough that prose decisions are made against the real layout.
+Typst、スライド資料、PDF など、表示結果を持つ出力物では、実際の配置を見ながら本文を判断できる時点で表示を検証する。
 
-Check at least:
+最低限、次を確認する。
 
-- heading numbering behaves as intended
-- tables fit and remain readable
-- long paths, code, or identifiers do not destroy layout
-- lists and section spacing are visually scannable
-- the title page and section order match the intended audience
+- 見出し番号が意図どおりに振られる
+- 表が収まり、読みやすさを保つ
+- 長いパス、コード、識別子で配置が壊れない
+- 箇条書きと節の間隔を目で追いやすい
+- 表紙と節の順序が想定読者に合う
 
-Do one render after the first coherent draft and another after major structural edits.
+まとまった初稿ができた後に一度、構造を大きく直した後にもう一度、表示結果を確認する。
 
-Do not defer layout validation until the very end when structural fixes would become expensive.
+構造修正の費用が大きくなる最終段階まで、配置の検証を延期してはならない。

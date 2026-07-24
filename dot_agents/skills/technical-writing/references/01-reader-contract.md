@@ -1,30 +1,30 @@
-# Reader contract
+# 読者契約
 
-Before outlining a substantial document, write down the reader contract in concrete terms.
+大きめの文書を構成する前に、読者契約を具体的に書き出す。
 
-At minimum, identify:
+最低限、次を特定する。
 
-- who will read the document
-- what decision, understanding, or action they need after reading
-- what surrounding context they do or do not have access to
-- what the document may safely assume they already know
+- 誰が読むか
+- 読後に必要な判断、理解、行動は何か
+- 読者が参照できる周辺文脈と、参照できない周辺文脈は何か
+- 文書が安全に前提としてよい読者の既知知識は何か
 
-If the task is for another team, management, customers, or any other audience outside the current drafting context, assume they do not have the ticket, chat, or review history unless the user explicitly says otherwise.
+別チーム、管理者、顧客など、現在の作成文脈の外にいる読者へ向ける作業では、ユーザーが明示しない限り、読者は作業票、会話、レビュー履歴を参照できないものとして扱う。
 
-Assume they also cannot see prompt wording, user instructions, review comments, or rejected draft structures unless the writing process itself is part of the subject.
+読者は、プロンプト文面、ユーザー指示、レビューコメント、採用しなかった構成案も参照できないものとして扱う。ただし、執筆過程そのものが主題である場合は例外とする。
 
-Do not let the writer's workflow replace the reader contract.
+書き手の作業手順で読者契約を置き換えてはならない。
 
-Bad anchors:
+悪い構成軸:
 
-- what was investigated first
-- which issue was fixed last
-- what feedback the writer just received
-- what instruction or review comment told the writer what not to do
+- 最初に調査したこと
+- 最後に修正した課題
+- 書き手が直前に受け取った指摘
+- 何をしてはならないかを示した指示やレビューコメント
 
-Good anchors:
+良い構成軸:
 
-- what the reader needs to know first
-- what categories or decisions the reader must distinguish
-- what misunderstandings the document must prevent
-- the direct positive statement that explains the current subject
+- 読者が最初に知る必要のあること
+- 読者が区別しなければならない分類や判断
+- 文書が防がなければならない誤解
+- 現在の主題を説明する直接的な肯定文

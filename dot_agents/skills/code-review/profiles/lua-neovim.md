@@ -1,30 +1,30 @@
-# Lua + Neovim Review Profile
+# Lua + Neovim レビュー観点集
 
-Use this profile for Neovim Lua configuration or plugins in addition to `profiles/lua-generic.md`.
+Neovim の Lua 設定またはプラグインでは、Lua 共通観点に加えてこの観点集を使う。
 
-## Triggers
+## 着眼点
 
-- global state or options changed without restoring or documenting scope
-- autocmds, keymaps, commands, or highlights registered repeatedly
-- plugin setup order, lazy-loading, or dependency assumptions
-- buffer-local vs global behavior confused
-- `vim.g`, global keymaps, pattern-wide autocmds, or global options used where buffer-local or window-local scope may be intended
-- user commands or keymaps named by raw strings in multiple places
-- compatibility fallbacks for old Neovim or plugin versions added without a stated support policy
-- docs that describe private config history instead of user-facing behavior
+- グローバル状態またはオプションを変更し、復元や有効範囲の文書化をしていない箇所
+- autocmd、キーマップ、コマンド、ハイライトを反復登録している箇所
+- プラグイン初期化順序、遅延読み込み、依存関係の仮定
+- バッファーローカルとグローバルの挙動の混同
+- バッファーローカルまたはウィンドウローカルが意図される可能性のある場所での、`vim.g`、グローバルキーマップ、広いパターンの autocmd、グローバルオプションの使用
+- 複数箇所で生の文字列によって名付けられたユーザーコマンドまたはキーマップ
+- 明記された対応方針なしに追加された、古い Neovim またはプラグイン版向けの互換性代替処理
+- 利用者向けの挙動ではなく、非公開の設定履歴を説明している文書
 
-## Questions
+## 確認質問
 
-- Is this project personal config, a reusable plugin, or shared team config?
-- Are repeated source/reload operations safe?
-- Are commands, autocmd groups, and keymaps idempotent where needed?
-- For each option, autocmd, keymap, highlight, or command, is the intended scope global, buffer-local, window-local, tab-local, or project-local?
-- Does a global registration accidentally affect every buffer when the behavior is meant for one filetype, project, or buffer?
-- Does the change follow existing plugin-manager and module patterns?
+- このプロジェクトは個人設定、再利用可能なプラグイン、共有チーム設定のどれか。
+- `source` や再読み込みを繰り返しても安全か。
+- コマンド、autocmd グループ、キーマップは、必要な箇所で冪等か。
+- 各オプション、autocmd、キーマップ、ハイライト、コマンドの意図した有効範囲は、グローバル、バッファーローカル、ウィンドウローカル、タブローカル、プロジェクトローカルのどれか。
+- あるファイルタイプ、プロジェクト、バッファーだけを対象にした挙動が、グローバル登録によって誤って全バッファーに影響しないか。
+- 変更は既存のプラグイン管理器とモジュールの型に従っているか。
 
-## Prefer
+## 優先する形
 
-- named augroups and clear cleanup semantics
-- local scope for buffer-specific behavior
-- explicit `buffer`, filetype pattern, or local option use when behavior is not meant to be global
-- direct config when there is no public compatibility contract
+- 名前付き augroup と明確な後片付けの意味
+- バッファー固有の挙動にはローカルの有効範囲を使う
+- グローバルにする意図がない挙動では、明示的な `buffer`、ファイルタイプパターン、ローカルオプションを使う
+- 公開された互換性契約がない場合は、直接的な設定にする

@@ -1,26 +1,26 @@
-# C# + .NET Review Profile
+# C# + .NET レビュー観点集
 
-Use this profile in addition to core concerns for C# and .NET projects.
+C# と .NET のプロジェクトでは、共通の確認観点に加えてこの観点集を使う。
 
-## Common checks
+## 共通確認
 
-- Prefer existing solution, project, test, format, and analyzer commands when configured.
-- Inspect `.csproj`, `.sln`, analyzer settings, nullable settings, generated docs, and CI when touched.
+- ソリューション、プロジェクト、テスト、整形、アナライザーの既存コマンドが設定済みなら、それらを優先する。
+- `.csproj`、`.sln`、アナライザー設定、null 許容設定、生成文書、CI が触られている場合は確認する。
 
-## C#-specific triggers
+## C# 固有の着眼点
 
-- `ToList`, `ToArray`, `Select(...).ToList`, boxing, LINQ chains, or string allocation inside repeated paths
-- repeated reflection, regex construction, serialization, or service lookup
-- type names, enum-like states, commands, or property names compared as strings
-- missing nullable handling or null-forgiving operators hiding uncertainty
-- `async void`, fire-and-forget tasks, missing cancellation tokens, or blocking on async work
-- `IDisposable`/`IAsyncDisposable` ownership and cleanup issues
-- exceptions swallowed by broad `catch` or speculative fallbacks
-- XML documentation missing or stale for public APIs when generated docs matter
+- 反復される経路内の `ToList`、`ToArray`、`Select(...).ToList`、ボックス化、LINQ 連鎖、文字列割り当て
+- 反復されるリフレクション、正規表現の構築、シリアライズ、サービス検索
+- 型名、列挙型風の状態、コマンド、プロパティ名を文字列で比較している箇所
+- null 許容の扱い漏れ、または不確実性を隠す null 許容警告の抑制演算子
+- `async void`、完了確認しないタスク、キャンセルトークンの欠落、非同期処理の同期ブロック
+- `IDisposable`/`IAsyncDisposable` の所有権と後片付けの問題
+- 広すぎる `catch` や推測的な代替処理で例外を握りつぶしている箇所
+- 生成文書が重要な場合の、公開 API に対する XML 文書の欠落または陳腐化
 
-## Prefer
+## 優先する形
 
-- pattern matching, enums, `nameof`, polymorphism, or typed registries for closed domains
-- moving invariant materialization outside loops
-- clear ownership for disposable resources
-- analyzer warnings treated as review evidence when relevant
+- 閉じた領域には、パターンマッチング、列挙型、`nameof`、多態性、型付きレジストリーを使う
+- ループ内で変わらない具象化はループ外へ移す
+- 破棄が必要なリソースの所有権を明確にする
+- 関連する場合は、アナライザー警告をレビュー根拠として扱う

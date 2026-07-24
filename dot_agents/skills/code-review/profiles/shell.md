@@ -1,41 +1,41 @@
-# Shell Script Review Profile
+# シェルスクリプト レビュー観点集
 
-Use this profile in addition to core concerns for shell scripts.
+シェルスクリプトでは、共通の確認観点に加えてこの観点集を使う。
 
-## Common checks
+## 共通確認
 
-- Prefer existing shellcheck, formatter, and project test commands when configured.
-- Inspect target shell, portability policy, CI OS matrix, and invocation docs when relevant.
+- shellcheck、整形、プロジェクトテストの既存コマンドが設定済みなら、それらを優先する。
+- 関連する場合は、対象シェル、移植性方針、CI の OS 組み合わせ、呼び出し文書を確認する。
 
-## Shell-specific triggers
+## シェル固有の着眼点
 
-- unquoted variables, word splitting, globbing, and unsafe `eval`
-- missing `--` before user-controlled paths
-- unsafe temporary files or cleanup traps
-- pipelines hiding failures or relying on unspecified `set -e` behavior
-- new shell function calls, sourced helpers, scripts, commands, traps, or hooks that are not defined or sourced on the execution path
-- similarly named shell functions where a rename may have left a stale call site
-- command-builder functions that can print more than one line when callers expect one command string
-- command availability assumptions without a project policy
-- environment-variable fallback branches added without user requirement
-- silent fallbacks that hide real errors
-- parsing human-readable command output when structured output exists
-- docs that describe environment variables or switches not actually supported
+- クォートされていない変数、単語分割、ワイルドカード展開、安全でない `eval`
+- 利用者が制御するパスの前にあるべき `--` の欠落
+- 安全でない一時ファイル、または後片付け用の `trap`
+- 失敗を隠すパイプライン、または仕様化されていない `set -e` の挙動への依存
+- 実行経路上で定義または読み込まれていない、新しいシェル関数呼び出し、読み込まれる補助関数、スクリプト、コマンド、`trap`、フック
+- 改名漏れで古い呼び出し箇所が残った可能性のある、似た名前のシェル関数
+- 呼び出し側が 1 つのコマンド文字列を期待しているのに、複数行を出力しうるコマンド組み立て関数
+- プロジェクト方針なしのコマンド利用可能性の仮定
+- 利用者要求なしに追加された環境変数の代替分岐
+- 本当のエラーを隠す無言の代替処理
+- 構造化出力があるのに、人間向けコマンド出力を解析している箇所
+- 実際には対応していない環境変数や切り替え指定を説明している文書
 
-## Prefer
+## 優先する形
 
-- explicit target shell and portability assumptions
-- direct failure with useful errors over speculative fallback
-- narrow traps and cleanup for temporary resources
-- quoting and arrays where the shell supports them
+- 対象シェルと移植性の仮定を明示する
+- 推測的な代替処理より、有用なエラーを伴う直接失敗を優先する
+- 一時リソースには範囲の狭い `trap` と後片付けを使う
+- シェルが対応する場合はクォートと配列を使う
 
-## Shell review checks
+## シェルレビュー確認
 
-- For every new function call in a changed branch, confirm the definition is in the same file, sourced file, or documented shell environment.
-- Do a short definition sweep before ranking findings: list the helper calls in the changed control-flow path, then check whether each one resolves. Do not stop after the first unresolved-looking helper.
-- Prioritize unresolved calls in state-changing paths such as startup, reset, clear, retry, watcher, migration, and cleanup flows.
-- Treat a modified shell function as a unit. Re-check helper calls in shared tail code and existing branches that remain reachable after the changed branch returns or falls through.
-- Generic helper calls in CLI-specific lifecycle code are suspicious when only a specific variant is visible. For example, a generic startup sender call near a defined CLI-specific startup sender may be a stale rename unless the generic helper is also defined or sourced.
-- If the excerpt is partial, distinguish definite stale-call evidence from uncertain missing-context evidence. A call to `send_startup_prompt` next to a defined `send_codex_startup_prompt`, for example, is stronger stale-call evidence than a general helper whose definition may simply be outside the excerpt.
-- For command-construction helpers, check that exactly one command string is emitted on success unless the contract explicitly allows multi-line output.
-- For CLI reset, wake-up, retry, or watcher paths, name the focused tests that should cover the changed route.
+- 変更された分岐にある新しい関数呼び出しごとに、定義が同じファイル、読み込まれるファイル、または文書化されたシェル環境にあることを確認する。
+- 指摘の優先度を付ける前に、定義を短く確認する。変更された制御フロー経路にある補助関数呼び出しを列挙し、それぞれが解決できるか確認する。未解決に見える最初の補助関数だけで止めてはならない。
+- 起動、リセット、クリア、再試行、監視、移行、後片付けの流れなど、状態変更経路にある未解決呼び出しを優先する。
+- 変更されたシェル関数は 1 つの単位として扱う。変更された分岐が戻る、または後続へ流れたあとも到達可能な共通末尾処理と既存分岐の補助関数呼び出しを再確認する。
+- CLI 固有のライフサイクル処理にある汎用補助関数呼び出しは、特定の派生形だけが見えている場合に疑わしい。たとえば、定義済みの CLI 固有の起動送信関数の近くに汎用の起動送信関数呼び出しがある場合、汎用補助関数も定義または読み込まれていない限り、古い改名漏れの可能性がある。
+- 抜粋が一部だけの場合は、明確な古い呼び出し根拠と、文脈不足による不確実な根拠を区別する。たとえば、定義済みの `send_codex_startup_prompt` の近くにある `send_startup_prompt` 呼び出しは、定義が単に抜粋外にある可能性のある一般的な補助関数よりも、古い呼び出しの根拠として強い。
+- コマンド構築の補助関数では、契約が複数行出力を明示的に許す場合を除き、成功時にコマンド文字列をちょうど 1 つだけ出力することを確認する。
+- CLI のリセット、復帰、再試行、監視の経路では、変更された経路を覆う重点テストを名指しする。

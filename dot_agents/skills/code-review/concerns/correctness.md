@@ -1,38 +1,38 @@
-# Correctness Review
+# 正しさレビュー
 
-Review whether the implementation satisfies the stated or implied contract.
+実装が、明示または暗黙の契約を満たしているか確認する。
 
-## Triggers
+## きっかけ
 
-- Code behavior diverges from PR text, comments, issue requirements, tests, or docs.
-- New branches do not preserve existing edge-case behavior.
-- Error handling changes success/failure semantics.
-- State transitions, ordering, retries, or cleanup depend on unstated assumptions.
-- Boundary cases are not visible in code or tests.
-- Defaults, units, encodings, time zones, locale, precision, or rounding are implicit.
-- New or renamed functions, commands, hooks, handlers, generated files, config keys, or fixtures are referenced but not defined, imported, registered, generated, or exercised.
-- A call target has a nearby similarly named symbol, suggesting a stale rename or copy/paste mistake.
-- Overload, timeout, retry, cancellation, or partial failure can leave state corrupted, work duplicated, or errors hidden.
-- Retry logic lacks retriable/non-retriable classification, deadlines, backoff, jitter, or a retry budget.
+- コードの挙動が、PR 本文、コメント、課題の要求、テスト、文書から外れている。
+- 新しい分岐が、既存の境界ケースの挙動を保っていない。
+- エラー処理が成功と失敗の意味を変えている。
+- 状態遷移、順序、再試行、後始末が、明示されていない仮定に依存している。
+- 境界ケースがコードまたはテストに見えていない。
+- 既定値、単位、符号化、タイムゾーン、ロケール、精度、丸めが暗黙になっている。
+- 新規または改名された関数、コマンド、フック、ハンドラー、生成ファイル、設定キー、フィクスチャが参照されているが、定義、取り込み、登録、生成、実行確認がない。
+- 呼び出し先の近くに似た名前のシンボルがあり、古い改名漏れや複写貼り付けミスが疑われる。
+- 過負荷、タイムアウト、再試行、キャンセル、部分失敗により、状態破損、作業重複、エラー隠蔽が起こりうる。
+- 再試行ロジックに、再試行可能かどうかの分類、期限、待機間隔、ジッター、再試行上限がない。
 
-## Questions
+## 質問
 
-- What behavior is promised to callers or users?
-- Which inputs are valid, empty, large, malformed, missing, duplicated, or out of order?
-- What happens on partial failure?
-- Does the code fail loudly when recovery semantics are unclear?
-- Are comments and tests describing the same behavior the code implements?
-- Can every new reference introduced by the diff be resolved from the changed file, imports, generated outputs, or surrounding project conventions?
-- Would a missing reference fail at compile time, test time, startup, or only in a rare runtime path?
-- Did you sweep all high-risk new references, or only stop after the first suspicious unresolved symbol?
-- In a partial excerpt, is the risk a definite mismatch against a nearby definition, or an uncertain external dependency that should be reported with lower confidence?
-- What should happen under overload, dependency failure, timeout, cancellation, and partial completion?
-- Can failed or repeated operations safely run twice, roll back, or resume?
+- 呼び出し元または利用者へ約束している挙動は何か。
+- どの入力が、妥当、空、大量、不正形式、欠落、重複、順不同として扱われるか。
+- 部分失敗では何が起きるか。
+- 復旧の意味が不明な場合、コードは見える形で失敗するか。
+- コメントとテストは、コードが実装している挙動と同じ挙動を説明しているか。
+- 差分で導入された新しい参照はすべて、変更ファイル、取り込み、生成物、周辺のプロジェクト慣習から解決できるか。
+- 参照欠落は、コンパイル時、テスト時、起動時、まれな実行経路のどこで失敗するか。
+- リスクの高い新規参照をすべて確認したか。それとも最初の怪しい未解決シンボルで止まっただけか。
+- 部分抜粋では、そのリスクは近くの定義との明確な不一致か。それとも信頼度を下げて報告すべき不確かな外部依存か。
+- 過負荷、依存先失敗、タイムアウト、キャンセル、部分完了では何が起きるべきか。
+- 失敗した操作や繰り返された操作は、安全に二度実行、ロールバック、再開できるか。
 
-## Prefer
+## 優先すること
 
-- explicit preconditions and postconditions when they matter
-- clear error propagation with context
-- fail-fast or degraded behavior when recovery semantics are defined
-- tests that demonstrate the intended externally observable behavior
-- narrow fixes over broad rewrites
+- 重要な場合は、事前条件と事後条件を明示する。
+- 文脈付きでエラーを明確に伝播する。
+- 復旧の意味が定義されている場合は、即時失敗または劣化動作を明確にする。
+- 意図した外部観測可能な挙動を示すテストを書く。
+- 広い書き換えより、狭い修正を優先する。

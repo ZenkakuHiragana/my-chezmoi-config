@@ -1,38 +1,38 @@
-# Test Coverage Review
+# テスト網羅レビュー
 
-Check whether the change is protected by tests appropriate to its risk and contract.
+変更が、そのリスクと契約に合うテストで守られているか確認する。
 
-## Cases to look for
+## 探すケース
 
-- normal path
-- boundary values
-- equivalence classes and representative inputs
-- decision-table combinations when behavior depends on several conditions
-- state transitions when state or workflow changes
-- empty, missing, null/nil, or default input
-- large input when scale matters
-- invalid or malformed input
-- error handling and partial failure
-- concurrency, ordering, cancellation, or timeout behavior when relevant
-- resource cleanup
-- backward compatibility only when a compatibility contract exists
-- migration behavior for persisted data
-- regression test for the fixed bug or changed contract
-- performance-sensitive behavior when a performance cliff is plausible
-- dispatch, routing, command-construction, reset/retry, or lifecycle paths changed by the diff
-- reference-definition checks when a dynamic language, shell script, plugin system, generated file, or runtime registry would not catch missing symbols at compile time
-- static analysis, compiler/analyzer warnings, lint, type checks, or fuzz/property tests when the change risk justifies them
+- 通常経路
+- 境界値
+- 同値クラスと代表入力
+- 挙動が複数条件に依存する場合の、判断表に基づく組み合わせ
+- 状態または作業の流れが変わる場合の状態遷移
+- 空、欠落、`null` / `nil`、既定入力
+- 規模が重要な場合の大きな入力
+- 無効または不正形式の入力
+- エラー処理と部分失敗
+- 関連する場合の、並行処理、順序、キャンセル、タイムアウトの挙動
+- 資源の後始末
+- 互換性契約がある場合だけ、後方互換性
+- 永続化データの移行挙動
+- 修正した不具合または変更された契約に対する退行テスト
+- 性能の崖がありそうな場合の、性能に敏感な挙動
+- 差分で変わった、呼び分け、経路選択、コマンド組み立て、リセットや再試行、寿命管理の経路
+- 動的言語、シェルスクリプト、プラグインシステム、生成ファイル、実行時レジストリが欠落シンボルをコンパイル時に捕まえない場合の、参照と定義の確認
+- 変更リスクが正当化する場合の、静的解析、コンパイラや解析器の警告、リント、型検査、ファズテスト、性質テスト
 
-## Questions
+## 質問
 
-- What behavior would break if this change regressed?
-- Which caller or user-visible contract needs protection?
-- Are important edge cases absent because tests only cover the happy path?
-- Are project test conventions and CONTRIBUTING requirements followed?
-- Which focused existing tests would prove that a changed dispatch or command path still returns exactly the expected value?
-- Would a broken implementation actually fail these tests?
-- Is the test level appropriate: unit for local logic, integration for component contracts, end-to-end for critical user workflows?
+- この変更が退行した場合、どの挙動が壊れるか。
+- どの呼び出し元または利用者から見える契約を守る必要があるか。
+- テストが成功経路だけを覆っているため、重要な境界ケースが欠けていないか。
+- プロジェクトのテスト慣習と CONTRIBUTING の要求に従っているか。
+- 変更された呼び分けまたはコマンド経路が、期待値を正確に返すことを証明する、焦点の合った既存テストはどれか。
+- 壊れた実装なら、そのテストは実際に失敗するか。
+- テストの水準は適切か。局所ロジックには単体テスト、部品契約には結合テスト、重要な利用者作業には端から端までのテストを使っているか。
 
-## Avoid overcorrection
+## 過剰修正を避ける
 
-Do not demand broad test suites for trivial mechanical changes. Match test depth to risk, public contract, and failure cost.
+ささいな機械的変更に対して、広いテスト群を要求してはならない。テストの深さは、リスク、公開契約、失敗費用に合わせる。
