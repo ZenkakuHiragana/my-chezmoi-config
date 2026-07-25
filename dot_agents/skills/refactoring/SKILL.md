@@ -1,10 +1,10 @@
 ---
 name: refactoring
 description: >
-  Use only for explicitly behavior-preserving structural cleanup of existing code or prompts after current behavior is understood; not for feature delivery, bugfixes, or changes whose behavior is still uncertain. 構造整理専用。名前、責務、重複、境界を整えつつ挙動を保つ。
+  Use only for explicitly behavior-preserving structural cleanup of existing code or prompts after current behavior is understood; not for feature delivery, bugfixes, or changes whose behavior is still uncertain. リファクタリング専用。名前、責務、重複、境界を整えつつ挙動を保つ。
 ---
 
-# 構造整理
+# リファクタリング
 
 既存挙動を変えずに、構造、名前、責務境界、重複、読みやすさを改善する。
 
@@ -35,10 +35,10 @@ description: >
 
 1. 現在の構造、呼び出し経路、不変条件を整理する。
 2. 意味の対応表を作る。
-3. まとまった最小の構造整理を選ぶ。
+3. まとまった最小のリファクタリングを選ぶ。
 4. 削除、統合、抽出を優先する。
 5. 短さだけを理由に意味が違う補助関数 / API へ置換しない。
-6. コード、テスト、文書、指示文を必要に応じて同時更新する。
+6. コード、テスト、文書、プロンプト本文を必要に応じて同時更新する。
 7. 変更した面を再読し、古い名前や説明なしの意味置換を探す。
 8. 直接確認と変更前後の根拠で検証する。
 9. 挙動変更が避けられない場合は別作業として扱う。

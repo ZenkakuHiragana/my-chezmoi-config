@@ -6,10 +6,10 @@
     - 標準のローカル失敗ログ保存先: `~/.local/share/chezmoi/.opencode/local-failure-logs/`
     - 失敗記録手順: `dot_config/opencode/agents/report-failure.md`
     - セッション採掘手順: `dot_config/opencode/agents/extract-failure-patterns.md`
-    - 失敗分類手順: `dot_config/opencode/agents/triage-failure.md`
-    - 構造整理チェックリスト等: opencode-prompt-dev/prompt-refactor-checklist.md
-- 失敗ログ、セッション採掘レポート、失敗分類レポートは原則としてローカル失敗ログルートに保存し、追跡対象ファイルには運用規則と確定済みの改善だけを残します。
-- 失敗や改善案はまず上記の失敗ログに記録し、その後構造整理ワークフローで差分を適用してください。
+    - 失敗の選別と介入判断手順: `dot_config/opencode/agents/triage-failure.md`
+    - リファクタリングチェックリスト等: opencode-prompt-dev/prompt-refactor-checklist.md
+- 失敗ログ、セッション採掘レポート、失敗の選別と介入判断レポートは原則としてローカル失敗ログルートに保存し、追跡対象ファイルには運用規則と確定済みの改善だけを残します。
+- 失敗や改善案はまず上記の失敗ログに記録し、その後リファクタリングワークフローで差分を適用してください。
 
 ## プロンプトに使用する言語
 
@@ -35,7 +35,7 @@
   - `name`: 英語の kebab-case（ハイフン区切り小文字）を維持する。
   - フロントマターの `description`: 英語の発火語を主にし、必要なら短い日本語要約を1文だけ添える。詳細手順は書かない。
   - 本文: 日本語で短く書く。逐語翻訳ではなく、用途、手順、出力、チェックを箇条書き中心に再設計する。
-  - 機械的に照合される値、キー、固定名だけ英語のまま維持する。例: スキル名、経路制御名、スキーマフィールド、引き渡し名、`status` 値、`severity` 値、`unknown`、`repo_derivable`、`public_fact`、`user_provided`、受け入れ条件、確認方法。
+  - 機械的に照合される値、キー、固定名だけ英語のまま維持する。例: スキル名、経路制御名、スキーマフィールド、引き渡し名、`status` 値、`severity` 値、`unknown`、`repo_derivable`、`public_fact`、`user_provided`。
   - 英語維持語彙の棚卸しは `opencode-prompt-dev/english-token-allowlist.md` を正本にする。
   - 制御語彙以外の英語は原則として使わない。残す場合は、本文の近くで意味が分かるように書く。
   - コマンドスキルテンプレートの本文が `dot_config/opencode/agents/*.md` を取り込む場合、取り込み先の言語規則に従う。
@@ -62,7 +62,7 @@
    - すべてのエージェントに適用される共通規則。
    - 可能な限り小さく抑える。
    - 分岐を書いてはいけない。Build エージェントの場合は～などと書きたくなったら、それは書くべき階層が異なる。
-2. エージェント システムプロンプト (dot_config/opencode/agents/\*.md, dot_config/opencode/agents/\*.md.tmpl)
+2. エージェント用システムプロンプト (dot_config/opencode/agents/\*.md, dot_config/opencode/agents/\*.md.tmpl)
    - Build、Plan、サブエージェント、コマンド用エージェントに対応したシステムプロンプト。
    - 要求の分類やエージェント固有の規則を書く。
    - 具体的な作業内容については言及してはいけない。スキルへの誘導はよい。

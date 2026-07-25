@@ -4,7 +4,7 @@ description: >
   Use when readiness is `pass` or `pass_with_assumption`, or when a fixed requirement contract / other task contract already exists, but execution still needs ordered work items, dependencies, read/write surfaces, handoff points, or completion checks captured in a durable task file; not when stage, scope, acceptance criteria, or verification are still unsettled, or when one focused pass can finish safely. 実行計画の固定専用。再開可能なタスクファイルと次のスキルを返す。
 ---
 
-# 作業計画
+# タスク計画
 
 固定済みの作業契約を、後続の実行者が再開できるタスクファイルに変換する。
 このスキルでは実装しない。
@@ -12,7 +12,7 @@ description: >
 
 ## 入力
 
-- 明確な作業説明
+- 明確なタスク説明
 - `準備完了記録` が `pass` または `pass_with_assumption`、または同等の準備完了判定
 - `要件契約`（`context-clarification` が出す作業契約）または同等の作業契約
 - リポジトリ文脈
@@ -31,7 +31,7 @@ description: >
 
 ## タスクファイルのルール
 
-- 1 作業は 1 ファイルにする。
+- 1 タスクは 1 ファイルにする。
 - 現在タスクファイルには短い識別子だけを書く。
 - 作業項目は、後続実行者が再設計せずに実行できる粒度にする。
 - 依存関係、読む範囲、書く範囲、`side_effect_mode`、確認方法を明示する。
@@ -56,7 +56,7 @@ description: >
 ## テンプレート
 
 ```markdown
-# 作業: <題名>
+# タスク: <題名>
 
 ## 要求された結果
 
@@ -139,5 +139,5 @@ description: >
 - 範囲や受け入れ条件を勝手に増減していない。
 - レビュー結果へ対応する作業では、修正前の再現が実装作業項目より前にある。
 - レビュー結果へ対応する作業では、修正後に同じ確認方法と作業契約のテストを実行する。
-- 現在作業の識別子は短い識別子のみ。
+- 現在タスクの識別子は短い識別子のみ。
 - 次の能力集合が最小十分。

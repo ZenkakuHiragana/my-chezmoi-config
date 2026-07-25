@@ -106,7 +106,7 @@ Cursor の `@docs` が教科書的なパターンである。外部のドキュ�
 
 ### 記憶・由来メタデータ系
 
-`kruschdev/krusch-context-mcp` は、コードベースの現実と記憶を突き合わせてから行動する Zero-Trust Deep Search を持ち、`source_type` や信頼度のメタデータを付与する。`ipiton/agent-memory-mcp` は、型付き記憶、ドキュメント RAG、リポジトリ道具を統合し、由来メタデータを重視する。
+`kruschdev/krusch-context-mcp` は、コードベースの現実と記憶を突き合わせてから行動する Zero-Trust Deep Search を持ち、`source_type` や信頼度のメタデータを付与する。`ipiton/agent-memory-mcp` は、型付き記憶、ドキュメント RAG、リポジトリツールを統合し、由来メタデータを重視する。
 
 この系統は、複数情報源の由来を区別し、矛盾を検出する後端の規律に効く。
 
