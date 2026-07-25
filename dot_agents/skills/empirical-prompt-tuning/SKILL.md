@@ -18,7 +18,7 @@ description: Use when a prompt, skill, command, or agent instruction has been cr
 - 採点は実行者と分離する。
 - 要件ごとに根拠付きの採点を付ける。
 - 1 回の実行だけで採用判断しない。
-- 検証用集合で改善しても最終確認用の未使用集合の退行を確認する。
+- 検証用集合で改善しても、最終確認用の未使用集合（`hold-out`。以下「最終確認集合」）の退行を確認する。
 
 ## 反復 0
 
@@ -57,7 +57,7 @@ description: Use when a prompt, skill, command, or agent instruction has been cr
 
 - `train`: 修正設計に使う設計用集合
 - `validation`: 反復ごとに固定再実行する反復確認用集合
-- `hold-out`: 採用前だけ使う最終確認用の未使用集合
+- `hold-out`: 採用前だけ使う最終確認集合
 
 検証シナリオには典型、境界、情報不足、ツール多用、既知失敗、不使用条件を混ぜる。
 
@@ -139,7 +139,7 @@ description: Use when a prompt, skill, command, or agent instruction has been cr
 - 検証用集合の重要通過率が基準版以上
 - 合計点が改善、または実行負荷が下がり重要失敗が増えない
 - 採点者の不一致が悪化しない
-- 最終確認用の未使用集合が崩れない
+- 最終確認集合が崩れない
 
 ## 手順
 
@@ -151,7 +151,7 @@ description: Use when a prompt, skill, command, or agent instruction has been cr
 6. 変種または反復を比較する。
 7. 最小のプロンプト変更を 1 つのまとまったテーマだけ適用する。
 8. 同じ検証用集合の検証シナリオを新しい実行者で再実行する。
-9. 改善が頭打ちになったら最終確認用の未使用集合を確認する。
+9. 改善が頭打ちになったら最終確認集合を確認する。
 10. 採用、次の変更、または取り消しを決める。
 
 ## 返す形式
@@ -192,4 +192,4 @@ description: Use when a prompt, skill, command, or agent instruction has been cr
 - 採点者は実行者と分離した別工程で採点する。
 - 要件単位の根拠がある。
 - 重要失敗を平均点で隠していない。
-- 最終確認用の未使用集合の退行を確認した、または未実施理由を明示した。
+- 最終確認集合の退行を確認した、または未実施理由を明示した。
