@@ -51,3 +51,6 @@ vim.o.exrc = true
 
 -- ヘルプ日本語化
 vim.opt.helplang = { "ja", "en" }
+
+-- 日本語スペルチェック無効化
+vim.opt.spelllang = { "en", "cjk" }
