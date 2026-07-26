@@ -21,11 +21,11 @@ description: Use when work stage, scope, acceptance criteria, verification metho
 
 1. 現在有効な上位指示の `コンテキスト収集規則` にある `作業段階` から、現在地と進もうとする段階を確定する。
 2. 4つの文脈層を、それぞれ `confirmed` / `not_needed` / `missing` / `blocked` に分類し、根拠を添える。
-3. 不足を `user_decision` / `repo_derivable` / `subsystem_derivable` / `public_fact` / `contract_gap` / `implementation_discretion` に分類する。
+3. 不足を `user_decision` / `repo_derivable` / `subsystem_derivable` / `public_fact` / `contract_gap` に分類する。
 4. 調査で解ける不足は、判定を出す前に `investigation` / `public-research` へ回す。`user_decision` は `grill-me` または直接質問へ回す。
 5. `bounded` と `broad-or-unclear` では、一回限りの境界走査を行う。
    - 境界1 基準化: 入力された条件の役割、強さ、範囲、認可元を確認する。
-   - 境界2 判断: 複数の選択肢で受け入れ結果や後続判断が変わる箇所を露出する。
+   - 境界2 判断: 複数の選択肢で受け入れ結果や後続判断が変わる箇所を露出する。実装者へ選択を委ねる候補がある場合は、上位指示の `実装詳細を実装者へ委ねる条件` に従い、何を選んでよいかの具体的な範囲を特定する。その範囲内の実装案ごとに照合対象を変えないか、委ねてよいと判断した根拠は何かを確認する。
    - 境界3 実現: 何を変え、何を保ち、どの所有境界へ置くかを確認する。
    - 境界4 実行: 誰が、どの入口、ツール、環境、実経路で結果を生むかを確認する。
    - 境界5 評価: どの観測が、どの受け入れ条件を、どの利用者文脈で支持するか確認する。
@@ -41,7 +41,7 @@ description: Use when work stage, scope, acceptance criteria, verification metho
 - `work_class`: `tiny-local` / `bounded` / `broad-or-unclear`
 - 作業段階: 現在地と、進もうとする段階
 - 文脈層の状態: 依頼 / サブシステム / ワークスペース / 外部基盤の各層について `confirmed` / `not_needed` / `missing` / `blocked` と根拠
-- 未解決の不足: 各項目に分類（`user_decision` / `repo_derivable` / `subsystem_derivable` / `public_fact` / `contract_gap` / `implementation_discretion`）
+- 未解決の不足: 各項目に分類（`user_decision` / `repo_derivable` / `subsystem_derivable` / `public_fact` / `contract_gap`）
 - 残る `user_decision`: 未解決のユーザー判断の一覧（無ければ `なし`）
 - `要件契約`: 固定済みなら参照、未固定なら理由
 - 要件レビュー結果: `bounded` と `broad-or-unclear` では参照、`tiny-local` では `なし`
@@ -61,6 +61,8 @@ description: Use when work stage, scope, acceptance criteria, verification metho
 
 `結果`は`no-decision`（今回の受け入れ可否を変える判断は露出しなかった）、`resolved`（判断を固定または範囲認可した）、`blocked`（未認可の判断が残った）のいずれか。`blocked`が1件でもあれば`pass`にはしない。
 
+`判断` の行では、実装者へ選択を委ねる候補があれば、選べる具体的な範囲と、その範囲内のどの実装案でも照合対象を変えない根拠を記録する。該当しない場合は `なし` とする。根拠を示せない選択を `resolved` にしてはならない。
+
 空欄禁止。該当なしは `なし`。
 
 ## `要件契約`（出力契約）
@@ -79,7 +81,7 @@ description: Use when work stage, scope, acceptance criteria, verification metho
 | ID  | 判断 | 役割 | 確定状態 | 固定内容または認可範囲 | 認可元と根拠 | 適用範囲 | 戻り条件 |
 | --- | ---- | ---- | -------- | ---------------------- | ------------ | -------- | -------- |
 
-役割は制約・許可・選好。確定状態は確認済み・仮定（未確認の項目は契約へ入れず `準備完了記録` の `blocked` に残す）。
+役割は制約・許可・選好。`判断と認可` 表の確定状態には、確認済みまたは仮定を記録する。仮定は `準備完了記録` と `要件契約` へ記録する。別の項目が `blocked` でも、既に仮定として暫定採用した項目を `準備完了記録` または `要件契約` から除いてはならない。暫定採用しない未確認項目は契約へ入れず、`準備完了記録` の `blocked` に残す。
 
 - 条項根拠表: 各条項 / 根拠 / 情報の所有先 / 確認に使う資料またはコマンド
 - 影響するテストと文書
@@ -93,16 +95,21 @@ description: Use when work stage, scope, acceptance criteria, verification metho
 - 必要な文脈層に `missing` も `blocked` も無い。
 - 残る `user_decision` がゼロ。
 - 発見境界の確認に`blocked`が0件。
+- 発見境界の `判断` で実装者へ委ねるとした各選択について、選べる具体的な範囲と、その範囲内のどの実装案でも照合対象を変えない根拠がある。
 - `判断と認可`表の全判断に認可元がある。
 - `受け入れ条件と確認`表の各行に、実経路と観測経路が対応している。
 - 範囲の含む / 含まないが確定している。
+- `判断と認可` 表に `仮定` がない。
 - `bounded` と `broad-or-unclear` では `review-orchestration` の台帳に `ready_for_exit_check` が記録されている。
 
 `pass_with_assumption` を許す範囲:
 
-- 未解決の不足が `implementation_discretion` だけのとき。
-- 置いた仮定は `準備完了記録` の仮定欄に明示する。
-- `user_decision` または `contract_gap` を仮定で埋めたら `pass_with_assumption` にせず `fail` にする。言及していない前提を勝手に確定しない。
+- `pass` の必須条件のうち、`missing` がないことと `判断と認可` 表に `仮定` がないこと以外をすべて満たす。
+- 必要な文脈層に `blocked` がなく、`missing` の理由となる全項目を `仮定` として明示する。`仮定` がゼロなら `pass_with_assumption` にしない。
+- 未確認事実を意識的に暫定採用した項目だけを `仮定` とし、依存する判断、反証方法、反証時の戻り先を `準備完了記録` と `要件契約` に記録する。
+- 残る `user_decision`、`contract_gap`、未認可の判断がない。
+- 実装者へ選択を委ねる可否は発見境界の `判断` で確定する。可否が未確認のままなら、未確認事実の `仮定` として保存して `pass_with_assumption` にしてはならない。
+- 言及していない前提を勝手に確定しない。
 
 `fail` の戻り先:
 
@@ -110,6 +117,7 @@ description: Use when work stage, scope, acceptance criteria, verification metho
 - 残りが `repo_derivable` / `subsystem_derivable` → `investigation`。
 - 残りが `public_fact` → `public-research`。
 - 残りが `contract_gap` だけ → 契約候補を作成して再判定する。
+- 実装者へ選択を委ねてよいと確認できない項目が残る → 選べる範囲を狭めるか一つの案へ固定し、情報の所有先に応じて再判定する。
 
 ## 進行制御と外部化
 
@@ -128,8 +136,11 @@ description: Use when work stage, scope, acceptance criteria, verification metho
 - `bounded` と `broad-or-unclear` では五境界の走査を各一回行い、発見境界の確認表を埋めた。
 - 走査の結果から新しい走査を自動開始していない。
 - 露出した判断を固定または範囲認可し、認可元のない判断を契約へ含めていない。
+- 実装者へ選択を委ねる場合は、選べる具体的な範囲と、その範囲内のどの実装案でも照合対象を変えない根拠を確認した。
+- ユーザーが反対していないこと、モデル判断、一般的な既存パターン、低リスク、局所性、可逆性だけを裁量の認可元にしていない。
+- 裁量を成立させるために認可元にない受け入れ条件を追加していない。
 - 判定の必須条件を実際に照合した。
-- `pass_with_assumption` の仮定が `implementation_discretion` に限られている。
+- `pass_with_assumption` の仮定が未確認事実の意識的な暫定採用に限られ、依存する判断と反証時の戻り先を持つ。
 - `pass` 系なら `要件契約` を外部化した。
 - `bounded` と `broad-or-unclear` の `pass` 系なら要件レビュー結果を外部化した。
 - `fail` なら戻り先の能力を 1 つ示した。

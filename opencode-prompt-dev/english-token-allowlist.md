@@ -91,7 +91,6 @@
 - `user_decision`
 - `subsystem_derivable`
 - `contract_gap`
-- `implementation_discretion`
 - `pass_with_assumption`
 - `active_gap`
 - `covered_but_unvalidated`
