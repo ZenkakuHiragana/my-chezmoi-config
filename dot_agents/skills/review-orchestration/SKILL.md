@@ -12,7 +12,7 @@ description: Use before fan-out for every broad-or-unclear review; freezes one f
 - レビュー対象版: 検査対象となる成果物の版と基準版
 - レビュー判定根拠版: 検査対象の正否を判定する根拠集合の版
   - `code-review`: 作業契約、仕様、不変条件、テスト
-  - `japanese-doc-review`: 意味内容の正本、想定読者、利用目的
+  - `japanese-doc-review`: 想定読者、読者が行う作業、選択した観点の参照本文
   - `requirement-review`: 依頼引用、後続訂正、確認済みの技術制約、安全上の不変条件、情報所有先
 - `work_class`
 - 開始前に固定する観点集合と検査集合
@@ -46,7 +46,7 @@ description: Use before fan-out for every broad-or-unclear review; freezes one f
 - レビュー対象版: 検査対象となる成果物の版
 - レビュー判定根拠版: 検査対象の正否を判定する根拠集合の版
   - `code-review`: 作業契約、仕様、不変条件、テスト
-  - `japanese-doc-review`: 意味内容の正本、想定読者、利用目的
+  - `japanese-doc-review`: 想定読者、読者が行う作業、選択した観点の参照本文
   - `requirement-review`: 依頼引用、後続訂正、確認済みの技術制約、安全上の不変条件、情報所有先
 - `work_class`
 - 観点集合
