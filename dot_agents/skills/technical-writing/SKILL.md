@@ -1,7 +1,7 @@
 ---
 name: technical-writing
 description: >
-  Use when the main deliverable is a reader-facing technical document, prompt text, skill instruction, or other reusable Japanese prose that must be reorganized for audience, structure, and readability; not for fact finding, tiny wording tweaks, or direct translation only. 文章品質の調整専用。読者に合った構成と改善済み本文を作る。
+  Use when the main deliverable is a reader-facing technical document, prompt text, skill instruction, Japanese translation or localization, or other reusable Japanese prose that must be composed or reorganized for audience, terminology, structure, and readability; not for fact finding or tiny wording tweaks. 文章品質の調整専用。読者に合った構成と改善済み本文を作る。
 ---
 
 # 技術文書作成
@@ -73,9 +73,13 @@ description: >
 1. 成果物の前提と確認済みの事実を確定する。
 2. 成果物に入れてよい内容かを扱う参照本文を読む。
 3. 日本語技術文として自然かを扱う参照本文を読む。
-4. 本文を書く、または直す。
-5. 文ごとに、成果物へ入れてよい内容か確認する。
-6. レビュー結果への対応では、修正前後に同じ確認方法を実行する。
+4. 中心概念と概念間の関係を特定し、読者向けの日本語表記と正確な文字列として残す表記を分ける。
+5. 日本語表記を、ユーザー指定、リポジトリ内の正本、確認できる日本語用例の順に決める。
+6. 原文や内部表記の語順に沿って単語を置き換えず、主張、対象、操作、条件から日本語の文を組み立てる。
+7. 本文中のアルファベット表記について、原表記そのものを必要とする用途があるか確認する。
+8. 選んだ表記が概念の意味を保ち、同じ概念と異なる概念を正しく区別するか確認する。
+9. 文ごとに、成果物へ入れてよい内容か確認する。
+10. レビュー結果への対応では、修正前後に同じ確認方法を実行する。
 
 ## 見直し手順
 
@@ -118,4 +122,7 @@ description: >
 - 事実と注意点が混ざっていない。
 - 修正経緯や作業者視点が本文に漏れていない。
 - 必要な場合に日本語本文の手順を通した。
+- 日本語本文を、アルファベット表記を含む下書きへの逐語置換で作っていない。
+- 本文中に残したアルファベット表記には、原表記そのものを必要とする用途がある。
+- 選んだ日本語表記が概念の意味と概念間の区別を保っている。
 - レビュー結果への対応では修正前に問題を再現し、修正後に同じ確認方法を通した。
