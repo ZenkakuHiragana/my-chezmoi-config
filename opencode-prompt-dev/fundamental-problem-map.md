@@ -27,18 +27,18 @@
 
 ## 知識配置図
 
-ここでは、既知の既知、既知の未知、未知の未知という分類に未知の既知を加えた4象限を、ラムズフェルド行列と呼ぶ。
+ここでは、Known Knowns、Known Unknowns、Unknown Unknownsという分類にUnknown Knownsを加えた4象限をRumsfeld Matrixと呼ぶ。
 
 |                    | 自分の知識状態を把握している | 自分の知識状態を把握していない |
 | ------------------ | ---------------------------- | ------------------------------ |
-| 情報を持っている   | 既知の既知                   | 未知の既知                     |
-| 情報を持っていない | 既知の未知                   | 未知の未知                     |
+| 情報を持っている   | Known Knowns                 | Unknown Knowns                 |
+| 情報を持っていない | Known Unknowns               | Unknown Unknowns               |
 
-一点は事実・主張と主体面の組を表す。同じ主張でも、意図面では既知の既知、推論面では未知の未知、評価面では既知の既知という配置がありうる。
+一点は事実・主張と主体面の組を表す。同じ主張でも、意図面ではKnown Knowns、推論面ではUnknown Unknowns、評価面ではKnown Knownsという配置がありうる。
 
 実態面は4象限へ置かない。実態面は、その主張の真偽と、各主体面の配置が正しいかを照合する基準になる。
 
-ラムズフェルド行列は、主体が情報を持っているかと、その状態を把握しているかを表す。命題的無知と非命題的無知は、把握していない内容の種類を表すため、両者は別の分類軸になる。
+Rumsfeld Matrixは、主体が情報を持っているかと、その状態を把握しているかを表す。命題的無知と非命題的無知は、把握していない内容の種類を表すため、両者は別の分類軸になる。
 
 ## 委任の4面の層状図
 
@@ -84,8 +84,8 @@
 │  │  ├─ 推論面: モデルの推論と無音の補完
 │  │  └─ 評価面: 消費者・検証者の合否条件
 │  ├─ 知識配置図
-│  │  ├─ 既知の既知 / 既知の未知
-│  │  └─ 未知の既知 / 未知の未知
+│  │  ├─ Known Knowns / Known Unknowns
+│  │  └─ Unknown Knowns / Unknown Unknowns
 │  ├─ 無知の種類
 │  │  ├─ 命題的無知: 真偽を持つ事実・前提を把握していないこと
 │  │  └─ 非命題的無知: 体験や提示を通さないと基準を認識できないこと
@@ -93,8 +93,8 @@
 │  │  └─ 未確認の前提を周囲と整合する値で無音に埋める
 │  ├─ 問題設定の再定義
 │  │  └─ 局所修正、経路選択の失敗、再発時に前提から疑う
-│  └─ 未知の未知の発見
-│     └─ 内観ではなく現実との衝突で一部を既知の未知へ移す
+│  └─ Unknown Unknownsの発見
+│     └─ 内観ではなく現実との衝突で一部をKnown Unknownsへ移す
 │
 ├─ 資源制約: P3 注意と文脈の希少性
 │  ├─ 統治予算
@@ -190,7 +190,7 @@ P1〜P5は診断軸であり、個々の失敗を一意に説明する真理値�
 - P2/P4の根拠収集: [`fundamental-problem-analysis/evidence-retrieval.md`](fundamental-problem-analysis/evidence-retrieval.md)
 - P3の文脈管理: [`fundamental-problem-analysis/context-management.md`](fundamental-problem-analysis/context-management.md)
 - 規則の減価確認: [`sunset-ablation-procedure.md`](sunset-ablation-procedure.md)
-- 既知 / 未知の管理例: [`fundamental-problem-analysis/corpus/a-field-guide-to-fable.md`](fundamental-problem-analysis/corpus/a-field-guide-to-fable.md)
+- Knowns / Unknownsの管理例: [`fundamental-problem-analysis/corpus/a-field-guide-to-fable.md`](fundamental-problem-analysis/corpus/a-field-guide-to-fable.md)
 
 ## 出典
 

@@ -36,7 +36,7 @@
 
 7/2〜3、`Claude Fable 5 の問題認識の差はどこから来るか` という問いから外部コーパスの収集が始まった（`opencode-prompt-dev/fundamental-problem-analysis/corpus/a-field-guide-to-fable.md`、`opencode-prompt-dev/fundamental-problem-analysis/corpus/tweets.md`）。Fable 5 の流儀——Known Knowns／Known Unknowns／Unknown Knowns／Unknown Unknowns の4象限で未知を扱う作法——が、このリポジトリの設計語彙に本格的に混入したのはここからである。
 
-7/5 前後に `fundamental-problem-map.md` が形になる。根本課題は「委任の4面にまたがる知識配置の不一致を、少ない検証労力で反証対象と衝突できる形へ外部化すること」。委任の4面は実態面（照合先）と意図面・推論面・評価面（主体面）からなり、ラムズフェルド行列は各主体面への知識配置図として適用される。今月作ったもののほとんどは、この地図から枝分かれした。
+7/5 前後に `fundamental-problem-map.md` が形になる。根本課題は「委任の4面にまたがる知識配置の不一致を、少ない検証労力で反証対象と衝突できる形へ外部化すること」。委任の4面は実態面（照合先）と意図面・推論面・評価面（主体面）からなり、Rumsfeld Matrixは各主体面への知識配置図として適用される。今月作ったもののほとんどは、この地図から枝分かれした。
 
 ### 最初の「信じず測る」
 
@@ -140,7 +140,7 @@ removed fucking arbitrary english words in japanese sentenses
 
 ## 今月のハイライト（推しポイント）
 
-1. **`fundamental-problem-map.md` と `fundamental-problem-map-four-faces.svg`**。今月の根地図。「委任の4面にまたがる知識配置の不一致」という根本課題の定義と、ラムズフェルド行列を知識配置図として使う発明。今月の成果物のほぼ全てがこの地図に掛かっている。
+1. **`fundamental-problem-map.md` と `fundamental-problem-map-four-faces.svg`**。今月の根地図。「委任の4面にまたがる知識配置の不一致」という根本課題の定義と、Rumsfeld Matrixを知識配置図として使う発明。今月の成果物のほぼ全てがこの地図に掛かっている。
 2. **`trust-collapse.md` の中心命題**。「信頼崩壊とは、欠陥の存在ではなく、人間の注意配分が正当化できなくなった状態」。レビューが無限に欠陥を掘り続けるドゥームループの正体に、名前を与えた文である。
 3. **`state-sync.md` の禁止条項**。「工程の結果を進捗として報告してはならない。工程は手段であり、結果ではない」。今月最も費用対効果の高かった1行。
 4. **`sunset-ablation-procedure.md` と `episode-to-fixture-procedure.md`**。規則を退役させられるようにした方法論。対象規則だけを外して凍結フィクスチャを再実行し、外しても通る規則を削除候補にする。「フィクスチャなしで規則を削除してはならない」——規則の墓場を作らないための仕組みである。
