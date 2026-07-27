@@ -160,6 +160,7 @@
         "git ls-remote *": "allow",
         "git cat-file *": "allow",
         "git describe *": "allow",
+        "git hash-object *": "allow",
         "git fetch": "allow",
         "git fetch *": "allow",
         "git -C * status": "allow",
@@ -189,6 +190,7 @@
         "git -C * ls-remote *": "allow",
         "git -C * cat-file *": "allow",
         "git -C * describe *": "allow",
+        "git -C * hash-object *": "allow",
         "git -C * fetch": "allow",
         "git -C * fetch *": "allow",
         // git 操作系統（書き込み: 許可）
