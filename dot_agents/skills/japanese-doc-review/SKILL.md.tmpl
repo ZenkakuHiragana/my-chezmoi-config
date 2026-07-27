@@ -1,16 +1,17 @@
 ---
 name: japanese-doc-review
-description: Use only for Japanese prose artifacts, including prompt text and skill instructions, whose meaning and requirements are already fixed; checks selected language concerns and concrete reader failures, not specifications, task contracts, code, or requirement completeness. 日本語成果物の文章レビュー専用。
+description: Use only for Japanese prose artifacts or frozen Japanese prose spans embedded in code, including comments, docstrings, user-facing messages, prompt text, and skill instructions, whose meaning and requirements are already fixed; checks selected language concerns and concrete reader failures, not specifications, task contracts, surrounding code semantics, or requirement completeness. 日本語成果物とコード中から本文として凍結した日本語部分の文章レビュー専用。
 ---
 
 # 日本語文書レビュー
 
-意味と要求が固定済みの日本語成果物を、想定読者が誤読せず利用できるか確認する。対象には利用者向け本文、プロンプト本文、スキル本文を含む。仕様、`要件契約`、作業契約、コードを対象にしてはならない。
+意味と要求が固定済みの日本語成果物を、想定読者が誤読せず利用できるか確認する。対象には利用者向け本文、プロンプト本文、スキル本文、コード中から本文として凍結したコメント、docstring、利用者向けメッセージを含む。周囲のコード、仕様、`要件契約`、作業契約をレビュー対象にしてはならない。
 
 ## 入力
 
 - 凍結した本文
-- 想定読者と読者が行う作業
+- 固定済みの意味と、意味の欠落やずれを判断する基準
+- 想定読者、主利用型、必要な利用結果
 - 今回確認する観点
 
 ## 観点
@@ -28,6 +29,8 @@ description: Use only for Japanese prose artifacts, including prompt text and sk
 4. 指摘には同じ本文と観点参照資料から問題を確認できる方法を書く。`判定不能` は検査被覆の欠損として残す。
 5. 現在本文から直接再現できる破綻だけを、選択した観点の参照本文に従って指摘する。
 
+コード中から凍結した日本語部分では、周囲のコードが実装する挙動を推測してはならない。本文と固定済みの意味から再現できる誤読、条件反転、修飾範囲の曖昧さ、表記による区別の消失だけを扱う。コードと本文の事実整合は `code-review` に委ねる。
+
 対象がプロンプト本文またはスキル本文でも、要求の欠落、実装方法、仕様完全性を推測してはならない。一般論、好み、別案、完全化を問題として出してはならない。
 
 ## 出力
@@ -42,7 +45,8 @@ description: Use only for Japanese prose artifacts, including prompt text and sk
 ## 完了チェック
 
 - 対象が意味と要求の固定済み日本語成果物である。
-- 仕様、契約、コードを代替レビューしていない。
+- 仕様、契約、周囲のコードを代替レビューしていない。
+- コード中から凍結した日本語部分では、本文と固定済みの意味だけから破綻を確認した。
 - プロンプト本文またはスキル本文のレビューで、要求の欠落、実装方法、仕様完全性を判定していない。
 - 指定された全観点を検査被覆表へ一度ずつ記録した。
 - 現在本文から直接再現できる破綻だけを扱った。
