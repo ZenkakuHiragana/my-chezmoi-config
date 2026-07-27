@@ -1,6 +1,10 @@
 ---
 description: Extract failure patterns from past sessions. 過去セッションから失敗候補を抽出する。
 mode: subagent
+permission:
+  task:
+    "*": deny
+    report-failure: allow
 ---
 
 # 失敗傾向抽出
@@ -139,6 +143,28 @@ GitHub リポジトリが関係する場合は、ブランチまたは参照を�
 `likely_addressed` / `obsolete_context` は通常の是正失敗記録にしない。
 `covered_but_unvalidated` は是正プロンプト編集ではなく退行検証シナリオを勧める。
 
+## 正式な失敗記録への接続
+
+採掘レポートを保存した後、次をすべて満たす候補ごとに `report-failure` を1回呼び出す。
+
+- 合図の強さが `confirmed` または `strong`
+- 現行対応範囲が `active_gap`
+- 報告方針が `create_incident`
+
+`report-failure` へ次を渡す。
+
+- 採掘レポートのパス
+- 候補 ID
+- 初期の明示意図と後から推測した意図
+- 観測された挙動、失敗の合図、根拠
+- 現行対応範囲とその根拠
+
+正式な失敗記録の本文、`problem_classes`、重大度、状態、保存先は `report-failure` が決める。採掘側でこれらを決めたり、正式な失敗記録を直接書いたりしてはならない。
+
+`report-failure` が返した報告パスの存在を確認してから、採掘レポートの候補へ記録する。呼び出し、保存、または報告パスの確認に失敗した場合は、保存済みと記録してはならない。同じ候補を自動再試行せず、候補 ID、失敗理由、再開条件を `未作成` として記録する。
+
+条件を満たさない候補は正式な失敗記録へ渡さず、採掘レポートへ理由を記録する。
+
 ## 保存先
 
 失敗ログルート:
@@ -154,7 +180,7 @@ GitHub リポジトリが関係する場合は、ブランチまたは参照を�
 `session-mining/YYYYMMDD-HHMM-session-mining-short-slug.md`
 
 採掘レポートは失敗記録レポートではない。
-`confirmed` / `strong` の `active_gap` は別の失敗記録レポートを作成または推奨する。
+`confirmed` / `strong` の `active_gap` は、正式な失敗記録への接続手順で `report-failure` へ渡す。
 関係ない失敗記録を 1 レポートに混ぜない。
 
 ## レポートテンプレート
@@ -203,7 +229,7 @@ GitHub リポジトリが関係する場合は、ブランチまたは参照を�
 - 現行対応範囲の状態:
 - 現行対応範囲の根拠:
 - 報告方針: create_incident | create_historical_note | create_regression_scenario | skip | needs_manual_review
-- `/report-failure` 項目を作るか: yes | no
+- 失敗記録: <報告パス> | なし（理由） | 未作成（失敗理由と再開条件）
 - 確信度:
 
 ## 非失敗 / 曖昧な事例
@@ -215,7 +241,7 @@ GitHub リポジトリが関係する場合は、ブランチまたは参照を�
 
 推奨する次の行動の優先順:
 
-1. `active_gap` で、確度が高い不足の失敗報告を作る。
+1. 正式な失敗記録が `未作成` の候補について、失敗理由を解消して `report-failure` を再実行する。
 2. `covered_but_unvalidated` の退行検証シナリオを作る。
 3. 反復する `active_gap` のまとまりを分類する。
 4. 影響が大きい `active_gap` のまとまりを empirical-prompt-tuning へ渡す。
@@ -228,3 +254,5 @@ GitHub リポジトリが関係する場合は、ブランチまたは参照を�
 - 一般論だけの助言で埋めない
 - すべての課題を新規規則にしない
 - 明示依頼なしにファイルを編集しない
+
+最終応答には、採掘レポートのパス、作成した正式な失敗記録のパス、`未作成` の候補 ID と再開条件を含める。

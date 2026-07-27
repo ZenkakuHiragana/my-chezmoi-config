@@ -184,12 +184,14 @@
 - `review-orchestration`
 - `context-clarification`
 - `empirical-prompt-tuning`
+- `extract-failure-patterns`
 - `general-fast`
 - `general-strong`
 - `grill-me`
 - `investigation`
 - `japanese-doc-review`
 - `public-research`
+- `report-failure`
 - `requirement-review`
 - `task-planning`
 - `technical-writing`

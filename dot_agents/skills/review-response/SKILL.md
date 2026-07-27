@@ -20,7 +20,6 @@ description: Use whenever a frozen review finding set must be reproduced and cla
 
 - 指摘 ID
 - 検査 ID
-- 重要度
 - 対象箇所
 - 破綻
 - 根拠
@@ -46,7 +45,7 @@ description: Use whenever a frozen review finding set must be reproduced and cla
 
 ### `accepted`
 
-確認方法のどの手順が、現成果物のどの観測値で失敗したかを記録する。条件との関連、重要度、一般論、将来危険の推測だけで `accepted` にしてはならない。
+確認方法のどの手順が、現成果物のどの観測値で失敗したかを記録する。条件との関連、一般論、将来危険の推測だけで `accepted` にしてはならない。
 
 ### `rejected`
 
