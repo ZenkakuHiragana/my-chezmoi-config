@@ -24,7 +24,7 @@ export function buildToolDescription(catalog: KnowledgeCatalog): string {
 export function createServer(catalog: KnowledgeCatalog): McpServer {
   const server = new McpServer({ name: "skill-kb", version: "0.1.0" });
 
-  server.registerTool(
+  const tool = server.registerTool(
     "get_source",
     {
       title: "情報源の検索方法",
@@ -66,6 +66,13 @@ export function createServer(catalog: KnowledgeCatalog): McpServer {
       }
     },
   );
+
+  // 情報源が0件のときは get_source を公開しない。
+  // 一度登録してから取り消すのは、SDK が最初のツール登録で tools 能力を広告するためである。
+  // 登録自体を省くと tools 能力が広告されず、クライアントの tools/list が失敗する。
+  if (catalog.sources.size === 0) {
+    tool.remove();
+  }
 
   return server;
 }

@@ -1,6 +1,6 @@
 import assert from "node:assert/strict";
 import { spawn } from "node:child_process";
-import { mkdtemp, mkdir, rm } from "node:fs/promises";
+import { mkdtemp, mkdir, rm, writeFile } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import path from "node:path";
 import test from "node:test";
@@ -34,18 +34,68 @@ function runServer(cwd: string, configPath: string): Promise<ProcessResult> {
   });
 }
 
-test("exits nonzero and writes diagnostics only to stderr when no configuration exists", async () => {
+function runServerUntilIdle(
+  cwd: string,
+  configPath: string,
+  idleMilliseconds = 1000,
+): Promise<{ exited: boolean; stdout: string; stderr: string }> {
+  const serverPath = path.resolve("dist", "src", "index.js");
+  return new Promise((resolve, reject) => {
+    const child = spawn(process.execPath, [serverPath], {
+      cwd,
+      env: { ...process.env, SKILL_KB_CONFIG: configPath },
+      stdio: ["pipe", "pipe", "pipe"],
+    });
+    let stdout = "";
+    let stderr = "";
+    let exited = false;
+    child.stdout.setEncoding("utf8");
+    child.stderr.setEncoding("utf8");
+    child.stdout.on("data", (chunk: string) => {
+      stdout += chunk;
+    });
+    child.stderr.on("data", (chunk: string) => {
+      stderr += chunk;
+    });
+    child.on("error", reject);
+    child.on("exit", () => {
+      exited = true;
+    });
+    setTimeout(() => {
+      const observed = { exited, stdout, stderr };
+      child.kill();
+      resolve(observed);
+    }, idleMilliseconds);
+  });
+}
+
+test("exits nonzero and writes diagnostics only to stderr when a configuration is invalid", async () => {
   const root = await mkdtemp(path.join(tmpdir(), "skill-kb-process-"));
   const workspace = path.join(root, "workspace");
-  await mkdir(workspace);
+  const projectDirectory = path.join(workspace, ".opencode");
+  await mkdir(projectDirectory, { recursive: true });
+  await writeFile(path.join(projectDirectory, "KNOWLEDGE.yml"), "sources: [");
   try {
     const result = await runServer(workspace, path.join(root, "missing.yml"));
     assert.equal(result.code, 1);
     assert.equal(result.stdout, "");
-    assert.match(
-      result.stderr,
-      /^\[skill-kb\] No knowledge configuration found\./,
+    assert.match(result.stderr, /^\[skill-kb\] Cannot read YAML configuration/);
+  } finally {
+    await rm(root, { recursive: true, force: true });
+  }
+});
+
+test("stays alive and writes nothing to stdout when no configuration exists", async () => {
+  const root = await mkdtemp(path.join(tmpdir(), "skill-kb-process-"));
+  const workspace = path.join(root, "workspace");
+  await mkdir(workspace);
+  try {
+    const result = await runServerUntilIdle(
+      workspace,
+      path.join(root, "missing.yml"),
     );
+    assert.equal(result.exited, false);
+    assert.equal(result.stdout, "");
   } finally {
     await rm(root, { recursive: true, force: true });
   }

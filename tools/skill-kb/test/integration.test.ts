@@ -31,6 +31,49 @@ function textResult(result: unknown): string {
   return item.text;
 }
 
+async function assertNoPublishedTool(root: string): Promise<void> {
+  const workspace = path.join(root, "workspace");
+  const serverPath = path.resolve("dist", "src", "index.js");
+  const client = new Client({ name: "skill-kb-test", version: "1.0.0" });
+  const transport = new StdioClientTransport({
+    command: process.execPath,
+    args: [serverPath],
+    cwd: workspace,
+    env: childEnvironment({ SKILL_KB_CONFIG: path.join(root, "missing.yml") }),
+    stderr: "pipe",
+  });
+
+  try {
+    await client.connect(transport);
+    const listed = await client.listTools();
+    assert.deepEqual(listed.tools, []);
+  } finally {
+    await client.close();
+  }
+}
+
+test("connects and publishes no tool when no configuration file exists", async () => {
+  const root = await mkdtemp(path.join(tmpdir(), "skill-kb-absent-"));
+  await mkdir(path.join(root, "workspace"));
+  try {
+    await assertNoPublishedTool(root);
+  } finally {
+    await rm(root, { recursive: true, force: true });
+  }
+});
+
+test("connects and publishes no tool when the source list is empty", async () => {
+  const root = await mkdtemp(path.join(tmpdir(), "skill-kb-empty-"));
+  const projectDirectory = path.join(root, "workspace", ".opencode");
+  await mkdir(projectDirectory, { recursive: true });
+  await writeFile(path.join(projectDirectory, "KNOWLEDGE.yml"), "sources: []\n");
+  try {
+    await assertNoPublishedTool(root);
+  } finally {
+    await rm(root, { recursive: true, force: true });
+  }
+});
+
 test("publishes one dynamic tool and returns inline and external instructions", async () => {
   const root = await mkdtemp(path.join(tmpdir(), "skill-kb-integration-"));
   const workspace = path.join(root, "workspace");

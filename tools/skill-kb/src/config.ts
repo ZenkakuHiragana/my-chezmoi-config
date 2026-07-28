@@ -21,7 +21,7 @@ const rawSourceSchema = z
 
 const rawConfigSchema = z
   .object({
-    sources: z.array(rawSourceSchema).min(1),
+    sources: z.array(rawSourceSchema),
   })
   .strict();
 
@@ -234,12 +234,6 @@ export async function loadCatalog(
     pathExists(projectConfigPath),
   ]);
 
-  if (!hasGlobal && !hasProject) {
-    throw new ConfigurationError(
-      `No knowledge configuration found. Checked ${globalConfigPath} and ${projectConfigPath}`,
-    );
-  }
-
   const loaded: LoadedConfig[] = [];
   if (hasGlobal) {
     loaded.push(await loadConfig(globalConfigPath, "global", workspace));
@@ -253,10 +247,6 @@ export async function loadCatalog(
     for (const source of config.sources) {
       sources.set(source.name, source);
     }
-  }
-
-  if (sources.size === 0) {
-    throw new ConfigurationError("Knowledge configuration contains no sources");
   }
 
   return { sources, globalConfigPath, projectConfigPath };

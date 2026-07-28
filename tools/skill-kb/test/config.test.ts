@@ -190,21 +190,32 @@ test("reads an external instruction file on every call", async () => {
   });
 });
 
-test("rejects missing, malformed, empty, and unknown-field configurations", async () => {
+test("returns an empty catalog when no configuration exists", async () => {
+  await withFixture(async ({ workspace }) => {
+    const catalog = await loadCatalog({
+      cwd: workspace,
+      globalConfigPath: path.join(workspace, "missing.yml"),
+    });
+    assert.equal(catalog.sources.size, 0);
+  });
+});
+
+test("treats an empty source list like a missing configuration", async () => {
+  await withFixture(async ({ workspace, projectConfig }) => {
+    await writeFile(projectConfig, "sources: []\n");
+    const catalog = await loadCatalog({
+      cwd: workspace,
+      globalConfigPath: path.join(workspace, "missing.yml"),
+    });
+    assert.equal(catalog.sources.size, 0);
+  });
+});
+
+test("rejects malformed and unknown-field configurations", async () => {
   await withFixture(async ({ workspace, projectConfig }) => {
     const missingGlobal = path.join(workspace, "missing.yml");
-    await assert.rejects(
-      loadCatalog({ cwd: workspace, globalConfigPath: missingGlobal }),
-      ConfigurationError,
-    );
 
     await writeFile(projectConfig, "sources: [");
-    await assert.rejects(
-      loadCatalog({ cwd: workspace, globalConfigPath: missingGlobal }),
-      ConfigurationError,
-    );
-
-    await writeFile(projectConfig, "sources: []\n");
     await assert.rejects(
       loadCatalog({ cwd: workspace, globalConfigPath: missingGlobal }),
       ConfigurationError,
