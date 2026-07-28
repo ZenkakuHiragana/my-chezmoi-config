@@ -1,0 +1,22 @@
+sources:
+  - name: prompt-governance
+    description: >
+      プロンプト運用の規則と手順を含む。プロンプトの書き方、義務語彙、英語維持語彙、リファクタリング手順、
+      削除（sunset）手順、要件レビュー規律、事例→fixture 化手順を調べるときに使う。
+      個別のスキル定義やエージェント定義、基礎分析の調査報告には使わない。
+    instructions: |
+      opencode-prompt-dev/ 直下の .md ファイル群が対象。
+      1. Glob で `opencode-prompt-dev/*.md` の一覧を取得する。
+      2. 問いに関連しそうなファイル名を選び、Grep でさらに絞り込む。
+      3. Read で本文を読み、該当する節を根拠として引用する。
+
+  - name: problem-analysis
+    description: >
+      プロンプト運用の基礎分析である調査報告を含む。根本課題の見取り図、根拠収集・知識検索の設計、
+      コンテキスト管理、信頼崩壊の分析、意図引き出し規律を調べるときに使う。
+      具体的な運用規則や手順（prompt-governance）、個別の事例・fixture・日誌には使わない。
+    instructions: |
+      opencode-prompt-dev/fundamental-problem-analysis/ 配下の .md ファイル群が対象。
+      1. Glob で `opencode-prompt-dev/fundamental-problem-analysis/**/*.md` の一覧を取得する。
+      2. 問いに関連しそうなファイル名を選び、Grep でさらに絞り込む。
+      3. Read で本文を読み、該当する節を根拠として引用する。
