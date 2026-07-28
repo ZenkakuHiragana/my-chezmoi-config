@@ -1,0 +1,23 @@
+#!/usr/bin/env node
+"use strict";
+
+// Claude Code の user スコープ MCP 登録を .opencode.mcp と一致させる。
+// ロジックは .chezmoitemplates/claude/sync-mcp.js にある。
+//
+// 有効な定義だけを埋め込む。理由は 2 つある。
+//   1. 描画結果が変わったときだけ run_onchange_ が発火する。埋め込みが発火条件になる。
+//   2. enabled が false の定義まで埋め込むと、使わない資格情報が描画結果と
+//      chezmoi の一時ファイルに載る。既存の settings.json 生成も無効な定義を除外している。
+// enabled を切り替えれば埋め込み内容が変わるため、発火判定は保たれる。
+
+{{- $enabled := dict -}}
+{{- range $name, $definition := .opencode.mcp -}}
+{{-   if ne (dig "enabled" true $definition) false -}}
+{{-     $_ := set $enabled $name $definition -}}
+{{-   end -}}
+{{- end }}
+const mcp = {{ $enabled | toJson }};
+const syncPath = {{ joinPath .chezmoi.sourceDir ".chezmoitemplates" "claude" "sync-mcp.js" | toJson }};
+
+const { main } = require(syncPath);
+process.exitCode = main([JSON.stringify(mcp)]);

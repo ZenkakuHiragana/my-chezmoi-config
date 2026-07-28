@@ -8,7 +8,6 @@ const PERMISSION_ACTIONS = ["allow", "ask", "deny"];
 const PERMISSION_PRIORITY = { allow: 1, ask: 2, deny: 3 };
 const TARGET_TOOLS = ["PowerShell", "Bash"];
 const OTHER_SHELL_TOOL_PLACEHOLDER = "{shell:other}";
-const ENV_PLACEHOLDER_PATTERN = /\{env:([^}]+)\}/g;
 const OTHER_SYMBOL = Symbol("other");
 
 class RenderError extends Error {}
@@ -276,113 +275,11 @@ function mergeProjectedPermissions(settings, targetTool, projected) {
   }
 }
 
-function loadOpencodeMcp(jsonText) {
-  return requireObject(
-    parseJson(jsonText, "opencode mcp argument"),
-    "opencode mcp",
-  );
-}
-
-function translateEnvPlaceholders(text) {
-  return text.replace(ENV_PLACEHOLDER_PATTERN, "${$1}");
-}
-
-function projectOpencodeMcp(opencodeMcp) {
-  const projected = {};
-  for (const [name, definitionValue] of Object.entries(opencodeMcp)) {
-    const definition = requireObject(
-      definitionValue,
-      `opencode mcp ${JSON.stringify(name)}`,
-    );
-    if (definition.enabled === false) continue;
-
-    if (definition.type === "local") {
-      const command = definition.command;
-      if (!Array.isArray(command) || command.length === 0) {
-        throw new RenderError(
-          `opencode mcp ${JSON.stringify(name)} local command must be a non-empty array`,
-        );
-      }
-      if (!command.every((item) => typeof item === "string")) {
-        throw new RenderError(
-          `opencode mcp ${JSON.stringify(name)} local command entries must be strings`,
-        );
-      }
-      const env = Object.hasOwn(definition, "env") ? definition.env : {};
-      requireObject(env, `opencode mcp ${JSON.stringify(name)} local env`);
-      if (
-        !Object.entries(env).every(
-          ([key, value]) =>
-            typeof key === "string" && typeof value === "string",
-        )
-      ) {
-        throw new RenderError(
-          `opencode mcp ${JSON.stringify(name)} local env must be a string map`,
-        );
-      }
-      projected[name] = {
-        type: "stdio",
-        command: command[0],
-        args: command.slice(1),
-        env: Object.fromEntries(
-          Object.entries(env).map(([key, value]) => [
-            key,
-            translateEnvPlaceholders(value),
-          ]),
-        ),
-      };
-      continue;
-    }
-
-    if (definition.type === "remote") {
-      if (typeof definition.url !== "string" || definition.url.length === 0) {
-        throw new RenderError(
-          `opencode mcp ${JSON.stringify(name)} remote url must be a string`,
-        );
-      }
-      const projectedServer = {
-        type: "http",
-        url: translateEnvPlaceholders(definition.url),
-      };
-      if (definition.headers != null) {
-        const headers = requireObject(
-          definition.headers,
-          `opencode mcp ${JSON.stringify(name)} remote headers`,
-        );
-        if (
-          !Object.entries(headers).every(
-            ([key, value]) =>
-              typeof key === "string" && typeof value === "string",
-          )
-        ) {
-          throw new RenderError(
-            `opencode mcp ${JSON.stringify(name)} remote headers must be a string map`,
-          );
-        }
-        projectedServer.headers = Object.fromEntries(
-          Object.entries(headers).map(([key, value]) => [
-            key,
-            translateEnvPlaceholders(value),
-          ]),
-        );
-      }
-      projected[name] = projectedServer;
-      continue;
-    }
-
-    throw new RenderError(
-      `opencode mcp ${JSON.stringify(name)} has unsupported type: ${JSON.stringify(definition.type)}`,
-    );
-  }
-  return projected;
-}
-
 function renderSettings(
   existingPath,
   managedJson,
   targetTool,
   opencodeBashJson,
-  opencodeMcpJson,
 ) {
   const otherTool = resolveOtherShellTool(targetTool);
   const managed = loadManagedSettings(managedJson);
@@ -401,18 +298,16 @@ function renderSettings(
     projectOpencodeBashRules(rules, targetTool),
   );
 
-  const projectedMcp = projectOpencodeMcp(loadOpencodeMcp(opencodeMcpJson));
-  if (Object.keys(projectedMcp).length > 0) output.mcpServers = projectedMcp;
-  else delete output.mcpServers;
-
+  // MCP 登録は settings.json では扱わない。Claude Code はこのキーを読まない。
+  // 同期は run_onchange_after_claude-mcp.js が sync-mcp.js 経由で行う。
   return `${JSON.stringify(output, null, 2)}\n`;
 }
 
 function main(argv) {
-  if (argv.length !== 5) {
+  if (argv.length !== 4) {
     process.stderr.write(
       "usage: render-settings.js <existing-settings-path> <managed-settings-json> " +
-        "<target-tool> <opencode-bash-json> <opencode-mcp-json>\n",
+        "<target-tool> <opencode-bash-json>\n",
     );
     return 2;
   }
