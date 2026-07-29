@@ -9,7 +9,7 @@ async function main(): Promise<void> {
   );
   if (catalog.sources.size === 0) {
     console.error(
-      `[skill-kb] No knowledge source is configured, so get_source is not published. Checked ${catalog.globalConfigPath} and ${catalog.projectConfigPath}`,
+      `[skill-kb] No knowledge source is configured, so no tool is published. Checked ${catalog.globalConfigPath} and ${catalog.projectConfigPath}`,
     );
   }
   const server = createServer(catalog);

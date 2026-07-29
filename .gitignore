@@ -5,5 +5,6 @@
 .chezmoitemplates/lazydocker/lazydocker-specific.yml
 .opencode/local-failure-logs/
 .opencode/work/
+.opencode/work-notes/
 .opencode/package-lock.json
 **/__pycache__/

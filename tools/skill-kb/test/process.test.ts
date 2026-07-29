@@ -63,8 +63,12 @@ function runServerUntilIdle(
     });
     setTimeout(() => {
       const observed = { exited, stdout, stderr };
+      if (exited) {
+        resolve(observed);
+        return;
+      }
+      child.once("close", () => resolve(observed));
       child.kill();
-      resolve(observed);
     }, idleMilliseconds);
   });
 }

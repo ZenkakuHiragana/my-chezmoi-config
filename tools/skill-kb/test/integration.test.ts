@@ -66,7 +66,10 @@ test("connects and publishes no tool when the source list is empty", async () =>
   const root = await mkdtemp(path.join(tmpdir(), "skill-kb-empty-"));
   const projectDirectory = path.join(root, "workspace", ".opencode");
   await mkdir(projectDirectory, { recursive: true });
-  await writeFile(path.join(projectDirectory, "KNOWLEDGE.yml"), "sources: []\n");
+  await writeFile(
+    path.join(projectDirectory, "KNOWLEDGE.yml"),
+    "sources: []\n",
+  );
   try {
     await assertNoPublishedTool(root);
   } finally {
@@ -74,7 +77,7 @@ test("connects and publishes no tool when the source list is empty", async () =>
   }
 });
 
-test("publishes one dynamic tool and returns inline and external instructions", async () => {
+test("publishes all tools and supports work-note operations over stdio", async () => {
   const root = await mkdtemp(path.join(tmpdir(), "skill-kb-integration-"));
   const workspace = path.join(root, "workspace");
   const projectDirectory = path.join(workspace, ".opencode");
@@ -122,10 +125,17 @@ test("publishes one dynamic tool and returns inline and external instructions", 
   try {
     await client.connect(transport);
     const listed = await client.listTools();
-    assert.equal(listed.tools.length, 1);
-    const tool = listed.tools[0];
+    assert.deepEqual(listed.tools.map((tool) => tool.name).sort(), [
+      "create_work_note",
+      "get_source",
+      "grep_work_notes",
+      "read_work_note",
+      "update_work_note",
+    ]);
+    const tool = listed.tools.find(
+      (candidate) => candidate.name === "get_source",
+    );
     assert.ok(tool);
-    assert.equal(tool.name, "get_source");
     assert.match(
       tool.description ?? "",
       /official-api: Use for the official API\./,
@@ -182,6 +192,75 @@ test("publishes one dynamic tool and returns inline and external instructions", 
     );
     assert.equal(unknownResult.isError, true);
     assert.match(textResult(unknownResult), /Unknown knowledge source/);
+
+    const noteArguments = {
+      source_names: ["shared"],
+      file_name: "stdio-note.md",
+      title: "stdio 統合試験",
+      claim: "stdio 経由で作業メモを扱える",
+      evidence: "MCPクライアントから各ツールを呼び出した結果",
+      reasoning: "公開された実経路を直接使用しているため",
+      scope: "このビルドと試験環境",
+      scope_basis: "他の版は試していないため",
+      defeaters: "いずれかの呼出しが失敗した場合",
+      revalidate_when: "MCP SDKまたはツール契約が変わった場合",
+    };
+    const createResult = await client.callTool(
+      {
+        name: "create_work_note",
+        arguments: noteArguments,
+      },
+      CallToolResultSchema,
+    );
+    assert.equal(createResult.isError, undefined);
+    assert.equal(
+      JSON.parse(textResult(createResult)).file_name,
+      "stdio-note.md",
+    );
+
+    const grepResult = await client.callTool(
+      {
+        name: "grep_work_notes",
+        arguments: { source_name: "shared", pattern: "stdio 経由" },
+      },
+      CallToolResultSchema,
+    );
+    assert.deepEqual(JSON.parse(textResult(grepResult)).matches, [
+      "stdio-note.md",
+    ]);
+
+    const readResult = await client.callTool(
+      {
+        name: "read_work_note",
+        arguments: { source_name: "shared", file_name: "stdio-note.md" },
+      },
+      CallToolResultSchema,
+    );
+    assert.match(JSON.parse(textResult(readResult)).markdown, /## 再確認条件/);
+
+    const updateResult = await client.callTool(
+      {
+        name: "update_work_note",
+        arguments: {
+          ...noteArguments,
+          claim: "stdio 経由で作業メモを作成、検索、読取り、更新できる",
+          change_reason: "更新経路も確認するため",
+        },
+      },
+      CallToolResultSchema,
+    );
+    assert.equal(updateResult.isError, undefined);
+    const updatedRead = await client.callTool(
+      {
+        name: "read_work_note",
+        arguments: { source_name: "shared", file_name: "stdio-note.md" },
+      },
+      CallToolResultSchema,
+    );
+    assert.match(
+      JSON.parse(textResult(updatedRead)).markdown,
+      /更新経路も確認するため/,
+    );
   } finally {
     await client.close();
     await rm(root, { recursive: true, force: true });

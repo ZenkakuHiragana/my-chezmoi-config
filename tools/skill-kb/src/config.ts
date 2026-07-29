@@ -50,6 +50,8 @@ export type KnowledgeCatalog = {
   sources: ReadonlyMap<string, KnowledgeSource>;
   globalConfigPath: string;
   projectConfigPath: string;
+  workspace: string;
+  homeDirectory: string;
 };
 
 export type LoadCatalogOptions = {
@@ -249,7 +251,13 @@ export async function loadCatalog(
     }
   }
 
-  return { sources, globalConfigPath, projectConfigPath };
+  return {
+    sources,
+    globalConfigPath,
+    projectConfigPath,
+    workspace,
+    homeDirectory,
+  };
 }
 
 export async function readInstructions(
