@@ -58,6 +58,8 @@ description: Use before fan-out for every broad-or-unclear review; freezes one f
 
 `requirement-review` の有限な検査集合は、依頼と確認済み制約から固定した各意味上の義務と、契約全体の整合確認とする。契約候補の表や記載欄を別の検査単位へ分解してはならない。
 
+要件契約候補の全 `RR-OBL-*` と `RR-CONTRACT-1` は `必須` とする。これらに `残存記録` を指定してはならない。指定がある場合は入力不正として、最初のレビュー単位を起動しない。
+
 固定後に検査を追加してはならない。
 
 ## 2. 並列展開と受付閉鎖
@@ -117,7 +119,7 @@ description: Use before fan-out for every broad-or-unclear review; freezes one f
 
 次のいずれかをレビュー周回の終端状態として台帳に記録する。
 
-- `ready_for_exit_check`: 全ての `必須` 単位、指摘分類、必要な再実行、修正後確認一式、該当する場合の新規独立確認が完了した。
+- `ready_for_exit_check`: 全ての `必須` 単位が完了し、その `判定不能` が 0 件であり、指摘分類、必要な再実行、修正後確認一式、該当する場合の新規独立確認（7節）が完了した。
 - `blocked`: 必須単位、必須の判定不能領域、`needs-investigation`、失効範囲のいずれかを解消できない。
 - `reset_required`: レビュー判定根拠版の変更、受付閉鎖後の候補、または固定入力を保てない変更がある。
 - `rollback_required`: `accepted` 修正後の同じ確認方法または修正後確認一式が失敗した。
@@ -130,9 +132,11 @@ description: Use before fan-out for every broad-or-unclear review; freezes one f
 
 - 親の裁定後に起動する。
 - レビュー周回の並列展開で起動したレビュアーを再利用しない。別主体を起動する。
-- 確認対象は親の分類（`rejected` / `out-of-scope` / `判定不能`）とその根拠。
-- 確認者は、確認対象と同じ入力から同じ分類へ到達できるかを判定する。
-- 確認者が同じ分類へ到達できなかった場合は、親の裁定を取り消し、該当する指摘を `accepted` または `needs-investigation` へ戻す。
+- 確認対象は親の裁定（`rejected` / `out-of-scope`、契約解釈の変更、`判定不能` の受容）とその根拠。
+- 確認者は、確認対象と同じ入力から同じ裁定へ到達できるかを判定する。
+- `rejected` または `out-of-scope` について同じ分類へ到達できなかった場合は、親の分類を取り消し、該当する指摘を `accepted` または `needs-investigation` へ戻す。
+- 契約解釈の変更について同じ裁定へ到達できなかった場合は、親の変更を取り消して `reset_required` とする。
+- `判定不能` の受容について同じ裁定へ到達できなかった場合は、親の受容を取り消し、当該検査単位を未解消として `blocked` とする。指摘へ変換してはならない。
 - 確認者、入力、実行時点、判定結果をレビュー周回台帳へ記録する。
 
 前項の親判断が1件以上ある場合は、新規独立確認を行わずに `ready_for_exit_check` を台帳へ記録してはならない。該当する親判断がない場合は、台帳へ「該当なし」と記録する。
@@ -214,6 +218,7 @@ description: Use before fan-out for every broad-or-unclear review; freezes one f
 ## 完了チェック
 
 - 最初のレビュー単位を起動する前に固定入力を台帳へ記録した。
+- 要件契約候補の全 `RR-OBL-*` と `RR-CONTRACT-1` を `必須` とし、`残存記録` にしていない。
 - 初回並列展開、`review-response`、一括修正、対応後監査が上限内である。
 - 候補受付を閉鎖した。
 - 判定不能（検査被覆の欠損）を指摘へ変換していない。

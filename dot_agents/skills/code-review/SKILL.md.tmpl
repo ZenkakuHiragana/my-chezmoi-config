@@ -83,7 +83,7 @@ description: Use when reviewing code or a diff after intent, scope, and verifica
 - 破綻:
 - 根拠:
 - 確認方法:
-- 侵害する条件: <受け入れ条件 / 不変条件 / 該当なし>
+- 侵害する条件: <受け入れ条件 / 不変条件 / 該当なし> <条件を特定するIDまたは逐語引用。該当なしでは省略>
 
 ## 判定
 
@@ -92,6 +92,8 @@ description: Use when reviewing code or a diff after intent, scope, and verifica
 - 反例未確認:
 - 判定不能:
 ```
+
+`侵害する条件` には条件の種類だけを書いてはならない。`該当なし` 以外では、作業契約内の条件を特定するIDまたは逐語引用を同じフィールドに書く。`該当なし` は、現周の `review-response` で `out-of-scope` として扱う。
 
 ### 指摘生成
 
@@ -110,7 +112,7 @@ description: Use when reviewing code or a diff after intent, scope, and verifica
 
 - 検査 ID は `CR-<確認観点またはプロファイル>-<連番>` とする。
 - `検査項目` には確認観点名またはプロファイル名と確認範囲を書く。
-- 指摘の `侵害する条件` には作業契約の受け入れ条件または不変条件を書く。該当しない場合は `該当なし` とする。
+- 指摘の `侵害する条件` には、作業契約の受け入れ条件または不変条件の種類と、その条件を特定するIDまたは逐語引用を書く。該当しない場合は `該当なし` とだけ書く。
 
 ## 完了チェック
 
