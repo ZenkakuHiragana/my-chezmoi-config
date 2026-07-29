@@ -77,6 +77,7 @@
 - 診断: 何が問題かを調べる段階。
 - 選択肢比較: 解決策を比べる段階。
 - 方針決定: 採用する案を決める段階。
+- 計画: 固定済みの要件契約を、順序、依存関係、担当、確認方法を持つ実行項目へ変換する段階。
 - 実装: 決まった方針に従って変更する段階。
 - レビュー: 対象の役割に対応するスキルで、固定した観点と確認方法を使って問題を再現する段階。
 - レビュー対応: 修正前に再現した問題だけをまとめて修正する段階。
@@ -174,11 +175,13 @@
 
 ### 準備完了判定とゲート
 
-- 実作業（実装、計画、レビュー）に進む前に、`context-clarification` が準備完了記録を作り、判定を `pass` / `pass_with_assumption` / `fail` のいずれかに確定する。
+- 実作業（計画、実装、要件契約以外のレビュー）に進む前に、`context-clarification` が準備完了記録を作り、判定を `pass` / `pass_with_assumption` / `fail` のいずれかに確定する。
 - 判定が `pass` または `pass_with_assumption` になるまで、実作業段階へ進んではいけない。
-- `bounded` と `broad-or-unclear` の要件契約候補は、`context-clarification` が起動する1周の `review-orchestration` を通す。`ready_for_exit_check` と終了条件を満たした候補だけを要件契約として固定し、計画・実装へ進める。`blocked`、`reset_required`、`rollback_required` の場合は `fail` とする。
+- 要件契約候補の `requirement-review` は準備完了判定を作る内部検査であり、前項のレビュー開始禁止には含めない。
+- `bounded` の要件契約候補は、契約作成者とは別の実行者が `requirement-review` を直接一回行う。全検査が `反例未確認` の候補だけを要件契約として固定する。
+- `broad-or-unclear` の要件契約候補は、`context-clarification` が起動する1周の `review-orchestration` を通す。`ready_for_exit_check` と終了条件を満たした候補だけを要件契約として固定する。`blocked`、`reset_required`、`rollback_required` の場合は `fail` とする。
 - `review-orchestration` の台帳に `ready_for_exit_check` が記録されていても、それだけで作業全体を終了してはならない。親は台帳と作業契約を照合し、全レビュー単位の完了、候補受付の閉鎖、全候補の裁定、未裁定の `needs-investigation` が 0 件であること、受理済み修正の前後結果、修正後確認一式の成功、必要な新規独立確認の記録、変更の追跡可能性、判定不能領域と再開条件の記録を確認する。条件を緩めてはならない。
-- 例外: `work_class` が `tiny-local` のときは、準備完了記録を残せば進んでよい。`tiny-local` の条件を満たさなくなった時点で緩和を取り消し、進行を止める。
+- `tiny-local` は要件レビューを行わず、準備完了記録の他の必須条件を満たせば `pass` または `pass_with_assumption` として計画または実装へ進む。`tiny-local` の条件を満たさなくなった時点で進行を止め、変更後の `work_class` で準備完了を再判定する。
 - 判定の構造、各判定の入口条件、`fail` 時の戻り先、契約の外部化と再開時の読み直しは `context-clarification` の出力契約に従う。
 
 ### 文脈の優先順位と衝突解決

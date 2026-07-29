@@ -1,12 +1,12 @@
 ---
 name: implementation
-description: Use when readiness is `pass` or `pass_with_assumption`, or when a fixed requirement contract / other task contract already covers the repository change, invariants, acceptance criteria, verification method, and affected tests/docs; not for fact finding, contract shaping, or review-only work. 実装専用。必要な関連面の更新と検証まで完了させる。
+description: Use when context-clarification has fixed a Requirement contract and readiness is `pass` or `pass_with_assumption`; not for fact finding, contract shaping, planning, or review-only work. 実装専用。必要な関連面の更新と検証まで完了させる。
 ---
 
 # 実装
 
 リポジトリ内容を変更し、依頼、周辺面、検証がそろった状態まで進める。
-`準備完了記録` が `pass` / `pass_with_assumption`、または `要件契約` を含む同等の作業契約が固定済みであることを前提にする。ここが崩れるなら `context-clarification` に戻す。
+`context-clarification` が固定した `要件契約` と、`pass` / `pass_with_assumption` の `準備完了記録` を前提にする。`tiny-local` も同じ入口を使い、要件レビューだけを省略する。ここが崩れるなら `context-clarification` に戻す。
 単発編集ではなく、作業契約の完了を扱う。
 
 ## 変更分類

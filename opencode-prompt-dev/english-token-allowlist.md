@@ -86,6 +86,7 @@
 - `missing`
 - `blocked`
 - `ready_for_exit_check`
+- `RR-CONTRACT-1`
 - `reset_required`
 - `rollback_required`
 - `user_decision`

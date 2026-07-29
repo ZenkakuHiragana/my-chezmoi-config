@@ -13,7 +13,7 @@ description: Use before fan-out for every broad-or-unclear review; freezes one f
 - レビュー判定根拠版: 検査対象の正否を判定する根拠集合の版
   - `code-review`: 作業契約、仕様、不変条件、テスト
   - `japanese-doc-review`: 想定読者、読者が行う作業、選択した観点の参照本文
-  - `requirement-review`: 依頼引用、後続訂正、確認済みの技術制約、安全上の不変条件、情報所有先
+  - `requirement-review`: 依頼引用、後続訂正、確認済みの技術制約、安全上の不変条件、条項が参照するリポジトリ根拠と外部一次資料、テストとコマンド、情報所有先、対象自然言語の正本と保つ意味と利用経路
 - `work_class`
 - 開始前に固定する観点集合と検査集合
 - レビュー単位ごとの担当、`read_set`、観測出力、確認方法
@@ -47,7 +47,7 @@ description: Use before fan-out for every broad-or-unclear review; freezes one f
 - レビュー判定根拠版: 検査対象の正否を判定する根拠集合の版
   - `code-review`: 作業契約、仕様、不変条件、テスト
   - `japanese-doc-review`: 想定読者、読者が行う作業、選択した観点の参照本文
-  - `requirement-review`: 依頼引用、後続訂正、確認済みの技術制約、安全上の不変条件、情報所有先
+  - `requirement-review`: 依頼引用、後続訂正、確認済みの技術制約、安全上の不変条件、条項が参照するリポジトリ根拠と外部一次資料、テストとコマンド、情報所有先、対象自然言語の正本と保つ意味と利用経路
 - `work_class`
 - 観点集合
 - 有限な検査集合
@@ -55,6 +55,8 @@ description: Use before fan-out for every broad-or-unclear review; freezes one f
 - レビュー単位ごとの `必須` または `残存記録`
 
 `requirement-review` では、`要件契約候補` をレビュー対象版として扱う。検査対象となる契約候補を、それ自身のレビュー判定根拠版に含めてはならない。
+
+`requirement-review` の有限な検査集合は、依頼と確認済み制約から固定した各意味上の義務と、契約全体の整合確認とする。契約候補の表や記載欄を別の検査単位へ分解してはならない。
 
 固定後に検査を追加してはならない。
 
@@ -91,6 +93,8 @@ description: Use before fan-out for every broad-or-unclear review; freezes one f
 - 交差を判定できない場合は `blocked` とし、不足と再開条件を記録する。
 - 再実行で失敗した場合は `rollback_required` とする。再実行中に現れた新しい候補は現周へ追加せず、次の周の候補として台帳へ記録する。
 
+`requirement-review` の修正で、固定済みの意味上の義務に欠けていた契約記載を追加した場合は、その義務の既存検査を再実行する。新しい意味上の義務が必要になった場合は検査追加ではなくレビュー判定根拠版の変更として扱い、`reset_required` とする。
+
 修正後に修正後確認一式を実行する。失敗した場合は `rollback_required` とする。`requirement-review` では実装後の受け入れテストは実行しない。
 
 ## 5. 判定基準の変更
@@ -113,7 +117,7 @@ description: Use before fan-out for every broad-or-unclear review; freezes one f
 
 次のいずれかをレビュー周回の終端状態として台帳に記録する。
 
-- `ready_for_exit_check`: 全ての `必須` 単位、指摘分類、必要な再実行、修正後確認一式、新規独立確認が完了した。
+- `ready_for_exit_check`: 全ての `必須` 単位、指摘分類、必要な再実行、修正後確認一式、該当する場合の新規独立確認が完了した。
 - `blocked`: 必須単位、必須の判定不能領域、`needs-investigation`、失効範囲のいずれかを解消できない。
 - `reset_required`: レビュー判定根拠版の変更、受付閉鎖後の候補、または固定入力を保てない変更がある。
 - `rollback_required`: `accepted` 修正後の同じ確認方法または修正後確認一式が失敗した。
@@ -131,7 +135,9 @@ description: Use before fan-out for every broad-or-unclear review; freezes one f
 - 確認者が同じ分類へ到達できなかった場合は、親の裁定を取り消し、該当する指摘を `accepted` または `needs-investigation` へ戻す。
 - 確認者、入力、実行時点、判定結果をレビュー周回台帳へ記録する。
 
-新規独立確認を行わずに `ready_for_exit_check` を台帳へ記録してはならない。
+前項の親判断が1件以上ある場合は、新規独立確認を行わずに `ready_for_exit_check` を台帳へ記録してはならない。該当する親判断がない場合は、台帳へ「該当なし」と記録する。
+
+新規独立確認は親の裁定を監査する作業であり、元の読者向け成果物を再レビューする作業ではない。確認者へ親の分類と根拠を渡すことは、読者向け成果物レビューの消費者文脈へ混ぜることに当たらない。
 
 ## レビュー周回台帳
 
@@ -215,5 +221,5 @@ description: Use before fan-out for every broad-or-unclear review; freezes one f
 - 変更と交差する単位だけを同じ検査で再実行した。
 - 修正後確認一式を確認した。
 - 残存領域と再開条件を記録した。
-- `rejected`、`out-of-scope`、`判定不能` の受容について新規独立確認を行った。
+- `rejected`、`out-of-scope`、`判定不能` の受容がある場合は新規独立確認を行い、ない場合は「該当なし」と記録した。
 - レビュー周回の終端状態を 1 つだけ台帳に記録した。

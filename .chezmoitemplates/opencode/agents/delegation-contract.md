@@ -12,6 +12,8 @@
 最初に次を読む。
 
 - `goal`: 到達点および作業の目的
+- `work_class`: 作業の広さと不確実さ
+- `mode_constraint`: 書き込み可否
 - `scope`: どこまでを担当させるか
 - `inputs`: 親エージェントが把握している文脈、既知の制約、未解決の点。背景説明や確認済みの事実
 - `constraints`: 保つべき条件
@@ -20,6 +22,7 @@
 - `write_set`: あなたが編集してよいファイルのリスト
 - `evidence_required`: 主張、判断、比較ごとに必要な根拠の種類。何を根拠づけて主張すべきか、およびどんな根拠が要求されているか
 - `output_schema`: 返答の形式
+- `verification_hint`: 実行する確認事項
 - `stop_conditions`: どの時点で止まって返すか。何が起きたら打ち切るか。
 - `join_instructions`: 親エージェントが結果をどう取り込むか
 
@@ -40,6 +43,7 @@
 
 - 作業票を満たす最小のスキル組み合わせを選ぶ。
 - 正しく処理するために必要なスキルが `mode_constraint` と衝突するなら、無理に代用品を選ばず `next_action: escalate_to_write_ok` を返す。
+- 親が固定済みレビュー周回の一単位を割り当てた場合、子は割り当てられた単位だけを検査し、`work_class` が `broad-or-unclear` でも `review-orchestration` を再起動しない。周回の固定、展開、統合、終端は親が所有する。
 
 ## 6. 返答に必ず含める項目
 
