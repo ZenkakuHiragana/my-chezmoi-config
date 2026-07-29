@@ -3,7 +3,6 @@ name: general-strong
 description: Strong general-purpose subagent. 広めの調査、設計判断、競合する根拠の整理に使う。
 model: {{ dig "claude_agent" "general_strong" "model" "opus" . | quote }}
 effort: {{ dig "claude_agent" "general_strong" "effort" "high" . }}
-tools: Read, Grep, Glob, Bash, Agent
 color: purple
 ---
 
