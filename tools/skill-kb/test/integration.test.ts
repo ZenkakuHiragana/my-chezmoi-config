@@ -31,6 +31,14 @@ function textResult(result: unknown): string {
   return item.text;
 }
 
+function resourceText(result: { contents: unknown[] }): string {
+  const item = result.contents[0] as { text?: unknown } | undefined;
+  assert.ok(item);
+  const text = item.text;
+  assert.equal(typeof text, "string");
+  return text as string;
+}
+
 async function assertNoPublishedTool(root: string): Promise<void> {
   const workspace = path.join(root, "workspace");
   const serverPath = path.resolve("dist", "src", "index.js");
@@ -73,6 +81,63 @@ test("connects and publishes no tool when the source list is empty", async () =>
   try {
     await assertNoPublishedTool(root);
   } finally {
+    await rm(root, { recursive: true, force: true });
+  }
+});
+
+test("publishes instructions and authoring guides when no source is configured", async () => {
+  const root = await mkdtemp(path.join(tmpdir(), "skill-kb-guides-"));
+  const workspace = path.join(root, "workspace");
+  await mkdir(workspace);
+  const serverPath = path.resolve("dist", "src", "index.js");
+  const client = new Client({ name: "skill-kb-test", version: "1.0.0" });
+  const transport = new StdioClientTransport({
+    command: process.execPath,
+    args: [serverPath],
+    cwd: workspace,
+    env: childEnvironment({ SKILL_KB_CONFIG: path.join(root, "missing.yml") }),
+    stderr: "pipe",
+  });
+
+  try {
+    await client.connect(transport);
+
+    const instructions = client.getInstructions() ?? "";
+    assert.match(instructions, /skill-kb:\/\/guide\/source-registration/);
+    assert.match(instructions, /skill-kb:\/\/guide\/work-note-authoring/);
+    assert.match(instructions, /有効な情報源: 0件/);
+
+    const listed = await client.listResources();
+    assert.deepEqual(
+      listed.resources.map((resource) => resource.uri).sort(),
+      [
+        "skill-kb://guide/source-registration",
+        "skill-kb://guide/work-note-authoring",
+        "skill-kb://state/catalog",
+      ],
+    );
+
+    const guide = await client.readResource({
+      uri: "skill-kb://guide/source-registration",
+    });
+    assert.match(resourceText(guide), /## 反映条件/);
+
+    const workNoteGuide = await client.readResource({
+      uri: "skill-kb://guide/work-note-authoring",
+    });
+    assert.match(resourceText(workNoteGuide), /## 保存までの流れ/);
+
+    const state = JSON.parse(
+      resourceText(
+        await client.readResource({ uri: "skill-kb://state/catalog" }),
+      ),
+    );
+    assert.equal(state.source_count, 0);
+    assert.equal(state.tools_published, false);
+    assert.equal(state.global_config_exists, false);
+    assert.equal(state.project_config_exists, false);
+  } finally {
+    await client.close();
     await rm(root, { recursive: true, force: true });
   }
 });
@@ -142,6 +207,26 @@ test("publishes all tools and supports work-note operations over stdio", async (
     );
     assert.match(tool.description ?? "", /shared: Project shared source\./);
     assert.doesNotMatch(tool.description ?? "", /Global shared source/);
+
+    const state = JSON.parse(
+      resourceText(
+        await client.readResource({ uri: "skill-kb://state/catalog" }),
+      ),
+    );
+    assert.equal(state.source_count, 2);
+    assert.equal(state.tools_published, true);
+    const sharedState = state.sources.find(
+      (source: { name: string }) => source.name === "shared",
+    );
+    assert.equal(sharedState.scope, "project");
+    assert.deepEqual(sharedState.instructions, {
+      kind: "file",
+      declared_path: "project-search.md",
+    });
+    assert.equal(
+      state.work_note_roots.project,
+      path.join(workspace, ".opencode", "work-notes"),
+    );
 
     const inlineResult = await client.callTool(
       {

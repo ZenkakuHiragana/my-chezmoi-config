@@ -1,5 +1,6 @@
 import { StdioServerTransport } from "@modelcontextprotocol/sdk/server/stdio.js";
 import { loadCatalog } from "./config.js";
+import { buildServerInstructions } from "./guides.js";
 import { createServer } from "./server.js";
 
 async function main(): Promise<void> {
@@ -12,7 +13,7 @@ async function main(): Promise<void> {
       `[skill-kb] No knowledge source is configured, so no tool is published. Checked ${catalog.globalConfigPath} and ${catalog.projectConfigPath}`,
     );
   }
-  const server = createServer(catalog);
+  const server = createServer(catalog, await buildServerInstructions(catalog));
   await server.connect(new StdioServerTransport());
 }
 

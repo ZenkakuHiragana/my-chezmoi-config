@@ -6,6 +6,12 @@ import {
   readInstructions,
 } from "./config.js";
 import {
+  buildCatalogState,
+  CATALOG_RESOURCE,
+  GUIDE_RESOURCES,
+  readGuide,
+} from "./guides.js";
+import {
   observationSchema,
   WorkNoteStore,
   type WorkNoteStoreOptions,
@@ -21,6 +27,7 @@ export function buildToolDescription(catalog: KnowledgeCatalog): string {
   return [
     "設定済みの情報源について、検索方法を返す。",
     "情報源を選ぶときは、次の説明にある保持範囲、使用条件、除外条件を照合する。",
+    "適合する情報源がなく新しい情報源の登録を提案する場合は、資料 skill-kb://guide/source-registration を読む。",
     "利用可能な情報源:",
     sourceLines,
   ].join("\n");
@@ -96,10 +103,59 @@ export type CreateServerOptions = {
 
 export function createServer(
   catalog: KnowledgeCatalog,
+  instructions: string,
   options: CreateServerOptions = {},
 ): McpServer {
-  const server = new McpServer({ name: "skill-kb", version: "0.1.0" });
+  const server = new McpServer(
+    { name: "skill-kb", version: "0.1.0" },
+    { instructions },
+  );
   const workNotes = new WorkNoteStore(catalog, options.workNotes);
+
+  // 執筆規則は情報源0件でも公開する。情報源を登録する手順自体が必要になるため。
+  for (const guide of GUIDE_RESOURCES) {
+    server.registerResource(
+      guide.name,
+      guide.uri,
+      {
+        title: guide.title,
+        description: guide.description,
+        mimeType: "text/markdown",
+      },
+      async (uri) => ({
+        contents: [
+          {
+            uri: uri.href,
+            mimeType: "text/markdown",
+            text: await readGuide(guide.fileName),
+          },
+        ],
+      }),
+    );
+  }
+
+  server.registerResource(
+    CATALOG_RESOURCE.name,
+    CATALOG_RESOURCE.uri,
+    {
+      title: CATALOG_RESOURCE.title,
+      description: CATALOG_RESOURCE.description,
+      mimeType: "application/json",
+    },
+    async (uri) => ({
+      contents: [
+        {
+          uri: uri.href,
+          mimeType: "application/json",
+          text: JSON.stringify(
+            await buildCatalogState(catalog, workNotes),
+            null,
+            2,
+          ),
+        },
+      ],
+    }),
+  );
 
   const tools = [
     server.registerTool(
@@ -146,7 +202,7 @@ export function createServer(
       {
         title: "作業メモの作成",
         description:
-          "人間が保存を明示的に承認した知見だけを新しい作業メモとして保存する。作業メモは低権威の補助情報であり、正本と矛盾する場合は正本を優先する。重要な判断へ使う前に根拠と現在の状態を再確認する。人間の承認前には呼び出さない。",
+          "人間が保存を明示的に承認した知見だけを新しい作業メモとして保存する。作業メモは低権威の補助情報であり、正本と矛盾する場合は正本を優先する。重要な判断へ使う前に根拠と現在の状態を再確認する。人間の承認前には呼び出さない。各項目の書き方と保存先の規則は資料 skill-kb://guide/work-note-authoring を読む。",
         inputSchema: workNoteContentSchema,
       },
       async (input) => {
@@ -162,7 +218,7 @@ export function createServer(
       {
         title: "作業メモの更新",
         description:
-          "人間が更新を明示的に承認した既存の作業メモを更新する。呼出し前に read_work_note で現行全文を確認する。source_names は現行メモと同じ集合を指定し、対応する情報源は変更しない。作業メモは低権威の補助情報であり、正本と矛盾する場合は正本を優先する。人間の承認前には呼び出さない。",
+          "人間が更新を明示的に承認した既存の作業メモを更新する。呼出し前に read_work_note で現行全文を確認する。source_names は現行メモと同じ集合を指定し、対応する情報源は変更しない。作業メモは低権威の補助情報であり、正本と矛盾する場合は正本を優先する。人間の承認前には呼び出さない。各項目の書き方と更新時の制約は資料 skill-kb://guide/work-note-authoring を読む。",
         inputSchema: {
           ...workNoteContentSchema,
           change_reason: z
