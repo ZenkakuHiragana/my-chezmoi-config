@@ -25,12 +25,7 @@
     },
     "formatter": {
       "prettier": {
-        "command": [
-          "npx",
-          "prettier",
-          "--write",
-          "$FILE"
-        ],
+        "command": ["npx", "prettier", "--write", "$FILE"],
         "extensions": [
           ".md",
           ".markdown",
@@ -52,6 +47,7 @@
     "plugin": [
       "@prevalentware/opencode-goal-plugin",
       "@cortexkit/opencode-magic-context",
+      "opencode-with-claude",
     ],
     "mcp": {
       "skill-kb": {
@@ -65,6 +61,12 @@
       },
     },
     "provider": {
+      "anthropic": {
+        "options": {
+          "baseURL": "http://127.0.0.1:3456",
+          "apiKey": "claude",
+        },
+      },
       "github-copilot": {
         "models": {
           "gpt-5-mini": {
