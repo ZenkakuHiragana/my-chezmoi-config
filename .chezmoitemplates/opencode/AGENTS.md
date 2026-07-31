@@ -180,7 +180,7 @@
 - 要件契約候補の `requirement-review` は準備完了判定を作る内部検査であり、前項のレビュー開始禁止には含めない。
 - `bounded` の要件契約候補は、契約作成者とは別の実行者が `requirement-review` を直接一回行う。全検査が `反例未確認` の候補だけを要件契約として固定する。
 - `broad-or-unclear` の要件契約候補は、`context-clarification` が起動する1周の `review-orchestration` を通す。`ready_for_exit_check` と終了条件を満たした候補だけを要件契約として固定する。`blocked`、`reset_required`、`rollback_required` の場合は `fail` とする。
-- `review-orchestration` の台帳に `ready_for_exit_check` が記録されていても、それだけで作業全体を終了してはならない。親は台帳と作業契約を照合し、全レビュー単位の完了、候補受付の閉鎖、全候補の裁定、未裁定の `needs-investigation` が 0 件であること、受理済み修正の前後結果、修正後確認一式の成功、必要な新規独立確認の記録、変更の追跡可能性、判定不能領域と再開条件の記録を確認する。条件を緩めてはならない。
+- `review-orchestration` の台帳に `ready_for_exit_check` が記録されていても、それだけで作業全体を終了してはならない。親は台帳と作業契約を照合し、全レビュー単位の完了、候補受付の閉鎖、全候補の裁定、未裁定の `needs-investigation` が 0 件であること、修正前処分案と独立確認の記録、受理済み修正の前後結果、修正後確認一式の成功、変更の追跡可能性、判定不能領域と再開条件の記録を確認する。条件を緩めてはならない。
 - `tiny-local` は要件レビューを行わず、準備完了記録の他の必須条件を満たせば `pass` または `pass_with_assumption` として計画または実装へ進む。`tiny-local` の条件を満たさなくなった時点で進行を止め、変更後の `work_class` で準備完了を再判定する。
 - 判定の構造、各判定の入口条件、`fail` 時の戻り先、契約の外部化と再開時の読み直しは `context-clarification` の出力契約に従う。
 
