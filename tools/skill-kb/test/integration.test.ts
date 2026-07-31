@@ -103,8 +103,14 @@ test("publishes source registration instructions and guide when no source is con
     await client.connect(transport);
 
     const instructions = client.getInstructions() ?? "";
-    assert.match(instructions, /skill-kb:\/\/guide\/source-registration/);
-    assert.match(instructions, /情報源を登録、変更、削除する前に/);
+    assert.equal(
+      instructions.trim(),
+      [
+        "skill-kb は、ローカルに設定された情報源へ到達する検索方法を提供する MCP サーバーである。",
+        "情報源の登録・変更・削除、または検索手順の作成・変更を行うときは、`skill-kb://guide/source-registration` を読む。",
+      ].join("\n"),
+    );
+    assert.ok(Buffer.byteLength(instructions, "utf8") <= 2048);
 
     const listed = await client.listResources();
     assert.deepEqual(listed.resources.map((resource) => resource.uri).sort(), [
@@ -127,6 +133,7 @@ test("publishes all tools and supports work-note operations over stdio", async (
   const projectDirectory = path.join(workspace, ".opencode");
   const globalDirectory = path.join(root, "global");
   const globalConfig = path.join(globalDirectory, "KNOWLEDGE.yml");
+  const projectConfig = path.join(projectDirectory, "KNOWLEDGE.yml");
   const instructionsFile = path.join(projectDirectory, "project-search.md");
   await Promise.all([
     mkdir(projectDirectory, { recursive: true }),
@@ -146,7 +153,7 @@ test("publishes all tools and supports work-note operations over stdio", async (
   );
   await writeFile(instructionsFile, "Read the project documents.");
   await writeFile(
-    path.join(projectDirectory, "KNOWLEDGE.yml"),
+    projectConfig,
     [
       "sources:",
       "  - name: shared",
@@ -199,6 +206,8 @@ test("publishes all tools and supports work-note operations over stdio", async (
       name: "official-api",
       description: "Use for the official API.",
       instructions: "Fetch the official API page.",
+      scope: "global",
+      config_path: globalConfig,
     });
 
     const fileResult = await client.callTool(
@@ -212,6 +221,8 @@ test("publishes all tools and supports work-note operations over stdio", async (
       name: "shared",
       description: "Project shared source.",
       instructions: "Read the project documents.",
+      scope: "project",
+      config_path: projectConfig,
     });
 
     await writeFile(instructionsFile, "Read the updated project documents.");

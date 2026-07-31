@@ -162,6 +162,8 @@ export function createServer(
             name: source.name,
             description: source.description,
             instructions,
+            scope: source.scope,
+            config_path: source.configPath,
           };
           return textResult(result);
         } catch (error) {

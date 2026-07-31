@@ -33,7 +33,7 @@ export const GUIDE_RESOURCES: readonly GuideResource[] = [
     name: "source-registration-guide",
     title: "情報源の登録規則",
     description:
-      "KNOWLEDGE.yml へ情報源を登録、変更、削除するときの規則。設定ファイルの場所、併合規則、description と instructions の書き方、パス制約、反映に必要な再起動条件を含む。情報源の設定を書き換える前に読む。",
+      "KNOWLEDGE.yml へ情報源を登録、変更、削除するときの規則。設定ファイルの場所、description と instructions の書き方、パス制約、反映に必要な再起動条件を含む。情報源の設定を書き換える前に読む。",
     fileName: "source-registration.md",
   },
 ];
