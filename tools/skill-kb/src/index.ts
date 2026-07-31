@@ -13,7 +13,7 @@ async function main(): Promise<void> {
       `[skill-kb] No knowledge source is configured, so no tool is published. Checked ${catalog.globalConfigPath} and ${catalog.projectConfigPath}`,
     );
   }
-  const server = createServer(catalog, await buildServerInstructions(catalog));
+  const server = createServer(catalog, await buildServerInstructions());
   await server.connect(new StdioServerTransport());
 }
 

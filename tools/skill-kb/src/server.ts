@@ -5,12 +5,7 @@ import {
   type KnowledgeSource,
   readInstructions,
 } from "./config.js";
-import {
-  buildCatalogState,
-  CATALOG_RESOURCE,
-  GUIDE_RESOURCES,
-  readGuide,
-} from "./guides.js";
+import { GUIDE_RESOURCES, readGuide } from "./guides.js";
 import {
   observationSchema,
   WorkNoteStore,
@@ -134,29 +129,6 @@ export function createServer(
     );
   }
 
-  server.registerResource(
-    CATALOG_RESOURCE.name,
-    CATALOG_RESOURCE.uri,
-    {
-      title: CATALOG_RESOURCE.title,
-      description: CATALOG_RESOURCE.description,
-      mimeType: "application/json",
-    },
-    async (uri) => ({
-      contents: [
-        {
-          uri: uri.href,
-          mimeType: "application/json",
-          text: JSON.stringify(
-            await buildCatalogState(catalog, workNotes),
-            null,
-            2,
-          ),
-        },
-      ],
-    }),
-  );
-
   const tools = [
     server.registerTool(
       "get_source",
@@ -202,7 +174,7 @@ export function createServer(
       {
         title: "作業メモの作成",
         description:
-          "人間が保存を明示的に承認した知見だけを新しい作業メモとして保存する。作業メモは低権威の補助情報であり、正本と矛盾する場合は正本を優先する。重要な判断へ使う前に根拠と現在の状態を再確認する。人間の承認前には呼び出さない。各項目の書き方と保存先の規則は資料 skill-kb://guide/work-note-authoring を読む。",
+          "人間が保存を明示的に承認した知見だけを新しい作業メモとして保存する。作業メモは低権威の補助情報であり、正本と矛盾する場合は正本を優先する。重要な判断へ使う前に根拠と現在の状態を再確認する。人間の承認前には呼び出さない。",
         inputSchema: workNoteContentSchema,
       },
       async (input) => {
@@ -218,7 +190,7 @@ export function createServer(
       {
         title: "作業メモの更新",
         description:
-          "人間が更新を明示的に承認した既存の作業メモを更新する。呼出し前に read_work_note で現行全文を確認する。source_names は現行メモと同じ集合を指定し、対応する情報源は変更しない。作業メモは低権威の補助情報であり、正本と矛盾する場合は正本を優先する。人間の承認前には呼び出さない。各項目の書き方と更新時の制約は資料 skill-kb://guide/work-note-authoring を読む。",
+          "人間が更新を明示的に承認した既存の作業メモを更新する。呼出し前に read_work_note で現行全文を確認する。source_names は現行メモと同じ集合を指定し、対応する情報源は変更しない。作業メモは低権威の補助情報であり、正本と矛盾する場合は正本を優先する。人間の承認前には呼び出さない。",
         inputSchema: {
           ...workNoteContentSchema,
           change_reason: z
