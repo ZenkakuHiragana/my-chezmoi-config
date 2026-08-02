@@ -1,0 +1,9 @@
+{
+  "opencode": {
+    "codeSystemPrompt": false,
+    "clientSystemPrompt": true,
+    "claudeMd": "off",
+    "memory": false,
+    "dreaming": false
+  }
+}

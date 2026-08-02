@@ -3,11 +3,12 @@
     // 初回生成時の fallback。既存の ~/.claude/settings.json に値があればそちらを保持する。
     "model": "sonnet",
     "enabledPlugins": {
-      "lua-lsp@claude-plugins-official": true
+      "lua-lsp@claude-plugins-official": true,
     },
     // 初回生成時の fallback。Claude Code 側の切り替えで既存値が変わった場合は保持する。
     "effortLevel": "high",
     "autoUpdatesChannel": "latest",
+    "showThinkingSummaries": true,
     "theme": "auto",
     "verbose": false,
     "permissions": {
@@ -53,8 +54,18 @@
         "TaskOutput",
         "Agent(Explore)",
         "Agent(Plan)",
-        "Agent(general-purpose)"
-      ]
-    }
-  }
+        "Agent(general-purpose)",
+      ],
+    },
+  },
+  "claude_agent": {
+    "general_fast": {
+      "model": "claude-sonnet-5",
+      "effort": "high",
+    },
+    "general_strong": {
+      "model": "claude-opus-5",
+      "effort": "high",
+    },
+  },
 }
