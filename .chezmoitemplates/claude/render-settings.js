@@ -205,7 +205,10 @@ function resolveOtherShellTool(targetTool) {
 
 function resolvePermissionPlaceholders(settings, otherTool) {
   if (!("permissions" in settings)) return;
-  const permissions = requireObject(settings.permissions, "managed permissions");
+  const permissions = requireObject(
+    settings.permissions,
+    "managed permissions",
+  );
   for (const action of PERMISSION_ACTIONS) {
     if (!(action in permissions)) continue;
     const list = permissions[action];
@@ -275,6 +278,47 @@ function mergeProjectedPermissions(settings, targetTool, projected) {
   }
 }
 
+// Claude Code は settings.json を保存し直すとき、内部スキーマの定義順でキーを
+// 並べ替えて書き戻す（2026-08-02 観測）。生成結果と書き戻し後を一致させるため、
+// 出力時にも同じ順序を適用する。順序は Claude Code の実装依存のため、
+// バージョン更新時は並べ替え後の settings.json を観測し直すこと。
+const CLAUDE_SETTINGS_TOP_LEVEL_ORDER = [
+  "permissions",
+  "model",
+  "enabledPlugins",
+  "effortLevel",
+  "autoUpdatesChannel",
+  "showThinkingSummaries",
+  "theme",
+  "verbose",
+];
+const CLAUDE_PERMISSIONS_ORDER = ["allow", "deny", "ask"];
+
+function reorderObjectKeys(object, order) {
+  const reordered = {};
+  for (const key of order) {
+    if (Object.hasOwn(object, key)) reordered[key] = object[key];
+  }
+  for (const key of Object.keys(object)) {
+    if (!Object.hasOwn(reordered, key)) reordered[key] = object[key];
+  }
+  return reordered;
+}
+
+function normalizeForClaudeCode(settings) {
+  const normalized = reorderObjectKeys(
+    settings,
+    CLAUDE_SETTINGS_TOP_LEVEL_ORDER,
+  );
+  if (normalized.permissions && typeof normalized.permissions === "object") {
+    normalized.permissions = reorderObjectKeys(
+      normalized.permissions,
+      CLAUDE_PERMISSIONS_ORDER,
+    );
+  }
+  return normalized;
+}
+
 function renderSettings(
   existingPath,
   managedJson,
@@ -300,7 +344,7 @@ function renderSettings(
 
   // MCP 登録は settings.json では扱わない。Claude Code はこのキーを読まない。
   // 同期は run_onchange_after_claude-mcp.js が sync-mcp.js 経由で行う。
-  return `${JSON.stringify(output, null, 2)}\n`;
+  return `${JSON.stringify(normalizeForClaudeCode(output), null, 2)}\n`;
 }
 
 function main(argv) {

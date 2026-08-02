@@ -11,6 +11,8 @@
     "showThinkingSummaries": true,
     "theme": "auto",
     "verbose": false,
+    // Claude Code の設定変更で追加されたキー。並べ替え正規化の差分を防ぐため正本に持つ。
+    "promptSuggestionEnabled": false,
     "permissions": {
       // - Agent ... 残す。
       // - Artifact ... 消す。
