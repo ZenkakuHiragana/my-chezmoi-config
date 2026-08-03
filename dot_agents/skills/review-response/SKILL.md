@@ -95,10 +95,12 @@ description: Use when a frozen review finding set must be reproduced and classif
 - 保つ条件:
 - 修正前の失敗:
 - 修正後に使う同じ確認方法:
-- 失敗時の縮小または巻き戻し:
+- 失敗時の処分:
 ```
 
 `accepted` が 0 件なら修正契約へ「なし」と書く。`accepted` だけを修正契約へ入れる。
+
+`review-orchestration` が隔離する完成修正候補では、作成中または確認中の失敗時に候補を不採用とし、同じ手続き内の縮小、巻き戻し、手直し、再作成、再監査へ接続しない。その他の変更では、適用される作業契約に従って縮小または巻き戻しを記録する。
 
 ## 禁止事項
 
