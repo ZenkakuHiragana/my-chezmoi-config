@@ -35,6 +35,38 @@ test("renders preserved settings and projected permissions", () => {
   });
 });
 
+test("preserves the managed default agent and hooks", () => {
+  const managed = {
+    agent: "build",
+    hooks: {
+      SessionStart: [
+        {
+          hooks: [
+            {
+              type: "command",
+              command: "node",
+              args: ["-e", "process.stdout.write('ok')"],
+              timeout: 5,
+            },
+          ],
+        },
+      ],
+    },
+  };
+
+  const rendered = JSON.parse(
+    renderSettings(
+      "missing-settings.json",
+      JSON.stringify(managed),
+      "PowerShell",
+      "{}",
+    ),
+  );
+
+  assert.equal(rendered.agent, "build");
+  assert.deepEqual(rendered.hooks, managed.hooks);
+});
+
 test("never emits mcpServers even when existing settings carry it", () => {
   const directory = fs.mkdtempSync(path.join(os.tmpdir(), "render-settings-"));
   const existingPath = path.join(directory, "settings.json");

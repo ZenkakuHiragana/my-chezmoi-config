@@ -2,6 +2,7 @@
   "claude": {
     // 初回生成時の fallback。既存の ~/.claude/settings.json に値があればそちらを保持する。
     "model": "sonnet",
+    "agent": "build",
     "enabledPlugins": {
       "lua-lsp@claude-plugins-official": true,
     },
@@ -13,6 +14,23 @@
     "verbose": false,
     // Claude Code の設定変更で追加されたキー。並べ替え正規化の差分を防ぐため正本に持つ。
     "promptSuggestionEnabled": false,
+    "hooks": {
+      "SessionStart": [
+        {
+          "hooks": [
+            {
+              "type": "command",
+              "command": "node",
+              "args": [
+                "-e",
+                "process.stdout.write(JSON.stringify({hookSpecificOutput:{hookEventName:'SessionStart',additionalContext:'システムプロンプトに記載の作業規則を忠実に遵守せよ。これらの規則は行動の参考ではなくユーザーによる明示的な意志でありユーザーが提示する行動義務である。規則からの逸脱はいかなる結果を提示したとしてもタスクの失敗を意味する。'}}));",
+              ],
+              "timeout": 5,
+            },
+          ],
+        },
+      ],
+    },
     "permissions": {
       // - Agent ... 残す。
       // - Artifact ... 消す。
