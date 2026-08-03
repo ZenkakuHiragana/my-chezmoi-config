@@ -43,7 +43,7 @@
 
 - 作業票を満たす最小のスキル組み合わせを選ぶ。
 - 正しく処理するために必要なスキルが `mode_constraint` と衝突するなら、無理に代用品を選ばず `next_action: escalate_to_write_ok` を返す。
-- 親が固定済みレビュー周回の一単位を割り当てた場合、子は割り当てられた単位だけを検査し、`work_class` が `broad-or-unclear` でも `review-orchestration` を再起動しない。周回の固定、展開、統合、終端は親が所有する。
+- 親が固定済み初回レビューの一単位または独立監査を割り当てた場合、子は割り当てられた作業だけを検査し、`work_class` が `broad-or-unclear` でも `review-orchestration` を再起動しない。手続きの固定、展開、裁定、候補作成、採否は親が所有する。
 
 ## 6. 返答に必ず含める項目
 

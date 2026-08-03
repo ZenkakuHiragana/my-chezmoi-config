@@ -47,7 +47,7 @@ description: Use when work stage, scope, acceptance criteria, verification metho
 7. 解決できた範囲で `要件契約候補` を作成し、レビュー対象版として凍結する。この時点では正式な `要件契約` として固定しない。
 8. `bounded` では、契約作成者とは別の実行者が `requirement-review` を直接一回行う。全検査が `反例未確認` なら候補を正式な `要件契約` として固定する。不合格または判定不能なら `fail` とし、契約候補を自動修正して再レビューしてはならない。
 9. `broad-or-unclear` では、`review-orchestration` 経由で `requirement-review` を行う。レビュー判定根拠版には、依頼引用、後続訂正、確認済みの技術制約、安全上の不変条件、条項が参照するリポジトリ根拠と外部一次資料、テストとコマンド、情報所有先、対象自然言語の正本と保つ意味と利用経路を含める。
-10. `broad-or-unclear` では、`review-orchestration` の台帳に `ready_for_exit_check` が記録された候補だけを正式な `要件契約` として固定する。`blocked`、`reset_required`、`rollback_required` の場合は `fail` とし、戻り先を示す。契約候補を修正して新しいレビュー周回を自動開始してはならない。
+10. `broad-or-unclear` では、`review-orchestration` の手続き結果が `pass` の候補だけを正式な `要件契約` として固定する。`fail` または `indeterminate` の場合は準備完了判定を `fail` とし、不一致または再開条件に対応する戻り先を示す。同じ手続き内で契約候補を作り直したり、独立監査を再実行したりしてはならない。
 11. 判定規則に従って `pass` / `pass_with_assumption` / `fail` を確定する。
 12. `pass` / `pass_with_assumption` のときは契約と要件レビュー結果を外部化する。`fail` のときは戻り先の能力を示す。
 
@@ -59,7 +59,7 @@ description: Use when work stage, scope, acceptance criteria, verification metho
 - 未解決の不足: 各項目に分類（`user_decision` / `repo_derivable` / `subsystem_derivable` / `public_fact` / `contract_gap`）
 - 残る `user_decision`: 未解決のユーザー判断の一覧（無ければ `なし`）
 - `要件契約`: 固定済みなら参照、未固定なら理由
-- 要件レビュー結果: `bounded` では直接レビュー結果、`broad-or-unclear` ではレビュー周回台帳、`tiny-local` では `なし`
+- 要件レビュー結果: `bounded` では直接レビュー結果、`broad-or-unclear` ではレビュー手続き記録、`tiny-local` では `なし`
 - verdict: `pass` / `pass_with_assumption` / `fail`
 - 仮定: `pass_with_assumption` のとき置いた仮定とその適用範囲（無ければ `なし`）
 - 戻り先: `fail` のとき進む能力（`pass` 系なら `なし`）
@@ -129,7 +129,7 @@ description: Use when work stage, scope, acceptance criteria, verification metho
 - 範囲の含む / 含まないが確定している。
 - `判断と認可` 表に `仮定` がない。
 - `bounded` では直接実行した `requirement-review` が合格している。
-- `broad-or-unclear` では `review-orchestration` の台帳に `ready_for_exit_check` が記録されている。
+- `broad-or-unclear` では `review-orchestration` の手続き結果が `pass` である。
 
 `pass_with_assumption` を許す範囲:
 
@@ -172,5 +172,5 @@ description: Use when work stage, scope, acceptance criteria, verification metho
 - 判定の必須条件を実際に照合した。
 - `pass_with_assumption` の仮定が未確認事実の意識的な暫定採用に限られ、依存する判断と反証時の戻り先を持つ。
 - `pass` 系なら `要件契約` を外部化した。
-- `bounded` では直接レビュー結果、`broad-or-unclear` ではレビュー周回台帳を外部化した。
+- `bounded` では直接レビュー結果、`broad-or-unclear` ではレビュー手続き記録を外部化した。
 - `fail` なら戻り先の能力を 1 つ示した。

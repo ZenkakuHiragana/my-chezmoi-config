@@ -1,11 +1,11 @@
 ---
 name: review-response
-description: Use whenever a frozen review finding set must be reproduced and classified before any review-response edit; performs one bounded pass and returns accepted/rejected/needs-investigation/out-of-scope plus a response contract for accepted findings, without editing or deciding loop termination. レビュー指摘の再現・4値分類専用。
+description: Use when a frozen review finding set must be reproduced and classified before any correction; defines and applies accepted/rejected/needs-investigation/out-of-scope criteria plus the response contract, without editing or deciding procedure termination. レビュー指摘の再現・4値分類基準専用。
 ---
 
 # レビュー対応
 
-凍結した指摘集合を現成果物と作業契約へ 1 回だけ再現し、修正対象を決める。このスキルでは成果物を編集せず、レビュー周回の終了を判定しない。
+凍結した指摘集合を現成果物と作業契約へ 1 回だけ再現し、修正対象を決める。このスキルでは成果物を編集せず、レビュー手続きの終了を判定しない。`broad-or-unclear` の手続きでは、親がこの基準を直接使い、分類用サブエージェントを起動してはならない。
 
 ## 入力
 
@@ -59,7 +59,7 @@ description: Use whenever a frozen review finding set must be reproduced and cla
 
 ### `out-of-scope`
 
-指摘の対象と、`侵害する条件` の種類およびIDまたは逐語引用を、作業契約の明示要求、範囲、受け入れ条件、不変条件へ逐語で照合した結果を記録する。`該当なし` は現周で `out-of-scope` とする。範囲判断を新しい要求の生成に使ってはならない。
+指摘の対象と、`侵害する条件` の種類およびIDまたは逐語引用を、作業契約の明示要求、範囲、受け入れ条件、不変条件へ逐語で照合した結果を記録する。`該当なし` は現在の手続きで `out-of-scope` とする。範囲判断を新しい要求の生成に使ってはならない。
 
 ## レビュー対応成果物
 
@@ -105,7 +105,7 @@ description: Use whenever a frozen review finding set must be reproduced and cla
 - 成果物を編集してはならない。
 - 新しい指摘を探索または生成してはならない。
 - レビュアーの検査被覆を再実行してはならない。
-- レビュー周回の収束または終了を判定してはならない。
+- レビュー手続きの終了を判定してはならない。
 - `needs-investigation` または `out-of-scope` を黙示的に解消してはならない。
 
 ## 完了チェック
