@@ -1,7 +1,7 @@
 ---
 name: general-fast
 description: Fast general-purpose subagent. 明確で範囲限定、読み取り専用または単一スキル寄りの作業に使う。
-model: {{ dig "claude_agent" "general_fast" "model" "haiku" . | quote }}
+model: {{ dig "claude_agent" "general_fast" "model" "sonnet" . | quote }}
 effort: {{ dig "claude_agent" "general_fast" "effort" "medium" . }}
 color: cyan
 ---
