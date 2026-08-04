@@ -8,6 +8,14 @@
       "model": "openai/gpt-5.6-sol",
       "reasoningEffort": "medium",
     },
+    "review_requirement": {
+      "model": "openai/gpt-5.6-sol",
+      "reasoningEffort": "medium",
+    },
+    "review_audit": {
+      "model": "openai/gpt-5.6-sol",
+      "reasoningEffort": "medium",
+    },
   },
   "opencode": {
     "$schema": "https://opencode.ai/config.json",
@@ -25,12 +33,7 @@
     },
     "formatter": {
       "prettier": {
-        "command": [
-          "npx",
-          "prettier",
-          "--write",
-          "$FILE"
-        ],
+        "command": ["npx", "prettier", "--write", "$FILE"],
         "extensions": [
           ".md",
           ".markdown",

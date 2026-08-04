@@ -192,6 +192,8 @@
 - `public-research`
 - `report-failure`
 - `requirement-review`
+- `review-audit`
+- `review-requirement`
 - `task-planning`
 - `technical-writing`
 
