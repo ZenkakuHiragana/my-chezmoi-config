@@ -7,4 +7,5 @@
 .opencode/work/
 .opencode/work-notes/
 .opencode/package-lock.json
+.opencode/opencode.json
 **/__pycache__/
