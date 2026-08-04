@@ -1,6 +1,6 @@
 # requirement-review-v2: 検証条項の質（判別対象・手段記載）の較正フィクスチャ
 
-要件契約テンプレート（`context-clarification` の出力契約）と `requirement-review` の検証条項規則が、次の性質を保っているかを較正する。
+要件契約テンプレート（`context-clarification` の出力契約）と `requirement-reviewer` の検証条項規則が、次の性質を保っているかを較正する。
 
 - 契約作成時、観測欄に依頼が名指ししていない手段（操作手順、コマンド列、正規表現、バージョン、実行者指定）が流入しない
 - 判別対象が合否主張として書かれる（失敗原因の帰属先にならない）
@@ -10,19 +10,19 @@
 
 ## 構成
 
-| ファイル | 種別 | 主な標的 |
-| --- | --- | --- |
-| `s1-authoring-ci.md` | 作成系・典型 | 手段混入の抑制と環境要求（Windows 実機）の保持の両立 |
-| `s2-authoring-readme.md` | 作成系・境界 | 揮発する件数（スクリプト7個）を合否条件へ固定しない |
-| `s3-review-means-laden.md` | レビュー系 | 手段記載4種（行数確認、grep バージョン、Node.js 22＋別実行者、stderr 正規表現）の検出 |
-| `s4-review-unverifiable.md` | レビュー系・回帰 | 検証不能義務の不合格化＋手順なし義務を破綻にしない |
-| `s5-authoring-pdf.md` | 作成系・hold-out | 依頼が名指しした確認手段（印刷プレビュー、既存回帰テスト）の保持 |
-| `s6-review-mixed.md` | レビュー系・hold-out | 手段記載の指摘と環境要求（Windows 実機・WSL 不可）の保持の分離 |
-| `scoring.md` | 採点 | 要件チェックリスト、採点規則、較正基線 |
+| ファイル                    | 種別                 | 主な標的                                                                              |
+| --------------------------- | -------------------- | ------------------------------------------------------------------------------------- |
+| `s1-authoring-ci.md`        | 作成系・典型         | 手段混入の抑制と環境要求（Windows 実機）の保持の両立                                  |
+| `s2-authoring-readme.md`    | 作成系・境界         | 揮発する件数（スクリプト7個）を合否条件へ固定しない                                   |
+| `s3-review-means-laden.md`  | レビュー系           | 手段記載4種（行数確認、grep バージョン、Node.js 22＋別実行者、stderr 正規表現）の検出 |
+| `s4-review-unverifiable.md` | レビュー系・回帰     | 検証不能義務の不合格化＋手順なし義務を破綻にしない                                    |
+| `s5-authoring-pdf.md`       | 作成系・hold-out     | 依頼が名指しした確認手段（印刷プレビュー、既存回帰テスト）の保持                      |
+| `s6-review-mixed.md`        | レビュー系・hold-out | 手段記載の指摘と環境要求（Windows 実機・WSL 不可）の保持の分離                        |
+| `scoring.md`                | 採点                 | 要件チェックリスト、採点規則、較正基線                                                |
 
 ## 使い方
 
-1. 検証したい版の規則3ファイル（`context-clarification/SKILL.md`、`requirement-review/SKILL.md.tmpl` のレンダリング結果、`requirement-review-discipline.md`）を中立名で実行ディレクトリへ置く。
+1. 検証したい版の規則3ファイル（`context-clarification/SKILL.md`、`requirement-reviewer` サブエージェント定義（`dot_config/opencode/agents/requirement-reviewer.md.tmpl`）のレンダリング結果、`requirement-reviewer-discipline.md`）を中立名で実行ディレクトリへ置く。
 2. 各シナリオの「作業」節を盲検の新規実行者に実行させる。実行者には採点基準・変種ラベル・比較の存在を伏せる。環境側の同名スキルの起動を禁止する。
 3. 実行者と分離した採点者が `scoring.md` で採点する。採点は意味単位で行い、逐語一致を要求しない。
 4. 較正判定: `scoring.md` の較正基線と照合する。[critical] を落とす規則版は退行。基線と同等以上なら維持。

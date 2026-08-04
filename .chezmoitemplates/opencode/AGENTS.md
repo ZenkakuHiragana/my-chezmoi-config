@@ -177,8 +177,8 @@
 
 - 実作業（計画、実装、要件契約以外のレビュー）に進む前に、`context-clarification` が準備完了記録を作り、判定を `pass` / `pass_with_assumption` / `fail` のいずれかに確定する。
 - 判定が `pass` または `pass_with_assumption` になるまで、実作業段階へ進んではいけない。
-- 要件契約候補の `requirement-review` は準備完了判定を作る内部検査であり、前項のレビュー開始禁止には含めない。
-- `bounded` の要件契約候補は、契約作成者とは別の実行者が `requirement-review` を直接一回行う。全検査が `反例未確認` の候補だけを要件契約として固定する。
+- 要件契約候補の要件レビュー（`requirement-reviewer`）は準備完了判定を作る内部検査であり、前項のレビュー開始禁止には含めない。
+- `bounded` の要件契約候補は、契約作成者とは別の実行者が `requirement-reviewer` で要件レビューを直接一回行う。全検査が `反例未確認` の候補だけを要件契約として固定する。
 - `broad-or-unclear` の要件契約候補は、`context-clarification` が起動する `review-orchestration` を通す。手続き結果が `pass` の候補だけを要件契約として固定する。`fail` または `indeterminate` の場合は準備完了判定を `fail` とする。
 - `review-orchestration` の結果だけで作業全体を終了してはならない。親は手続き記録と作業契約を照合し、固定した全レビュー単位の完了、判定不能0件、全指摘の裁定、`needs-investigation` 0件、必要な完成修正候補、独立監査の結果、監査対象と採用対象の同一性、変更の追跡可能性を確認する。条件を緩めてはならない。
 - `tiny-local` は要件レビューを行わず、準備完了記録の他の必須条件を満たせば `pass` または `pass_with_assumption` として計画または実装へ進む。`tiny-local` の条件を満たさなくなった時点で進行を止め、変更後の `work_class` で準備完了を再判定する。

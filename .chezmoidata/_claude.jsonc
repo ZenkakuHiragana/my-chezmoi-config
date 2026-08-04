@@ -87,7 +87,7 @@
       "model": "claude-opus-5",
       "effort": "high",
     },
-    "review_requirement": {
+    "requirement_reviewer": {
       "model": "claude-opus-5",
       "effort": "high",
     },

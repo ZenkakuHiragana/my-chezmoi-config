@@ -48,7 +48,7 @@
 
 - `general-fast`: 範囲が限定され、根拠集め中心で、読み取り専用、1 スキルで済み、止めどころが明確なとき
 - `general-strong`: 調査範囲が広い、仮説が競合する、設計比較が要る、または複数結果の突き合わせが要るとき
-- `review-requirement`: 固定済みの要件レビュー単位を実行するとき
+- `requirement-reviewer`: 固定済みの要件レビュー単位を実行するとき
 - `review-audit`: `review-orchestration` の固定済み独立監査を実行するとき
 
 ## 7. レビューの並列展開
@@ -57,7 +57,7 @@
 
 - 発動条件: レビュー対象の `work_class` が `broad-or-unclear`。
 - 分割単位: レビュースキルが提供する観点（関心 / プロファイル）ごと。
-- `requirement-review` の初回検査は `review-requirement` へ割り当てる。それ以外の専用エージェントがない初回レビューは、`general-fast` または `general-strong` へ割り当てる。
+- 要件レビューの初回検査は `requirement-reviewer` へ割り当てる。それ以外の専用エージェントがない初回レビューは、`general-fast` または `general-strong` へ割り当てる。
 - 各サブエージェントは割り当てられた観点のみを検査し、他の観点へ踏み込まない。
 - 各サブエージェントは固定済み初回レビューの一単位、または独立監査を実行し、`review-orchestration` を再起動しない。手続きの状態は親エージェントだけが所有する。
 - 各サブエージェントの `mode_constraint` は `read_only` とする。

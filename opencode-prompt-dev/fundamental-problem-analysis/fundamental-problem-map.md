@@ -189,7 +189,7 @@ P1〜P5は診断軸であり、個々の失敗を一意に説明する真理値�
   - 実装先: `context-clarification`（5変換境界、判断材料の役割と確定状態、判断の閉鎖、探索範囲の停止）
   - 未実装: 提示の忠実度梯子、提示内容の保存（何を見せて得た判断かの記録）
 - P2の信頼崩壊と監査問題: [`fundamental-problem-analysis/trust-collapse.md`](fundamental-problem-analysis/trust-collapse.md)
-  - 実装先: `context-clarification`（判断の露出、未確認部分の露出、観測欄の判別対象）、`requirement-review`（依頼対応、条項根拠、外部観測、情報の所有先、判別力検査と削除テスト）、`review-orchestration`（人間の確認面の縮小、レビュー周回台帳）
+  - 実装先: `context-clarification`（判断の露出、未確認部分の露出、観測欄の判別対象）、`requirement-reviewer`（依頼対応、条項根拠、外部観測、情報の所有先、判別力検査と削除テスト）、`review-orchestration`（人間の確認面の縮小、レビュー周回台帳）
   - 未実装: 変更の分母の機械的列挙、左全域性の実装後監査、計器の較正可能性（較正フィクスチャは `fixtures/requirement-review-v2/` に基線つきで存在。較正の実施手順と周期は未実装）
 - P2/P4の根拠収集: [`fundamental-problem-analysis/evidence-retrieval.md`](fundamental-problem-analysis/evidence-retrieval.md)
   - 実装先: `investigation` / `public-research` への委譲経路（`context-clarification` 手順4）

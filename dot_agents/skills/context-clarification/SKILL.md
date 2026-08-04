@@ -45,8 +45,8 @@ description: Use when work stage, scope, acceptance criteria, verification metho
 
 6. 依頼と確認済み制約を意味上の義務へ分け、1つの義務に1つの `OBL-<連番>` を付ける。同じ義務を範囲、受け入れ条件、自然言語、判断などの記載欄ごとに分割してはならない。
 7. 解決できた範囲で `要件契約候補` を作成し、レビュー対象版として凍結する。この時点では正式な `要件契約` として固定しない。
-8. `bounded` では、一つの要件契約候補の版に対して、契約作成者とは別の実行者が `requirement-review` を直接一回行う。全検査が `反例未確認` なら候補を正式な `要件契約` として固定する。不合格または判定不能なら `fail` とする。
-9. `broad-or-unclear` では、`review-orchestration` 経由で `requirement-review` を行う。レビュー判定根拠版は、使用する各レビュースキルの `## 入力` 節を参照し、各節が要求する資料を含める。レビュー種別固有の入力項目をこの手順へ複製してはならない。
+8. `bounded` では、一つの要件契約候補の版に対して、契約作成者とは別の実行者が `requirement-reviewer` で要件レビューを直接一回行う。全検査が `反例未確認` なら候補を正式な `要件契約` として固定する。不合格または判定不能なら `fail` とする。
+9. `broad-or-unclear` では、`review-orchestration` 経由で `requirement-reviewer` による要件レビューを行う。レビュー判定根拠版は、`requirement-reviewer` の手順の `## 入力` 節と、使用する各レビュースキルの `## 入力` 節を参照し、各節が要求する資料を含める。レビュー種別固有の入力項目をこの手順へ複製してはならない。
 10. `broad-or-unclear` では、`review-orchestration` の手続き結果が `pass` の候補だけを正式な `要件契約` として固定する。`fail` または `indeterminate` の場合は準備完了判定を `fail` とし、不一致または再開条件に対応する戻り先を示す。同じ手続き内で契約候補を作り直したり、独立監査を再実行したりしてはならない。
 11. 要件レビューの終了後にレビュー対象の内容を変更した場合は、変更後の候補へ新しい版または内容識別子を割り当てる。終了した要件レビューの `pass`、`fail`、`indeterminate` を変更後の候補のレビュー結果として扱ってはならない。
 12. 判定規則に従って `pass` / `pass_with_assumption` / `fail` を確定する。
@@ -133,7 +133,7 @@ description: Use when work stage, scope, acceptance criteria, verification metho
 - 意味を担う自然言語を確認した場合は、その対象部分、正本、保つ意味、意味の欠落やずれを判断する基準、利用経路、確認方法が既存の契約項目へ対応している。文章として作成または構成し直す場合は、成果物種別、主利用型、必要な利用結果、利用主体がその結果へ到達する条件も対応している。
 - 範囲の含む / 含まないが確定している。
 - `判断と認可` 表に `仮定` がない。
-- `bounded` では直接実行した `requirement-review` が合格している。
+- `bounded` では直接実行した要件レビュー（`requirement-reviewer`）が合格している。
 - `broad-or-unclear` では `review-orchestration` の手続き結果が `pass` である。
 
 `pass_with_assumption` を許す範囲:

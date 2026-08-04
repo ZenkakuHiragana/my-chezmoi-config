@@ -271,7 +271,7 @@ A/B提示は、特定の差を判断してもらう局所手段として使う�
 
 1. `context-clarification` の責務と発見手順
 2. 要件契約の固定選択と認可範囲
-3. `requirement-review` の対応検査
+3. `requirement-reviewer` の対応検査
 4. `implementation` から新規判断を戻す経路
 5. AGENTS.md の文脈収集規則との接続
 6. 回帰フィクスチャと較正手順

@@ -191,9 +191,8 @@
 - `japanese-doc-review`
 - `public-research`
 - `report-failure`
-- `requirement-review`
+- `requirement-reviewer`
 - `review-audit`
-- `review-requirement`
 - `task-planning`
 - `technical-writing`
 

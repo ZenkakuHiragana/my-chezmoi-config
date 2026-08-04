@@ -7,7 +7,7 @@
 
 ## F2
 
-- 契約作成者とは別の実行者が `requirement-review` を直接一回行う。
+- 契約作成者とは別の実行者が `requirement-reviewer` で要件レビューを直接一回行う。
 - `review-orchestration` を使わない。
 - 全検査が `反例未確認` なら要件契約を固定する。
 
