@@ -23,7 +23,7 @@
               "command": "node",
               "args": [
                 "-e",
-                "process.stdout.write(JSON.stringify({hookSpecificOutput:{hookEventName:'SessionStart',additionalContext:'システムプロンプトに記載の作業規則を忠実に遵守せよ。これらの規則は行動の参考ではなくユーザーによる明示的な意志でありユーザーが提示する行動義務である。規則からの逸脱はいかなる結果を提示したとしてもタスクの失敗を意味する。'}}));",
+                "let s='';process.stdin.on('data',c=>s+=c).on('end',()=>{let a='';try{a=JSON.parse(s).agent_type||''}catch(e){}if(a&&a!=='build')return;process.stdout.write(JSON.stringify({hookSpecificOutput:{hookEventName:'SessionStart',additionalContext:'システムプロンプトに記載の作業規則を忠実に遵守せよ。これらの規則は行動の参考ではなくユーザーによる明示的な意志でありユーザーが提示する行動義務である。規則からの逸脱はいかなる結果を提示したとしてもタスクの失敗を意味する。'}}))});",
               ],
               "timeout": 5,
             },
