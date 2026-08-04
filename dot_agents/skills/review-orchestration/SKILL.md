@@ -1,6 +1,6 @@
 ---
 name: review-orchestration
-description: Use before fan-out for every broad-or-unclear review; freezes one finite two-stage procedure, routes initial review and parent adjudication, and audits the completed correction candidate once before adoption without opening a review loop. `broad-or-unclear` レビューの二段階手続き専用。
+description: Use before fan-out for every broad-or-unclear review; freezes one target version and a finite two-stage procedure, routes initial review and parent adjudication, and audits the completed correction candidate at most once before adoption. `broad-or-unclear` レビューの版単位の二段階手続き専用。
 ---
 
 # レビュー手続きの運営
@@ -21,7 +21,7 @@ description: Use before fan-out for every broad-or-unclear review; freezes one f
 
 レビューの `work_class` が `broad-or-unclear` のとき、最初のレビュー単位を起動する前に必ず使用する。
 
-一回の手続きでは、次の上限を守る。
+一回の手続きは、固定した一つのレビュー対象版だけを扱い、次の上限を守る。
 
 - 初回レビューの並列展開: 一回
 - 親による全指摘の裁定: 一回
@@ -179,6 +179,8 @@ description: Use before fan-out for every broad-or-unclear review; freezes one f
 独立監査が `fail` または `indeterminate` の場合は完成修正候補を採用しない。現在採用中の成果物を変更してはならない。同じ手続き内で別候補の作成、修正候補の手直し、独立監査の再実行をしてはならない。
 
 要件契約候補は、手続き結果が `pass` の場合に限り要件契約として固定する。`context-clarification` は `fail` または `indeterminate` を準備完了判定の `fail` とし、不一致または再開条件に対応する戻り先を記録する。
+
+手続き終了後にレビュー対象または完成修正候補の内容を変更した場合は、変更後の対象へ新しい版または内容識別子を割り当てる。終了した手続きの `pass`、`fail`、`indeterminate` を変更後の対象の手続き結果として扱ってはならない。
 
 ## 手続き記録
 
