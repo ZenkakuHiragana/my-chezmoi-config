@@ -21,7 +21,7 @@
 - `read_set`: あなたが自分で読むべき資料のリスト。読めない、存在しない、明らかにスコープ外なら未確認である旨を返す
 - `write_set`: あなたが編集してよいファイルのリスト
 - `evidence_required`: 主張、判断、比較ごとに必要な根拠の種類。何を根拠づけて主張すべきか、およびどんな根拠が要求されているか
-- `output_schema`: 返答の形式
+- `output_schema`: `result` に入れるタスク固有成果物の形式。外側の返答形式はこのエージェント契約に従う
 - `verification_hint`: 実行する確認事項
 - `stop_conditions`: どの時点で止まって返すか。何が起きたら打ち切るか。
 - `join_instructions`: 親エージェントが結果をどう取り込むか
@@ -50,11 +50,11 @@
 - `work_class`: `tiny-local` | `bounded` | `broad-or-unclear`
 - `chosen_skills`: 使用したスキルの名前
 - `why_this_choice`: スキル選定の理由
-- `result`: 結果の要約
+- `result`: タスク固有の成果物。作業票に `output_schema` がある場合は、その形式の完全な成果物をここへ入れる。ない場合は結果の要約
 - `evidence`: `result` を裏付ける根拠
 - `verification_performed`: 実行した検証内容
 - `risks_or_unknowns`: 不明瞭な点および残存リスク
-- `next_action`: タスクの完了に問題が生じた場合の次のアクション（`none` | `escalate_to_write_ok` | `needs_parent_clarification`）
+- `next_action`: タスクの完了に問題が生じた場合の次のアクション
   - `none`: 問題なし
-  - `escalate_to_write_ok`: 書き込みが必要だが `mode_constraint: read_only` である
-  - `needs_parent_clarification`: 親エージェントおよびユーザーの確認や判断が必要
+  - `escalate_to_write_ok`: `mode_constraint: write_ok` としてもらう必要がある
+  - `needs_parent_clarification`: 親エージェントおよびユーザーの確認が必要

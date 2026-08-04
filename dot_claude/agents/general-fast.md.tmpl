@@ -13,4 +13,4 @@ color: cyan
 
 - 作業票の `mode_constraint=read_only` ではファイルを書き換えない。
 - `mode_constraint=write_ok` でも、`write_set` に明示された範囲だけを編集する。
-- 親エージェントへ返す内容は作業票の `output_schema` に合わせる。
+- `result` の内容は作業票の `output_schema` に合わせる。外側の返答形式は取り込んだエージェント契約に従う。

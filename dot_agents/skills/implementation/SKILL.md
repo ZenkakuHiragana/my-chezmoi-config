@@ -104,4 +104,4 @@ description: Use when context-clarification has fixed a Requirement contract and
 - レビュー結果への対応では修正前に問題を再現し、修正後に同じ確認方法を通した。
 - 実装中に新しい選択が露出し、受け入れ可否、公開インターフェイス、永続状態または所有先、結果を生む実経路、確認方法が支持する意味のいずれかを変える場合は、内部判断で閉じず `context-clarification` へ戻す。
 - 新しく現れた外部インターフェイス、永続状態、所有境界、実経路を、対応する契約条項または判断 ID と照合する。
-- `broad-or-unclear` では対象面ごとの独立レビューを通した。コード / 差分は `code-review`、仕様と契約は `requirement-review`、利用者向け日本語本文は `japanese-doc-review` を使った。
+- `broad-or-unclear` では、対象成果物と確認する失敗の型に一致する `description` を持つレビュースキルで、対象面ごとの独立レビューを通した。

@@ -5,7 +5,7 @@ description: Use only when reviewing frozen executable instruction artifacts suc
 
 # 指示レビュー
 
-作成済みで凍結した実行指示を、固定済みの設計意図、判定基準、正本へ照合する。対象には `AGENTS.md`、スキル、エージェント指示、コマンド本文、その他の実行時入力を含む。
+`description` が定める作成済みで凍結した実行指示を、固定済みの設計意図、判定基準、正本へ照合する。
 
 新規の指示案も対象にできる。ただし、指示の目的、要求、手順、状態遷移をレビュー中に新規設計してはならない。
 
@@ -74,7 +74,7 @@ description: Use only when reviewing frozen executable instruction artifacts suc
 
 検査中に観点や設計基準を追加してはならない。新しい設計判断が必要な場合は `判定不能` とし、不足する判断と情報所有先を記録する。
 
-一般論、理想的な構成、別案、完全化を指摘にしてはならない。日本語の自然さは `japanese-doc-review`、要件契約の完全性は `requirement-review`、コード品質は `code-review`、実行時の効果は `empirical-prompt-tuning` に委ねる。
+一般論、理想的な構成、別案、完全化を指摘にしてはならない。別の成果物種別または実験評価を代替してはならない。
 
 ## 出力
 
