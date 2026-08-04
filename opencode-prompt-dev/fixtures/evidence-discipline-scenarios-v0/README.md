@@ -1,6 +1,6 @@
 # evidence-discipline-scenarios-v0
 
-実際に観測された4件の失敗から、根拠の分類と採用に関する決定点を固定したフィクスチャ集。変換手続きは `opencode-prompt-dev/episode-to-fixture-procedure.md` に従う。出所は `scoring.md` にだけ記載する。
+実際に観測された4件の失敗から、根拠の分類と採用に関する決定点を固定したフィクスチャ集。変換手続きは `episode-to-fixture` スキルに従う。出所は `scoring.md` にだけ記載する。
 
 ## 構成
 

@@ -1,6 +1,6 @@
 # revealed-criteria-scenarios-v0
 
-2026-07-07 のセッションログ採掘（顕示基準の抽出）で特定された失敗類型を、`opencode-prompt-dev/episode-to-fixture-procedure.md` の手続きでフィクスチャ化したパック。全事例は実際に観測された失敗に由来する。出所は `scoring.md` にのみ記載する。
+2026-07-07 のセッションログ採掘（顕示基準の抽出）で特定された失敗類型を、`episode-to-fixture` スキルでフィクスチャ化したパック。全事例は実際に観測された失敗に由来する。出所は `scoring.md` にのみ記載する。
 
 ## 構成
 
