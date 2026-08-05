@@ -1,11 +1,11 @@
 ---
 name: review-orchestration
-description: Use before fan-out for every broad-or-unclear review; freezes one target version and a finite two-stage procedure, routes initial review and parent adjudication, and audits the completed correction candidate at most once before adoption. `broad-or-unclear` レビューの版単位の二段階手続き専用。
+description: Use before fan-out for every broad-or-unclear review; freezes one target version and a finite two-stage procedure, routes initial review and parent adjudication, and performs at most one independent audit before adoption. `broad-or-unclear` レビューの版単位の二段階手続き専用。
 ---
 
 # レビュー手続きの運営
 
-全 `broad-or-unclear` レビューを、固定した初回レビューと一回の独立監査からなる有限な手続きとして運営する。状態、裁定、修正候補、監査結果、採否は親が所有する。
+全 `broad-or-unclear` レビューを、固定した初回レビューと条件付きの独立監査からなる有限な手続きとして運営する。初回指摘が0件なら独立監査を行わず、`needs-investigation` があれば `indeterminate` で終了する。状態、裁定、修正候補、監査結果、採否は親が所有する。
 
 ## 入力
 
@@ -165,7 +165,7 @@ description: Use before fan-out for every broad-or-unclear review; freezes one t
 - `fail`: 固定入力から観測可能な不一致を確認した。候補を不採用とし、同じ手続き内の手直しと再監査を許可しない
 - `indeterminate`: 情報、環境、権限の不足により判定できない。候補を不採用とし、同じ手続き内の入力差し替え、手直し、再監査を許可しない
 
-`fail` では対象、観測した不一致、根拠、確認方法を記録する。`indeterminate` では不足、試みた確認、再開条件を記録する。結果を別の値へ丸めてはならない。
+`fail` では対象、観測した不一致、根拠、確認方法を記録する。`indeterminate` では不足、試みた確認、再開条件を記録する。結果を別の値へ丸めてはならない。`indeterminate` の不足分類、能力選択、戻り先はこの手続きで決めず、呼び出し側が決める。
 
 ## 7. 採否と終了
 
@@ -178,7 +178,7 @@ description: Use before fan-out for every broad-or-unclear review; freezes one t
 
 独立監査が `fail` または `indeterminate` の場合は完成修正候補を採用しない。現在採用中の成果物を変更してはならない。同じ手続き内で別候補の作成、修正候補の手直し、独立監査の再実行をしてはならない。
 
-要件契約候補は、手続き結果が `pass` の場合に限り要件契約として固定する。`context-clarification` は `fail` または `indeterminate` を準備完了判定の `fail` とし、不一致または再開条件に対応する戻り先を記録する。
+要件契約候補は、手続き結果が `pass` の場合に限り要件契約として固定する。呼び出し側は `fail` または `indeterminate` を自身の準備完了判定へ反映し、手続きが返した不一致または再開条件に応じて戻り先を決める。`context-clarification` から呼び出した場合の不足分類と戻り先は、同スキルが担当する。
 
 手続き終了後にレビュー対象または完成修正候補の内容を変更した場合は、変更後の対象へ新しい版または内容識別子を割り当てる。終了した手続きの `pass`、`fail`、`indeterminate` を変更後の対象の手続き結果として扱ってはならない。
 
@@ -244,7 +244,7 @@ description: Use before fan-out for every broad-or-unclear review; freezes one t
 - 採用対象:
 - 同一性確認:
 - 結果:
-- 戻り先:
+- 戻り先（呼び出し側が記録）:
 ```
 
 ## 完了チェック
