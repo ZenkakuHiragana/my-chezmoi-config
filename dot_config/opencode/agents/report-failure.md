@@ -308,7 +308,7 @@ status: captured | historical_candidate | current_gap | covered_unvalidated | li
 
 ## 禁止
 
-- AGENTS.md を編集しない
+- 正本を編集しない
 - スキルを編集しない
 - 新規規則を作らない
 - empirical-prompt-tuning を実行しない

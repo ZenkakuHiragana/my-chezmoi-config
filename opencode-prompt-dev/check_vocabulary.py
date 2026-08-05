@@ -9,6 +9,7 @@
   2. dangling-routing: スキル名の形で参照されるのに実体名や宣言値が見つからない識別子。
   3. dead-allowlist: allowlist にあるが corpus で使われない制御語彙。
   4. obligation-audit: 曖昧/ヘッジ義務表現の監査リスト。終了コードに影響しない。
+  5. file-name-reference: 制御面で規則・手順をファイル名で参照する箇所。
 
 原本: opencode-prompt-dev/control-vocabulary.md
 使い方: python opencode-prompt-dev/check_vocabulary.py [--repo <path>] [--verbose]
@@ -67,6 +68,11 @@ SKILLSHAPE = re.compile(r"^[a-z]+(?:-[a-z]+)+$")
 IDENT_OK = re.compile(r"^[A-Za-z][A-Za-z0-9 _-]*$")
 # コード片や path とみなす記号。
 NOISE_CHAR = re.compile(r"[(){}\[\]<>=;:*$|#@+%./\\,\"']")
+
+# 規則・手順をファイル名で参照する形。「XXX.md の〜」「XXX.md を〜」等。
+# パス例示 (「例: `読取可能: ./AGENTS.md`」)、列挙 (「...AGENTS.md、...」)、
+# 取り込み名 ({{ template "..." }}) は `.md` の直後に助詞が来ないため対象外。
+FILE_REF = re.compile(r"[A-Za-z0-9_\-/.*]+\.md[ \t]*(の|に|を|へ|から|で)")
 
 # 義務レベルを決めない曖昧/ヘッジ表現。
 # 完全な義務文 parser ではなく、監査候補を file:line で出す有限リスト。
@@ -202,6 +208,24 @@ def obligation_audit(repo: Path, files: list[Path]) -> list[tuple[str, int, str,
     return rows
 
 
+def file_reference_audit(repo: Path, files: list[Path]) -> list[tuple[str, int, str]]:
+    """規則・手順をファイル名で参照する箇所を返す。
+
+    制御面のテキストで「XXX.md の〜」「XXX.md を〜」のような、ファイル名に
+    助詞が続く形を検出する。コンテキストに積まれた指示がどのファイルから来たか
+    はハーネス実装依存で保証されないため、実行エージェントはファイル名が指す
+    内容を特定できず、規則・手順の参照には使ってはならない。
+    「〜.md」で終わるパス例示、列挙、取り込み名は対象外。
+    """
+    rows: list[tuple[str, int, str]] = []
+    for p in files:
+        rel = p.relative_to(repo).as_posix()
+        for lineno, line in enumerate(p.read_text(encoding="utf-8").splitlines(), 1):
+            for m in FILE_REF.finditer(line):
+                rows.append((rel, lineno, m.group(0)))
+    return rows
+
+
 def classification_consistency(repo: Path) -> dict[str, str]:
     """AGENTS.md の分類定義が context-clarification に反映されているか。
 
@@ -294,6 +318,9 @@ def main() -> int:
     # 5. 義務曖昧表現: 監査リスト。終了コードには含めない。
     obligation_rows = obligation_audit(repo, surface_files)
 
+    # 6. ファイル名参照: 規則・手順をファイル名で参照する箇所。
+    file_ref_rows = file_reference_audit(repo, surface_files)
+
     def dump(title: str, rows: dict[str, list[str]]) -> None:
         print(f"\n## {title} ({len(rows)})")
         for tok in sorted(rows):
@@ -328,11 +355,15 @@ def main() -> int:
     for rel, lineno, term, line in obligation_rows:
         print(f"  {rel}:{lineno}: `{term}`  {line}")
 
-    total = len(unaccounted) + len(dead) + len(drift)
+    print(f"\n## file-name reference audit ({len(file_ref_rows)})")
+    for rel, lineno, match in file_ref_rows:
+        print(f"  {rel}:{lineno}: {match}")
+
+    total = len(unaccounted) + len(dead) + len(drift) + len(file_ref_rows)
     print(
         f"\n# unaccounted: {len(unaccounted)} / dangling: {len(dangling)} "
         f"/ dead: {len(dead)} / drift: {len(drift)} "
-        f"/ obligation-audit: {len(obligation_rows)}"
+        f"/ obligation-audit: {len(obligation_rows)} / file-ref: {len(file_ref_rows)}"
     )
     return 1 if total else 0
 
