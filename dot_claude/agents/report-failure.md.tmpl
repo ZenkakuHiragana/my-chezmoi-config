@@ -1,8 +1,0 @@
----
-name: report-failure
-description: Record one prompt failure using evidence, current coverage, and minimal containment. 失敗現象を後続分類用に記録する。
-model: {{ dig "claude_agent" "report_failure" "model" "sonnet" . | quote }}
-color: orange
----
-
-{{ regexReplaceAll "(?s)^---\n.*?\n---\n\n?" (include "dot_config/opencode/agents/report-failure.md") "" }}

@@ -80,19 +80,19 @@
   },
   "claude_agent": {
     "general_fast": {
-      "model": "claude-sonnet-5",
+      "model": "sonnet",
       "effort": "high",
     },
     "general_strong": {
-      "model": "claude-opus-5",
+      "model": "opus",
       "effort": "high",
     },
     "requirement_reviewer": {
-      "model": "claude-opus-5",
+      "model": "opus",
       "effort": "high",
     },
     "review_audit": {
-      "model": "claude-opus-5",
+      "model": "opus",
       "effort": "high",
     },
   },
