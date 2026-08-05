@@ -1,29 +1,16 @@
 #!/usr/bin/env python3
 """プロンプト体系の内部整合性を静的に検査する。
 
-要件捕捉とは独立した、体系それ自体の整合検査。「参照 vs 定義」モデルで、
-制御識別子が定義されないまま参照されている箇所を有限リストで出す。
-
-control surface の backtick 識別子を制御語彙として許可する位置:
-  - allowlist (english-token-allowlist.md の維持制御語彙)
-
-filesystem の実体名は routing / entity の存在確認だけに使う。
-skill frontmatter の `name:` 値、enumeration 行 `- `TOKEN`` または
-`- `TOKEN`: ...`、schema field 風の記述は診断用に収穫するが、
-control surface の語彙許可元にはしない。
-参照 (reference): control surface の backtick 出現。
+制御面（control surface）のバックティック識別子が、制御語彙の棚卸し（allowlist）に
+登録されているか、参照先の実体が存在するかを検査し、結果を有限リストで出す。
 
 出力:
-  1. unaccounted: control surface で参照されるが、allowlist に無い識別子。
-     未定義・多義・allowlist 漏れの候補。
-  2. dangling-routing: skill 名の形 (kebab) で参照されるのに、実体名や宣言値が
-     見つからない識別子。routing 先が実在しない疑い。
-  3. dead-allowlist: allowlist にあるが corpus のどこでも使われない制御語彙。
-  4. obligation-audit: 曖昧/ヘッジ義務表現の監査リスト。
-     有限ブロックリストで候補を拾うだけで、完全な義務文 parser ではない。
-     この監査リストは終了コードに影響しない。
+  1. unaccounted: 制御面で参照されるが allowlist に無い識別子。
+  2. dangling-routing: スキル名の形で参照されるのに実体名や宣言値が見つからない識別子。
+  3. dead-allowlist: allowlist にあるが corpus で使われない制御語彙。
+  4. obligation-audit: 曖昧/ヘッジ義務表現の監査リスト。終了コードに影響しない。
 
-原本: opencode-prompt-dev/english-token-allowlist.md
+原本: opencode-prompt-dev/control-vocabulary.md
 使い方: python opencode-prompt-dev/check_vocabulary.py [--repo <path>] [--verbose]
 終了コード: 検出があれば 1、無ければ 0。
 """
@@ -115,7 +102,7 @@ def load_files(repo: Path, globs: list[str]) -> list[Path]:
 
 
 def parse_allowlist(repo: Path) -> set[str]:
-    path = repo / "opencode-prompt-dev" / "english-token-allowlist.md"
+    path = repo / "opencode-prompt-dev" / "control-vocabulary.md"
     text = path.read_text(encoding="utf-8")
     start = text.find("## 維持する制御語彙")
     end = text.find("## 日本語化する語")
@@ -271,9 +258,7 @@ def main() -> int:
     allowlist = parse_allowlist(repo)
     entities = entity_names(repo)
     def_files = load_files(repo, DEFINITION_GLOBS)
-    allowlist_path = (
-        repo / "opencode-prompt-dev" / "english-token-allowlist.md"
-    ).resolve()
+    allowlist_path = (repo / "opencode-prompt-dev" / "control-vocabulary.md").resolve()
     dead_ref_files = [p for p in def_files if p.resolve() != allowlist_path]
     surface_files = load_files(repo, CONTROL_SURFACE_GLOBS)
 

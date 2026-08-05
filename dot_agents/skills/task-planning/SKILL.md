@@ -1,7 +1,7 @@
 ---
 name: task-planning
 description: >
-  Use when context-clarification has fixed a Requirement contract and readiness is `pass` or `pass_with_assumption`, but execution still needs ordered work items, dependencies, read/write surfaces, handoff points, or completion checks captured in a durable task file; not when stage, scope, acceptance criteria, or verification are unsettled, or when one focused pass can finish safely. 実行計画の固定専用。再開可能なタスクファイルと次のスキルを返す。
+  Use when context-clarification has fixed a Requirement contract and readiness is pass or pass_with_assumption, but execution still needs ordered work items, dependencies, read/write surfaces, handoff points, or completion checks captured in a durable task file; not when stage, scope, acceptance criteria, or verification are unsettled, or when one focused pass can finish safely. 実行計画の固定専用。再開可能なタスクファイルと次のスキルを返す。
 ---
 
 # タスク計画
@@ -13,7 +13,7 @@ description: >
 ## 入力
 
 - 明確なタスク説明
-- `準備完了記録` が `pass` または `pass_with_assumption`
+- `準備完了記録` が `合格` または `仮定付き合格`
 - `context-clarification` が固定した `要件契約`
 - リポジトリ文脈
 - 明示されたユーザー制約または決定
@@ -44,7 +44,7 @@ description: >
 
 ## 手順
 
-1. `準備完了記録` が `pass` / `pass_with_assumption` であり、対応する `要件契約` が固定済みか確認する。
+1. `準備完了記録` が `合格` / `仮定付き合格` であり、対応する `要件契約` が固定済みか確認する。
 2. 関連するリポジトリ文脈を読む。
 3. 結果、制約、入力を書く。
 4. 関連面と採用方針を書く。採用方針は要件契約の判断 ID を参照し、固定内容または認可範囲の内側でだけ選ぶ。認可範囲外の選択が必要になった場合はタスクファイルを完成させず、`context-clarification` へ戻す。

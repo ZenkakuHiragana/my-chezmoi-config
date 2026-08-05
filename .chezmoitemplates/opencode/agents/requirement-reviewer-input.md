@@ -1,10 +1,10 @@
-## `requirement-reviewer` の作業票
+## `requirement-reviewer` への入力
 
-- レビュー束: 外部化済み入力のパス
-- 内容識別子: レビュー束の内容識別子
+- 入力: 入力ファイルのパス
+- 内容識別子: 入力ファイルの内容識別子
 - 担当検査ID: 今回検査する `RR-OBL-*` または `RR-CONTRACT-1`
 
-## `requirement-reviewer` が使用する資料
+## `requirement-reviewer` が要求する資料
 
 - `依頼引用` として明示されたユーザー要求と後続訂正の逐語引用
 - 次のどちらか一つ

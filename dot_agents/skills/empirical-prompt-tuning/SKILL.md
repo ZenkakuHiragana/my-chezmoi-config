@@ -104,13 +104,13 @@ description: Use when a prompt, skill, command, or agent instruction has been cr
 
 成功条件:
 
-- すべての `[critical]` 要件が `pass`
+- すべての `[critical]` 要件が `合格`
 
 合格率:
 
-- `pass` = 1
+- `合格` = 1
 - `partial` = 0.5
-- `fail` = 0
+- `不合格` = 0
 
 ## 比較
 

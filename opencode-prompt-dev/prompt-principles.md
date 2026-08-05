@@ -45,8 +45,8 @@
 
 - opencode-prompt-dev/prompt-principles.md
   - このファイル。プロンプト改善と改善介入の管理原則を示す。
-- opencode-prompt-dev/english-token-allowlist.md
-  - プロンプト、コマンド、エージェント、スキル本文に残す英語の分類と判断順序を示す。
+- opencode-prompt-dev/control-vocabulary.md
+  - プロンプト、コマンド、エージェント、スキル本文の制御語彙の棚卸しと判断順序を示す。外部コードと一致する語だけ英語のまま維持し、それ以外は日本語で表す。
 - `~/.local/share/chezmoi/.opencode/local-failure-logs/`
   - ローカル限定の失敗・採掘・トリアージ記録。生ログや未整理の証拠はここに閉じる。
 - `~/.local/share/chezmoi/.opencode/local-failure-logs/session-mining/`

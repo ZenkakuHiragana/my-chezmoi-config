@@ -1,6 +1,6 @@
 ---
 name: context-clarification
-description: Use when work stage, scope, acceptance criteria, verification method, or unresolved user decisions are not yet settled enough to safely start implementation, planning, or review, and a readiness verdict plus a frozen requirement contract are needed; not for pure local fact-finding (use investigation), public fact verification (use public-research), or design-decision interviews (use grill-me). Produces a readiness record and freezes a requirement contract, and gates downstream work until the verdict is `pass` or `pass_with_assumption`. 準備完了判定と要件契約の固定専用。文脈の充足を判定し、準備完了記録と要件契約を作成する。
+description: Use when work stage, scope, acceptance criteria, verification method, or unresolved user decisions are not yet settled enough to safely start implementation, planning, or review, and a readiness verdict plus a frozen requirement contract are needed; not for pure local fact-finding (use investigation), public fact verification (use public-research), or design-decision interviews (use grill-me). Produces a readiness record and freezes a requirement contract, and gates downstream work until the verdict is pass or pass_with_assumption. 準備完了判定と要件契約の固定専用。文脈の充足を判定し、準備完了記録と要件契約を作成する。
 ---
 
 # 文脈整理
@@ -13,7 +13,7 @@ description: Use when work stage, scope, acceptance criteria, verification metho
 ## 入力
 
 - 今回の依頼本文と明示制約
-- 作業枠と選んだ `work_class`
+- 作業枠と選んだ `作業分類`
 - 既に集めた根拠（`investigation` / `public-research` / `grill-me` の結果を含む）
 - 関連する既存の作業契約資料（旧要件ファイル、作業ファイル）
 - 変更対象と接続面にある自然言語、その情報所有先、利用経路に関する調査結果
@@ -24,7 +24,7 @@ description: Use when work stage, scope, acceptance criteria, verification metho
 2. 4つの文脈層を、それぞれ `confirmed` / `not_needed` / `missing` / `blocked` に分類し、根拠を添える。
 3. 不足を `user_decision` / `repo_derivable` / `subsystem_derivable` / `public_fact` / `contract_gap` に分類する。
 4. 調査で解ける不足は、判定を出す前に `investigation` / `public-research` へ回す。`user_decision` は `grill-me` または直接質問へ回す。
-5. `bounded` と `broad-or-unclear` では、一回限りの境界走査を行う。
+5. `限定` と `広域` では、一回限りの境界走査を行う。
    - 境界1 基準化: 入力された条件の役割、強さ、範囲、認可元を確認する。
    - 境界2 判断: 複数の選択肢で受け入れ結果や後続判断が変わる箇所を露出する。
    - 境界3 実現: 何を変え、何を保ち、どの所有境界へ置くかを確認する。
@@ -45,25 +45,25 @@ description: Use when work stage, scope, acceptance criteria, verification metho
 
 6. 依頼と確認済み制約を意味上の義務へ分け、1つの義務に1つの `OBL-<連番>` を付ける。同じ義務を範囲、受け入れ条件、自然言語、判断などの記載欄ごとに分割してはならない。
 7. 解決できた範囲で `要件契約候補` を作成し、レビュー対象版として凍結する。この時点では正式な `要件契約` として固定しない。
-8. `bounded` では、一つの要件契約候補の版に対して、契約作成者とは別の実行者が `requirement-reviewer` で要件レビューを直接一回行う。全検査が `反例未確認` なら候補を正式な `要件契約` として固定する。不合格または判定不能なら `fail` とする。
-9. `broad-or-unclear` では、`review-orchestration` 経由で `requirement-reviewer` による要件レビューを行う。レビュー判定根拠版は、`requirement-reviewer` の手順の `## 入力` 節と、使用する各レビュースキルの `## 入力` 節を参照し、各節が要求する資料を含める。レビュー種別固有の入力項目をこの手順へ複製してはならない。
-10. `broad-or-unclear` では、`review-orchestration` の手続き結果が `pass` の候補だけを正式な `要件契約` として固定する。`fail` または `indeterminate` の場合は準備完了判定を `fail` とし、不一致または再開条件に対応する戻り先を示す。同じ手続き内で契約候補を作り直したり、独立監査を再実行したりしてはならない。
-11. 要件レビューの終了後にレビュー対象の内容を変更した場合は、変更後の候補へ新しい版または内容識別子を割り当てる。終了した要件レビューの `pass`、`fail`、`indeterminate` を変更後の候補のレビュー結果として扱ってはならない。
-12. 判定規則に従って `pass` / `pass_with_assumption` / `fail` を確定する。
-13. `pass` / `pass_with_assumption` のときは契約と要件レビュー結果を外部化する。`fail` のときは戻り先の能力を示す。
+8. `限定` では、一つの要件契約候補の版に対して、契約作成者とは別の実行者が `requirement-reviewer` で要件レビューを直接一回行う。全検査が `反例未確認` なら候補を正式な `要件契約` として固定する。破綻確認があるか `判定不能` があるなら準備完了判定を `不合格` とする。
+9. `広域` では、`review-orchestration` 経由で `requirement-reviewer` による要件レビューを行う。レビュー判定根拠版は、`requirement-reviewer` の手順の `## 入力` 節と、使用する各レビュースキルの `## 入力` 節を参照し、各節が要求する資料を含める。レビュー種別固有の入力項目をこの手順へ複製してはならない。
+10. `広域` では、`review-orchestration` の手続き結果が `合格` の候補だけを正式な `要件契約` として固定する。`不合格` または `判定不能` の場合は準備完了判定を `不合格` とし、不一致または再開条件に対応する戻り先を示す。同じ手続き内で契約候補を作り直したり、独立監査を再実行したりしてはならない。
+11. 要件レビューの終了後にレビュー対象の内容を変更した場合は、変更後の候補へ新しい版または内容識別子を割り当てる。終了した要件レビューの `合格`、`不合格`、`判定不能` を変更後の候補のレビュー結果として扱ってはならない。
+12. 判定規則に従って `合格` / `仮定付き合格` / `不合格` を確定する。
+13. `合格` / `仮定付き合格` のときは契約と要件レビュー結果を外部化する。`不合格` のときは戻り先の能力を示す。
 
 ## `準備完了記録`（出力契約）
 
-- `work_class`: `tiny-local` / `bounded` / `broad-or-unclear`
+- `作業分類`: `単発` / `限定` / `広域`
 - 作業段階: 現在地と、進もうとする段階
 - 文脈層の状態: 依頼 / サブシステム / ワークスペース / 外部基盤の各層について `confirmed` / `not_needed` / `missing` / `blocked` と根拠
 - 未解決の不足: 各項目に分類（`user_decision` / `repo_derivable` / `subsystem_derivable` / `public_fact` / `contract_gap`）
 - 残る `user_decision`: 未解決のユーザー判断の一覧（無ければ `なし`）
 - `要件契約`: 固定済みなら参照、未固定なら理由
-- 要件レビュー結果: `bounded` では直接レビュー結果、`broad-or-unclear` ではレビュー手続き記録、`tiny-local` では `なし`
-- verdict: `pass` / `pass_with_assumption` / `fail`
-- 仮定: `pass_with_assumption` のとき置いた仮定とその適用範囲（無ければ `なし`）
-- 戻り先: `fail` のとき進む能力（`pass` 系なら `なし`）
+- 要件レビュー結果: `限定` では直接レビュー結果、`広域` ではレビュー手続き記録、`単発` では `なし`
+- `判定結果`: `合格` / `仮定付き合格` / `不合格`
+- 仮定: `仮定付き合格` のとき置いた仮定とその適用範囲（無ければ `なし`）
+- 戻り先: `不合格` のとき進む能力（`合格` 系なら `なし`）
 
 ### 発見境界の確認
 
@@ -75,7 +75,7 @@ description: Use when work stage, scope, acceptance criteria, verification metho
 | 実行   | ...      | ...          | ...  |
 | 評価   | ...      | ...          | ...  |
 
-`結果`は`no-decision`（今回の受け入れ可否を変える判断は露出しなかった）、`resolved`（判断を固定または範囲認可した）、`blocked`（未認可の判断が残った）のいずれか。`blocked`が1件でもあれば`pass`にはしない。
+`結果`は`no-decision`（今回の受け入れ可否を変える判断は露出しなかった）、`resolved`（判断を固定または範囲認可した）、`blocked`（未認可の判断が残った）のいずれか。`blocked`が1件でもあれば`合格`にはしない。
 
 `判断` の行では、実装者へ選択を委ねる候補があれば、選べる具体的な範囲と、その範囲内のどの実装案でも照合対象を変えない根拠を記録する。該当しない場合は `なし` とする。根拠を示せない選択を `resolved` にしてはならない。
 
@@ -108,7 +108,7 @@ description: Use when work stage, scope, acceptance criteria, verification metho
 - 根拠資料: 義務ID / 確認に使う資料またはコマンド。義務行にある認可元と情報所有先を複製せず参照する
 - 影響するテストと文書
 - ユーザー制約
-- 判定と前提とした仮定: `準備完了記録` の判定と、`pass_with_assumption` で置いた仮定（無ければ `なし`）
+- 判定と前提とした仮定: `準備完了記録` の判定と、`仮定付き合格` で置いた仮定（無ければ `なし`）
 
 意味を担う自然言語を確認した場合は、新しい検査単位や専用表を増やさず、対応する義務IDの次の項目へ記録する。
 
@@ -122,7 +122,7 @@ description: Use when work stage, scope, acceptance criteria, verification metho
 
 ## 判定規則
 
-`pass` の必須条件（すべて満たす）:
+`合格` の必須条件（すべて満たす）:
 
 - 必要な文脈層に `missing` も `blocked` も無い。
 - 残る `user_decision` がゼロ。
@@ -133,19 +133,19 @@ description: Use when work stage, scope, acceptance criteria, verification metho
 - 意味を担う自然言語を確認した場合は、その対象部分、正本、保つ意味、意味の欠落やずれを判断する基準、利用経路、確認方法が既存の契約項目へ対応している。文章として作成または構成し直す場合は、成果物種別、主利用型、必要な利用結果、利用主体がその結果へ到達する条件も対応している。
 - 範囲の含む / 含まないが確定している。
 - `判断と認可` 表に `仮定` がない。
-- `bounded` では直接実行した要件レビュー（`requirement-reviewer`）が合格している。
-- `broad-or-unclear` では `review-orchestration` の手続き結果が `pass` である。
+- `限定` では直接実行した要件レビュー（`requirement-reviewer`）が合格している。
+- `広域` では `review-orchestration` の手続き結果が `合格` である。
 
-`pass_with_assumption` を許す範囲:
+`仮定付き合格` を許す範囲:
 
-- `pass` の必須条件のうち、`missing` がないことと `判断と認可` 表に `仮定` がないこと以外をすべて満たす。
-- 必要な文脈層に `blocked` がなく、`missing` の理由となる全項目を `仮定` として明示する。`仮定` がゼロなら `pass_with_assumption` にしない。
+- `合格` の必須条件のうち、`missing` がないことと `判断と認可` 表に `仮定` がないこと以外をすべて満たす。
+- 必要な文脈層に `blocked` がなく、`missing` の理由となる全項目を `仮定` として明示する。`仮定` がゼロなら `仮定付き合格` にしない。
 - 未確認事実を意識的に暫定採用した項目だけを `仮定` とし、依存する判断、反証方法、反証時の戻り先を `準備完了記録` と `要件契約` に記録する。
 - 残る `user_decision`、`contract_gap`、未認可の判断がない。
-- 実装者へ選択を委ねる可否は発見境界の `判断` で確定する。可否が未確認のままなら、未確認事実の `仮定` として保存して `pass_with_assumption` にしてはならない。
+- 実装者へ選択を委ねる可否は発見境界の `判断` で確定する。可否が未確認のままなら、未確認事実の `仮定` として保存して `仮定付き合格` にしてはならない。
 - 言及していない前提を勝手に確定しない。
 
-`fail` の戻り先:
+`不合格` の戻り先:
 
 - 残りが `user_decision` → `grill-me` または直接質問。
 - 残りが `repo_derivable` / `subsystem_derivable` → `investigation`。
@@ -155,10 +155,10 @@ description: Use when work stage, scope, acceptance criteria, verification metho
 
 ## 進行制御と外部化
 
-- 判定が `pass` / `pass_with_assumption` になるまで、実装・計画・レビューの実作業へ進ませない。
-- `tiny-local` は要件レビューを行わず、他の必須条件を満たした準備完了記録から `pass` または `pass_with_assumption` を確定する。
-- `pass` / `pass_with_assumption` になったら `要件契約` を固定する。判定と置いた仮定も同じ契約に含める。
-- `bounded` と `broad-or-unclear` では、それぞれの経路で得た要件レビュー結果も固定する。
+- 判定が `合格` / `仮定付き合格` になるまで、実装・計画・レビューの実作業へ進ませない。
+- `単発` は要件レビューを行わず、他の必須条件を満たした準備完了記録から `合格` または `仮定付き合格` を確定する。
+- `合格` / `仮定付き合格` になったら `要件契約` を固定する。判定と置いた仮定も同じ契約に含める。
+- `限定` と `広域` では、それぞれの経路で得た要件レビュー結果も固定する。
 - 要件契約は `task-planning` が書く作業ファイルとは別にする。契約を作業ファイルで上書きしない。
 - 再開時、または文脈圧縮後は、実作業の前に要件契約を読み直してから進む。見えないセッション状態から継続だと決めつけない。
 
@@ -167,7 +167,7 @@ description: Use when work stage, scope, acceptance criteria, verification metho
 - 4つの文脈層すべてに状態と根拠がある。
 - 不足をすべて分類した。
 - 調査で解ける不足を質問より先に調べた。
-- `bounded` と `broad-or-unclear` では五境界の走査を各一回行い、発見境界の確認表を埋めた。
+- `限定` と `広域` では五境界の走査を各一回行い、発見境界の確認表を埋めた。
 - 走査の結果から新しい走査を自動開始していない。
 - 露出した判断を固定または範囲認可し、認可元のない判断を契約へ含めていない。
 - 変更対象と接続面の自然言語について、意味の変更が要件、事実、判断、挙動、利用結果へ影響するか確認した。影響する場合は正本、保つ意味、意味の欠落やずれを判断する基準、確認方法を既存の契約項目へ対応づけ、影響しない場合は自然言語があることだけを理由に条項を追加していない。
@@ -175,7 +175,7 @@ description: Use when work stage, scope, acceptance criteria, verification metho
 - ユーザーが反対していないこと、モデル判断、一般的な既存パターン、低リスク、局所性、可逆性だけを裁量の認可元にしていない。
 - 裁量を成立させるために認可元にない受け入れ条件を追加していない。
 - 判定の必須条件を実際に照合した。
-- `pass_with_assumption` の仮定が未確認事実の意識的な暫定採用に限られ、依存する判断と反証時の戻り先を持つ。
-- `pass` 系なら `要件契約` を外部化した。
-- `bounded` では直接レビュー結果、`broad-or-unclear` ではレビュー手続き記録を外部化した。
-- `fail` なら戻り先の能力を 1 つ示した。
+- `仮定付き合格` の仮定が未確認事実の意識的な暫定採用に限られ、依存する判断と反証時の戻り先を持つ。
+- `合格` 系なら `要件契約` を外部化した。
+- `限定` では直接レビュー結果、`広域` ではレビュー手続き記録を外部化した。
+- `不合格` なら戻り先の能力を 1 つ示した。

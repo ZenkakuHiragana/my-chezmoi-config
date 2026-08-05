@@ -1,12 +1,12 @@
 ---
 name: implementation
-description: Use when context-clarification has fixed a Requirement contract and readiness is `pass` or `pass_with_assumption`; not for fact finding, contract shaping, planning, or review-only work. 実装専用。必要な関連面の更新と検証まで完了させる。
+description: Use when context-clarification has fixed a Requirement contract and readiness is pass or pass_with_assumption; not for fact finding, contract shaping, planning, or review-only work. 実装専用。必要な関連面の更新と検証まで完了させる。
 ---
 
 # 実装
 
 リポジトリ内容を変更し、依頼、周辺面、検証がそろった状態まで進める。
-`context-clarification` が固定した `要件契約` と、`pass` / `pass_with_assumption` の `準備完了記録` を前提にする。`tiny-local` も同じ入口を使い、要件レビューだけを省略する。ここが崩れるなら `context-clarification` に戻す。
+`context-clarification` が固定した `要件契約` と、`合格` / `仮定付き合格` の `準備完了記録` を前提にする。`単発` も同じ入口を使い、要件レビューだけを省略する。ここが崩れるなら `context-clarification` に戻す。
 単発編集ではなく、作業契約の完了を扱う。
 
 ## 変更分類
@@ -71,7 +71,7 @@ description: Use when context-clarification has fixed a Requirement contract and
 5. 受け入れ条件に直結する確認を実行する。
 6. 元の依頼、認可済み判断、集めた事実、実際の差分と成果物、実施した確認を、有限な完了照合として突き合わせる。要件契約の全命題を新しいレビュー集合へ展開してはならない。
 7. レビュー結果への対応では、修正前後に同じ確認方法を実行する。
-8. `broad-or-unclear` の実装は、完了前に対象面ごとの独立レビューとテストを実行する。
+8. `広域` の実装は、完了前に対象面ごとの独立レビューとテストを実行する。
 
 ## 検証
 
@@ -104,4 +104,4 @@ description: Use when context-clarification has fixed a Requirement contract and
 - レビュー結果への対応では修正前に問題を再現し、修正後に同じ確認方法を通した。
 - 実装中に新しい選択が露出し、受け入れ可否、公開インターフェイス、永続状態または所有先、結果を生む実経路、確認方法が支持する意味のいずれかを変える場合は、内部判断で閉じず `context-clarification` へ戻す。
 - 新しく現れた外部インターフェイス、永続状態、所有境界、実経路を、対応する契約条項または判断 ID と照合する。
-- `broad-or-unclear` では、対象成果物と確認する失敗の型に一致する `description` を持つレビュースキルで、対象面ごとの独立レビューを通した。
+- `広域` では、対象成果物と確認する失敗の型に一致する `description` を持つレビュースキルで、対象面ごとの独立レビューを通した。
