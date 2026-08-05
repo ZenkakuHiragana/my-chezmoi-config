@@ -38,6 +38,7 @@
 
 - 文脈状態: `confirmed` / `not_needed` / `missing` / `blocked`
 - 不足の分類: `user_decision` / `repo_derivable` / `subsystem_derivable` / `public_fact` / `contract_gap`
+- 必要根拠種別: `user_provided`（`repo_derivable` / `subsystem_derivable` / `public_fact` / `contract_gap` は不足の分類と同じ）
 - 検査ID: `RR-CONTRACT-1`（`RR-OBL-<連番>` も同形式で英語維持）
 - 失敗記録スキーマ値: `observed_prompt_context` / `observed_system_sha` / `current_system_sha` / `current_coverage` / `coverage_evidence` / `regression_needed` / `problem_classes` / `P1` / `P2` / `P3` / `P4` / `P5` / `create_historical_note` / `create_incident` / `create_regression_scenario`
 - 状態値と分類値: `unknown` / `no-decision` / `resolved` / `active_gap` / `covered_but_unvalidated` / `likely_addressed` / `obsolete_context` / `covered_unvalidated` / `current_gap` / `historical_candidate` / `triaged` / `corrective_action_defined` / `validation_needed` / `verified_closed` / `partial` / `low` / `medium` / `high` / `critical` / `true` / `false` / `skip` / `needs_manual_review` / `none` / `current` / `legacy` / `captured` / `obsolete` / `strong` / `weak` / `unclear` / `escalate_to_write_ok` / `needs_parent_clarification` / `severity`
@@ -46,7 +47,11 @@
 - 検証と実験: `train` / `validation` / `hold-out`
 - 汎用サブエージェントの返答形式: `result` / `evidence` / `verification_performed` / `risks_or_unknowns` / `next_action`
 - 作業票の追加フィールド: `chosen_skills` / `why_this_choice` / `side_effect_mode` / `execution_route` / `task_kind`
-- スキル / エージェント / レビュー固定名: `code-review` / `review-response` / `review-orchestration` / `context-clarification` / `empirical-prompt-tuning` / `extract-failure-patterns` / `general-fast` / `general-strong` / `grill-me` / `investigation` / `japanese-doc-review` / `public-research` / `report-failure` / `requirement-reviewer` / `review-audit` / `task-planning` / `technical-writing`
+- 実行経路とフィクスチャ値: `derive` / `survey_only` / `target_selection_status` / `mode_constraint` / `read_only` / `pass` / `fail`
+- パネル運用の固定名: `panel packet` / `evidence file` / `known gaps` / `source_id` / `None` / `user-specified` / `literal-match` / `explicit-reference`
+- ツール名とパラメータ: `glob` / `grep` / `webfetch` / `write` / `read` / `task` / `pattern` / `path`
+- 設定キーとスキーマフィールド: `status` / `name` / `agent`
+- スキル / エージェント / レビュー固定名: `code-review` / `derive-fixture-variants` / `review-response` / `review-orchestration` / `context-clarification` / `empirical-prompt-tuning` / `extract-failure-patterns` / `general-fast` / `general-strong` / `grill-me` / `investigation` / `japanese-doc-review` / `public-research` / `refactoring` / `report-failure` / `requirement-reviewer` / `review-audit` / `task-planning` / `technical-writing`
 - 基本: `description` / `ast-grep` / `chezmoi source-path`
 
 ### 日本語の制御語彙

@@ -24,16 +24,21 @@ import sys
 from pathlib import Path
 
 # control surface: orchestration prompt と skill 本文。
-# 制御識別子の整合がもっとも効く層。concern/profile/reference は
+# ルート AGENTS.md、共有テンプレート断片、プロジェクトローカルの
+# エージェント・スキルも含む。concern/profile/reference は
 # ドメイン内容 (言語 API 名や日本語例) を含むので参照走査から外す。
 CONTROL_SURFACE_GLOBS = [
+    "AGENTS.md",
     ".chezmoitemplates/opencode/AGENTS.md",
+    ".chezmoitemplates/opencode/*.md",
     ".chezmoitemplates/opencode/agents/*.md",
     ".chezmoitemplates/opencode/parent/*.md",
     "dot_config/opencode/agents/*.md",
     "dot_config/opencode/agents/*.md.tmpl",
     "dot_config/opencode/commands/*.md",
     ".opencode/commands/*.md",
+    ".opencode/agents/*.md",
+    ".opencode/skills/*/SKILL.md",
     "dot_agents/skills/*/SKILL.md",
     "dot_agents/skills/*/SKILL.md.tmpl",
 ]
@@ -120,9 +125,9 @@ def parse_allowlist(repo: Path) -> set[str]:
 
 def entity_names(repo: Path) -> set[str]:
     names: set[str] = set()
-    skills_dir = repo / "dot_agents" / "skills"
-    if skills_dir.is_dir():
-        names |= {p.name for p in skills_dir.glob("*") if p.is_dir()}
+    for sd in (repo / "dot_agents" / "skills", repo / ".opencode" / "skills"):
+        if sd.is_dir():
+            names |= {p.name for p in sd.glob("*") if p.is_dir()}
     dirs = [
         repo / "dot_config" / "opencode" / "agents",
         repo / ".chezmoitemplates" / "opencode" / "agents",
@@ -130,6 +135,7 @@ def entity_names(repo: Path) -> set[str]:
         repo / "dot_claude" / "agents",
         repo / "dot_config" / "opencode" / "commands",
         repo / ".opencode" / "commands",
+        repo / ".opencode" / "agents",
         repo / "dot_claude" / "commands",
     ]
     for d in dirs:
@@ -138,9 +144,12 @@ def entity_names(repo: Path) -> set[str]:
                 name = re.sub(r"\.md(\.tmpl)?$", "", p.name)
                 names.add(name)
     # concern / profile / reference の stem も routing 名になりうる。
-    for sub in ("concerns", "profiles", "references"):
-        for p in skills_dir.glob(f"*/{sub}/*.md"):
-            names.add(p.stem)
+    for sd in (repo / "dot_agents" / "skills", repo / ".opencode" / "skills"):
+        if not sd.is_dir():
+            continue
+        for sub in ("concerns", "profiles", "references"):
+            for p in sd.glob(f"*/{sub}/*.md"):
+                names.add(p.stem)
     return names
 
 
