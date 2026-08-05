@@ -6,5 +6,6 @@ reasoningEffort: {{ .opencode_agent.general_strong.reasoningEffort | default "me
 textVerbosity: low
 ---
 
-{{ template "opencode/agents/delegation-contract.md" . }}
+{{ template "opencode/agents/general-input.md" . }}
+{{ template "opencode/agents/general.md" . }}
 {{ template "opencode/AGENTS.md" . }}

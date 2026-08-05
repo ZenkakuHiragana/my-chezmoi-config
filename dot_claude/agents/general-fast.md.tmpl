@@ -6,11 +6,4 @@ effort: {{ dig "claude_agent" "general_fast" "effort" "medium" . }}
 color: cyan
 ---
 
-{{ template "opencode/agents/delegation-contract.md" . }}
-{{ template "opencode/AGENTS.md" . }}
-
-## Claude Code アダプター
-
-- 作業票の `mode_constraint=read_only` ではファイルを書き換えない。
-- `mode_constraint=write_ok` でも、`write_set` に明示された範囲だけを編集する。
-- `result` の内容は作業票の `output_schema` に合わせる。外側の返答形式は取り込んだエージェント契約に従う。
+{{ regexReplaceAll "(?s)^---\n.*?\n---\n\n?" (include "dot_config/opencode/agents/general-fast.md.tmpl") "" }}

@@ -297,13 +297,17 @@ export class WorkNoteStore {
   }
 
   #searchRoots(source: KnowledgeSource): string[] {
-    return source.scope === "project"
-      ? [this.projectRoot]
-      : [this.globalRoot, this.projectRoot];
+    const roots =
+      source.scope === "project"
+        ? [this.projectRoot]
+        : [this.globalRoot, this.projectRoot];
+    // グローバル保存先とプロジェクト保存先が同一パスになる環境では重複探索しない。
+    return [...new Set(roots)];
   }
 
   #visibleRoots(): string[] {
-    return [this.globalRoot, this.projectRoot];
+    // グローバル保存先とプロジェクト保存先が同一パスになる環境では重複探索しない。
+    return [...new Set([this.globalRoot, this.projectRoot])];
   }
 
   async #findByFileName(fileName: string, roots: string[]): Promise<string[]> {

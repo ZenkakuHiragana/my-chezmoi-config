@@ -20,7 +20,9 @@ type Fixture = {
   store: WorkNoteStore;
 };
 
-async function makeFixture(): Promise<Fixture> {
+async function makeFixture(
+  options: { sameRoot?: boolean } = {},
+): Promise<Fixture> {
   const root = await mkdtemp(path.join(tmpdir(), "skill-kb-work-notes-"));
   const home = path.join(root, "home");
   const workspace = path.join(root, "workspace");
@@ -60,7 +62,9 @@ async function makeFixture(): Promise<Fixture> {
     homeDirectory: home,
   });
   const globalRoot = path.join(root, "central-work-notes");
-  const projectRoot = path.join(projectDirectory, "work-notes");
+  const projectRoot = options.sameRoot
+    ? globalRoot
+    : path.join(projectDirectory, "work-notes");
   let tick = 0;
   const store = new WorkNoteStore(catalog, {
     globalRoot,
@@ -72,8 +76,9 @@ async function makeFixture(): Promise<Fixture> {
 
 async function withFixture(
   callback: (fixture: Fixture) => Promise<void>,
+  options?: { sameRoot?: boolean },
 ): Promise<void> {
-  const fixture = await makeFixture();
+  const fixture = await makeFixture(options);
   try {
     await callback(fixture);
   } finally {
@@ -348,6 +353,42 @@ test("rejects missing and ambiguous updates", async () => {
       /Ambiguous work note identifier/,
     );
   });
+});
+
+test("operates on notes when global and project roots coincide", async () => {
+  await withFixture(
+    async ({ store, globalRoot }) => {
+      await store.create(note("same-root.md", ["global-docs"], "before"));
+      await store.create(
+        note("same-root-mixed.md", ["global-docs", "project-design"], "before"),
+      );
+
+      const readResult = await store.read("global-docs", "same-root.md");
+      assert.match(readResult.markdown, /主張 before/);
+
+      const grepResult = await store.grep("global-docs", "before");
+      assert.deepEqual(
+        new Set(grepResult.matches),
+        new Set(["same-root-mixed.md", "same-root.md"]),
+      );
+
+      const updateResult = await store.update({
+        ...note("same-root.md", ["global-docs"], "after"),
+        change_reason: "同一パス環境の更新確認",
+      });
+      assert.equal(
+        updateResult.saved_to,
+        path.join(globalRoot, "same-root.md"),
+      );
+      const current = await readFile(
+        path.join(globalRoot, "same-root.md"),
+        "utf8",
+      );
+      assert.match(current, /主張 after/);
+      assert.doesNotMatch(current, /主張 before/);
+    },
+    { sameRoot: true },
+  );
 });
 
 test("returns fixed-order capped grep results without excerpts", async () => {

@@ -1,5 +1,5 @@
 ---
-description: Planning agent optimized for smaller models. 小型モデル向けの読み取り専用計画エージェント。
+description: Planning agent. 読み取り専用計画エージェント。
 permission:
   edit: ask
   bash: ask
@@ -7,6 +7,10 @@ permission:
 
 {{ template "opencode/agents/plan.md" . }}
 {{ template "opencode/AGENTS.md" . }}
+{{ template "opencode/parent/parent.md" . }}
 {{ template "opencode/state-sync.md" . }}
 {{ template "opencode/parent/delegation-orchestration.md" . }}
 {{ template "opencode/parent/subagent-assignment-packet.md" . }}
+{{ template "opencode/agents/general-input.md" . }}
+{{ template "opencode/agents/requirement-reviewer-input.md" . }}
+{{ template "opencode/agents/review-audit-input.md" . }}
