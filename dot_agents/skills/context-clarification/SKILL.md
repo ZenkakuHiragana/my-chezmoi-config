@@ -1,12 +1,12 @@
 ---
 name: context-clarification
-description: Use when work stage, scope, acceptance criteria, verification method, or unresolved user decisions are not yet settled enough to safely start implementation, planning, or review, and a readiness verdict plus a frozen requirement contract are needed; not for pure local fact-finding (use investigation), public fact verification (use public-research), or design-decision interviews (use grill-me). Produces a readiness record and freezes a requirement contract, and gates downstream work until the verdict is pass or pass_with_assumption. 準備完了判定と要件契約の固定専用。文脈の充足を判定し、準備完了記録と要件契約を作成する。
+description: 作業段階、対象範囲、受け入れ条件、確認方法、未解決のユーザー判断が、実装・計画・レビューを安全に始めるには確定しておらず、準備完了判定と要件契約の固定が必要なときに使う。ローカル事実の確認（`investigation`）、公開事実の検証（`public-research`）、設計判断の聞き取り（`grill-me`）には使わない。準備完了記録を作り、要件契約を凍結し、判定が合格または仮定付き合格になるまで後続の作業を止める。
 ---
 
 # 文脈整理
 
 実作業の前に、文脈の充足を判定し、`準備完了記録` を作成する。要件レビューを通過した候補だけを `要件契約` として正式に固定する。
-判定の理論（作業段階、文脈層、文脈状態、不足の分類）は、現在有効な上位指示の `コンテキスト収集規則` に従う。
+判定の理論（作業段階、文脈層、文脈状態、不足の分類）は、現在有効な上位指示の文脈収集規則に従う。
 このスキルは、その理論を適用して判定を確定し、契約を成果物として産出する手順を担う。
 ローカル根拠の確認は `investigation`、公開根拠は `public-research`、相互依存する設計判断の質問は `grill-me` に委ね、ここでは判定と固定だけを行う。
 
@@ -20,7 +20,7 @@ description: Use when work stage, scope, acceptance criteria, verification metho
 
 ## 手順
 
-1. 現在有効な上位指示の `コンテキスト収集規則` にある `作業段階` から、現在地と進もうとする段階を確定する。
+1. 現在有効な上位指示の文脈収集規則にある `作業段階` から、現在地と進もうとする段階を確定する。
 2. 4つの文脈層を、それぞれ `confirmed` / `not_needed` / `missing` / `blocked` に分類し、根拠を添える。
 3. 不足を `user_decision` / `repo_derivable` / `subsystem_derivable` / `public_fact` / `contract_gap` に分類する。
 4. 調査で解ける不足は、判定を出す前に `investigation` / `public-research` へ回す。`user_decision` は `grill-me` または直接質問へ回す。
@@ -33,7 +33,7 @@ description: Use when work stage, scope, acceptance criteria, verification metho
 
    走査の結果から新しい走査を自動開始してはならない。同じ判断を複数境界で発見した場合は統合する。
 
-   境界2で実装者へ選択を委ねる候補が見つかった場合は、上位指示の `実装詳細を実装者へ委ねる条件` に従い、何を選んでよいかの具体的な範囲を特定する。その範囲内の実装案ごとに照合対象を変えないか、委ねてよいと判断した根拠は何かを確認する。
+   境界2で実装者へ選択を委ねる候補が見つかった場合は、上位指示の実装詳細を実装者へ委ねる条件に従い、何を選んでよいかの具体的な範囲を特定する。その範囲内の実装案ごとに照合対象を変えないか、委ねてよいと判断した根拠は何かを確認する。
 
    境界3で、変更対象または接続面に、削除、変更、平易化によって要件、事実、判断、挙動、利用結果のいずれかが変わり得る自然言語が見つかった場合は、次を確認する。
    - その部分が担う事実、制約、許可、禁止、手順、理由または履歴
@@ -75,9 +75,9 @@ description: Use when work stage, scope, acceptance criteria, verification metho
 | 実行   | ...      | ...          | ...  |
 | 評価   | ...      | ...          | ...  |
 
-`結果`は`no-decision`（今回の受け入れ可否を変える判断は露出しなかった）、`resolved`（判断を固定または範囲認可した）、`blocked`（未認可の判断が残った）のいずれか。`blocked`が1件でもあれば`合格`にはしない。
+結果は`no-decision`（今回の受け入れ可否を変える判断は露出しなかった）、`resolved`（判断を固定または範囲認可した）、`blocked`（未認可の判断が残った）のいずれか。`blocked`が1件でもあれば`合格`にはしない。
 
-`判断` の行では、実装者へ選択を委ねる候補があれば、選べる具体的な範囲と、その範囲内のどの実装案でも照合対象を変えない根拠を記録する。該当しない場合は `なし` とする。根拠を示せない選択を `resolved` にしてはならない。
+判断の行では、実装者へ選択を委ねる候補があれば、選べる具体的な範囲と、その範囲内のどの実装案でも照合対象を変えない根拠を記録する。該当しない場合は `なし` とする。根拠を示せない選択を `resolved` にしてはならない。
 
 空欄禁止。該当なしは `なし`。
 
@@ -127,7 +127,7 @@ description: Use when work stage, scope, acceptance criteria, verification metho
 - 必要な文脈層に `missing` も `blocked` も無い。
 - 残る `user_decision` がゼロ。
 - 発見境界の確認に`blocked`が0件。
-- 発見境界の `判断` で実装者へ委ねるとした各選択について、選べる具体的な範囲と、その範囲内のどの実装案でも照合対象を変えない根拠がある。
+- 発見境界の判断で実装者へ委ねるとした各選択について、選べる具体的な範囲と、その範囲内のどの実装案でも照合対象を変えない根拠がある。
 - `判断と認可`表の全判断に認可元がある。
 - 各意味上の義務に、必要な結果、対象範囲、保つ条件、実経路、観測する結果と判別対象、利用者または情報所有先が対応している。
 - 意味を担う自然言語を確認した場合は、その対象部分、正本、保つ意味、意味の欠落やずれを判断する基準、利用経路、確認方法が既存の契約項目へ対応している。文章として作成または構成し直す場合は、成果物種別、主利用型、必要な利用結果、利用主体がその結果へ到達する条件も対応している。
@@ -142,7 +142,7 @@ description: Use when work stage, scope, acceptance criteria, verification metho
 - 必要な文脈層に `blocked` がなく、`missing` の理由となる全項目を `仮定` として明示する。`仮定` がゼロなら `仮定付き合格` にしない。
 - 未確認事実を意識的に暫定採用した項目だけを `仮定` とし、依存する判断、反証方法、反証時の戻り先を `準備完了記録` と `要件契約` に記録する。
 - 残る `user_decision`、`contract_gap`、未認可の判断がない。
-- 実装者へ選択を委ねる可否は発見境界の `判断` で確定する。可否が未確認のままなら、未確認事実の `仮定` として保存して `仮定付き合格` にしてはならない。
+- 実装者へ選択を委ねる可否は発見境界の判断で確定する。可否が未確認のままなら、未確認事実の `仮定` として保存して `仮定付き合格` にしてはならない。
 - 言及していない前提を勝手に確定しない。
 
 `不合格` の戻り先:

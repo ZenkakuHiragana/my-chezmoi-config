@@ -1,7 +1,6 @@
 ---
 name: task-planning
-description: >
-  Use when context-clarification has fixed a Requirement contract and readiness is pass or pass_with_assumption, but execution still needs ordered work items, dependencies, read/write surfaces, handoff points, or completion checks captured in a durable task file; not when stage, scope, acceptance criteria, or verification are unsettled, or when one focused pass can finish safely. 実行計画の固定専用。再開可能なタスクファイルと次のスキルを返す。
+description: `context-clarification` が要件契約を固定し、準備完了判定が合格または仮定付き合格になったが、実行に順序付きの作業項目、依存関係、読み書き範囲、引き渡し点、完了確認を再開可能なタスクファイルへ残す必要があるときに使う。段階、対象範囲、受け入れ条件、確認方法が未確定のときや、1回の集中した作業で安全に終えられる場合には使わない。
 ---
 
 # タスク計画
@@ -21,7 +20,7 @@ description: >
 ## 出力
 
 - タスクファイル
-- 現在タスクファイルには短い識別子だけ
+- 現在タスクファイルには短い識別子だけを書く。
 - 次の能力集合
 
 `要件契約` は `context-clarification` が固定したものを読む。タスクファイルはこれとは別に書き、契約を上書きしない。

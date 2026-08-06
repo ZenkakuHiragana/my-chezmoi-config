@@ -1,6 +1,6 @@
 ---
 name: implementation
-description: Use when context-clarification has fixed a Requirement contract and readiness is pass or pass_with_assumption; not for fact finding, contract shaping, planning, or review-only work. 実装専用。必要な関連面の更新と検証まで完了させる。
+description: `context-clarification` が要件契約を固定し、準備完了判定が合格または仮定付き合格のときに使う。事実の確認、契約の形成、計画、レビューだけの作業には使わない。
 ---
 
 # 実装
@@ -46,21 +46,13 @@ description: Use when context-clarification has fixed a Requirement contract and
 
 既存の所有境界と認可範囲内にあり、どの選択でも受け入れ結果が変わらないものだけを低水準の実装裁量として処理する。
 
-## 状態同期の発火例
-
-次の場合、状態同期の枠で同期を出す。
-
-- 編集中に新しい実装の選択が露出し、`context-clarification` への戻りには至らないが、編集方針が変わるとき
-- 検証が失敗し、検証方法や完了条件を変更する必要が生じたとき
-- 関連面の調査により、変更範囲が当初の計画より広がる、または狭まるとき
-
 ## レビュー結果への対応
 
 - 対象、観点、場所、破綻、根拠、確認方法がそろった問題だけを扱う。
 - 指摘された問題が修正前の対象で再現することを、その指摘の確認方法で確かめる。再現しない問題を変更理由にしてはならない。
 - 再現した問題をまとめて最小修正する。レビューに無い便乗修正をしてはならない。
 - 修正後に同じ確認方法と作業契約のテストを実行する。
-- 失敗する変更は縮小または巻き戻し、完了扱いにしない。
+- 失敗する変更の処分は共通規則に従う。
 
 ## 手順
 

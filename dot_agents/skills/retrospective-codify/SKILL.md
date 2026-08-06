@@ -1,6 +1,6 @@
 ---
 name: retrospective-codify
-description: Use when a task required trial and error and the user wants reusable lessons codified into AGENTS.md, a skill, or a static rule; not for one-off notes or tasks with no generalizable lesson. 学びの整理専用。再利用可能な規則候補と置き場を提案する。
+description: タスクが試行錯誤を必要とし、ユーザーが再利用可能な教訓を AGENTS.md、スキル、または静的規則として整理したいときに使う。一回限りのメモや一般化できる教訓のないタスクには使わない。
 ---
 
 # 振り返りの規則化

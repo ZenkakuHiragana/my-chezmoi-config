@@ -1,7 +1,6 @@
 ---
 name: public-research
-description: >
-  Use when current public facts, official docs, specs, release notes, standards, APIs, or upstream practices must be verified with citations, especially for unresolved `public_fact` items or policy changes; not when repository-local sources already answer the question or when the main need is user-decision capture or stage gating. 公開根拠の確認専用。検証済み事実、注意点、出典、次の判断材料を返す。
+description: 現在の公開事実、公式ドキュメント、仕様、リリースノート、標準、API、上流の実務を出典付きで検証する必要があるときに使う。特に未解決の公開事実の項目や方針変更。リポジトリ内の情報源が既に答えを持つ場合や、ユーザー判断の記録・段階のゲートが主目的の場合は使わない。
 ---
 
 # 公開調査

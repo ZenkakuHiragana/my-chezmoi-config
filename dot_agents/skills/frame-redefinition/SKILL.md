@@ -1,6 +1,6 @@
 ---
 name: frame-redefinition
-description: Use when a stated obstacle or problem setup is suspected to conflate layers, overclaim its applicability reach, or pose an unanswerable question as stated, and the frame itself—not the detail within it—needs re-examination rather than acceptance. Re-measures the obstacle's applicability domain, re-partitions into a mechanically solvable part / human-judgment part / residual resolvable only by collision with reality, declares the residual rather than dissolving it, and smoke-checks each redefinition for grounding and falsifiability. Not for pre-implementation readiness (use context-clarification), design-decision interviews (use grill-me), or local/public fact-finding (use investigation / public-research). 枠の健全性を疑い、障害の適用域を測り直して問題を再分割し、残差を隠さず宣言する。
+description: 示された障害または問題設定が、層の混同、適用域の誇張、または提示されたままでは答えられない問いを含む疑いがあり、詳細ではなく枠そのものの再検討が必要なときに使う。障害の適用域を測り直し、機械的に解ける部分、人の判断が必要な部分、現実との衝突でしか解決しない残差へ再分割し、残差を隠さず宣言し、各再定義の根拠と反証可能性を確認する。実装前の準備完了（`context-clarification`）、設計判断の聞き取り（`grill-me`）、ローカルまたは公開の事実確認（`investigation`、`public-research`）には使わない。
 ---
 
 # 枠の再定義
@@ -51,14 +51,14 @@ description: Use when a stated obstacle or problem setup is suspected to conflat
 
 ## 出力
 
-- 元フレーム: 与えられた問題設定と障害を、再定義前の形で述べたもの
+- 元の枠: 与えられた問題設定と障害を、再定義前の形で述べたもの
 - 発火ゲートの結果（枠が健全ならその旨と「枠内分析を推奨」で終了）
-- 変更したフレーム要素: 適用域の縮小、軸の分離、問いの置き換えなど、枠のどこを動かしたか
+- 変更した枠の要素: 適用域の縮小、軸の分離、問いの置き換えなど、枠のどこを動かしたか
 - 障害の適用域の明示文
 - 再分割（工学で解ける / 人間判断 / 残差）
 - 各再定義の煙検出結果（根拠あり / 煙）
 - 残差の宣言
-- 枠内詳細分析への復帰先: 再定義の結果、枠内の詳細分析に戻ってよい部分。枠が健全だった場合は元フレームそのもの。
+- 枠内詳細分析への復帰先: 再定義の結果、枠内の詳細分析に戻ってよい部分。枠が健全だった場合は元の枠そのもの。
 
 ## 完了条件
 

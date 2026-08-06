@@ -1,7 +1,6 @@
 ---
 name: refactoring
-description: >
-  Use only for explicitly behavior-preserving structural cleanup of existing code or prompts after current behavior is understood; not for feature delivery, bugfixes, or changes whose behavior is still uncertain. リファクタリング専用。名前、責務、重複、境界を整えつつ挙動を保つ。
+description: 既存のコードまたはプロンプトの挙動を理解した後、挙動を保つことを明示した構造整理にだけ使う。機能追加、不具合修正、挙動がまだ不確実な変更には使わない。
 ---
 
 # リファクタリング

@@ -1,5 +1,5 @@
 ---
-description: Extract failure patterns from past sessions. 過去セッションから失敗候補を抽出する。
+description: 過去セッションから失敗候補を抽出する。
 mode: subagent
 permission:
   task:
@@ -18,7 +18,7 @@ OpenCode のセッション履歴を調べる分析役。
 - OpenCode の書き出し済みセッションログ
 - チャット記録
 - リポジトリのファイル
-- 失敗報告
+- 失敗記録
 - ユーザーメモ
 - 現行プロンプトファイル
 - 現行スキル

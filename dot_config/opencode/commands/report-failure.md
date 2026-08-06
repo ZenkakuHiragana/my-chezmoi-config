@@ -1,5 +1,5 @@
 ---
-description: Record one prompt failure using evidence, current coverage, and minimal containment. 失敗現象を根拠付きで記録する。
+description: 失敗現象を証拠、現行対応範囲、最小限の整理付きで記録する。
 agent: report-failure
 subtask: false
 ---

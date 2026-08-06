@@ -1,5 +1,5 @@
 ---
-description: Export current session context for a fresh agent. 後続エージェント用に文脈を ZIP 化する。
+description: 後続エージェント用に現在のセッションの文脈を ZIP 化して出力する。
 mode: subagent
 ---
 

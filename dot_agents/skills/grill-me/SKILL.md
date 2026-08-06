@@ -1,6 +1,6 @@
 ---
 name: grill-me
-description: Use only when the user explicitly wants a design grilling interview, or when one answer will change multiple design sections and context-clarification cannot finish without that decision; not for simple missing values or facts discoverable from repo/public sources. 設計判断の質問専用。短い質問で決定事項を固める。
+description: ユーザーが設計の聞き取りインタビューを明示的に求めたとき、または1つの回答が複数の設計箇所を変え、その判断なしでは `context-clarification` が完了できないときにだけ使う。単純な欠落値やリポジトリ・公開情報から分かる事実には使わない。
 ---
 
 # 設計判断の質問

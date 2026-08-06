@@ -1,6 +1,6 @@
 ---
 name: empirical-prompt-tuning
-description: Use when a prompt, skill, command, or agent instruction has been created or substantially changed and needs empirical validation with frozen scenarios and fresh executors; not for one-off prompts or preference-only wording tweaks. 実験的な検証専用。比較可能な評価結果と改善判断を返す。
+description: プロンプト、スキル、コマンド、またはエージェントの指示を新規作成または大幅に変更し、凍結したシナリオと新しい実行者による実験的な検証が必要なときに使う。一回限りのプロンプトや好みだけの文言調整には使わない。
 ---
 
 # プロンプトの実験的調整

@@ -1,7 +1,6 @@
 ---
 name: technical-writing
-description: >
-  Use after meaning, scope, and acceptance are fixed when a reader-facing technical document, prompt text, skill instruction, Japanese translation or localization, or other reusable Japanese prose requires composition or reorganization of structure, terminology, explanation order, and readability; not for fact finding, requirement shaping, preference-only wording tweaks, or short comments, docstrings, and messages that can state fixed meaning directly. 固定済みの意味を文章として実現する。構成、用語、説明順の設計が必要な文章を作る。
+description: 意味、対象範囲、受け入れ条件が固定された後、読者向けの技術文書、プロンプト本文、スキル本文、日本語翻訳またはローカライズ、その他の再利用される日本語文章で、構成、用語、説明順、読みやすさの設計が必要なときに使う。事実の確認、要件の形成、好みだけの文言調整、固定済みの意味をそのまま表せる短いコメント・docstring・メッセージには使わない。
 ---
 
 # 技術文書作成
@@ -64,7 +63,7 @@ description: >
 - 対象、観点、場所、破綻、根拠、確認方法がそろった問題だけを扱う。
 - 指摘された問題が修正前の対象で再現することを、その指摘の確認方法で確かめる。
 - 再現した問題だけをまとめて最小修正する。
-- 修正後に同じ確認方法を実行する。失敗する変更は縮小または巻き戻す。
+- 修正後に同じ確認方法を実行する。失敗する変更の処分は共通規則に従う。
 - レビューコメントと却下した案は制御入力であり、成果物本文へ混ぜてはならない。
 
 ## 日本語本文の手順

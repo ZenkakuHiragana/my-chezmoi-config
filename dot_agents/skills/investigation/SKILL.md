@@ -1,7 +1,6 @@
 ---
 name: investigation
-description: >
-  Use when a claim, fix, review finding, or implementation decision depends on unread repository-local files, configs, logs, generated artifacts, runtime traces, or other local source-of-truth evidence, especially unresolved `repo_derivable` or `subsystem_derivable` items; not for pure public facts, user-decision capture, or already-ready implementation. ローカル根拠の確認専用。観測事実、未解決点、次の行動を返す。
+description: 主張、修正、レビュー指摘、実装の判断が、未読のリポジトリ内ファイル、設定、ログ、生成物、実行時トレースなどのローカルの正本となる証拠に依存するときに使う。特に未解決のローカル根拠の項目。純粋な公開事実、ユーザー判断の記録、準備済みの実装には使わない。
 ---
 
 # 調査

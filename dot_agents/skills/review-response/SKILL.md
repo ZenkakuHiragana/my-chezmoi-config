@@ -1,11 +1,11 @@
 ---
 name: review-response
-description: Use when a frozen review finding set must be reproduced and classified before any correction; defines and applies accepted/rejected/needs-investigation/out-of-scope criteria plus the response contract, without editing or deciding procedure termination. レビュー指摘の再現・4値分類基準専用。
+description: 凍結したレビュー指摘集合を、修正前に再現して分類する必要があるときに使う。採用・却下・要調査・対象外の分類基準とレビュー対応契約を定義し適用する。編集や手続き終了の判断はしない。
 ---
 
 # レビュー対応
 
-凍結した指摘集合を現成果物と作業契約へ 1 回だけ再現し、修正対象を決める。このスキルでは成果物を編集せず、レビュー手続きの終了を判定しない。`広域` の手続きでは、親がこの基準を直接使い、分類用サブエージェントを起動してはならない。
+凍結した指摘集合を現成果物と作業契約へ 1 回だけ再現し、修正対象を決める。このスキルでは成果物を編集せず、レビュー手続きの終了を判定しない。`広域` の手続きでは、親エージェントがこの基準を直接使い、分類用サブエージェントを起動してはならない。
 
 ## 入力
 
@@ -51,7 +51,7 @@ description: Use when a frozen review finding set must be reproduced and classif
 
 ### `却下`
 
-同じ確認方法を完了した結果、指摘された失敗を確認しなかった根拠、または指摘の根拠が対象と一致しない箇所を記録する。親の感想だけで `却下` にしてはならない。
+同じ確認方法を完了した結果、指摘された失敗を確認しなかった根拠、または指摘の根拠が対象と一致しない箇所を記録する。親エージェントの感想だけで `却下` にしてはならない。
 
 ### `要調査`
 
@@ -63,7 +63,7 @@ description: Use when a frozen review finding set must be reproduced and classif
 
 ## レビュー対応成果物
 
-次の形式で返す。親がレビュー対応成果物として外部化する。
+次の形式で返す。親エージェントがレビュー対応成果物として外部化する。
 
 ```markdown
 # レビュー対応成果物

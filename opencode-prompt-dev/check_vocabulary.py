@@ -221,7 +221,7 @@ def file_reference_audit(repo: Path, files: list[Path]) -> list[tuple[str, int, 
     """規則・手順をファイル名で参照する箇所を返す。
 
     制御面のテキストで「XXX.md の〜」「XXX.md を〜」のような、ファイル名に
-    助詞が続く形を検出する。コンテキストに積まれた指示がどのファイルから来たか
+    助詞が続く形を検出する。文脈に積まれた指示がどのファイルから来たか
     はハーネス実装依存で保証されないため、実行エージェントはファイル名が指す
     内容を特定できず、規則・手順の参照には使ってはならない。
     「〜.md」で終わるパス例示、列挙、取り込み名は対象外。
@@ -266,13 +266,15 @@ def classification_consistency(repo: Path) -> dict[str, str]:
 
 
 def is_identifier(tok: str) -> bool:
-    if not tok.isascii():
-        return False
     if NOISE_CHAR.search(tok):
         return False
-    if not IDENT_OK.match(tok):
-        return False
     if len(tok) < 2:
+        return False
+    if not tok.isascii():
+        if "。" in tok or "、" in tok:
+            return False
+        return True
+    if not IDENT_OK.match(tok):
         return False
     return True
 
