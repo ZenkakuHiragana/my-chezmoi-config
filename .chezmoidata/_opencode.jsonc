@@ -119,8 +119,11 @@
         "models": {
           "qwen3.8-max-preview": {
             "name": "Qwen3.8 Max Preview",
-            "contextWindow": 983616,
-            "maxOutputTokens": 131072,
+            "limit": {
+              "context": 1000000,
+              "input": 983616,
+              "output": 131072
+            },
             "options": {
               "thinking": {
                 "type": "enabled",
