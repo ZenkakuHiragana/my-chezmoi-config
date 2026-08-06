@@ -9,7 +9,7 @@ description: Use when a frozen review finding set must be reproduced and classif
 
 ## 入力
 
-- 凍結した成果物版と基準版
+- 凍結した検査対象版と差分元の版
 - 作業契約の明示要求、範囲、受け入れ条件、不変条件、確認方法
 - 開始前に固定したレビュー指摘記録の集合
 - 再現に使う引用、コマンド、テスト、ログ、生成物
@@ -32,7 +32,7 @@ description: Use when a frozen review finding set must be reproduced and classif
 
 ## 1 パス処理
 
-入力された指摘集合、成果物版、作業契約、確認方法を開始前に固定する。各指摘を次の順で 1 回だけ処理する。
+入力された指摘集合、検査対象版、作業契約、確認方法を開始前に固定する。各指摘を次の順で 1 回だけ処理する。
 
 1. 指摘の対象と、`侵害する条件` の種類およびIDまたは逐語引用を作業契約へ逐語で照合する。
 2. `侵害する条件` が `該当なし` である場合、または明示要求、範囲、受け入れ条件、不変条件のいずれにも対応しない場合は `対象外` とする。
@@ -71,7 +71,7 @@ description: Use when a frozen review finding set must be reproduced and classif
 ## 入力
 
 - 情報源:
-- 凍結した成果物版:
+- 凍結した検査対象版:
 - 作業契約:
 - 固定した指摘:
 
@@ -110,7 +110,7 @@ description: Use when a frozen review finding set must be reproduced and classif
 
 ## 完了チェック
 
-- 入力指摘集合、成果物版、作業契約、確認方法を凍結した。
+- 入力指摘集合、検査対象版、作業契約、確認方法を凍結した。
 - 全入力指摘の `侵害する条件` が、許可された種類と必要なIDまたは逐語引用を持つことを確認した。
 - 入力指摘を各 1 回だけ 4 値分類した。
 - `採用` の全件で確認方法の修正前失敗を再現した。

@@ -11,7 +11,7 @@ description: Use only when reviewing frozen executable instruction artifacts suc
 
 ## 入力
 
-- 凍結した対象版と基準版
+- 凍結した検査対象版と差分元の版
 - 固定済みの設計意図、判定基準、作業契約
 - 対象へ適用される正本とプロジェクト固有規則
 - 実行主体が利用できる入力、状態、権限、ツール
@@ -66,7 +66,7 @@ description: Use only when reviewing frozen executable instruction artifacts suc
 
 ## 方法
 
-1. 対象版、基準版、設計意図、正本、接続面、観点集合を凍結する。
+1. 検査対象版、差分元の版、設計意図、正本、接続面、観点集合を凍結する。
 2. 各観点について、対象箇所、実行主体、利用可能な情報、接続先、期待する状態遷移を特定する。
 3. 対象と接続面を同時に読み、入力だけを使って各検査項目を確認する。
 4. 各検査項目の方法、結果、根拠を検査被覆表へ一度ずつ記録する。
@@ -89,7 +89,7 @@ description: Use only when reviewing frozen executable instruction artifacts suc
 
 {{ include ".chezmoitemplates/opencode/review-completion-check.md" }}
 
-- 対象、基準版、設計意図、正本、接続面、観点集合を開始前に固定した。
+- 検査対象版、差分元の版、設計意図、正本、接続面、観点集合を開始前に固定した。
 - 発火時点で見えない情報や後工程の結果を前提にしていないか確認した。
 - 対象単体だけでなく、呼び出し元、接続先、出力の利用者との整合を確認した。
 - 成功、失敗、情報不足の各経路について終端または戻り先を確認した。

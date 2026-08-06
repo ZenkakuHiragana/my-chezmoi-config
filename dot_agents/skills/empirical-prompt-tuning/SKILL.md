@@ -49,7 +49,7 @@ description: Use when a prompt, skill, command, or agent instruction has been cr
 - 採用規則
 - 固定後に許す変更
 
-計画を見た後に検証シナリオ、チェックリスト、重要ラベルを動かすなら版を上げ、基準版からやり直す。
+計画を見た後に検証シナリオ、チェックリスト、重要ラベルを動かすなら版を上げ、比較基準の版からやり直す。
 
 ## 検証シナリオの分割
 
@@ -136,7 +136,7 @@ description: Use when a prompt, skill, command, or agent instruction has been cr
 
 採用判断の目安:
 
-- 検証用集合の重要通過率が基準版以上
+- 検証用集合の重要通過率が比較基準の版以上
 - 合計点が改善、または実行負荷が下がり重要失敗が増えない
 - 採点者の不一致が悪化しない
 - 最終確認集合が崩れない
