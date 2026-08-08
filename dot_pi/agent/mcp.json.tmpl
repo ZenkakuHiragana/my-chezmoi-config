@@ -1,0 +1,2 @@
+{{- $mcp := mergeOverwrite (deepCopy .opencode.mcp) .pi.mcp -}}
+{{- dict "mcpServers" $mcp | toPrettyJson -}}

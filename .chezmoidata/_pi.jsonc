@@ -1,0 +1,10 @@
+{
+  "pi": {
+    "mcp": {
+      "exa": {
+        "type": "streamable-http",
+        "url": "https://mcp.exa.ai/mcp",
+      }
+    }
+  }
+}
