@@ -1,6 +1,7 @@
 ---
 name: implementation
-description: `context-clarification` が要件契約を固定し、準備完了判定が合格または仮定付き合格のときに使う。事実の確認、契約の形成、計画、レビューだけの作業には使わない。
+description: >-
+  `context-clarification` が要件契約を固定し、準備完了判定が合格または仮定付き合格のときに使う。事実の確認、契約の形成、計画、レビューだけの作業には使わない。
 ---
 
 # 実装
