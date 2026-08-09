@@ -33,6 +33,7 @@
     "npm:pi-subagents-lite",
     "npm:pi-hashline-edit",
     "npm:pi-mcp-adapter",
+    "npm:pi-token-burden",
     "npm:pi-tool-display",
     "npm:pi-compact-transcript",
     "npm:@pi9/context",
