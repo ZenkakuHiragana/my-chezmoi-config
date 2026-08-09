@@ -1,4 +1,22 @@
 {
+  "pi_agent": {
+    "general_fast": {
+      "model": "openai-codex/gpt-5.6-luna",
+      "thinking": "medium"
+    },
+    "general_strong": {
+      "model": "openai-codex/gpt-5.6-luna",
+      "thinking": "max"
+    },
+    "requirement_reviewer": {
+      "model": "openai-codex/gpt-5.6-luna",
+      "thinking": "max"
+    },
+    "review_audit": {
+      "model": "openai-codex/gpt-5.6-luna",
+      "thinking": "xhigh"
+    }
+  },
   "pi": {
     "mcp": {
       "exa": {

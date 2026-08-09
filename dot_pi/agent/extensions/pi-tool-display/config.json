@@ -1,0 +1,18 @@
+{
+  "registerToolOverrides": {
+    "edit": false,
+    "read": false
+  },
+  "customToolOverrides": {
+    "mcp": {
+      "enabled": true,
+      "kind": "generic",
+      "outputMode": "hidden"
+    },
+    "mcpScript": {
+      "enabled": true,
+      "kind": "generic",
+      "outputMode": "hidden"
+    }
+  }
+}

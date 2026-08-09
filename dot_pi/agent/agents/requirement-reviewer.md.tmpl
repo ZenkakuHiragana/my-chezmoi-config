@@ -1,9 +1,8 @@
 ---
 name: requirement-reviewer
 description: Run assigned requirement review units from a frozen review packet and return only the review result. 固定済み要件レビュー単位の実行専用。
-model: {{ dig "claude_agent" "requirement_reviewer" "model" "opus" . | quote }}
-effort: {{ dig "claude_agent" "requirement_reviewer" "effort" "high" . }}
-color: purple
+model: {{ dig "pi_agent" "requirement_reviewer" "model" "openai-codex/gpt-5.6-luna" . | quote }}
+thinking: {{ dig "pi_agent" "requirement_reviewer" "thinking" "max" . }}
 ---
 
 {{ regexReplaceAll "(?s)^---\n.*?\n---\n\n?" (includeTemplate "dot_config/opencode/agents/requirement-reviewer.md.tmpl" .) "" -}}
