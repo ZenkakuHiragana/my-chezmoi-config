@@ -1,9 +1,14 @@
+{{- $sourceDir := .chezmoi.sourceDir -}}
 {{- $servers := dict -}}
 {{- range $name, $server := .opencode.mcp -}}
   {{- $type := dig "type" "" $server -}}
   {{- if eq $type "local" -}}
     {{- $command := get $server "command" -}}
-    {{- $entry := dict "command" (index $command 0) "args" (slice $command 1) -}}
+    {{- $args := list -}}
+    {{- range $arg := (slice $command 1) -}}
+      {{- $args = append $args (replace "{file:~/.config/opencode/skill-kb-entrypoint.txt}" (joinPath $sourceDir "tools" "skill-kb" "dist" "src" "index.js") $arg) -}}
+    {{- end -}}
+    {{- $entry := dict "command" (index $command 0) "args" $args -}}
     {{- if hasKey $server "environment" -}}
       {{- $_ := set $entry "env" (get $server "environment") -}}
     {{- end -}}
