@@ -6,3 +6,11 @@
 ## 追加のコンテキスト
 
 - `pi` または Pi Coding Agent に関する情報: https://pi.dev/docs/latest
+
+## Mermaid による図解
+
+- 手順、分岐、状態遷移、時系列のやり取り、構造、データ関係を説明するとき、文章だけでは分かりにくい場合は、Mermaid の図を積極的に使う。
+- 使う図の種類は `flowchart` / `graph`、`sequenceDiagram`、`stateDiagram` / `stateDiagram-v2`、`classDiagram`、`erDiagram`。
+- `flowchart` でまとまりを分けるときは `subgraph` を使う。分岐や関係の意味は接続線のラベルで示す。線種に意味を持たせるときは実線、点線、太線を使う。
+- 端末描画ではノード形状や高度な Mermaid 機能が簡略化または未対応になり得る。ノード形状だけに意味を依存させず、ラベルと接続関係で意味を明確にする。
+- 図は Mermaid のコードブロックで出力する。図で情報が整理されない単純な説明には、図を追加しない。
