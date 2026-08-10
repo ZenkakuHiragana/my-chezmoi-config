@@ -139,7 +139,7 @@
 ### 検証と適用
 
 - レンダリング確認: chezmoi execute-template に断片またはテンプレート本文を渡して出力を確認する。
-- 語彙整合: python opencode-prompt-dev/check_vocabulary.py を実行し、unaccounted / dangling / dead / drift / file-ref が 0 であることを確認する。
+- 語彙整合: python opencode-prompt-dev/check_vocabulary.py を実行し、unaccounted / dangling / dead / file-ref が 0 であることを確認する。
 - 展開差分: chezmoi diff --no-pager で確認する。
 
 ## プロンプト設計・改良における外部調査

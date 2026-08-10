@@ -36,7 +36,7 @@
 - [ ] 目的 / 発火条件 / 必須出力 / 禁止行動 / 検証対象が、該当能力の階層全体から抜け落ちていない
 - [ ] コマンド名、引き渡し先、スラッシュコマンド表記が関連面で一致している
 - [ ] 本文に、このリポジトリのテンプレート実体化のために使われるファイルパス（.chezmoitemplates/、dot_agents/、dot_config/ などの実体化前のパス）を含めていない
-- [ ] `python opencode-prompt-dev/check_vocabulary.py` を実行し、`unaccounted` / `dangling` / `dead` / `drift` がすべて 0 であることを確認した
+- [ ] `python opencode-prompt-dev/check_vocabulary.py` を実行し、`unaccounted` / `dangling` / `dead` / `file-ref` がすべて 0 であることを確認した
 - [ ] 義務監査の新規ヒットをトリアージし、要求挙動を許可形で任意化した漏れを必須または禁止マーカーへ直した
 
 ## 品質ゲート

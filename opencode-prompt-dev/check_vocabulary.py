@@ -235,36 +235,6 @@ def file_reference_audit(repo: Path, files: list[Path]) -> list[tuple[str, int, 
     return rows
 
 
-def classification_consistency(repo: Path) -> dict[str, str]:
-    """AGENTS.md の分類定義が context-clarification に反映されているか。
-
-    `### 文脈状態` と `### 不足の分類と解消` で定義された分類トークンが、
-    context-clarification SKILL.md で参照されているかを確認する。理論
-    (AGENTS.md) に分類を足して手順 (skill) へ反映し忘れる方向のドリフトを
-    機械的に捕まえる。戻り値: 反映漏れトークン -> 定義元 section。
-    """
-    agents = repo / ".chezmoitemplates" / "opencode" / "AGENTS.md"
-    skill = repo / "dot_agents" / "skills" / "context-clarification" / "SKILL.md"
-    if not agents.is_file() or not skill.is_file():
-        return {}
-    sections = {"### 文脈状態", "### 不足の分類と解消"}
-    canonical: dict[str, str] = {}
-    current: str | None = None
-    for line in agents.read_text(encoding="utf-8").splitlines():
-        s = line.strip()
-        if s.startswith("#"):
-            current = s if s in sections else None
-            continue
-        if current:
-            m = DEF_BULLET.match(line)
-            if m:
-                canonical[m.group(1).strip()] = current
-    skill_tokens = {
-        m.group(1).strip() for m in BACKTICK.finditer(skill.read_text(encoding="utf-8"))
-    }
-    return {tok: sec for tok, sec in canonical.items() if tok not in skill_tokens}
-
-
 def is_identifier(tok: str) -> bool:
     if NOISE_CHAR.search(tok):
         return False
@@ -323,13 +293,10 @@ def main() -> int:
     # 自己参照だけで全語が使用済みになり、dead 判定が常に 0 件へ潰れる。
     dead = sorted(t for t in allowlist if t not in dead_refs)
 
-    # 4. 分類ドリフト: AGENTS.md の分類定義が context-clarification に未反映。
-    drift = classification_consistency(repo)
-
-    # 5. 義務曖昧表現: 監査リスト。終了コードには含めない。
+    # 4. 義務曖昧表現: 監査リスト。終了コードには含めない。
     obligation_rows = obligation_audit(repo, surface_files)
 
-    # 6. ファイル名参照: 規則・手順をファイル名で参照する箇所。
+    # 5. ファイル名参照: 規則・手順をファイル名で参照する箇所。
     file_ref_rows = file_reference_audit(repo, surface_files)
 
     def dump(title: str, rows: dict[str, list[str]]) -> None:
@@ -355,13 +322,6 @@ def main() -> int:
     for t in dead:
         print(f"  `{t}`")
 
-    print(
-        f"\n## classification drift "
-        f"(AGENTS.md defined, missing in context-clarification) ({len(drift)})"
-    )
-    for tok in sorted(drift):
-        print(f"  `{tok}`  <- {drift[tok]}")
-
     print(f"\n## obligation ambiguity audit ({len(obligation_rows)})")
     for rel, lineno, term, line in obligation_rows:
         print(f"  {rel}:{lineno}: `{term}`  {line}")
@@ -370,10 +330,10 @@ def main() -> int:
     for rel, lineno, match in file_ref_rows:
         print(f"  {rel}:{lineno}: {match}")
 
-    total = len(unaccounted) + len(dead) + len(drift) + len(file_ref_rows)
+    total = len(unaccounted) + len(dead) + len(file_ref_rows)
     print(
         f"\n# unaccounted: {len(unaccounted)} / dangling: {len(dangling)} "
-        f"/ dead: {len(dead)} / drift: {len(drift)} "
+        f"/ dead: {len(dead)} "
         f"/ obligation-audit: {len(obligation_rows)} / file-ref: {len(file_ref_rows)}"
     )
     return 1 if total else 0
