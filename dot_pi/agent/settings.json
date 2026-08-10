@@ -13,6 +13,7 @@
   "tuiMode": "fullscreen",
   "fullscreenScrollbar": "auto",
   "defaultThinkingLevel": "max",
+  "hideThinkingBlock": true,
   "enabledModels": [
     "anthropic/claude-opus-5",
     "anthropic/claude-fable-5",
@@ -35,7 +36,8 @@
     "npm:pi-mcp-adapter",
     "npm:pi-token-burden",
     "npm:pi-tool-display",
-    "npm:pi-compact-transcript",
+    "git:github.com/ZenkakuHiragana/pi-compact-transcript@local/both-fixes",
+    "npm:@juicesharp/rpiv-ask-user-question",
     "npm:@pi9/context"
   ]
 }
