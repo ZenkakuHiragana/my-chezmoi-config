@@ -51,7 +51,7 @@
 - パネル運用の固定名: `panel packet` / `evidence file` / `known gaps` / `source_id` / `None` / `user-specified` / `literal-match` / `explicit-reference`
 - ツール名とパラメータ: `glob` / `grep` / `webfetch` / `write` / `read` / `task` / `pattern` / `path`
 - 設定キーとスキーマフィールド: `status` / `name` / `agent`
-- スキル / エージェント / レビュー固定名: `claim-grounding` / `code-review` / `derive-fixture-variants` / `review-response` / `review-orchestration` / `context-clarification` / `empirical-prompt-tuning` / `extract-failure-patterns` / `general-fast` / `general-strong` / `grill-me` / `investigation` / `japanese-doc-review` / `public-research` / `refactoring` / `report-failure` / `requirement-reviewer` / `review-audit` / `task-planning` / `technical-writing`
+- スキル / エージェント / レビュー固定名: `claim-grounding` / `code-review` / `derive-fixture-variants` / `review-response` / `review-orchestration` / `context-clarification` / `empirical-prompt-tuning` / `extract-failure-patterns` / `general-fast` / `general-strong` / `grill-me` / `japanese-doc-review` / `refactoring` / `report-failure` / `requirement-reviewer` / `review-audit` / `task-planning` / `technical-writing`
 - 基本: `description` / `ast-grep` / `chezmoi source-path`
 
 ### 日本語の制御語彙
@@ -70,7 +70,7 @@
 - 意味差分: `削除する意味` / `保持する意味` / `追加する意味`
 - 状態値: `仮定` / `判断保留` / `既存と重複` / `既存追記` / `新規` / `未作成`
 - 根拠接地の判定: `支持` / `反証` / `未決`
-- 根拠接地の記録: `主張` / `判定` / `根拠` / `情報源` / `宣言範囲` / `操作` / `判定範囲` / `制限` / `接触余剰` / `既知の根拠` / `次の行動`
+- 根拠接地の記録: `候補ID` / `問い` / `質問種別` / `予想所有先` / `接触範囲の宣言` / `既知の根拠` / `情報源` / `所有関係` / `到達手段` / `探索手続き` / `操作` / `操作の逐語` / `宣言範囲` / `到達した停止条件` / `取得状態` / `得た内容` / `接触余剰` / `制限` / `次の行動` / `存在` / `内容` / `状態` / `存在かつ権威あり` / `存在かつ権威なし` / `不在かつ探索完了` / `不在かつ探索未了`
 
 ## 日本語化する語
 

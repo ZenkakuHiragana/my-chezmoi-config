@@ -1,5 +1,5 @@
 ---
-description: Add or strengthen one prompt capability with hierarchy-aware design, research gating, and validation planning
+description: プロンプト階層に1つの能力を追加または補強し、必要な調査と検証計画を得る。既存能力の整理や単なる文言調整には使わない。
 agent: build
 ---
 
@@ -85,8 +85,8 @@ $ARGUMENTS
 
 ## 4. 追加調査の要否を決める
 
-編集前に、ルート `AGENTS.md` の「プロンプト設計・改良における外部調査」と `public-research` の `description` を正本として、追加調査の要否を決める。
-追加調査が必要な場合は編集前に `public-research` を使い、不要な場合はローカルのプロンプト文脈だけで進める。
+編集前に、ルート `AGENTS.md` の「プロンプト設計・改良における外部調査」と `claim-grounding` の `description` を正本として、追加調査の要否を決める。
+追加調査が必要な場合は編集前に、主張と許可された公開根拠を固定して `claim-grounding` を使い、不要な場合はローカルのプロンプト文脈だけで進める。
 
 ## 5. 既に能力があるか確認する
 

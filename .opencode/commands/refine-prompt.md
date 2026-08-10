@@ -1,5 +1,5 @@
 ---
-description: Apply prompt-surface interventions while preserving required behaviors, capabilities, and task-essential structure
+description: 必要な動作、能力、作業に必要な構造を保ちながら、関連するプロンプト面を整理・補強・言い換えする。新しい能力の追加だけを求める依頼には使わない。
 agent: build
 ---
 
@@ -212,8 +212,8 @@ $ARGUMENTS
 
 ## 8. 追加調査の要否を決める
 
-編集前に、ルート `AGENTS.md` の「プロンプト設計・改良における外部調査」と `public-research` の `description` を正本として、追加調査の要否を決める。
-追加調査が必要な場合は編集前に `public-research` を使い、不要な場合はローカルのプロンプト文脈だけで進める。
+編集前に、ルート `AGENTS.md` の「プロンプト設計・改良における外部調査」と `claim-grounding` の `description` を正本として、追加調査の要否を決める。
+追加調査が必要な場合は編集前に、主張と許可された公開根拠を固定して `claim-grounding` を使い、不要な場合はローカルのプロンプト文脈だけで進める。
 
 ## 9. 編集前に現行階層を批判的に読む
 

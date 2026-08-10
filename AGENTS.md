@@ -155,9 +155,9 @@
 - 現在の最良慣行が設計を実質的に左右しうる
 - 情報源方針、根拠基準、プライバシー、セキュリティ、検証戦略を変更する
 - 用語、手法、規範が曖昧・未確定・変化中である
-- `public-research`、`refactoring`、`technical-writing`、確認手順など、分野固有の実務慣行が品質に影響する
+- `claim-grounding`、`refactoring`、`technical-writing`、確認手順など、分野固有の実務慣行が品質に影響する
 
-外部調査が必要な場合は `public-research` を用いること。
+外部事実の確認が必要な場合は、主張と許可された公開根拠を固定して `claim-grounding` を用いること。
 
 ここでは「いつ調べるべきか」という原則だけを定める。
-調査手順そのものは `public-research` に置き、実際の判定と反映は `/add-capability` や `/refine-prompt` などのコマンド側で行う。
+根拠接地の手順そのものは `claim-grounding` に置き、実際の判定と反映は `/add-capability` や `/refine-prompt` などのコマンド側で行う。
