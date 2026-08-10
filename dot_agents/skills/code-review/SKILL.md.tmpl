@@ -18,7 +18,32 @@ description: 意図、対象範囲、確認方法が固定された後のコー�
 
 ## 観点
 
-既存の確認観点本文と言語環境別プロファイル本文を観点の正本にする。
+確認観点本文は `concerns/` 以下、言語環境別プロファイル本文は `profiles/` 以下に置く。選択した観点またはプロファイルに対応する次の参照本文を読む。
+共通確認観点:
+- `concerns/comments-and-docs.md`
+- `concerns/compatibility-and-migration.md`
+- `concerns/complexity.md`
+- `concerns/concurrency-and-async.md`
+- `concerns/correctness.md`
+- `concerns/dependencies.md`
+- `concerns/maintainability-idioms.md`
+- `concerns/minimality-and-intentionality.md`
+- `concerns/observability-and-operability.md`
+- `concerns/performance.md`
+- `concerns/resource-lifecycle.md`
+- `concerns/responsibility-boundaries.md`
+- `concerns/security.md`
+- `concerns/spec-conformance.md`
+- `concerns/test-quality.md`
+- `concerns/tests.md`
+言語環境別プロファイル:
+- `profiles/cpp-cmake.md`
+- `profiles/csharp-dotnet.md`
+- `profiles/lua-generic.md`
+- `profiles/lua-neovim.md`
+- `profiles/python.md`
+- `profiles/rust-cargo.md`
+- `profiles/shell.md`
 
 - `単発`: 変更箇所と直接テストだけ
 - `限定`: 依頼で指定した観点と変更経路に接続する観点だけ
