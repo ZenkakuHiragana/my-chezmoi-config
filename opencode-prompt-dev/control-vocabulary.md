@@ -51,7 +51,7 @@
 - パネル運用の固定名: `panel packet` / `evidence file` / `known gaps` / `source_id` / `None` / `user-specified` / `literal-match` / `explicit-reference`
 - ツール名とパラメータ: `glob` / `grep` / `webfetch` / `write` / `read` / `task` / `pattern` / `path`
 - 設定キーとスキーマフィールド: `status` / `name` / `agent`
-- スキル / エージェント / レビュー固定名: `code-review` / `derive-fixture-variants` / `review-response` / `review-orchestration` / `context-clarification` / `empirical-prompt-tuning` / `extract-failure-patterns` / `general-fast` / `general-strong` / `grill-me` / `investigation` / `japanese-doc-review` / `public-research` / `refactoring` / `report-failure` / `requirement-reviewer` / `review-audit` / `task-planning` / `technical-writing`
+- スキル / エージェント / レビュー固定名: `claim-grounding` / `code-review` / `derive-fixture-variants` / `review-response` / `review-orchestration` / `context-clarification` / `empirical-prompt-tuning` / `extract-failure-patterns` / `general-fast` / `general-strong` / `grill-me` / `investigation` / `japanese-doc-review` / `public-research` / `refactoring` / `report-failure` / `requirement-reviewer` / `review-audit` / `task-planning` / `technical-writing`
 - 基本: `description` / `ast-grep` / `chezmoi source-path`
 
 ### 日本語の制御語彙
@@ -69,6 +69,8 @@
 - 出力契約のフィールド: `必要な結果` / `対象範囲` / `判別対象` / `判断と認可` / `結果を生む実経路` / `観測する結果と判別対象` / `利用者または情報所有先`
 - 意味差分: `削除する意味` / `保持する意味` / `追加する意味`
 - 状態値: `仮定` / `判断保留` / `既存と重複` / `既存追記` / `新規` / `未作成`
+- 根拠接地の判定: `支持` / `反証` / `未決`
+- 根拠接地の記録: `主張` / `判定` / `根拠` / `情報源` / `宣言範囲` / `操作` / `判定範囲` / `制限` / `接触余剰` / `既知の根拠` / `次の行動`
 
 ## 日本語化する語
 
