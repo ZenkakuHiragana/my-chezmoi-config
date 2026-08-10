@@ -1,16 +1,38 @@
 {
   "$schema": "https://raw.githubusercontent.com/cortexkit/magic-context/master/assets/magic-context.schema.json",
-  "historian": {
-    "model": "openai/gpt-5.6-luna"
+  "compaction": {
+    "enabled": true
   },
   "dreamer": {
-    "model": "openai/gpt-5.6-luna"
-  },
-  "sidekick": {
-    "disable": true
+    "model": "openai/gpt-5.6-luna",
+    "inject_docs": false
   },
   "embedding": {
     "provider": "local",
     "model": "Xenova/all-MiniLM-L6-v2"
+  },
+  "historian": {
+    "model": "openai/gpt-5.6-luna"
+  },
+  "memory": {
+    "enabled": true,
+    "auto_promote": true,
+    "injection_budget_tokens": 4000,
+    "auto_search": {
+      "enabled": false,
+      "score_threshold": 0.6,
+      "min_prompt_chars": 20
+    }
+  },
+  "prompt_surface": {
+    "default": "light"
+  },
+  "sidekick": {
+    "disable": true
+  },
+  "temporal_awareness": true,
+  "todowrite": {
+    "enabled": false,
+    "overlay": true
   }
 }
