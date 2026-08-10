@@ -38,6 +38,7 @@
     "npm:pi-tool-display",
     "git:github.com/ZenkakuHiragana/pi-compact-transcript@local/both-fixes",
     "npm:@juicesharp/rpiv-ask-user-question",
-    "npm:@pi9/context"
+    "npm:@pi9/context",
+    "npm:@cortexkit/pi-magic-context"
   ]
 }
