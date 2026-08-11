@@ -257,7 +257,7 @@ function simpleCommandCandidates(command: string): string[] {
 
 function extractPowerShellBody(command: string): string | undefined {
   const match = command.match(
-    /(?:^|[;&|]\s*)["']?(?:powershell|pwsh)(?:\.exe)?["']?\s+-(?:c|command)\s+([\s\S]+)$/i,
+    /(?:^|[;&|]\s*)["']?(?:powershell|pwsh)(?:\.exe)?["']?(?:\s+(?:"(?:\\.|[^"])*"|'(?:''|[^'])*'|[^\s;&|]+))*\s+-(?:c|command)\s+([\s\S]+)$/i,
   );
   if (!match) return undefined;
   const body = match[1].trim();
