@@ -36,7 +36,17 @@
     "npm:pi-mcp-adapter",
     "npm:pi-tool-display",
     "git:github.com/ZenkakuHiragana/pi-compact-transcript@local/both-fixes",
-    "npm:@juicesharp/rpiv-ask-user-question",
+    {
+      "source": "git:github.com/rytswd/pi-agent-extensions",
+      "extensions": [
+        "-direnv\\index.ts",
+        "-fetch\\index.ts",
+        "-notify\\index.ts",
+        "-permission-gate\\index.ts",
+        "-slow-mode\\index.ts",
+        "-statusline\\index.ts"
+      ]
+    },
     "npm:@cortexkit/pi-magic-context",
     "npm:pi-context-view"
   ]
