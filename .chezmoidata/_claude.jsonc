@@ -92,8 +92,8 @@
       "effort": "high",
     },
     "review_audit": {
-      "model": "opus",
-      "effort": "high",
+      "model": "sonnet",
+      "effort": "medium",
     },
   },
 }

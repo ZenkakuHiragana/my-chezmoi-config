@@ -10,11 +10,11 @@
     },
     "requirement_reviewer": {
       "model": "openai-codex/gpt-5.6-luna",
-      "thinking": "max"
+      "thinking": "high"
     },
     "review_audit": {
       "model": "openai-codex/gpt-5.6-luna",
-      "thinking": "xhigh"
+      "thinking": "low"
     }
   },
   "pi": {
