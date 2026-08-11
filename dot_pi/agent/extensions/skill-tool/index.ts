@@ -1,4 +1,6 @@
+import { homedir } from "node:os";
 import { readFile } from "node:fs/promises";
+import { isAbsolute, relative, resolve, sep } from "node:path";
 import type { ExtensionAPI, Skill } from "@earendil-works/pi-coding-agent";
 import { Type } from "typebox";
 
@@ -8,7 +10,7 @@ const PI_SKILLS_PROMPT_SECTION =
 const SKILL_DESCRIPTION_INTRO = [
   "スキルの全文を名前で読み込む。",
   "スキルは、特定の作業向けの指示、補助スクリプト、参照資料などをまとめた自己完結型の能力単位。",
-  "作業がスキルの説明に一致するときにこのツールを使う。スキルを使う前に全文を読み、相対パスはスキルディレクトリ（SKILL.mdの親）を基準に解決する。",
+  "作業がスキルの説明に一致するときにこのツールを使う。スキルを使う前に全文を読み、結果に含まれるスキルディレクトリのパスを基準に相対パスを解決する。",
 ].join("\n");
 
 function getModelInvocableSkills(skills: Skill[]): Skill[] {
@@ -21,6 +23,21 @@ function formatSkillDescription(skills: Skill[]): string {
     : "（利用可能なスキルなし）";
 
   return `${SKILL_DESCRIPTION_INTRO}\n\n利用可能なスキル:\n${catalog}`;
+}
+
+function formatSkillRoot(baseDir: string): string {
+  const absolutePath = resolve(baseDir);
+  const relativePath = relative(resolve(homedir()), absolutePath);
+  const isWithinHome =
+    relativePath === "" ||
+    (relativePath !== ".." &&
+      !relativePath.startsWith(`..${sep}`) &&
+      !isAbsolute(relativePath));
+  if (isWithinHome) {
+    const normalizedRelativePath = relativePath.split(sep).join("/");
+    return normalizedRelativePath ? `~/${normalizedRelativePath}` : "~";
+  }
+  return absolutePath.split(sep).join("/");
 }
 
 function removePiSkillsPromptSection(systemPrompt: string): string {
@@ -47,7 +64,11 @@ export default function (pi: ExtensionAPI) {
         }
 
         const content = await readFile(selectedSkill.filePath, "utf8");
-        return { content: [{ type: "text", text: content }], details: {} };
+        const skillRoot = formatSkillRoot(selectedSkill.baseDir);
+        return {
+          content: [{ type: "text", text: `スキルディレクトリ: ${skillRoot}\n\n${content}` }],
+          details: {},
+        };
       },
     });
   };
