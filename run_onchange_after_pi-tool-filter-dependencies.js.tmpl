@@ -1,0 +1,23 @@
+#!/usr/bin/env node
+"use strict";
+
+const { execFileSync } = require("node:child_process");
+const { homedir } = require("node:os");
+const { join } = require("node:path");
+
+// Rendered manifests make dependency changes retrigger this chezmoi hook.
+const dependencyManifest = {{ include "dot_pi/agent/extensions/pi-tool-filter/package.json" | toJson }};
+const dependencyLock = {{ include "dot_pi/agent/extensions/pi-tool-filter/package-lock.json" | toJson }};
+if (!dependencyManifest || !dependencyLock) {
+  throw new Error("pi-tool-filter dependency manifests are empty");
+}
+
+const extensionDir = join(homedir(), ".pi", "agent", "extensions", "pi-tool-filter");
+const npm = process.platform === "win32" ? "npm.cmd" : "npm";
+const npmArgs = ["ci", "--omit=dev", "--no-audit", "--no-fund"];
+const command = process.platform === "win32" ? process.env.ComSpec ?? "cmd.exe" : npm;
+const commandArgs = process.platform === "win32" ? ["/d", "/s", "/c", npm, ...npmArgs] : npmArgs;
+execFileSync(command, commandArgs, {
+  cwd: extensionDir,
+  stdio: "inherit",
+});

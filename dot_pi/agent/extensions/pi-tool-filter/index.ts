@@ -703,27 +703,13 @@ function powerShellWorkingDirectory(command: PowerShellCommand, cwd: string): st
   return pathValue && isStaticPathValue(pathValue) ? resolveExistingPath(pathValue, cwd) : cwd;
 }
 
-function resolvePermissionPackageJson(): string | undefined {
-  const extensionRequire = createRequire(import.meta.url);
-  const packageJsonPaths: string[] = [];
-  try {
-    const packageEntry = extensionRequire.resolve("@gotgenes/pi-permission-system");
-    packageJsonPaths.push(join(dirname(packageEntry), "package.json"), join(dirname(dirname(packageEntry)), "package.json"));
-  } catch {
-    // Pi の npm 管理領域を下位互換の探索先として試す。
-  }
-  packageJsonPaths.push(join(homedir(), ".pi", "agent", "npm", "node_modules", "@gotgenes", "pi-permission-system", "package.json"));
-  return packageJsonPaths.find((path) => existsSync(path));
-}
 
 async function loadBashParser(): Promise<BashParser | null> {
   try {
-    const packageJson = resolvePermissionPackageJson();
-    if (!packageJson) return null;
-    const packageRequire = createRequire(pathToFileURL(packageJson));
-    const webPath = packageRequire.resolve("web-tree-sitter");
-    const webWasm = packageRequire.resolve("web-tree-sitter/web-tree-sitter.wasm");
-    const bashWasm = packageRequire.resolve("tree-sitter-bash/tree-sitter-bash.wasm");
+    const extensionRequire = createRequire(import.meta.url);
+    const webPath = extensionRequire.resolve("web-tree-sitter");
+    const webWasm = extensionRequire.resolve("web-tree-sitter/web-tree-sitter.wasm");
+    const bashWasm = extensionRequire.resolve("tree-sitter-bash/tree-sitter-bash.wasm");
     const treeSitter = (await import(pathToFileURL(webPath).href)) as unknown as TreeSitterModule;
     await treeSitter.Parser.init({ locateFile: () => webWasm });
     const parser = new treeSitter.Parser();

@@ -1,0 +1,12 @@
+{
+  "name": "pi-tool-filter",
+  "private": true,
+  "type": "module",
+  "dependencies": {
+    "tree-sitter-bash": "0.25.1",
+    "web-tree-sitter": "0.26.12"
+  },
+  "pi": {
+    "extensions": ["./index.ts"]
+  }
+}
