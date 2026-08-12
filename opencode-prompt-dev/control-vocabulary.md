@@ -36,37 +36,24 @@
 
 ### 外部コードと一致する語（英語維持）
 
-- 必要根拠種別: `user_provided` / `repo_derivable` / `public_fact`
 - 検査ID: `RR-CONTRACT-1`（`RR-OBL-<連番>` も同形式で英語維持）
-- 失敗記録スキーマ値: `observed_prompt_context` / `observed_system_sha` / `current_system_sha` / `current_coverage` / `coverage_evidence` / `regression_needed` / `problem_classes` / `P1` / `P2` / `P3` / `P4` / `P5` / `create_historical_note` / `create_incident` / `create_regression_scenario`
-- 状態値と分類値: `unknown` / `confirmed` / `active_gap` / `covered_but_unvalidated` / `likely_addressed` / `obsolete_context` / `covered_unvalidated` / `current_gap` / `historical_candidate` / `triaged` / `corrective_action_defined` / `validation_needed` / `verified_closed` / `partial` / `low` / `medium` / `high` / `critical` / `true` / `false` / `skip` / `needs_manual_review` / `none` / `current` / `legacy` / `captured` / `obsolete` / `strong` / `weak` / `unclear` / `escalate_to_write_ok` / `needs_parent_clarification` / `severity`
-- 介入種別: `prompt_surface_change` / `command_prompt_change` / `skill_change` / `agent_routing_change` / `artifact_schema_change` / `hook_or_plugin_change` / `harness_change` / `regression_validation_only` / `no_change`
-- プロンプト改善アクション値: `add_minimal_new_rule` / `restore_missing_essential` / `reword_existing_rule` / `merge_overlapping_rules` / `split_overloaded_rule` / `move_to_different_layer`
-- 検証と実験: `train` / `validation` / `hold-out`
-- 汎用サブエージェントの返答形式: `result` / `evidence` / `verification_performed` / `risks_or_unknowns` / `next_action`
-- 作業票の追加フィールド: `chosen_skills` / `why_this_choice` / `side_effect_mode` / `execution_route` / `task_kind`
-- 実行経路とフィクスチャ値: `derive` / `survey_only` / `target_selection_status` / `mode_constraint` / `read_only` / `pass` / `fail`
-- パネル運用の固定名: `panel packet` / `evidence file` / `known gaps` / `source_id` / `None` / `user-specified` / `literal-match` / `explicit-reference`
 - ツール名とパラメータ: `glob` / `grep` / `webfetch` / `write` / `read` / `task` / `pattern` / `path`
 - 設定キーとスキーマフィールド: `status` / `name` / `agent`
-- スキル / エージェント / レビュー固定名: `claim-grounding` / `code-review` / `derive-fixture-variants` / `review-response` / `review-orchestration` / `context-clarification` / `empirical-prompt-tuning` / `extract-failure-patterns` / `general-fast` / `general-strong` / `grill-me` / `japanese-doc-review` / `refactoring` / `report-failure` / `requirement-reviewer` / `review-audit` / `technical-writing`
-- 基本: `description` / `ast-grep` / `chezmoi source-path`
+- 基本: `description` / `chezmoi source-path`
 
 ### 日本語の制御語彙
 
 - 手続きの結果: `合格` / `不合格` / `判定不能`
 - 指摘の分類: `採用` / `却下` / `要調査` / `対象外`
 - `準備完了判定`: `判定結果`
-- 作業分類（旧 work_class）: `単発` / `限定` / `広域`
-- 実行モード（旧 mode_constraint）: `読み取り専用` / `書き込み可`
+- 作業分類: `単発` / `限定` / `広域`
+- 実行モード: `読み取り専用` / `書き込み可`
 - 作業票の項目: `作業分類` / `実行モード` / `目的` / `範囲` / `入力` / `読取可能` / `編集可能` / `制約` / `禁止事項` / `必要な根拠` / `出力形式` / `検証のヒント` / `停止条件` / `統合方法`
 - 検査結果の3値: `反例未確認` / `破綻確認` / `破綻`
 - 契約と指摘の項目: `要件契約` / `要件契約候補` / `依頼引用` / `明示要求` / `不変条件` / `受け入れ条件` / `保つ条件` / `侵害する条件` / `該当なし` / `なし`
 - 文脈の用語: `作業段階`
 - レビューの項目: `検査項目`
 - 出力契約のフィールド: `必要な結果` / `対象範囲` / `保つ条件` / `確認方法` / `情報所有先`
-- 意味差分: `削除する意味` / `保持する意味` / `追加する意味`
-- 状態値: `判断保留` / `既存と重複` / `既存追記` / `新規` / `未作成`
 - 根拠接地の判定: `支持` / `反証` / `未決`
 - 根拠接地の記録: `問い` / `質問種別` / `予想所有先` / `接触範囲の宣言` / `既知の根拠` / `情報源` / `所有関係` / `到達手段` / `探索手続き` / `操作` / `操作の逐語` / `宣言範囲` / `到達した停止条件` / `取得状態` / `得た内容` / `接触余剰` / `制限` / `次の行動` / `存在` / `内容` / `状態` / `存在かつ権威あり` / `存在かつ権威なし` / `不在かつ探索完了` / `不在かつ探索未了`
 
