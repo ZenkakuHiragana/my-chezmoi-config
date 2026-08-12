@@ -49,7 +49,7 @@
 - パネル運用の固定名: `panel packet` / `evidence file` / `known gaps` / `source_id` / `None` / `user-specified` / `literal-match` / `explicit-reference`
 - ツール名とパラメータ: `glob` / `grep` / `webfetch` / `write` / `read` / `task` / `pattern` / `path`
 - 設定キーとスキーマフィールド: `status` / `name` / `agent`
-- スキル / エージェント / レビュー固定名: `claim-grounding` / `code-review` / `derive-fixture-variants` / `review-response` / `review-orchestration` / `context-clarification` / `empirical-prompt-tuning` / `extract-failure-patterns` / `general-fast` / `general-strong` / `grill-me` / `japanese-doc-review` / `refactoring` / `report-failure` / `requirement-reviewer` / `review-audit` / `task-planning` / `technical-writing`
+- スキル / エージェント / レビュー固定名: `claim-grounding` / `code-review` / `derive-fixture-variants` / `review-response` / `review-orchestration` / `context-clarification` / `empirical-prompt-tuning` / `extract-failure-patterns` / `general-fast` / `general-strong` / `grill-me` / `japanese-doc-review` / `refactoring` / `report-failure` / `requirement-reviewer` / `review-audit` / `technical-writing`
 - 基本: `description` / `ast-grep` / `chezmoi source-path`
 
 ### 日本語の制御語彙

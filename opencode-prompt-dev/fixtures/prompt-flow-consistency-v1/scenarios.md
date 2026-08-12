@@ -22,7 +22,7 @@
 
 ## F6 派生した作業契約
 
-`context-clarification` が固定した `OBL-1` と `OBL-2` を持つ要件契約がある。`task-planning` が両義務を参照する作業契約を作成し、その作業契約を `requirement-reviewer` で要件レビューする。
+`context-clarification` が固定した `OBL-1` と `OBL-2` を持つ要件契約がある。
 
 ## F7 指摘ゼロ
 

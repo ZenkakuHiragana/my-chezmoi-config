@@ -19,7 +19,7 @@
 
 ## F4
 
-- `implementation` または `task-planning` へ進めない。
+- `implementation` へ進めない。
 - `context-clarification` へ戻し、準備完了記録と要件契約を固定する。
 
 ## F5
