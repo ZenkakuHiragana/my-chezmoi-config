@@ -10,7 +10,8 @@
 // 主に次を確認する。
 // - 管理ソースと展開後`index.ts`、テンプレート出力と実行時`config.jsonc`の一致
 // - `read` / `write`の直接判定、allow優先、外部書き込みの既定拒否、`ask`を返さない二値判定
-// - BashのAST、既知ラッパー、`find -exec` / `-execdir`、`xargs`、shell `-c`の再帰検査
+// - BashのAST、既知ラッパー、`find -exec` / `-execdir`、`find -delete`、`xargs`、shell `-c`の再帰検査
+// - Bashの固定リダイレクトのread / write / read-write分類と、ヒアドキュメント等を対象外にすること
 // - `cd` / `Set-Location`後の相対パス、存在しないパス、Windowsパス、動的置換値の扱い
 // - PowerShellの固定cmdlet集合、前置きオプション付き`-c` / `-Command`、標準AST縮退経路
 // - 判定中に試験対象のファイルやディレクトリを作らないこと、試験用設定を最後に復元すること
@@ -109,7 +110,7 @@ async function handlerFor(config: any): Promise<any> {
 type FilterResult = { block?: boolean; ask?: boolean; reason?: string };
 async function call(handler: any, toolName: string, input: any): Promise<FilterResult | undefined> {
   return handler(
-    { type: "tool_call", toolCallId: `${toolName}-v23`, toolName, input },
+    { type: "tool_call", toolCallId: `${toolName}-v24`, toolName, input },
     { cwd },
   ) as Promise<FilterResult | undefined>;
 }
@@ -124,7 +125,7 @@ function blocked(result: FilterResult | undefined, label: string): void {
   assert.equal(typeof result?.reason, "string", `${label} は拒否理由を返す`);
 }
 
-test("Piフィルター v23 のパス役割と実行前判定", async () => {
+test("Piフィルター v24 のパス役割と実行前判定", async () => {
   assert.ok(existsSync(extensionPath), "展開後 index.ts が存在する");
   assert.ok(existsSync(configPath), "展開後 config.jsonc が存在する");
 
@@ -139,8 +140,8 @@ test("Piフィルター v23 のパス役割と実行前判定", async () => {
   );
   assert.equal(renderedConfig, originalConfig, "展開後config.jsoncがテンプレート出力と一致する");
   const baseConfig = readConfig();
-  const outside = join(homedir(), "pi-tool-filter-v20-never-created.txt");
-  const outsideDirectory = join(homedir(), "pi-tool-filter-v20-directory-never-created");
+  const outside = join(homedir(), "pi-tool-filter-v24-never-created.txt");
+  const outsideDirectory = join(homedir(), "pi-tool-filter-v24-directory-never-created");
   const outsideShell = outside.replaceAll("\\", "/");
   assert.equal(existsSync(outside), false, "試験対象ファイルが事前に存在しない");
   assert.equal(existsSync(outsideDirectory), false, "試験対象ディレクトリが事前に存在しない");
@@ -160,28 +161,43 @@ test("Piフィルター v23 のパス役割と実行前判定", async () => {
     blocked(await call(handler, "bash", { command: "cat ~/.bashrc" }), "bash read path");
     blocked(await call(handler, "bash", { command: 'cat "C:\\Users\\nanashi\\.ssh\\config"' }), "bash Windows read path");
     blocked(await call(handler, "bash", { command: "sudo -u nobody -- cat ~/.bashrc" }), "sudo wrapper read path");
-    blocked(await call(handler, "bash", { command: "env FOO=bar -- touch /tmp/pi-tool-filter-v20-never-created" }), "env wrapper write path");
-    blocked(await call(handler, "bash", { command: "nice -n 5 touch /tmp/pi-tool-filter-v20-never-created" }), "nice wrapper write path");
-    blocked(await call(handler, "bash", { command: "ionice -c 3 touch /tmp/pi-tool-filter-v20-never-created" }), "ionice wrapper write path");
-    blocked(await call(handler, "bash", { command: "exec touch /tmp/pi-tool-filter-v20-never-created" }), "exec wrapper write path");
-    blocked(await call(handler, "bash", { command: "builtin touch /tmp/pi-tool-filter-v20-never-created" }), "builtin wrapper write path");
-    blocked(await call(handler, "bash", { command: "find . -exec touch /tmp/pi-tool-filter-v20-never-created \\;" }), "find exec write path");
-    blocked(await call(handler, "bash", { command: "find . -execdir touch /tmp/pi-tool-filter-v20-never-created \\;" }), "find execdir write path");
-    blocked(await call(handler, "bash", { command: "find . -exec printf safe \\; -exec touch /tmp/pi-tool-filter-v20-never-created \\;" }), "find multiple exec write path");
+    blocked(await call(handler, "bash", { command: "env FOO=bar -- touch /tmp/pi-tool-filter-v24-never-created" }), "env wrapper write path");
+    blocked(await call(handler, "bash", { command: "nice -n 5 touch /tmp/pi-tool-filter-v24-never-created" }), "nice wrapper write path");
+    blocked(await call(handler, "bash", { command: "ionice -c 3 touch /tmp/pi-tool-filter-v24-never-created" }), "ionice wrapper write path");
+    blocked(await call(handler, "bash", { command: "exec touch /tmp/pi-tool-filter-v24-never-created" }), "exec wrapper write path");
+    blocked(await call(handler, "bash", { command: "builtin touch /tmp/pi-tool-filter-v24-never-created" }), "builtin wrapper write path");
+    blocked(await call(handler, "bash", { command: "find . -exec touch /tmp/pi-tool-filter-v24-never-created \\;" }), "find exec write path");
+    blocked(await call(handler, "bash", { command: "find . -execdir touch /tmp/pi-tool-filter-v24-never-created \\;" }), "find execdir write path");
+    blocked(await call(handler, "bash", { command: "find . -exec printf safe \\; -exec touch /tmp/pi-tool-filter-v24-never-created \\;" }), "find multiple exec write path");
     blocked(await call(handler, "bash", { command: "find -L ~/.bashrc" }), "find option read path");
     const pathOnlyConfig = structuredClone(baseConfig);
     pathOnlyConfig.bash.deny = [];
     handler = await handlerFor(pathOnlyConfig);
     blocked(await call(handler, "bash", { command: "find -L ~/.bashrc" }), "find option read path without bash deny");
-    blocked(await call(handler, "bash", { command: "xargs -0 -n 1 -- touch /tmp/pi-tool-filter-v20-never-created" }), "xargs write path");
+    blocked(await call(handler, "bash", { command: `find ${outsideShell} -delete` }), "find delete external write path");
+    allowed(await call(handler, "bash", { command: "find . -delete" }), "find delete worktree path");
+    for (const operator of [">", ">>", "1>", "2>", "&>", "&>>", ">|"]) {
+      blocked(
+        await call(handler, "bash", { command: `printf safe ${operator} ${outsideShell}` }),
+        `redirect ${operator} write path`,
+      );
+    }
+    blocked(await call(handler, "bash", { command: "cat < ~/.bashrc" }), "redirect read path");
+    blocked(await call(handler, "bash", { command: "cat <> ~/.bashrc" }), "redirect read-write credential path");
+    allowed(await call(handler, "bash", { command: "printf safe 2>&1" }), "file descriptor redirect");
+    allowed(await call(handler, "bash", { command: "cat <<EOF\nsafe\nEOF" }), "heredoc redirect");
+    allowed(await call(handler, "bash", { command: "cat <<< safe" }), "herestring redirect");
+    allowed(await call(handler, "bash", { command: "cat <(printf safe)" }), "process substitution");
+    blocked(await call(handler, "bash", { command: "xargs -0 -n 1 -- touch /tmp/pi-tool-filter-v24-never-created" }), "xargs write path");
     blocked(await call(handler, "bash", { command: `cp README.md ${outsideShell}` }), "cp destination write path");
     blocked(await call(handler, "bash", { command: `mv ${outsideShell} README.md` }), "mv source write path");
     blocked(await call(handler, "bash", { command: `cd ${outsideShell} && touch relative-never-created` }), "cd後の相対write");
-    blocked(await call(handler, "bash", { command: `find . -exec sh -c 'touch /tmp/pi-tool-filter-v20-never-created' sh {} \\;` }), "find exec shell body");
+    blocked(await call(handler, "bash", { command: `cd ${outsideShell} && printf safe > relative-never-created` }), "cd後の相対redirect write");
+    blocked(await call(handler, "bash", { command: `find . -exec sh -c 'touch /tmp/pi-tool-filter-v24-never-created' sh {} \\;` }), "find exec shell body");
 
     for (const executable of ["powershell", "powershell.exe", "pwsh", "pwsh.exe"]) {
       for (const option of ["-c", "-Command"]) {
-        const command = `${executable} -NoProfile -NonInteractive ${option} \"New-Item -ItemType Directory -Path /tmp/pi-tool-filter-v20-never-created\"`;
+        const command = `${executable} -NoProfile -NonInteractive ${option} \"New-Item -ItemType Directory -Path /tmp/pi-tool-filter-v24-never-created\"`;
         blocked(await call(handler, "bash", { command }), `${executable} ${option} path`);
       }
     }
@@ -195,15 +211,15 @@ test("Piフィルター v23 のパス役割と実行前判定", async () => {
 
     allowed(await call(handler, "bash", { command: "pwsh -NoProfile -NonInteractive -Command \"Write-Output safe\"" }), "PowerShell安全本文");
     allowed(await call(handler, "bash", { command: "printf safe" }), "bash安全本文");
-    allowed(await call(handler, "bash", { command: "touch ..pi-tool-filter-v23-local-never-created" }), "ドット始まりの作業ディレクトリ内write");
-    allowed(await call(handler, "bash", { command: "find . -exec touch /tmp/pi-tool-filter-v20-never-created/{} \\;" }), "find動的置換値");
+    allowed(await call(handler, "bash", { command: "touch ..pi-tool-filter-v24-local-never-created" }), "ドット始まりの作業ディレクトリ内write");
+    allowed(await call(handler, "bash", { command: "find . -exec touch /tmp/pi-tool-filter-v24-never-created/{} \\;" }), "find動的置換値");
 
     const denyPriorityConfig = structuredClone(baseConfig);
     denyPriorityConfig.write.outsideDefault = "allow";
     denyPriorityConfig.write.deny.push(outside);
     handler = await handlerFor(denyPriorityConfig);
     blocked(await call(handler, "write", { path: outside }), "write deny優先");
-    allowed(await call(handler, "write", { path: join(homedir(), "pi-tool-filter-v23-unmatched-never-created.txt") }), "write未一致allow");
+    allowed(await call(handler, "write", { path: join(homedir(), "pi-tool-filter-v24-unmatched-never-created.txt") }), "write未一致allow");
 
     const allowConfig = structuredClone(baseConfig);
     allowConfig.read.allow.push("~/.bashrc");
@@ -216,6 +232,10 @@ test("Piフィルター v23 のパス役割と実行前判定", async () => {
     allowed(await call(handler, "bash", { command: `exec touch ${outsideShell}` }), "wrapper bash allow");
     allowed(await call(handler, "bash", { command: "pwsh -Command \\\"Get-Content '~/.bashrc'\\\"" }), "PowerShell read allow");
     allowed(await call(handler, "bash", { command: `pwsh -Command \"Set-Content '${outsideShell}' x\"` }), "PowerShell write allow");
+    allowed(await call(handler, "bash", { command: "cat < ~/.bashrc" }), "redirect read allow");
+    allowed(await call(handler, "bash", { command: `cat <> ${outsideShell}` }), "redirect read-write allow");
+    allowed(await call(handler, "bash", { command: `printf safe > ${outsideShell}` }), "redirect write allow");
+    allowed(await call(handler, "bash", { command: `find ${outsideShell} -delete` }), "find delete write allow");
     assert.equal(existsSync(outside), false, "拒否・判定中に外部試験対象を作成しない");
     assert.equal(existsSync(outsideDirectory), false, "拒否・判定中に外部試験対象ディレクトリを作成しない");
 

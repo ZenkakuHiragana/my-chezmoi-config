@@ -23,8 +23,11 @@ type BashNode = {
   readonly type: string;
   readonly text: string;
   readonly childCount: number;
+  readonly startIndex: number;
+  readonly parent?: BashNode | null;
   readonly isMissing?: boolean;
   child(index: number): BashNode | null;
+  childForFieldName?(fieldName: string): BashNode | null;
 };
 type BashTree = { readonly rootNode: BashNode; delete(): void };
 type BashParser = {
@@ -368,6 +371,145 @@ function shellPathArguments(args: readonly string[], commandName: string): strin
   return args.filter((value) => isStaticPathValue(value) && !value.startsWith("-") && (commandName !== "chmod" || !value.startsWith("+")));
 }
 
+type BashRedirect = {
+  readonly paths: Array<readonly [string, PathRole]>;
+  readonly ownerStart?: number;
+};
+
+function redirectOperator(text: string): string | undefined {
+  return text.match(/^\d*(?:<<<|<<|<&|>&|&>>|&>|<>|>>|>\||>|<)/)?.[0]?.replace(/^\d+/, "");
+}
+
+function redirectRoles(operator: string | undefined): PathRole[] {
+  if (operator === "<") return ["read"];
+  if (operator === "<>") return ["read", "write"];
+  if ([">", ">>", ">|", "&>", "&>>"].includes(operator ?? "")) return ["write"];
+  return [];
+}
+
+function redirectWordEnd(value: string, start: number): number {
+  let quote: "'" | '"' | undefined;
+  for (let index = start; index < value.length; index += 1) {
+    const char = value[index];
+    const next = value[index + 1];
+    if (quote === "'") {
+      if (char === "'") quote = undefined;
+      continue;
+    }
+    if (quote === '"') {
+      if (char === '"') quote = undefined;
+      else if (char === "\\" && next) index += 1;
+      continue;
+    }
+    if (char === "'" || char === '"') {
+      quote = char;
+      continue;
+    }
+    if (char === "\\" && next) {
+      index += 1;
+      continue;
+    }
+    if (/\s|[;&|()<>]/.test(char)) return index;
+  }
+  return value.length;
+}
+
+function simpleBashRedirectRoles(command: string): Array<readonly [string, PathRole]> {
+  const paths: Array<readonly [string, PathRole]> = [];
+  let quote: "'" | '"' | undefined;
+  for (let index = 0; index < command.length;) {
+    const char = command[index];
+    const next = command[index + 1];
+    if (quote === "'") {
+      if (char === "'") quote = undefined;
+      index += 1;
+      continue;
+    }
+    if (quote === '"') {
+      if (char === '"') quote = undefined;
+      else if (char === "\\" && next) index += 1;
+      index += 1;
+      continue;
+    }
+    if (char === "'" || char === '"') {
+      quote = char;
+      index += 1;
+      continue;
+    }
+    if (char === "\\" && next) {
+      index += 2;
+      continue;
+    }
+    const operator = ["<<<", "<<", "<&", ">&", "&>>", "&>", "<>", ">>", ">|", ">", "<"]
+      .find((candidate) => command.startsWith(candidate, index));
+    if (!operator) {
+      index += 1;
+      continue;
+    }
+    const roles = redirectRoles(operator);
+    let targetStart = index + operator.length;
+    while (/\s/.test(command[targetStart] ?? "")) targetStart += 1;
+    if (roles.length > 0 && command[targetStart] !== "(") {
+      const targetEnd = redirectWordEnd(command, targetStart);
+      const target = shellTokenText(command.slice(targetStart, targetEnd));
+      if (isStaticPathValue(target)) {
+        for (const role of roles) paths.push([target, role]);
+      }
+      index = targetEnd;
+    } else {
+      index += operator.length;
+    }
+  }
+  return paths;
+}
+
+function redirectDestination(node: BashNode): string | undefined {
+  const destination = node.childForFieldName?.("destination");
+  if (destination) return shellTokenText(destination.text);
+  const operator = redirectOperator(node.text);
+  if (!operator) return undefined;
+  const operatorIndex = node.text.indexOf(operator);
+  return shellTokenText(node.text.slice(operatorIndex + operator.length).trim()) || undefined;
+}
+
+function redirectOwnerStart(node: BashNode): number | undefined {
+  let ancestor = node.parent;
+  while (ancestor) {
+    if (ancestor.type === "command") return ancestor.startIndex;
+    if (ancestor.type === "redirected_statement") {
+      const body = ancestor.childForFieldName?.("body");
+      const commands = body ? findCommandNodes(body).sort((left, right) => right.startIndex - left.startIndex) : [];
+      return commands[0]?.startIndex;
+    }
+    ancestor = ancestor.parent;
+  }
+  return undefined;
+}
+
+function findBashRedirects(root: BashNode): BashRedirect[] {
+  const redirects: BashRedirect[] = [];
+  const stack = [root];
+  while (stack.length > 0) {
+    const node = stack.pop();
+    if (!node) continue;
+    if (node.type === "file_redirect") {
+      const roles = redirectRoles(redirectOperator(node.text));
+      const value = redirectDestination(node);
+      if (value && isStaticPathValue(value) && roles.length > 0) {
+        redirects.push({
+          paths: roles.map((role) => [value, role] as const),
+          ownerStart: redirectOwnerStart(node),
+        });
+      }
+    }
+    for (let index = node.childCount - 1; index >= 0; index -= 1) {
+      const child = node.child(index);
+      if (child) stack.push(child);
+    }
+  }
+  return redirects;
+}
+
 const FIND_GLOBAL_OPTIONS = new Set([
   "-h",
   "-l",
@@ -394,7 +536,14 @@ function findStartPaths(args: readonly string[]): string[] {
 const BASH_PATH_COMMANDS = new Map<string, PathRole>([["cd", "read"], ["cat", "read"], ["rm", "write"], ["mkdir", "write"], ["touch", "write"], ["chmod", "write"], ["chown", "write"]]);
 function bashPathRoles(parts: CommandParts): Array<readonly [string, PathRole]> {
   const name = commandBasename(parts.name);
-  if (name === "find") return findStartPaths(parts.args).map((value) => [value, "read"] as const);
+  if (name === "find") {
+    const starts = findStartPaths(parts.args);
+    const paths: Array<readonly [string, PathRole]> = starts.map((value) => [value, "read"] as const);
+    if (parts.args.some((value) => value.toLowerCase() === "-delete")) {
+      paths.push(...starts.map((value) => [value, "write"] as const));
+    }
+    return paths;
+  }
   const values = shellPathArguments(parts.args, name);
   if (name === "cp") return values.map((value, index) => [value, index === values.length - 1 ? "write" : "read"] as const);
   if (name === "mv") return values.map((value) => [value, "write"] as const);
@@ -686,6 +835,8 @@ async function inspectBashWithoutParser(command: string, config: FilterConfig, c
   for (const candidate of simpleCommandCandidates(command)) {
     const directDecision = checkBashValues(commandValues(candidate), config);
     if (directDecision) return directDecision;
+    const redirectDecision = pathRoleDecisions(simpleBashRedirectRoles(candidate), cwd, config, boundaryCwd);
+    if (redirectDecision) return redirectDecision;
     const body = extractPowerShellBody(candidate);
     if (body) {
       const powerShellDecision = checkPowerShellBody(body, config, cwd, boundaryCwd);
@@ -703,15 +854,29 @@ async function inspectBash(command: string, config: FilterConfig, cwd = process.
     tree = parser.parse(command);
     if (!tree || treeHasSyntaxError(tree.rootNode)) return inspectBashWithoutParser(command, config, cwd, boundaryCwd);
     let currentCwd = cwd;
-    for (const node of findCommandNodes(tree.rootNode)) {
+    const commandNodes = findCommandNodes(tree.rootNode).sort((left, right) => left.startIndex - right.startIndex);
+    const redirects = findBashRedirects(tree.rootNode);
+    const handledRedirects = new Set<BashRedirect>();
+    for (const node of commandNodes) {
       const directDecision = checkBashValues(commandValues(node.text), config);
       if (directDecision) return directDecision;
+      for (const redirect of redirects) {
+        if (redirect.ownerStart !== node.startIndex) continue;
+        const redirectDecision = pathRoleDecisions(redirect.paths, currentCwd, config, boundaryCwd);
+        if (redirectDecision) return redirectDecision;
+        handledRedirects.add(redirect);
+      }
       const parts = commandParts(node);
       if (parts) {
         const nestedDecision = await inspectCommandParts(parts, config, currentCwd, depth, boundaryCwd);
         if (nestedDecision) return nestedDecision;
         currentCwd = bashWorkingDirectory(parts, currentCwd);
       }
+    }
+    for (const redirect of redirects) {
+      if (handledRedirects.has(redirect)) continue;
+      const redirectDecision = pathRoleDecisions(redirect.paths, currentCwd, config, boundaryCwd);
+      if (redirectDecision) return redirectDecision;
     }
     return undefined;
   } catch {
