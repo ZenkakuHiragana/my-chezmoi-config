@@ -23,5 +23,37 @@
         "url": "https://mcp.exa.ai/mcp",
       },
     },
+    "tool_filter": {
+      "read": {
+        "allow": [
+          "~/.local/share/chezmoi/.opencode/local-failure-logs/**"
+        ],
+        "deny": [
+          "~/.ssh",
+          "~/.ssh/**",
+          "~/.bashrc",
+          "~/.bash_profile",
+          "~/.profile",
+          "~/.zshrc",
+          "~/.zprofile",
+          "~/.aws",
+          "~/.aws/**",
+          "~/.config/gcloud",
+          "~/.config/gcloud/**",
+          "~/.kube/config",
+          "~/.npmrc",
+          "~/.pypirc",
+          "~/.git-credentials",
+          "~/.netrc"
+        ],
+      },
+      "write": {
+        "allow": [
+          "~/.local/share/chezmoi/.opencode/local-failure-logs/**"
+        ],
+        "deny": [],
+        "outsideDefault": "deny",
+      },
+    },
   },
 }

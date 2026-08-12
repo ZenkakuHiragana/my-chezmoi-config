@@ -1,4 +1,3 @@
-{{- $readDeny := list "~/.ssh" "~/.ssh/**" "~/.bashrc" "~/.bash_profile" "~/.profile" "~/.zshrc" "~/.zprofile" "~/.aws" "~/.aws/**" "~/.config/gcloud" "~/.config/gcloud/**" "~/.kube/config" "~/.npmrc" "~/.pypirc" "~/.git-credentials" "~/.netrc" -}}
 {{- $bashDeny := list -}}
 {{- range $pattern, $action := .opencode.permission.bash -}}
   {{- if eq $action "deny" -}}
@@ -6,19 +5,18 @@
   {{- end -}}
 {{- end -}}
 {
-  // 読み取りは通常許可する。資格情報に関わる共通拒否だけをここへ生成する。
-  // allow はこの設定ファイルで管理し、deny より優先する。
+  // 共有設定とマシン固有設定を統合した read 規則。
   "read": {
-    "allow": [],
-    "deny": {{ $readDeny | toPrettyJson }}
+    "allow": {{ .pi.tool_filter.read.allow | toPrettyJson }},
+    "deny": {{ .pi.tool_filter.read.deny | toPrettyJson }}
   },
-  // 作業ディレクトリ内は許可し、外側だけをこの規則と未一致時既定値で判定する。
+  // 共有設定とマシン固有設定を統合した write 規則。
   "write": {
-    "allow": [],
-    "deny": [],
-    "outsideDefault": "deny"
+    "allow": {{ .pi.tool_filter.write.allow | toPrettyJson }},
+    "deny": {{ .pi.tool_filter.write.deny | toPrettyJson }},
+    "outsideDefault": "{{ .pi.tool_filter.write.outsideDefault }}"
   },
-  // allow は個人設定。deny は共通の bash 拒否設定から生成し、PowerShellにも適用する。
+  // bash の拒否規則は既存の OpenCode 共通設定から生成する。
   "bash": {
     "allow": [],
     "deny": {{ $bashDeny | toPrettyJson }}
