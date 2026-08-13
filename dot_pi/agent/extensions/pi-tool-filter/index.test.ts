@@ -27,6 +27,13 @@ import { pathToFileURL } from "node:url";
 import test from "node:test";
 
 const cwd = resolve(process.cwd());
+
+function gitBashPath(value: string): string {
+  const normalized = value.replaceAll("\\", "/");
+  const match = normalized.match(/^([A-Za-z]):(\/.*)?$/);
+  assert.ok(match, `Windows絶対パスが必要: ${value}`);
+  return `/${match[1].toLowerCase()}${match[2] ?? "/"}`;
+}
 const extensionDir = join(homedir(), ".pi", "agent", "extensions", "pi-tool-filter");
 const extensionPath = join(extensionDir, "index.ts");
 const configPath = join(extensionDir, "config.jsonc");
@@ -193,6 +200,8 @@ test("Piフィルター v24 のパス役割と実行前判定", async () => {
   const outside = join(homedir(), "pi-tool-filter-v24-never-created.txt");
   const outsideDirectory = join(homedir(), "pi-tool-filter-v24-directory-never-created");
   const outsideShell = outside.replaceAll("\\", "/");
+  const gitBashInside = gitBashPath(join(cwd, "README.md"));
+  const gitBashOutside = gitBashPath(outside);
   assert.equal(existsSync(outside), false, "試験対象ファイルが事前に存在しない");
   assert.equal(existsSync(outsideDirectory), false, "試験対象ディレクトリが事前に存在しない");
 
@@ -207,6 +216,17 @@ test("Piフィルター v24 のパス役割と実行前判定", async () => {
     }
     blocked(await call(handler, "edit", { path: outside }), "外部edit");
     blocked(await call(handler, "write", { path: outside }), "外部write");
+    allowed(await call(handler, "read", { path: gitBashInside }), "Git Bash形式の作業ディレクトリ内read");
+    allowed(await call(handler, "write", { path: gitBashInside }), "Git Bash形式の作業ディレクトリ内write");
+    blocked(await call(handler, "write", { path: gitBashOutside }), "Git Bash形式の外部write");
+    allowed(
+      await call(handler, "bash", { command: `touch ${gitBashInside}` }),
+      "Git Bash形式のBash作業ディレクトリ内write",
+    );
+    blocked(
+      await call(handler, "bash", { command: `touch ${gitBashOutside}` }),
+      "Git Bash形式のBash外部write",
+    );
 
     blocked(await call(handler, "bash", { command: "cat ~/.bashrc" }), "bash read path");
     blocked(await call(handler, "bash", { command: 'cat "C:\\Users\\nanashi\\.ssh\\config"' }), "bash Windows read path");

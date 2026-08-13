@@ -156,8 +156,15 @@ function expandInputHome(value: string): string {
   return value;
 }
 
+function normalizeInputPath(value: string): string {
+  const expanded = expandInputHome(value);
+  if (process.platform !== "win32") return expanded;
+  const match = expanded.match(/^\/([A-Za-z])(?=\/|$)/);
+  return match ? `${match[1].toUpperCase()}:${expanded.slice(2) || "/"}` : expanded;
+}
+
 function resolveExistingPath(pathValue: string, cwd: string): string {
-  const lexicalAbsolute = resolve(cwd, expandInputHome(pathValue));
+  const lexicalAbsolute = resolve(cwd, normalizeInputPath(pathValue));
   let existing = lexicalAbsolute;
   while (!existsSync(existing)) {
     const parent = dirname(existing);
@@ -174,7 +181,7 @@ function resolveExistingPath(pathValue: string, cwd: string): string {
 }
 
 function pathCandidates(pathValue: string, cwd: string): string[] {
-  const lexicalAbsolute = resolve(cwd, expandInputHome(pathValue));
+  const lexicalAbsolute = resolve(cwd, normalizeInputPath(pathValue));
   const absolute = resolveExistingPath(pathValue, cwd);
   const normalizedAbsolute = normalizePath(absolute);
   const candidates = new Set([
