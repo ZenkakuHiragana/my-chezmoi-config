@@ -14,22 +14,6 @@
   "fullscreenScrollbar": "auto",
   "defaultThinkingLevel": "max",
   "hideThinkingBlock": true,
-  "enabledModels": [
-    "anthropic/claude-opus-5",
-    "anthropic/claude-fable-5",
-    "anthropic/claude-haiku-4-5",
-    "anthropic/claude-sonnet-5",
-    "openai-codex/gpt-5.3-codex-spark",
-    "openai-codex/gpt-5.6-luna",
-    "openai-codex/gpt-5.6-sol",
-    "opencode-go/qwen3.8-max",
-    "opencode-go/deepseek-v4-flash",
-    "opencode-go/glm-5.2",
-    "opencode-go/kimi-k3",
-    "qwen-token-plan-individual/deepseek-v4-flash-0731",
-    "qwen-token-plan-individual/qwen3.8-max",
-    "zai/glm-5.2"
-  ],
   "packages": [
     "npm:pi-subagents-lite",
     "npm:pi-hashline-edit",
