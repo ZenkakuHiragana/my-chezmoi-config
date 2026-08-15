@@ -142,6 +142,10 @@ export function createServer(
     );
   }
 
+  const hasQuerySources = [...catalog.sources.values()].some(
+    (source) => source.queryModule !== undefined,
+  );
+
   const tools = [
     server.registerTool(
       "get_source",
@@ -181,47 +185,53 @@ export function createServer(
         }
       },
     ),
-    server.registerTool(
-      "query_source",
-      {
-        title: "情報源の候補検索",
-        description: buildQueryToolDescription(catalog),
-        inputSchema: {
-          name: z
-            .string()
-            .min(1)
-            .describe("query_module が設定された情報源の名前"),
-          query: z
-            .string()
-            .min(1)
-            .describe("候補検索へ渡す自然文の問い"),
-        },
-      },
-      async ({ name, query }) => {
-        const source = catalog.sources.get(name);
-        if (!source) {
-          return errorResult(new Error(`Unknown knowledge source: ${name}`));
-        }
-        if (source.queryModule === undefined) {
-          return errorResult(
-            new Error(`Knowledge source has no query_module: ${name}`),
-          );
-        }
+    ...(hasQuerySources
+      ? [
+          server.registerTool(
+            "query_source",
+            {
+              title: "情報源の候補検索",
+              description: buildQueryToolDescription(catalog),
+              inputSchema: {
+                name: z
+                  .string()
+                  .min(1)
+                  .describe("query_module が設定された情報源の名前"),
+                query: z
+                  .string()
+                  .min(1)
+                  .describe("候補検索へ渡す自然文の問い"),
+              },
+            },
+            async ({ name, query }) => {
+              const source = catalog.sources.get(name);
+              if (!source) {
+                return errorResult(new Error(`Unknown knowledge source: ${name}`));
+              }
+              if (source.queryModule === undefined) {
+                return errorResult(
+                  new Error(`Knowledge source has no query_module: ${name}`),
+                );
+              }
 
-        try {
-          const result = await source.queryModule.query(
-            query,
-            source.queryModule.options,
-          );
-          if (typeof result !== "string") {
-            throw new Error(`query_module returned a non-string result: ${name}`);
-          }
-          return textResult({ result });
-        } catch (error) {
-          return errorResult(error);
-        }
-      },
-    ),
+              try {
+                const result = await source.queryModule.query(
+                  query,
+                  source.queryModule.options,
+                );
+                if (typeof result !== "string") {
+                  throw new Error(
+                    `query_module returned a non-string result: ${name}`,
+                  );
+                }
+                return textResult({ result });
+              } catch (error) {
+                return errorResult(error);
+              }
+            },
+          ),
+        ]
+      : []),
     server.registerTool(
       "create_work_note",
       {

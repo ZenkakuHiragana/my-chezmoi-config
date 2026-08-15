@@ -21,7 +21,7 @@
 
 ## スキーマ
 
-各設定ファイルの source entry は `name` と、任意の `description`、`instructions`、`query_module`、`query_options` を持つ。未知のキーは、その source entry を不成立にする。
+各設定ファイルの source entry は `name` と、任意の `description`、`instructions`、`query_module`、`query_options` を持つ。未知のキーは、その source entry を不成立にする。`query_options` は `query_module` と共に指定し、単独では指定しない。
 
 `description` と `instructions` は上書き後に必須である。local 設定で一方だけを変更するときは、`name` と変更するフィールドだけを書けばよい。
 
@@ -130,7 +130,7 @@ export async function query(
 }
 ```
 
-`query_source` の結果は正本の引用ではない。必要な情報源を指定して `get_source` を呼び、`instructions` に従って正本を確認する。
+`query_source` の結果は正本の引用ではない。必要な情報源を指定して `get_source` を呼び、`instructions` に従って正本を確認する。`query_module` を持つ情報源が一つもない場合、`query_source` は公開しない。
 
 ### `get_source`
 
@@ -153,8 +153,8 @@ export async function query(
 ## 誤りの扱い
 
 - 設定ファイルを読めない場合、または YAML の構文が壊れている場合、サーバーは起動に失敗する。
-- YAML として読めるが設定ファイル全体の形式が不正な場合、そのファイルの情報源は読み込まず、診断をユーザー向けの経路へ出す。
-- 個別の source entry、上書き後の情報源、`instructions.file`、`query_module` が不正な場合、その情報源だけをカタログへ登録しない。下位設定の値へ黙って戻さない。
+- YAML として読めるが設定ファイル全体の形式が不正な場合、MCP 接続を維持したままカタログの情報源を全て公開せず、診断をユーザー向けの経路へ出す。
+- 個別の source entry、上書き後の情報源、`instructions.file`、`query_module`、`query_options` の組み合わせが不正な場合、その情報源だけをカタログへ登録しない。下位設定の値へ黙って戻さない。
 - 設定の不成立を理由に、MCP サーバー全体を停止させない。
 - 情報源が0件の場合、サーバーは接続を保ったままツールを公開しない。これは正常な状態である。
 

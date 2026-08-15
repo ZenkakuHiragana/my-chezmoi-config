@@ -85,6 +85,79 @@ test("connects and publishes no tool when the source list is empty", async () =>
   }
 });
 
+test("publishes no query tool when no source has a query module", async () => {
+  const root = await mkdtemp(path.join(tmpdir(), "skill-kb-no-query-"));
+  const workspace = path.join(root, "workspace");
+  const projectDirectory = path.join(workspace, ".opencode");
+  await mkdir(projectDirectory, { recursive: true });
+  await writeFile(
+    path.join(projectDirectory, "KNOWLEDGE.yml"),
+    [
+      "sources:",
+      "  - name: instructions-only",
+      "    description: Instructions-only source.",
+      "    instructions: Read the source.",
+    ].join("\n"),
+  );
+  const serverPath = path.resolve("dist", "src", "index.js");
+  const client = new Client({ name: "skill-kb-test", version: "1.0.0" });
+  const transport = new StdioClientTransport({
+    command: process.execPath,
+    args: [serverPath],
+    cwd: workspace,
+    env: childEnvironment({ SKILL_KB_CONFIG: path.join(root, "missing.yml") }),
+    stderr: "pipe",
+  });
+  try {
+    await client.connect(transport);
+    const listed = await client.listTools();
+    assert.equal(
+      listed.tools.some((tool) => tool.name === "query_source"),
+      false,
+    );
+    assert.equal(
+      listed.tools.some((tool) => tool.name === "get_source"),
+      true,
+    );
+  } finally {
+    await client.close();
+    await rm(root, { recursive: true, force: true });
+  }
+});
+
+test("keeps the MCP connection and publishes no tool for an invalid document", async () => {
+  const root = await mkdtemp(path.join(tmpdir(), "skill-kb-invalid-document-"));
+  const workspace = path.join(root, "workspace");
+  const projectDirectory = path.join(workspace, ".opencode");
+  await mkdir(projectDirectory, { recursive: true });
+  await writeFile(
+    path.join(projectDirectory, "KNOWLEDGE.yml"),
+    [
+      "source:",
+      "  - name: invalid-document",
+      "    description: Invalid document.",
+      "    instructions: Read the source.",
+    ].join("\n"),
+  );
+  const serverPath = path.resolve("dist", "src", "index.js");
+  const client = new Client({ name: "skill-kb-test", version: "1.0.0" });
+  const transport = new StdioClientTransport({
+    command: process.execPath,
+    args: [serverPath],
+    cwd: workspace,
+    env: childEnvironment({ SKILL_KB_CONFIG: path.join(root, "missing.yml") }),
+    stderr: "pipe",
+  });
+  try {
+    await client.connect(transport);
+    const listed = await client.listTools();
+    assert.deepEqual(listed.tools, []);
+  } finally {
+    await client.close();
+    await rm(root, { recursive: true, force: true });
+  }
+});
+
 test("publishes source registration instructions and guide when no source is configured", async () => {
   const root = await mkdtemp(path.join(tmpdir(), "skill-kb-guides-"));
   const workspace = path.join(root, "workspace");

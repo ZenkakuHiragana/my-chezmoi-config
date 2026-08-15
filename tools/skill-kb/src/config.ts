@@ -110,6 +110,7 @@ type MergedSource = {
 type LoadedLayer = {
   entries: RawSource[];
   invalidNames: ReadonlySet<string>;
+  documentInvalid: boolean;
   diagnostics: string[];
 };
 
@@ -227,6 +228,7 @@ async function loadLayer(layer: SourceOrigin): Promise<LoadedLayer> {
     return {
       entries: [],
       invalidNames: new Set(),
+      documentInvalid: true,
       diagnostics: [
         formatDocumentDiagnostic(
           layer.configPath,
@@ -297,7 +299,7 @@ async function loadLayer(layer: SourceOrigin): Promise<LoadedLayer> {
     }
   }
 
-  return { entries, invalidNames, diagnostics };
+  return { entries, invalidNames, documentInvalid: false, diagnostics };
 }
 
 function mergeEntry(
@@ -369,6 +371,15 @@ async function resolveEffectiveSource(
       declaredPath: rawInstructions.file,
       scopeRoot: instructionsOrigin.scopeRoot,
     };
+  }
+
+  if (
+    merged.query_options !== undefined &&
+    merged.query_module === undefined
+  ) {
+    throw new ConfigurationError(
+      "query_options requires query_module",
+    );
   }
 
   let queryModule: QueryModule | undefined;
@@ -465,10 +476,18 @@ export async function loadCatalog(
   const diagnostics: string[] = [];
   const mergedSources = new Map<string, MergedSource>();
   const invalidNames = new Set<string>();
+  let hasDocumentInvalid = false;
 
   for (const layer of existingLayers) {
     const loaded = await loadLayer(layer);
     diagnostics.push(...loaded.diagnostics);
+    if (loaded.documentInvalid) {
+      hasDocumentInvalid = true;
+      continue;
+    }
+    if (hasDocumentInvalid) {
+      continue;
+    }
     for (const name of loaded.invalidNames) {
       invalidNames.add(name);
     }
@@ -480,15 +499,17 @@ export async function loadCatalog(
   }
 
   const sources = new Map<string, KnowledgeSource>();
-  for (const [name, merged] of mergedSources) {
-    if (invalidNames.has(name)) {
-      continue;
-    }
-    try {
-      sources.set(name, await resolveEffectiveSource(merged));
-    } catch (error) {
-      const message = error instanceof Error ? error.message : String(error);
-      diagnostics.push(`Invalid source ${name}: ${message}`);
+  if (!hasDocumentInvalid) {
+    for (const [name, merged] of mergedSources) {
+      if (invalidNames.has(name)) {
+        continue;
+      }
+      try {
+        sources.set(name, await resolveEffectiveSource(merged));
+      } catch (error) {
+        const message = error instanceof Error ? error.message : String(error);
+        diagnostics.push(`Invalid source ${name}: ${message}`);
+      }
     }
   }
 

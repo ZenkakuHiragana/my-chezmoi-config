@@ -298,6 +298,35 @@ test("excludes an invalid query module without stopping catalog loading", async 
   });
 });
 
+test("excludes query_options without a query module", async () => {
+  await withFixture(async ({ workspace, projectConfig }) => {
+    await writeFile(
+      projectConfig,
+      [
+        "sources:",
+        "  - name: options-only",
+        "    description: Options-only source.",
+        "    instructions: Read the source.",
+        "    query_options:",
+        "      endpoint: https://example.invalid",
+        "  - name: valid",
+        "    description: Valid source.",
+        "    instructions: Read the valid source.",
+      ].join("\n"),
+    );
+    const catalog = await loadCatalog({
+      cwd: workspace,
+      globalConfigPath: path.join(workspace, "missing.yml"),
+    });
+    assert.equal(catalog.sources.has("options-only"), false);
+    assert.equal(catalog.sources.has("valid"), true);
+    assert.match(
+      catalog.diagnostics.join("\n"),
+      /options-only.*query_options requires query_module/s,
+    );
+  });
+});
+
 test("does not fall back when a later source entry is invalid", async () => {
   await withFixture(async ({ home, workspace, globalConfig, projectLocalConfig }) => {
     await writeFile(
@@ -324,6 +353,39 @@ test("does not fall back when a later source entry is invalid", async () => {
     assert.equal(catalog.sources.has("overridden"), false);
     assert.match(catalog.diagnostics.join("\n"), /overridden/);
   });
+});
+
+test("hides all sources when a configuration document is invalid", async () => {
+  await withFixture(
+    async ({ home, workspace, globalConfig, projectLocalConfig }) => {
+      await writeFile(
+        globalConfig,
+        [
+          "sources:",
+          "  - name: retained",
+          "    description: Global source.",
+          "    instructions: Global instructions.",
+        ].join("\n"),
+      );
+      await writeFile(
+        projectLocalConfig,
+        [
+          "source:",
+          "  - name: retained",
+          "    instructions: Local instructions.",
+        ].join("\n"),
+      );
+      const catalog = await loadCatalog({
+        cwd: workspace,
+        homeDirectory: home,
+      });
+      assert.equal(catalog.sources.size, 0);
+      assert.match(
+        catalog.diagnostics.join("\n"),
+        /Invalid knowledge configuration/,
+      );
+    },
+  );
 });
 
 test("reads an external instruction file on every call", async () => {
