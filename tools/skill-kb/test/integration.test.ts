@@ -70,13 +70,13 @@ test("connects and publishes no tool when no configuration file exists", async (
   }
 });
 
-test("connects and publishes no tool when the source list is empty", async () => {
+test("connects and publishes no tool when the source map is empty", async () => {
   const root = await mkdtemp(path.join(tmpdir(), "skill-kb-empty-"));
   const projectDirectory = path.join(root, "workspace", ".opencode");
   await mkdir(projectDirectory, { recursive: true });
   await writeFile(
     path.join(projectDirectory, "KNOWLEDGE.yml"),
-    "sources: []\n",
+    "sources: {}\n",
   );
   try {
     await assertNoPublishedTool(root);
@@ -94,7 +94,7 @@ test("publishes no query tool when no source has a query module", async () => {
     path.join(projectDirectory, "KNOWLEDGE.yml"),
     [
       "sources:",
-      "  - name: instructions-only",
+      "  instructions-only:",
       "    description: Instructions-only source.",
       "    instructions: Read the source.",
     ].join("\n"),
@@ -134,7 +134,7 @@ test("keeps the MCP connection and publishes no tool for an invalid document", a
     path.join(projectDirectory, "KNOWLEDGE.yml"),
     [
       "source:",
-      "  - name: invalid-document",
+      "  invalid-document:",
       "    description: Invalid document.",
       "    instructions: Read the source.",
     ].join("\n"),
@@ -152,6 +152,40 @@ test("keeps the MCP connection and publishes no tool for an invalid document", a
     await client.connect(transport);
     const listed = await client.listTools();
     assert.deepEqual(listed.tools, []);
+  } finally {
+    await client.close();
+    await rm(root, { recursive: true, force: true });
+  }
+});
+
+test("keeps the MCP connection and publishes the guide for a YAML parse error", async () => {
+  const root = await mkdtemp(path.join(tmpdir(), "skill-kb-parse-error-"));
+  const workspace = path.join(root, "workspace");
+  const projectDirectory = path.join(workspace, ".opencode");
+  await mkdir(projectDirectory, { recursive: true });
+  await writeFile(path.join(projectDirectory, "KNOWLEDGE.yml"), "sources: [");
+  const serverPath = path.resolve("dist", "src", "index.js");
+  const client = new Client({ name: "skill-kb-test", version: "1.0.0" });
+  const transport = new StdioClientTransport({
+    command: process.execPath,
+    args: [serverPath],
+    cwd: workspace,
+    env: childEnvironment({ SKILL_KB_CONFIG: path.join(root, "missing.yml") }),
+    stderr: "pipe",
+  });
+  try {
+    await client.connect(transport);
+    const listedTools = await client.listTools();
+    assert.deepEqual(listedTools.tools, []);
+    const listedResources = await client.listResources();
+    assert.deepEqual(
+      listedResources.resources.map((resource) => resource.uri),
+      ["skill-kb://guide/source-registration"],
+    );
+    const guide = await client.readResource({
+      uri: "skill-kb://guide/source-registration",
+    });
+    assert.match(resourceText(guide), /## 誤りの扱い/);
   } finally {
     await client.close();
     await rm(root, { recursive: true, force: true });
@@ -217,13 +251,13 @@ test("publishes all tools and supports work-note operations over stdio", async (
     globalConfig,
     [
       "sources:",
-      "  - name: official-api",
+      "  official-api:",
       "    description: Use for the official API.",
       "    instructions: Fetch the official API page.",
       "    query_module: ./official-api.mts",
       "    query_options:",
       "      corpus: test",
-      "  - name: shared",
+      "  shared:",
       "    description: Global shared source.",
       "    instructions: Global shared instructions.",
     ].join("\n"),
@@ -242,7 +276,7 @@ test("publishes all tools and supports work-note operations over stdio", async (
     projectConfig,
     [
       "sources:",
-      "  - name: shared",
+      "  shared:",
       "    description: Project shared source.",
       "    instructions:",
       "      file: project-search.md",

@@ -64,7 +64,7 @@ test("loads the default global configuration", async () => {
       globalConfig,
       [
         "sources:",
-        "  - name: official-api",
+        "  official-api:",
         "    description: Public API reference.",
         "    instructions: Fetch the official JSON article.",
       ].join("\n"),
@@ -88,7 +88,7 @@ test("loads a project configuration when the global configuration is absent", as
       projectConfig,
       [
         "sources:",
-        "  - name: project-design",
+        "  project-design:",
         "    description: Project design decisions.",
         "    instructions: Search the local design documents.",
       ].join("\n"),
@@ -103,17 +103,17 @@ test("loads a project configuration when the global configuration is absent", as
   });
 });
 
-test("merges both scopes and lets the project source override the global source", async () => {
+test("merges precedence layers and lets the project source override the global source", async () => {
   await withFixture(
     async ({ home, workspace, globalConfig, projectConfig }) => {
       await writeFile(
         globalConfig,
         [
           "sources:",
-          "  - name: shared",
+          "  shared:",
           "    description: Global description.",
           "    instructions: Global instructions.",
-          "  - name: global-only",
+          "  global-only:",
           "    description: Global-only source.",
           "    instructions: Global-only instructions.",
         ].join("\n"),
@@ -122,10 +122,10 @@ test("merges both scopes and lets the project source override the global source"
         projectConfig,
         [
           "sources:",
-          "  - name: shared",
+          "  shared:",
           "    description: Project description.",
           "    instructions: Project instructions.",
-          "  - name: project-only",
+          "  project-only:",
           "    description: Project-only source.",
           "    instructions: Project-only instructions.",
         ].join("\n"),
@@ -163,7 +163,7 @@ test("applies local overlays in field order and preserves omitted fields", async
         globalConfig,
         [
           "sources:",
-          "  - name: layered",
+          "  layered:",
           "    description: Global description.",
           "    instructions: Global instructions.",
         ].join("\n"),
@@ -172,7 +172,7 @@ test("applies local overlays in field order and preserves omitted fields", async
         globalLocalConfig,
         [
           "sources:",
-          "  - name: layered",
+          "  layered:",
           "    description: Global local description.",
         ].join("\n"),
       );
@@ -180,7 +180,7 @@ test("applies local overlays in field order and preserves omitted fields", async
         projectConfig,
         [
           "sources:",
-          "  - name: layered",
+          "  layered:",
           "    instructions: Project instructions.",
         ].join("\n"),
       );
@@ -188,7 +188,7 @@ test("applies local overlays in field order and preserves omitted fields", async
         projectLocalConfig,
         [
           "sources:",
-          "  - name: layered",
+          "  layered:",
           "    description: Project local description.",
         ].join("\n"),
       );
@@ -210,10 +210,10 @@ test("builds the tool descriptions from effective sources", async () => {
       projectConfig,
       [
         "sources:",
-        "  - name: first",
+        "  first:",
         "    description: First description.",
         "    instructions: First instructions.",
-        "  - name: second",
+        "  second:",
         "    description: Second description.",
         "    instructions: Second instructions.",
       ].join("\n"),
@@ -244,7 +244,7 @@ test("loads a named query module and passes query_options unchanged", async () =
       projectConfig,
       [
         "sources:",
-        "  - name: searchable",
+        "  searchable:",
         "    description: Searchable source.",
         "    instructions: Read the source.",
         "    query_module: ../query.mts",
@@ -278,11 +278,11 @@ test("excludes an invalid query module without stopping catalog loading", async 
       projectConfig,
       [
         "sources:",
-        "  - name: invalid-query",
+        "  invalid-query:",
         "    description: Invalid query module.",
         "    instructions: Read the source.",
         "    query_module: ../invalid.mts",
-        "  - name: valid",
+        "  valid:",
         "    description: Valid source.",
         "    instructions: Read the valid source.",
       ].join("\n"),
@@ -304,12 +304,12 @@ test("excludes query_options without a query module", async () => {
       projectConfig,
       [
         "sources:",
-        "  - name: options-only",
+        "  options-only:",
         "    description: Options-only source.",
         "    instructions: Read the source.",
         "    query_options:",
         "      endpoint: https://example.invalid",
-        "  - name: valid",
+        "  valid:",
         "    description: Valid source.",
         "    instructions: Read the valid source.",
       ].join("\n"),
@@ -327,13 +327,13 @@ test("excludes query_options without a query module", async () => {
   });
 });
 
-test("does not fall back when a later source entry is invalid", async () => {
+test("invalidates a lower-precedence source when a later entry is invalid", async () => {
   await withFixture(async ({ home, workspace, globalConfig, projectLocalConfig }) => {
     await writeFile(
       globalConfig,
       [
         "sources:",
-        "  - name: overridden",
+        "  overridden:",
         "    description: Global source.",
         "    instructions: Global instructions.",
       ].join("\n"),
@@ -342,7 +342,7 @@ test("does not fall back when a later source entry is invalid", async () => {
       projectLocalConfig,
       [
         "sources:",
-        "  - name: overridden",
+        "  overridden:",
         "    description: Broken override.",
         "    instructions: Local instructions.",
         "    unexpected: true",
@@ -355,35 +355,197 @@ test("does not fall back when a later source entry is invalid", async () => {
   });
 });
 
-test("hides all sources when a configuration document is invalid", async () => {
+test("ignores an invalid configuration file and preserves valid layers", async () => {
   await withFixture(
-    async ({ home, workspace, globalConfig, projectLocalConfig }) => {
+    async ({ home, workspace, globalConfig, projectConfig, projectLocalConfig }) => {
       await writeFile(
         globalConfig,
         [
           "sources:",
-          "  - name: retained",
+          "  retained:",
           "    description: Global source.",
           "    instructions: Global instructions.",
+        ].join("\n"),
+      );
+      await writeFile(
+        projectConfig,
+        [
+          "sources:",
+          "  project-base:",
+          "    description: Project source.",
+          "    instructions: Project instructions.",
         ].join("\n"),
       );
       await writeFile(
         projectLocalConfig,
         [
           "source:",
-          "  - name: retained",
+          "  project-base:",
           "    instructions: Local instructions.",
         ].join("\n"),
       );
+
       const catalog = await loadCatalog({
         cwd: workspace,
         homeDirectory: home,
       });
-      assert.equal(catalog.sources.size, 0);
+      assert.equal(catalog.sources.has("retained"), true);
+      assert.equal(catalog.sources.has("project-base"), true);
+      assert.equal(
+        await readInstructions(catalog.sources.get("project-base")!),
+        "Project instructions.",
+      );
       assert.match(
         catalog.diagnostics.join("\n"),
         /Invalid knowledge configuration/,
       );
+    },
+  );
+});
+
+test("ignores a YAML parse error in one file and preserves valid layers", async () => {
+  await withFixture(
+    async ({ home, workspace, globalConfig, projectConfig, projectLocalConfig }) => {
+      await writeFile(
+        globalConfig,
+        [
+          "sources:",
+          "  retained:",
+          "    description: Global source.",
+          "    instructions: Global instructions.",
+        ].join("\n"),
+      );
+      await writeFile(
+        projectConfig,
+        [
+          "sources:",
+          "  project-base:",
+          "    description: Project source.",
+          "    instructions: Project instructions.",
+        ].join("\n"),
+      );
+      await writeFile(projectLocalConfig, "sources: [");
+
+      const catalog = await loadCatalog({
+        cwd: workspace,
+        homeDirectory: home,
+      });
+      assert.equal(catalog.sources.has("retained"), true);
+      assert.equal(catalog.sources.has("project-base"), true);
+      assert.match(
+        catalog.diagnostics.join("\n"),
+        /YAML parse error/,
+      );
+    },
+  );
+});
+
+test("applies a valid global local file when the global base file is invalid", async () => {
+  await withFixture(async ({ home, workspace, globalConfig, globalLocalConfig }) => {
+    await writeFile(globalConfig, "source:\n  global-only:\n");
+    await writeFile(
+      globalLocalConfig,
+      [
+        "sources:",
+        "  global-only:",
+        "    description: Global local source.",
+        "    instructions: Global local instructions.",
+      ].join("\n"),
+    );
+
+    const catalog = await loadCatalog({ cwd: workspace, homeDirectory: home });
+    const source = catalog.sources.get("global-only");
+    assert.ok(source);
+    assert.equal(source.scope, "global");
+    assert.equal(source.configPath, globalLocalConfig);
+    assert.equal(await readInstructions(source), "Global local instructions.");
+    assert.match(
+      catalog.diagnostics.join("\n"),
+      /Invalid knowledge configuration/,
+    );
+  });
+});
+
+test("applies a valid project local file when the project base file is invalid", async () => {
+  await withFixture(
+    async ({ home, workspace, globalConfig, projectConfig, projectLocalConfig }) => {
+      await writeFile(
+        globalConfig,
+        [
+          "sources:",
+          "  retained:",
+          "    description: Global source.",
+          "    instructions: Global instructions.",
+        ].join("\n"),
+      );
+      await writeFile(projectConfig, "sources: [");
+      await writeFile(
+        projectLocalConfig,
+        [
+          "sources:",
+          "  project-only:",
+          "    description: Project local source.",
+          "    instructions: Project local instructions.",
+        ].join("\n"),
+      );
+
+      const catalog = await loadCatalog({ cwd: workspace, homeDirectory: home });
+      assert.equal(catalog.sources.has("retained"), true);
+      const source = catalog.sources.get("project-only");
+      assert.ok(source);
+      assert.equal(source.scope, "project");
+      assert.equal(source.configPath, projectLocalConfig);
+      assert.equal(await readInstructions(source), "Project local instructions.");
+      assert.match(
+        catalog.diagnostics.join("\n"),
+        /YAML parse error/,
+      );
+    },
+  );
+});
+
+test("reconstructs a tombstoned source from a later valid entry", async () => {
+  await withFixture(
+    async ({ home, workspace, globalConfig, projectConfig, projectLocalConfig }) => {
+      await writeFile(
+        globalConfig,
+        [
+          "sources:",
+          "  layered:",
+          "    description: Global source.",
+          "    instructions: Global instructions.",
+        ].join("\n"),
+      );
+      await writeFile(
+        projectConfig,
+        [
+          "sources:",
+          "  layered:",
+          "    description: Broken source.",
+          "    instructions: Broken instructions.",
+          "    unexpected: true",
+        ].join("\n"),
+      );
+      await writeFile(
+        projectLocalConfig,
+        [
+          "sources:",
+          "  layered:",
+          "    description: Reconstructed source.",
+          "    instructions: Reconstructed instructions.",
+        ].join("\n"),
+      );
+
+      const catalog = await loadCatalog({ cwd: workspace, homeDirectory: home });
+      const source = catalog.sources.get("layered");
+      assert.ok(source);
+      assert.equal(source.description, "Reconstructed source.");
+      assert.equal(source.configPath, projectLocalConfig);
+      assert.equal(
+        await readInstructions(source),
+        "Reconstructed instructions.",
+      );
+      assert.match(catalog.diagnostics.join("\n"), /layered/);
     },
   );
 });
@@ -398,7 +560,7 @@ test("reads an external instruction file on every call", async () => {
       projectConfig,
       [
         "sources:",
-        "  - name: external",
+        "  external:",
         "    description: External instructions.",
         "    instructions:",
         "      file: ../documents/search.md",
@@ -428,9 +590,9 @@ test("returns an empty catalog when no configuration exists", async () => {
   });
 });
 
-test("treats an empty source list like a missing configuration", async () => {
+test("treats an empty source map like a missing configuration", async () => {
   await withFixture(async ({ workspace, projectConfig }) => {
-    await writeFile(projectConfig, "sources: []\n");
+    await writeFile(projectConfig, "sources: {}\n");
     const catalog = await loadCatalog({
       cwd: workspace,
       globalConfigPath: path.join(workspace, "missing.yml"),
@@ -439,21 +601,46 @@ test("treats an empty source list like a missing configuration", async () => {
   });
 });
 
-test("fails only for YAML parse errors and diagnoses readable invalid configuration", async () => {
+test("rejects the previous sequence source schema", async () => {
+  await withFixture(async ({ workspace, projectConfig }) => {
+    await writeFile(
+      projectConfig,
+      [
+        "sources:",
+        "  - name: legacy",
+        "    description: Legacy source.",
+        "    instructions: Legacy instructions.",
+      ].join("\n"),
+    );
+    const catalog = await loadCatalog({
+      cwd: workspace,
+      globalConfigPath: path.join(workspace, "missing.yml"),
+    });
+    assert.equal(catalog.sources.size, 0);
+    assert.match(
+      catalog.diagnostics.join("\n"),
+      /Invalid knowledge configuration/,
+    );
+  });
+});
+
+test("diagnoses YAML parse errors and readable invalid configuration", async () => {
   await withFixture(async ({ workspace, projectConfig }) => {
     const missingGlobal = path.join(workspace, "missing.yml");
 
     await writeFile(projectConfig, "sources: [");
-    await assert.rejects(
-      loadCatalog({ cwd: workspace, globalConfigPath: missingGlobal }),
-      ConfigurationError,
-    );
+    const parseCatalog = await loadCatalog({
+      cwd: workspace,
+      globalConfigPath: missingGlobal,
+    });
+    assert.equal(parseCatalog.sources.size, 0);
+    assert.match(parseCatalog.diagnostics.join("\n"), /YAML parse error/);
 
     await writeFile(
       projectConfig,
       [
         "sources:",
-        "  - name: extra",
+        "  extra:",
         "    description: Has an unknown field.",
         "    instructions: Search.",
         "    unexpected: true",
@@ -468,16 +655,38 @@ test("fails only for YAML parse errors and diagnoses readable invalid configurat
   });
 });
 
-test("excludes duplicate names inside one configuration", async () => {
+test("ignores a configuration file that cannot be read", async () => {
+  await withFixture(async ({ home, workspace, globalConfig, projectConfig }) => {
+    await writeFile(
+      globalConfig,
+      [
+        "sources:",
+        "  retained:",
+        "    description: Global source.",
+        "    instructions: Global instructions.",
+      ].join("\n"),
+    );
+    await mkdir(projectConfig);
+
+    const catalog = await loadCatalog({ cwd: workspace, homeDirectory: home });
+    assert.equal(catalog.sources.has("retained"), true);
+    assert.match(
+      catalog.diagnostics.join("\n"),
+      /Cannot read configuration file/,
+    );
+  });
+});
+
+test("reports duplicate source map keys as YAML parse errors", async () => {
   await withFixture(async ({ workspace, projectConfig }) => {
     await writeFile(
       projectConfig,
       [
         "sources:",
-        '  - name: " duplicate "',
+        "  duplicate:",
         "    description: First.",
         "    instructions: First.",
-        "  - name: duplicate",
+        "  duplicate:",
         "    description: Second.",
         "    instructions: Second.",
       ].join("\n"),
@@ -487,7 +696,7 @@ test("excludes duplicate names inside one configuration", async () => {
       globalConfigPath: path.join(workspace, "missing.yml"),
     });
     assert.equal(catalog.sources.size, 0);
-    assert.match(catalog.diagnostics.join("\n"), /Duplicate source name/);
+    assert.match(catalog.diagnostics.join("\n"), /YAML parse error/);
   });
 });
 
@@ -508,7 +717,7 @@ test("excludes missing, absolute, and out-of-scope instruction files", async () 
         projectConfig,
         [
           "sources:",
-          "  - name: invalid-file",
+          "  invalid-file:",
           "    description: Invalid file.",
           "    instructions:",
           `      file: ${JSON.stringify(file)}`,
@@ -536,7 +745,7 @@ test("excludes a junction that escapes the project scope", async () => {
       projectConfig,
       [
         "sources:",
-        "  - name: junction",
+        "  junction:",
         "    description: Junction escape.",
         "    instructions:",
         "      file: ../linked-outside/search.md",
@@ -564,7 +773,7 @@ test("revalidates the instruction path on every call", async () => {
       projectConfig,
       [
         "sources:",
-        "  - name: changing-link",
+        "  changing-link:",
         "    description: Revalidated path.",
         "    instructions:",
         "      file: ../documents/search.md",

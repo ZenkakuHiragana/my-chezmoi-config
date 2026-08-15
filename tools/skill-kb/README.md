@@ -21,9 +21,9 @@ npm test
 
 情報源の登録、変更、削除に使う規則は [`guides/source-registration.md`](guides/source-registration.md) にまとめている。この本文をMCP resource `skill-kb://guide/source-registration` として公開し、情報源が0件の状態でも読めるようにする。接続時の使い方は [`guides/server-instructions.md`](guides/server-instructions.md) に書く。
 
-## 設定層と候補検索
+## 設定ファイルと候補検索
 
-グローバル設定、隣接する `KNOWLEDGE.local.yml`、プロジェクト設定、隣接する `.opencode/KNOWLEDGE.local.yml` の順に、同じ `name` のフィールドを上書きする。通常の設定には環境に依存しない値を置き、環境依存の値は local 設定の `query_options` などへ置く。詳細なスキーマとパス規則は登録規則を参照する。
+グローバル `KNOWLEDGE.yml`、グローバル `KNOWLEDGE.local.yml`、プロジェクト `.opencode/KNOWLEDGE.yml`、プロジェクト `.opencode/KNOWLEDGE.local.yml` を、低い優先順位から独立した設定源として順に読み込む。有効なファイルの `sources` は、source 名をキーとしてフィールド単位で上書きする。詳細なスキーマとパス規則は登録規則を参照する。
 
 `query_module` を持つ情報源が一つ以上ある場合、`query_source` で候補検索できる。モジュールの named export `query` は、問いと `query_options` を受けて `Promise<string>` を返す。`query_module` がない場合、`query_source` は公開しない。`query_source` の結果は正本の引用ではない。
 
@@ -31,7 +31,7 @@ npm test
 
 設定が1か所も見つからない場合、見つかった設定の `sources` が0件の場合、または全ての情報源が設定不成立で除外された場合は、情報源0件として扱う。これは正常な状態である。サーバーは接続を確立したまま稼働し、どのツールも公開しない。作業メモは一つ以上の現在有効な情報源へ対応づけるため、対応先を検証できない状態では作業メモツールも公開しない。起動時に標準エラーへ、情報源が未設定であること、探索した設定のパス、設定不成立の診断を出力する。
 
-YAML の構文が壊れている場合は起動に失敗する。YAML として読めるが設定ファイル全体の形式が不正な場合は、MCP サーバーを停止せず、カタログの情報源を全て非公開にして診断を出力する。個別の情報源が不正な場合は、その情報源だけをカタログから除外する。
+設定ファイルの読み取り、YAML解析、文書全体の形式確認のいずれかに失敗した場合、そのファイルだけを無視して MCP 接続を維持する。正常な別の設定ファイルにある情報源は利用する。個別の情報源が不正な場合は、その source 名を無効化状態として扱い、低い優先順位の定義へ黙って戻さない。より高い優先順位の正常な同じキーの定義は、その source を再構成できる。修復用 resource は情報源0件でも公開する。
 
 ## 作業メモ
 
@@ -161,7 +161,7 @@ updated_at: 2026-07-30T07:00:00.000Z
 
 ## 変更の反映
 
-- 情報源の追加・削除、`name`、`description`、`instructions`、`query_module`、`query_options` の変更後は MCP サーバーを再起動する。情報源0件の状態から最初の情報源を追加した場合も再起動する。ツールを公開するかどうかと、情報源の `scope` は起動時に決まる。
+- 情報源の追加・削除、source 名キー、`description`、`instructions`、`query_module`、`query_options` の変更後は MCP サーバーを再起動する。情報源0件の状態から最初の情報源を追加した場合も再起動する。ツールを公開するかどうかと、情報源の `scope` は起動時に決まる。
 - `KNOWLEDGE.local.yml` の追加、削除、変更も再起動する。
 - `instructions.file` が参照するファイル本文だけを変更した場合は再起動しなくてよい。
 

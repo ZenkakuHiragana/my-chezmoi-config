@@ -4,16 +4,18 @@
 
 ## 設定ファイル
 
-サーバーは、存在する設定を次の順序で読み込む。
+サーバーは、次の4つの設定ファイルを低い優先順位から順に、独立した設定源として読み込む。
 
-1. グローバル設定: 環境変数 `SKILL_KB_CONFIG` の指定先。未指定なら `~/.config/opencode/KNOWLEDGE.yml`
-2. グローバル設定の隣にある `KNOWLEDGE.local.yml`
-3. プロジェクト設定: 作業ワークスペースの `.opencode/KNOWLEDGE.yml`
-4. プロジェクト設定の隣にある `.opencode/KNOWLEDGE.local.yml`
+1. グローバル `KNOWLEDGE.yml`
+2. グローバル `KNOWLEDGE.local.yml`
+3. プロジェクト `.opencode/KNOWLEDGE.yml`
+4. プロジェクト `.opencode/KNOWLEDGE.local.yml`
 
-存在しない `KNOWLEDGE.local.yml` は無視する。同じ `name` の情報源は、後の設定にあるフィールドが先の設定の同じフィールドを上書きする。後の設定で省略したフィールドは、先の設定の値を保つ。
+存在しないファイルは無視する。有効なファイルの source 定義は、後のファイルほど高い優先順位でフィールド単位に上書きする。後の定義で省略したフィールドは、前の定義の値を保つ。
 
-通常の `KNOWLEDGE.yml` には、環境に依存しない情報源の説明と到達方法を書く。環境依存の値は `KNOWLEDGE.local.yml` の上書きまたは `query_options` に置く。通常設定と local 設定は同じ書式で書けるが、上書き後の情報源には `name`、`description`、`instructions` が必要である。
+ファイルの読み取り、YAML解析、文書全体の形式確認のいずれかに失敗した場合、そのファイルだけを無視し、診断を出して次のファイルを読み込む。
+
+通常の `KNOWLEDGE.yml` には、環境に依存しない情報源の説明と到達方法を書く。環境依存の値は `KNOWLEDGE.local.yml` の上書きまたは `query_options` に置く。上書き後の情報源には source 名、`description`、`instructions` が必要である。
 
 新しい情報源は、作業ワークスペースによらず使うならグローバル設定へ、そのプロジェクトだけで使うならプロジェクト設定へ登録する。
 
@@ -21,14 +23,14 @@
 
 ## スキーマ
 
-各設定ファイルの source entry は `name` と、任意の `description`、`instructions`、`query_module`、`query_options` を持つ。未知のキーは、その source entry を不成立にする。`query_options` は `query_module` と共に指定し、単独では指定しない。
+各設定ファイルの `sources` は、source 名をキーとする写像である。値は任意の `description`、`instructions`、`query_module`、`query_options` を持つ source entry である。source entry に `name` を書かない。未知のキーは、その source entry を不成立にする。`query_options` は `query_module` と共に指定し、単独では指定しない。
 
-`description` と `instructions` は上書き後に必須である。local 設定で一方だけを変更するときは、`name` と変更するフィールドだけを書けばよい。
+`description` と `instructions` は、全ての設定源を上書きした後に必須である。local 設定で一方だけを変更するときは、source 名のキーと変更するフィールドだけを書く。
 
 ```yaml
 # KNOWLEDGE.yml
 sources:
-  - name: official-api
+  official-api:
     description: >
       製品の公開 API 仕様を含み、その範囲では原本として扱う。
       API の構文、引数、公開された制約を調べるときに使う。
@@ -37,7 +39,7 @@ sources:
       ページ一覧から候補を絞り、公式の個別記事を取得する。
     query_module: ./queries/official-api.mts
 
-  - name: project-design
+  project-design:
     description: >
       このプロジェクトの設計判断を含み、その範囲では原本として扱う。
       要求、責務、採用済み設計を調べるときに使う。
@@ -49,17 +51,16 @@ sources:
 ```yaml
 # KNOWLEDGE.local.yml
 sources:
-  - name: official-api
+  official-api:
     query_options:
       corpus_root: C:/local/corpus/official-api
-
 ```
 
-### `name`
+### source 名のキー
 
-- 一つの設定ファイル内で一意にする。
-- 作業メモの `source_names` と機械的に照合される固定値である。改名すると既存メモの対応が切れる。
-- 同じ名前を別の設定層へ書くと、フィールド単位の上書き対象になる。
+- `sources` のキーが source の識別子である。作業メモの `source_names` と機械的に照合される固定値であり、変更すると既存メモの対応が切れる。
+- 同じキーを複数の設定ファイルへ書くと、フィールド単位の上書き対象になる。
+- source entry が不成立になると、そのキーの source は無効化状態になる。より高い優先順位の正常な定義が来るまで、低い優先順位の定義は使わない。
 
 ### `description`
 
@@ -146,15 +147,17 @@ export async function query(
 
 ## 反映条件
 
-- 情報源の追加と削除、`name`、`description`、`instructions`、`query_module`、`query_options` の変更は、MCP サーバーを再起動するまで反映されない。
-- `KNOWLEDGE.local.yml` の追加、削除、変更も再起動するまで反映されない。
+- 情報源の追加と削除、source 名キー、`description`、`instructions`、`query_module`、`query_options` の変更は、MCP サーバーを再起動するまで反映されない。
+- `KNOWLEDGE.local.yml` の追加、削除、変更も再起動まで反映されない。
 - `instructions.file` が指すファイルの本文だけを変更した場合は、再起動しなくてよい。`get_source` の呼出しごとに読み直される。
 
 ## 誤りの扱い
 
-- 設定ファイルを読めない場合、または YAML の構文が壊れている場合、サーバーは起動に失敗する。
-- YAML として読めるが設定ファイル全体の形式が不正な場合、MCP 接続を維持したままカタログの情報源を全て公開せず、診断をユーザー向けの経路へ出す。
-- 個別の source entry、上書き後の情報源、`instructions.file`、`query_module`、`query_options` の組み合わせが不正な場合、その情報源だけをカタログへ登録しない。下位設定の値へ黙って戻さない。
+- 設定ファイルの読み取り処理に失敗した場合、そのファイルだけを無視し、MCP 接続と修復用 resource を維持して診断をユーザー向けの経路へ出す。
+- YAML の構文が壊れている場合も、該当するファイルだけを無視し、MCP 接続と修復用 resource を維持して診断を出す。
+- YAML として読めるが設定ファイル全体の形式が不正な場合も、該当するファイルだけを無視する。正常な別の設定ファイルは利用する。
+- 個別の source entry が不正な場合、そのキーの source を無効化状態としてカタログへ登録しない。低い優先順位の定義へ黙って戻さない。より高い優先順位の正常な同じキーの定義は、その source を再構成できる。
+- 上書き後の情報源、`instructions.file`、`query_module`、`query_options` の組み合わせが不正な場合、その情報源だけをカタログへ登録しない。
 - 設定の不成立を理由に、MCP サーバー全体を停止させない。
 - 情報源が0件の場合、サーバーは接続を保ったままツールを公開しない。これは正常な状態である。
 
@@ -164,7 +167,7 @@ export async function query(
 - `instructions` が、正本への到達、検索、照合、現在値取得の方法だけを述べているか。
 - 正本の時点値を固定せず、必要な値を取得する操作へ置き換えているか。
 - `instructions.file` の本文にも同じ規則を適用したか。
-- local 設定には環境依存の値だけを置き、同じ `name` の意図しないフィールドを上書きしていないか。
+- local 設定には環境依存の値だけを置き、同じ source 名キーの意図しないフィールドを上書きしていないか。
 - `query_module` がある場合、named export `query` の契約を満たすモジュールになっているか。
 - 既存情報源を変更または削除する場合、`get_source` の `config_path` を使ったか。
 - その変更は MCP サーバーの再起動が必要か。

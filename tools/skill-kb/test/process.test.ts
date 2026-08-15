@@ -5,35 +5,6 @@ import { tmpdir } from "node:os";
 import path from "node:path";
 import test from "node:test";
 
-type ProcessResult = {
-  code: number | null;
-  stderr: string;
-  stdout: string;
-};
-
-function runServer(cwd: string, configPath: string): Promise<ProcessResult> {
-  const serverPath = path.resolve("dist", "src", "index.js");
-  return new Promise((resolve, reject) => {
-    const child = spawn(process.execPath, [serverPath], {
-      cwd,
-      env: { ...process.env, SKILL_KB_CONFIG: configPath },
-      stdio: ["ignore", "pipe", "pipe"],
-    });
-    let stdout = "";
-    let stderr = "";
-    child.stdout.setEncoding("utf8");
-    child.stderr.setEncoding("utf8");
-    child.stdout.on("data", (chunk: string) => {
-      stdout += chunk;
-    });
-    child.stderr.on("data", (chunk: string) => {
-      stderr += chunk;
-    });
-    child.on("error", reject);
-    child.on("close", (code) => resolve({ code, stderr, stdout }));
-  });
-}
-
 function runServerUntilIdle(
   cwd: string,
   configPath: string,
@@ -73,17 +44,20 @@ function runServerUntilIdle(
   });
 }
 
-test("exits nonzero and writes diagnostics only to stderr when a configuration is invalid", async () => {
+test("keeps the server alive and reports YAML parse errors on stderr", async () => {
   const root = await mkdtemp(path.join(tmpdir(), "skill-kb-process-"));
   const workspace = path.join(root, "workspace");
   const projectDirectory = path.join(workspace, ".opencode");
   await mkdir(projectDirectory, { recursive: true });
   await writeFile(path.join(projectDirectory, "KNOWLEDGE.yml"), "sources: [");
   try {
-    const result = await runServer(workspace, path.join(root, "missing.yml"));
-    assert.equal(result.code, 1);
+    const result = await runServerUntilIdle(
+      workspace,
+      path.join(root, "missing.yml"),
+    );
+    assert.equal(result.exited, false);
     assert.equal(result.stdout, "");
-    assert.match(result.stderr, /^\[skill-kb\] Cannot read YAML configuration/);
+    assert.match(result.stderr, /YAML parse error/);
   } finally {
     await rm(root, { recursive: true, force: true });
   }
@@ -114,7 +88,7 @@ test("keeps the server alive and reports invalid sources outside MCP output", as
     path.join(projectDirectory, "KNOWLEDGE.yml"),
     [
       "sources:",
-      "  - name: broken",
+      "  broken:",
       "    description: Broken source.",
       "    instructions: Read it.",
       "    unexpected: true",
@@ -142,7 +116,7 @@ test("keeps the server alive when a query module cannot be loaded", async () => 
     path.join(projectDirectory, "KNOWLEDGE.yml"),
     [
       "sources:",
-      "  - name: broken-module",
+      "  broken-module:",
       "    description: Broken module.",
       "    instructions: Read it.",
       "    query_module: ./missing.mts",
