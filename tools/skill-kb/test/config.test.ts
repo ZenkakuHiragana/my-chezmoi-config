@@ -8,14 +8,19 @@ import {
   loadCatalog,
   readInstructions,
 } from "../src/config.js";
-import { buildToolDescription } from "../src/server.js";
+import {
+  buildQueryToolDescription,
+  buildToolDescription,
+} from "../src/server.js";
 
 type Fixture = {
   root: string;
   home: string;
   workspace: string;
   globalConfig: string;
+  globalLocalConfig: string;
   projectConfig: string;
+  projectLocalConfig: string;
 };
 
 async function makeFixture(): Promise<Fixture> {
@@ -33,7 +38,12 @@ async function makeFixture(): Promise<Fixture> {
     home,
     workspace,
     globalConfig: path.join(globalDirectory, "KNOWLEDGE.yml"),
+    globalLocalConfig: path.join(globalDirectory, "KNOWLEDGE.local.yml"),
     projectConfig: path.join(projectDirectory, "KNOWLEDGE.yml"),
+    projectLocalConfig: path.join(
+      projectDirectory,
+      "KNOWLEDGE.local.yml",
+    ),
   };
 }
 
@@ -64,6 +74,7 @@ test("loads the default global configuration", async () => {
     const source = catalog.sources.get("official-api");
     assert.ok(source);
     assert.equal(source.scope, "global");
+    assert.equal(source.configPath, globalConfig);
     assert.equal(
       await readInstructions(source),
       "Fetch the official JSON article.",
@@ -132,12 +143,68 @@ test("merges both scopes and lets the project source override the global source"
       assert.ok(shared);
       assert.equal(shared.scope, "project");
       assert.equal(shared.description, "Project description.");
+      assert.equal(shared.configPath, projectConfig);
       assert.equal(await readInstructions(shared), "Project instructions.");
     },
   );
 });
 
-test("builds the tool description from every effective source", async () => {
+test("applies local overlays in field order and preserves omitted fields", async () => {
+  await withFixture(
+    async ({
+      home,
+      workspace,
+      globalConfig,
+      globalLocalConfig,
+      projectConfig,
+      projectLocalConfig,
+    }) => {
+      await writeFile(
+        globalConfig,
+        [
+          "sources:",
+          "  - name: layered",
+          "    description: Global description.",
+          "    instructions: Global instructions.",
+        ].join("\n"),
+      );
+      await writeFile(
+        globalLocalConfig,
+        [
+          "sources:",
+          "  - name: layered",
+          "    description: Global local description.",
+        ].join("\n"),
+      );
+      await writeFile(
+        projectConfig,
+        [
+          "sources:",
+          "  - name: layered",
+          "    instructions: Project instructions.",
+        ].join("\n"),
+      );
+      await writeFile(
+        projectLocalConfig,
+        [
+          "sources:",
+          "  - name: layered",
+          "    description: Project local description.",
+        ].join("\n"),
+      );
+
+      const catalog = await loadCatalog({ cwd: workspace, homeDirectory: home });
+      const source = catalog.sources.get("layered");
+      assert.ok(source);
+      assert.equal(source.description, "Project local description.");
+      assert.equal(await readInstructions(source), "Project instructions.");
+      assert.equal(source.scope, "project");
+      assert.equal(source.configPath, projectConfig);
+    },
+  );
+});
+
+test("builds the tool descriptions from effective sources", async () => {
   await withFixture(async ({ workspace, projectConfig }) => {
     await writeFile(
       projectConfig,
@@ -158,6 +225,104 @@ test("builds the tool description from every effective source", async () => {
     const description = buildToolDescription(catalog);
     assert.match(description, /- first: First description\./);
     assert.match(description, /- second: Second description\./);
+    assert.match(buildQueryToolDescription(catalog), /- なし/);
+  });
+});
+
+test("loads a named query module and passes query_options unchanged", async () => {
+  await withFixture(async ({ workspace, projectConfig }) => {
+    const modulePath = path.join(workspace, "query.mts");
+    await writeFile(
+      modulePath,
+      [
+        "export async function query(query: string, options: unknown): Promise<string> {",
+        "  return JSON.stringify({ query, options });",
+        "}",
+      ].join("\n"),
+    );
+    await writeFile(
+      projectConfig,
+      [
+        "sources:",
+        "  - name: searchable",
+        "    description: Searchable source.",
+        "    instructions: Read the source.",
+        "    query_module: ../query.mts",
+        "    query_options:",
+        "      corpus_root: C:/local/corpus",
+        "      mode: exact",
+      ].join("\n"),
+    );
+
+    const catalog = await loadCatalog({
+      cwd: workspace,
+      globalConfigPath: path.join(workspace, "missing.yml"),
+    });
+    const source = catalog.sources.get("searchable");
+    assert.ok(source?.queryModule);
+    assert.equal(
+      await source.queryModule.query("find this", source.queryModule.options),
+      JSON.stringify({
+        query: "find this",
+        options: { corpus_root: "C:/local/corpus", mode: "exact" },
+      }),
+    );
+  });
+});
+
+test("excludes an invalid query module without stopping catalog loading", async () => {
+  await withFixture(async ({ workspace, projectConfig }) => {
+    const modulePath = path.join(workspace, "invalid.mts");
+    await writeFile(modulePath, "export default 123;\n");
+    await writeFile(
+      projectConfig,
+      [
+        "sources:",
+        "  - name: invalid-query",
+        "    description: Invalid query module.",
+        "    instructions: Read the source.",
+        "    query_module: ../invalid.mts",
+        "  - name: valid",
+        "    description: Valid source.",
+        "    instructions: Read the valid source.",
+      ].join("\n"),
+    );
+
+    const catalog = await loadCatalog({
+      cwd: workspace,
+      globalConfigPath: path.join(workspace, "missing.yml"),
+    });
+    assert.equal(catalog.sources.has("invalid-query"), false);
+    assert.equal(catalog.sources.has("valid"), true);
+    assert.match(catalog.diagnostics.join("\n"), /invalid-query/);
+  });
+});
+
+test("does not fall back when a later source entry is invalid", async () => {
+  await withFixture(async ({ home, workspace, globalConfig, projectLocalConfig }) => {
+    await writeFile(
+      globalConfig,
+      [
+        "sources:",
+        "  - name: overridden",
+        "    description: Global source.",
+        "    instructions: Global instructions.",
+      ].join("\n"),
+    );
+    await writeFile(
+      projectLocalConfig,
+      [
+        "sources:",
+        "  - name: overridden",
+        "    description: Broken override.",
+        "    instructions: Local instructions.",
+        "    unexpected: true",
+      ].join("\n"),
+    );
+
+    const catalog = await loadCatalog({ cwd: workspace, homeDirectory: home });
+    assert.equal(catalog.sources.has("overridden"), false);
+    assert.match(catalog.diagnostics.join("\n"), /overridden/);
   });
 });
 
@@ -197,6 +362,7 @@ test("returns an empty catalog when no configuration exists", async () => {
       globalConfigPath: path.join(workspace, "missing.yml"),
     });
     assert.equal(catalog.sources.size, 0);
+    assert.deepEqual(catalog.diagnostics, []);
   });
 });
 
@@ -211,7 +377,7 @@ test("treats an empty source list like a missing configuration", async () => {
   });
 });
 
-test("rejects malformed and unknown-field configurations", async () => {
+test("fails only for YAML parse errors and diagnoses readable invalid configuration", async () => {
   await withFixture(async ({ workspace, projectConfig }) => {
     const missingGlobal = path.join(workspace, "missing.yml");
 
@@ -231,14 +397,16 @@ test("rejects malformed and unknown-field configurations", async () => {
         "    unexpected: true",
       ].join("\n"),
     );
-    await assert.rejects(
-      loadCatalog({ cwd: workspace, globalConfigPath: missingGlobal }),
-      ConfigurationError,
-    );
+    const catalog = await loadCatalog({
+      cwd: workspace,
+      globalConfigPath: missingGlobal,
+    });
+    assert.equal(catalog.sources.size, 0);
+    assert.match(catalog.diagnostics.join("\n"), /extra/);
   });
 });
 
-test("rejects duplicate names inside one configuration", async () => {
+test("excludes duplicate names inside one configuration", async () => {
   await withFixture(async ({ workspace, projectConfig }) => {
     await writeFile(
       projectConfig,
@@ -252,17 +420,16 @@ test("rejects duplicate names inside one configuration", async () => {
         "    instructions: Second.",
       ].join("\n"),
     );
-    await assert.rejects(
-      loadCatalog({
-        cwd: workspace,
-        globalConfigPath: path.join(workspace, "missing.yml"),
-      }),
-      /Duplicate source name/,
-    );
+    const catalog = await loadCatalog({
+      cwd: workspace,
+      globalConfigPath: path.join(workspace, "missing.yml"),
+    });
+    assert.equal(catalog.sources.size, 0);
+    assert.match(catalog.diagnostics.join("\n"), /Duplicate source name/);
   });
 });
 
-test("rejects missing, absolute, and out-of-scope instruction files", async () => {
+test("excludes missing, absolute, and out-of-scope instruction files", async () => {
   await withFixture(async ({ root, workspace, projectConfig }) => {
     const missingGlobal = path.join(workspace, "missing.yml");
     const outsideFile = path.join(root, "outside.md");
@@ -285,15 +452,17 @@ test("rejects missing, absolute, and out-of-scope instruction files", async () =
           `      file: ${JSON.stringify(file)}`,
         ].join("\n"),
       );
-      await assert.rejects(
-        loadCatalog({ cwd: workspace, globalConfigPath: missingGlobal }),
-        ConfigurationError,
-      );
+      const catalog = await loadCatalog({
+        cwd: workspace,
+        globalConfigPath: missingGlobal,
+      });
+      assert.equal(catalog.sources.size, 0);
+      assert.match(catalog.diagnostics.join("\n"), /invalid-file/);
     }
   });
 });
 
-test("rejects a junction that escapes the project scope", async () => {
+test("excludes a junction that escapes the project scope", async () => {
   await withFixture(async ({ root, workspace, projectConfig }) => {
     const outsideDirectory = path.join(root, "outside");
     const outsideFile = path.join(outsideDirectory, "search.md");
@@ -312,13 +481,12 @@ test("rejects a junction that escapes the project scope", async () => {
       ].join("\n"),
     );
 
-    await assert.rejects(
-      loadCatalog({
-        cwd: workspace,
-        globalConfigPath: path.join(workspace, "missing.yml"),
-      }),
-      /escapes its allowed scope/,
-    );
+    const catalog = await loadCatalog({
+      cwd: workspace,
+      globalConfigPath: path.join(workspace, "missing.yml"),
+    });
+    assert.equal(catalog.sources.size, 0);
+    assert.match(catalog.diagnostics.join("\n"), /escapes its allowed scope/);
   });
 });
 

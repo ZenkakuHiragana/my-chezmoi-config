@@ -8,6 +8,9 @@ async function main(): Promise<void> {
   const catalog = await loadCatalog(
     configuredPath === undefined ? {} : { globalConfigPath: configuredPath },
   );
+  for (const diagnostic of catalog.diagnostics) {
+    console.error(`[skill-kb] ${diagnostic}`);
+  }
   if (catalog.sources.size === 0) {
     console.error(
       `[skill-kb] No knowledge source is configured, so no tool is published. Checked ${catalog.globalConfigPath} and ${catalog.projectConfigPath}`,

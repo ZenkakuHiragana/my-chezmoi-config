@@ -104,3 +104,59 @@ test("stays alive and writes nothing to stdout when no configuration exists", as
     await rm(root, { recursive: true, force: true });
   }
 });
+
+test("keeps the server alive and reports invalid sources outside MCP output", async () => {
+  const root = await mkdtemp(path.join(tmpdir(), "skill-kb-process-"));
+  const workspace = path.join(root, "workspace");
+  const projectDirectory = path.join(workspace, ".opencode");
+  await mkdir(projectDirectory, { recursive: true });
+  await writeFile(
+    path.join(projectDirectory, "KNOWLEDGE.yml"),
+    [
+      "sources:",
+      "  - name: broken",
+      "    description: Broken source.",
+      "    instructions: Read it.",
+      "    unexpected: true",
+    ].join("\n"),
+  );
+  try {
+    const result = await runServerUntilIdle(
+      workspace,
+      path.join(root, "missing.yml"),
+    );
+    assert.equal(result.exited, false);
+    assert.equal(result.stdout, "");
+    assert.match(result.stderr, /Invalid source broken/);
+  } finally {
+    await rm(root, { recursive: true, force: true });
+  }
+});
+
+test("keeps the server alive when a query module cannot be loaded", async () => {
+  const root = await mkdtemp(path.join(tmpdir(), "skill-kb-process-"));
+  const workspace = path.join(root, "workspace");
+  const projectDirectory = path.join(workspace, ".opencode");
+  await mkdir(projectDirectory, { recursive: true });
+  await writeFile(
+    path.join(projectDirectory, "KNOWLEDGE.yml"),
+    [
+      "sources:",
+      "  - name: broken-module",
+      "    description: Broken module.",
+      "    instructions: Read it.",
+      "    query_module: ./missing.mts",
+    ].join("\n"),
+  );
+  try {
+    const result = await runServerUntilIdle(
+      workspace,
+      path.join(root, "missing.yml"),
+    );
+    assert.equal(result.exited, false);
+    assert.equal(result.stdout, "");
+    assert.match(result.stderr, /query_module cannot be resolved/);
+  } finally {
+    await rm(root, { recursive: true, force: true });
+  }
+});

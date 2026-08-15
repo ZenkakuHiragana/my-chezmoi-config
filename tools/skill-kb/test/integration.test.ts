@@ -135,6 +135,7 @@ test("publishes all tools and supports work-note operations over stdio", async (
   const globalConfig = path.join(globalDirectory, "KNOWLEDGE.yml");
   const projectConfig = path.join(projectDirectory, "KNOWLEDGE.yml");
   const instructionsFile = path.join(projectDirectory, "project-search.md");
+  const queryModuleFile = path.join(globalDirectory, "official-api.mts");
   await Promise.all([
     mkdir(projectDirectory, { recursive: true }),
     mkdir(globalDirectory, { recursive: true }),
@@ -146,9 +147,21 @@ test("publishes all tools and supports work-note operations over stdio", async (
       "  - name: official-api",
       "    description: Use for the official API.",
       "    instructions: Fetch the official API page.",
+      "    query_module: ./official-api.mts",
+      "    query_options:",
+      "      corpus: test",
       "  - name: shared",
       "    description: Global shared source.",
       "    instructions: Global shared instructions.",
+    ].join("\n"),
+  );
+  await writeFile(
+    queryModuleFile,
+    [
+      "export async function query(query: string, options: unknown): Promise<string> {",
+      "  if (query === \"throw\") throw new Error(\"query failed\");",
+      "  return `${query}:${JSON.stringify(options)}`;",
+      "}",
     ].join("\n"),
   );
   await writeFile(instructionsFile, "Read the project documents.");
@@ -180,6 +193,7 @@ test("publishes all tools and supports work-note operations over stdio", async (
       "create_work_note",
       "get_source",
       "grep_work_notes",
+      "query_source",
       "read_work_note",
       "update_work_note",
     ]);
@@ -193,6 +207,11 @@ test("publishes all tools and supports work-note operations over stdio", async (
     );
     assert.match(tool.description ?? "", /shared: Project shared source\./);
     assert.doesNotMatch(tool.description ?? "", /Global shared source/);
+    const queryTool = listed.tools.find(
+      (candidate) => candidate.name === "query_source",
+    );
+    assert.ok(queryTool);
+    assert.match(queryTool.description ?? "", /official-api/);
 
     const inlineResult = await client.callTool(
       {
@@ -203,8 +222,6 @@ test("publishes all tools and supports work-note operations over stdio", async (
     );
     assert.equal(inlineResult.isError, undefined);
     assert.deepEqual(JSON.parse(textResult(inlineResult)), {
-      name: "official-api",
-      description: "Use for the official API.",
       instructions: "Fetch the official API page.",
       scope: "global",
       config_path: globalConfig,
@@ -218,12 +235,40 @@ test("publishes all tools and supports work-note operations over stdio", async (
       CallToolResultSchema,
     );
     assert.deepEqual(JSON.parse(textResult(fileResult)), {
-      name: "shared",
-      description: "Project shared source.",
       instructions: "Read the project documents.",
       scope: "project",
       config_path: projectConfig,
     });
+    const queryResult = await client.callTool(
+      {
+        name: "query_source",
+        arguments: { name: "official-api", query: "find" },
+      },
+      CallToolResultSchema,
+    );
+    assert.deepEqual(JSON.parse(textResult(queryResult)), {
+      result: 'find:{"corpus":"test"}',
+    });
+    const queryFailure = await client.callTool(
+      {
+        name: "query_source",
+        arguments: { name: "official-api", query: "throw" },
+      },
+      CallToolResultSchema,
+    );
+    assert.equal(queryFailure.isError, true);
+    assert.match(textResult(queryFailure), /query failed/);
+    assert.deepEqual(
+      (await client.listTools()).tools.map((candidate) => candidate.name).sort(),
+      [
+        "create_work_note",
+        "get_source",
+        "grep_work_notes",
+        "query_source",
+        "read_work_note",
+        "update_work_note",
+      ],
+    );
 
     await writeFile(instructionsFile, "Read the updated project documents.");
     const updatedResult = await client.callTool(

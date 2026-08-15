@@ -28,6 +28,19 @@ export function buildToolDescription(catalog: KnowledgeCatalog): string {
   ].join("\n");
 }
 
+export function buildQueryToolDescription(catalog: KnowledgeCatalog): string {
+  const querySources = [...catalog.sources.values()]
+    .filter((source) => source.queryModule !== undefined)
+    .map((source) => `- ${source.name}`)
+    .join("\n");
+  return [
+    "設定された情報源の query_module へ問いを渡し、検索対象の候補結果を返す。",
+    "query_source の結果は正本の引用ではない。必要な情報源を指定して正本を確認する。",
+    "利用可能な情報源:",
+    querySources || "- なし",
+  ].join("\n");
+}
+
 function textResult(value: unknown): {
   content: Array<{ type: "text"; text: string }>;
 } {
@@ -158,14 +171,52 @@ export function createServer(
 
         try {
           const instructions = await readInstructions(source);
-          const result = {
-            name: source.name,
-            description: source.description,
+          return textResult({
             instructions,
             scope: source.scope,
             config_path: source.configPath,
-          };
-          return textResult(result);
+          });
+        } catch (error) {
+          return errorResult(error);
+        }
+      },
+    ),
+    server.registerTool(
+      "query_source",
+      {
+        title: "情報源の候補検索",
+        description: buildQueryToolDescription(catalog),
+        inputSchema: {
+          name: z
+            .string()
+            .min(1)
+            .describe("query_module が設定された情報源の名前"),
+          query: z
+            .string()
+            .min(1)
+            .describe("候補検索へ渡す自然文の問い"),
+        },
+      },
+      async ({ name, query }) => {
+        const source = catalog.sources.get(name);
+        if (!source) {
+          return errorResult(new Error(`Unknown knowledge source: ${name}`));
+        }
+        if (source.queryModule === undefined) {
+          return errorResult(
+            new Error(`Knowledge source has no query_module: ${name}`),
+          );
+        }
+
+        try {
+          const result = await source.queryModule.query(
+            query,
+            source.queryModule.options,
+          );
+          if (typeof result !== "string") {
+            throw new Error(`query_module returned a non-string result: ${name}`);
+          }
+          return textResult({ result });
         } catch (error) {
           return errorResult(error);
         }
