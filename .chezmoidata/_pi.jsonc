@@ -49,7 +49,10 @@
       },
       "write": {
         "allow": [
-          "~/.local/share/chezmoi/.opencode/local-failure-logs/**"
+          "~/.local/share/chezmoi/.opencode/local-failure-logs/**",
+          "~/.config/opencode/KNOWLEDGE.yml",
+          "~/.config/opencode/KNOWLEDGE.local.yml",
+          "~/.config/opencode/knowledge-instructions/**"
         ],
         "deny": [],
         "outsideDefault": "deny",
