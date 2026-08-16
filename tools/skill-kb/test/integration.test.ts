@@ -213,8 +213,8 @@ test("publishes source registration instructions and guide when no source is con
     assert.equal(
       instructions.trim(),
       [
-        "skill-kb は、ローカルに設定された情報源へ到達する検索方法を提供する MCP サーバーである。",
-        "情報源の登録・変更・削除、または検索手順の作成・変更を行うときは、`skill-kb://guide/source-registration` を読む。",
+        "設定された情報源（公開Wiki・設計資料・作業メモ）から根拠や正本を引く必要があるときは、このサーバーを使う。",
+        "情報源の登録・変更・削除、または検索手順の作成・変更は `skill-kb://guide/source-registration` を読む。",
       ].join("\n"),
     );
     assert.ok(Buffer.byteLength(instructions, "utf8") <= 2048);
