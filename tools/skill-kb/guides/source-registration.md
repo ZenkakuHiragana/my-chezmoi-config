@@ -11,19 +11,19 @@
 3. プロジェクト `.opencode/KNOWLEDGE.yml`
 4. プロジェクト `.opencode/KNOWLEDGE.local.yml`
 
-存在しないファイルは無視する。有効なファイルの source 定義は、後のファイルほど高い優先順位でフィールド単位に上書きする。後の定義で省略したフィールドは、前の定義の値を保つ。
+存在しないファイルは無視する。有効なファイルの source 定義は、後のファイルほど高い優先順位でフィールド単位に上書きする。後の定義で省略したフィールドは、前の定義の値を保つ。ただし `instructions` は例外で、同一スコープ内ではベース層のブロックの後に local 層のブロックが連結される。local は同じスコープのベースに対する overlay であり、スコープをまたいで追記されない。プロジェクトスコープが `instructions` を1ブロックでも持つときは、プロジェクトの合成がグローバルの合成を完全に置き換える。プロジェクトが `instructions` を持たないときは、グローバルの合成を継承する。
 
 ファイルの読み取り、YAML解析、文書全体の形式確認のいずれかに失敗した場合、そのファイルだけを無視し、診断を出して次のファイルを読み込む。
 
-通常の `KNOWLEDGE.yml` には、環境に依存しない情報源の説明と到達方法を書く。環境依存の値は `KNOWLEDGE.local.yml` の上書きまたは `query_options` に置く。上書き後の情報源には source 名、`description`、`instructions` が必要である。
+通常の `KNOWLEDGE.yml` には、環境に依存しない情報源の説明と到達方法を書く。環境依存の値（ローカルパスなど）は `KNOWLEDGE.local.yml` の `instructions` で宣言し、ベースの `instructions` はその値を名前で参照して具体的な場所を本文に固定しない。`query_module` を持つ情報源では、モジュール固有の値を `query_options` に置ける。上書き後の情報源には source 名、`description`、`instructions` が必要である。
 
 新しい情報源は、作業ワークスペースによらず使うならグローバル設定へ、そのプロジェクトだけで使うならプロジェクト設定へ登録する。
 
-既存の情報源を変更または削除するとき、`get_source` の `config_path` は有効な `instructions` の宣言元を確認するときだけ使う。フィールド単位の上書き後は、他のフィールドが別の設定ファイルで宣言されている場合がある。
+既存の情報源を変更または削除するとき、`get_source` の `config_path` は有効な `instructions` の先頭ブロックの宣言元を確認するときだけ使う。フィールド単位の上書き後は、他のフィールドが別の設定ファイルで宣言されている場合がある。
 
 ## スキーマ
 
-各設定ファイルの `sources` は、source 名をキーとする写像である。値は任意の `description`、`instructions`、`query_module`、`query_options` を持つ source entry である。source entry に `name` を書かない。未知のキーは、その source entry を不成立にする。`query_options` は、全設定源を合成した後の情報源に `query_module` が存在する場合だけ有効になる。local 設定では、下位の設定から `query_module` を継承して `query_options` だけを上書きできる。
+各設定ファイルの `sources` は、source 名をキーとする写像である。値は任意の `description`、`instructions`、`query_module`、`query_options` を持つ source entry である。`instructions` は文字列、`{ file: PATH }`、またはそれらの非空配列で、配列の各要素が1ブロックになる。source entry に `name` を書かない。未知のキーは、その source entry を不成立にする。`query_options` は、全設定源を合成した後の情報源に `query_module` が存在する場合だけ有効になる。local 設定では、下位の設定から `query_module` を継承して `query_options` だけを上書きできる。
 
 `description` と `instructions` は、全ての設定源を上書きした後に必須である。local 設定で一方だけを変更するときは、source 名のキーと変更するフィールドだけを書く。
 
@@ -36,6 +36,7 @@ sources:
       API の構文、引数、公開された制約を調べるときに使う。
       内部実装やプロジェクト固有の設計判断には使わない。
     instructions: |
+      資料ルートはローカル設定が指定する。
       ページ一覧から候補を絞り、公式の個別記事を取得する。
     query_module: ./queries/official-api.mts
 
@@ -52,8 +53,8 @@ sources:
 # KNOWLEDGE.local.yml
 sources:
   official-api:
-    query_options:
-      corpus_root: C:/local/corpus/official-api
+    instructions: |
+      資料ルートは `C:/local/corpus/official-api`。
 ```
 
 ### source 名のキー
@@ -77,6 +78,13 @@ sources:
 ### `instructions`
 
 `instructions` は、選択された情報源の正本へ到達し、必要な現在値を取得する方法を書く。正本の内容を現在時点の値として棚卸ししてはならない。
+
+`instructions` はブロック列として扱われる。単一の文字列または `{ file: PATH }` は1ブロック、非空配列は各要素が1ブロックである。ブロックは次の規則で合成される。
+
+- 同一スコープ内: ベース層のブロックが先頭、local 層のブロックが後ろに続く（base に対する overlay）。append はスコープをまたがない。下位層のブロックを除去する手段はない。
+- スコープ間: プロジェクトスコープが `instructions` を1ブロックでも持つときは、その合成だけが使われる（グローバル層は含まれない）。プロジェクトが `instructions` を持たないときは、グローバルの合成を継承する。
+
+環境依存の値は local 層で宣言し、ベース層のブロックは値を名前で参照する。完全に異なる手順が必要な場合は、上書きを試みず別の source 名を定義する。
 
 正本の実体が追加、削除、更新されたときに、更新なしでは正しくなくなる文は、値ではなく現在値を取得する操作に置き換える。この判定は、数値、日付、一覧という表面形式ではなく、正本の中身の変化に依存するかどうかで行う。
 
@@ -140,7 +148,7 @@ export async function query(
 ```json
 {
   "instructions": "正本へ到達する方法",
-  "config_path": "有効な instructions の宣言元設定ファイル",
+  "config_path": "有効な instructions の先頭ブロックの宣言元設定ファイル",
   "scope": "global または project"
 }
 ```
@@ -167,7 +175,7 @@ export async function query(
 - `instructions` が、正本への到達、検索、照合、現在値取得の方法だけを述べているか。
 - 正本の時点値を固定せず、必要な値を取得する操作へ置き換えているか。
 - `instructions.file` の本文にも同じ規則を適用したか。
-- local 設定には環境依存の値だけを置き、同じ source 名キーの意図しないフィールドを上書きしていないか。
+- local 設定の `instructions` には環境依存の値の宣言だけを置き、ベースの手順を複製していないか。同じ source 名キーの意図しないフィールドを上書きしていないか。
 - `query_module` がある場合、named export `query` の契約を満たすモジュールになっているか。
 - 既存情報源を変更または削除する場合、`get_source` の `config_path` を `instructions` の宣言元確認にだけ使ったか。
 - その変更は MCP サーバーの再起動が必要か。

@@ -204,6 +204,230 @@ test("applies local overlays in field order and preserves omitted fields", async
   );
 });
 
+test("composes global instructions with the global local layer appended", async () => {
+  await withFixture(
+    async ({ home, workspace, globalConfig, globalLocalConfig }) => {
+      await writeFile(
+        globalConfig,
+        [
+          "sources:",
+          "  shared:",
+          "    description: Global description.",
+          "    instructions: Global instructions.",
+        ].join("\n"),
+      );
+      await writeFile(
+        globalLocalConfig,
+        [
+          "sources:",
+          "  shared:",
+          "    instructions: Global local instructions.",
+        ].join("\n"),
+      );
+      const catalog = await loadCatalog({ cwd: workspace, homeDirectory: home });
+      const source = catalog.sources.get("shared");
+      assert.ok(source);
+      assert.equal(source.scope, "global");
+      assert.equal(source.configPath, globalConfig);
+      assert.equal(
+        await readInstructions(source),
+        "Global instructions.\nGlobal local instructions.",
+      );
+    },
+  );
+});
+
+test("composes project instructions with the project local layer appended", async () => {
+  await withFixture(
+    async ({ workspace, projectConfig, projectLocalConfig }) => {
+      await writeFile(
+        projectConfig,
+        [
+          "sources:",
+          "  shared:",
+          "    description: Project description.",
+          "    instructions: Project instructions.",
+        ].join("\n"),
+      );
+      await writeFile(
+        projectLocalConfig,
+        [
+          "sources:",
+          "  shared:",
+          "    instructions: Project local instructions.",
+        ].join("\n"),
+      );
+      const catalog = await loadCatalog({
+        cwd: workspace,
+        globalConfigPath: path.join(workspace, "missing.yml"),
+      });
+      const source = catalog.sources.get("shared");
+      assert.ok(source);
+      assert.equal(source.scope, "project");
+      assert.equal(source.configPath, projectConfig);
+      assert.equal(
+        await readInstructions(source),
+        "Project instructions.\nProject local instructions.",
+      );
+    },
+  );
+});
+
+test("lets project instructions replace global and global local instructions", async () => {
+  await withFixture(
+    async ({ home, workspace, globalConfig, globalLocalConfig, projectConfig }) => {
+      await writeFile(
+        globalConfig,
+        [
+          "sources:",
+          "  shared:",
+          "    description: Global description.",
+          "    instructions: Global instructions.",
+        ].join("\n"),
+      );
+      await writeFile(
+        globalLocalConfig,
+        [
+          "sources:",
+          "  shared:",
+          "    instructions: Global local instructions.",
+        ].join("\n"),
+      );
+      await writeFile(
+        projectConfig,
+        [
+          "sources:",
+          "  shared:",
+          "    description: Project description.",
+          "    instructions: Project instructions.",
+        ].join("\n"),
+      );
+      const catalog = await loadCatalog({ cwd: workspace, homeDirectory: home });
+      const source = catalog.sources.get("shared");
+      assert.ok(source);
+      assert.equal(source.scope, "project");
+      assert.equal(source.configPath, projectConfig);
+      assert.equal(await readInstructions(source), "Project instructions.");
+    },
+  );
+});
+
+test("inherits global composed instructions when the project defines no instructions", async () => {
+  await withFixture(
+    async ({ home, workspace, globalConfig, globalLocalConfig, projectConfig }) => {
+      await writeFile(
+        globalConfig,
+        [
+          "sources:",
+          "  shared:",
+          "    description: Global description.",
+          "    instructions: Global instructions.",
+        ].join("\n"),
+      );
+      await writeFile(
+        globalLocalConfig,
+        [
+          "sources:",
+          "  shared:",
+          "    instructions: Global local instructions.",
+        ].join("\n"),
+      );
+      await writeFile(
+        projectConfig,
+        [
+          "sources:",
+          "  shared:",
+          "    description: Project description.",
+        ].join("\n"),
+      );
+      const catalog = await loadCatalog({ cwd: workspace, homeDirectory: home });
+      const source = catalog.sources.get("shared");
+      assert.ok(source);
+      assert.equal(source.description, "Project description.");
+      assert.equal(source.scope, "global");
+      assert.equal(source.configPath, globalConfig);
+      assert.equal(
+        await readInstructions(source),
+        "Global instructions.\nGlobal local instructions.",
+      );
+    },
+  );
+});
+
+test("accepts instruction block lists and rejects empty or blank entries", async () => {
+  await withFixture(async ({ workspace, projectConfig }) => {
+    await writeFile(
+      projectConfig,
+      [
+        "sources:",
+        "  listed:",
+        "    description: Listed source.",
+        "    instructions:",
+        "      - First block.",
+        "      - Second block.",
+        "  empty-list:",
+        "    description: Empty list source.",
+        "    instructions: []",
+        "  blank-entry:",
+        "    description: Blank entry source.",
+        "    instructions:",
+        "      - '   '",
+      ].join("\n"),
+    );
+    const catalog = await loadCatalog({
+      cwd: workspace,
+      globalConfigPath: path.join(workspace, "missing.yml"),
+    });
+    const listed = catalog.sources.get("listed");
+    assert.ok(listed);
+    assert.equal(await readInstructions(listed), "First block.\nSecond block.");
+    assert.equal(catalog.sources.has("empty-list"), false);
+    assert.equal(catalog.sources.has("blank-entry"), false);
+  });
+});
+
+test("reads file blocks inside an instruction list on every call", async () => {
+  await withFixture(
+    async ({ home, workspace, globalConfig, globalLocalConfig }) => {
+      const instructionsFile = path.join(
+        path.dirname(globalConfig),
+        "instructions.md",
+      );
+      await writeFile(instructionsFile, "File block.");
+      await writeFile(
+        globalConfig,
+        [
+          "sources:",
+          "  mixed:",
+          "    description: Mixed source.",
+          "    instructions:",
+          "      file: instructions.md",
+        ].join("\n"),
+      );
+      await writeFile(
+        globalLocalConfig,
+        [
+          "sources:",
+          "  mixed:",
+          "    instructions: Local block.",
+        ].join("\n"),
+      );
+      const catalog = await loadCatalog({ cwd: workspace, homeDirectory: home });
+      const source = catalog.sources.get("mixed");
+      assert.ok(source);
+      assert.equal(
+        await readInstructions(source),
+        "File block.\nLocal block.",
+      );
+      await writeFile(instructionsFile, "Updated file block.");
+      assert.equal(
+        await readInstructions(source),
+        "Updated file block.\nLocal block.",
+      );
+    },
+  );
+});
+
 test("builds the tool descriptions from effective sources", async () => {
   await withFixture(async ({ workspace, projectConfig }) => {
     await writeFile(

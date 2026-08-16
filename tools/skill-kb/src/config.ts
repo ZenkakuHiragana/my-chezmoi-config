@@ -11,10 +11,20 @@ const instructionFileSchema = z
   })
   .strict();
 
+const instructionBlockSchema = z.union([
+  z.string().min(1),
+  instructionFileSchema,
+]);
+
+const rawInstructionsSchema = z.union([
+  instructionBlockSchema,
+  z.array(instructionBlockSchema).min(1),
+]);
+
 const rawSourceSchema = z
   .object({
     description: z.string().min(1).optional(),
-    instructions: z.union([z.string().min(1), instructionFileSchema]).optional(),
+    instructions: rawInstructionsSchema.optional(),
     query_module: z.string().min(1).optional(),
     query_options: z.record(z.string(), z.unknown()).optional(),
   })
@@ -26,7 +36,8 @@ const rawDocumentSchema = z
   })
   .strict();
 
-type RawInstructions = string | { file: string };
+type InstructionBlock = string | { file: string };
+type RawInstructions = InstructionBlock | InstructionBlock[];
 type RawSource = {
   description?: string | undefined;
   instructions?: RawInstructions | undefined;
@@ -40,7 +51,6 @@ type RawSourceEntry = {
 
 type SourceFieldName =
   | "description"
-  | "instructions"
   | "query_module"
   | "query_options";
 
@@ -55,6 +65,7 @@ export type FileInstructions = {
   kind: "file";
   declaredPath: string;
   scopeRoot: string;
+  configPath: string;
 };
 
 export type QueryFunction = (
@@ -71,7 +82,7 @@ export type QueryModule = {
 export type KnowledgeSource = {
   name: string;
   description: string;
-  instructions: InlineInstructions | FileInstructions;
+  instructions: Array<InlineInstructions | FileInstructions>;
   queryModule?: QueryModule;
   scope: SourceScope;
   configPath: string;
@@ -98,12 +109,17 @@ type SourceOrigin = {
   scopeRoot: string;
 };
 
+type InstructionBlockSource = {
+  block: InstructionBlock;
+  origin: SourceOrigin;
+};
+
 type MergedSource = {
   name: string;
   description?: string | undefined;
-  instructions?: RawInstructions | undefined;
   query_module?: string | undefined;
   query_options?: Record<string, unknown> | undefined;
+  instructionBlocks: InstructionBlockSource[];
   origins: Partial<Record<SourceFieldName, SourceOrigin>>;
 };
 
@@ -311,15 +327,21 @@ function mergeEntry(
 ): void {
   const current =
     mergedSources.get(name) ??
-    ({ name, origins: {} } satisfies MergedSource);
+    ({ name, origins: {}, instructionBlocks: [] } satisfies MergedSource);
 
   if (Object.hasOwn(entry, "description")) {
     current.description = entry.description;
     current.origins.description = origin;
   }
-  if (Object.hasOwn(entry, "instructions")) {
-    current.instructions = entry.instructions;
-    current.origins.instructions = origin;
+  if (
+    Object.hasOwn(entry, "instructions") &&
+    entry.instructions !== undefined
+  ) {
+    const raw = entry.instructions;
+    const blocks = Array.isArray(raw) ? raw : [raw];
+    current.instructionBlocks.push(
+      ...blocks.map((block) => ({ block, origin })),
+    );
   }
   if (Object.hasOwn(entry, "query_module")) {
     current.query_module = entry.query_module;
@@ -349,30 +371,41 @@ async function resolveEffectiveSource(
     throw new ConfigurationError("Source description must not be blank");
   }
 
-  const rawInstructions = merged.instructions;
-  const instructionsOrigin = merged.origins.instructions;
-  if (rawInstructions === undefined || instructionsOrigin === undefined) {
+  if (merged.instructionBlocks.length === 0) {
     throw new ConfigurationError("Source instructions must be configured");
   }
 
-  let instructions: InlineInstructions | FileInstructions;
-  if (typeof rawInstructions === "string") {
-    if (!isNonBlank(rawInstructions)) {
-      throw new ConfigurationError("Source instructions must not be blank");
+  const projectBlocks = merged.instructionBlocks.filter(
+    (entry) => entry.origin.scope === "project",
+  );
+  const effectiveBlocks =
+    projectBlocks.length > 0 ? projectBlocks : merged.instructionBlocks;
+  const firstBlock = effectiveBlocks[0];
+  if (firstBlock === undefined) {
+    throw new ConfigurationError("Source instructions must be configured");
+  }
+
+  const instructions: Array<InlineInstructions | FileInstructions> = [];
+  for (const { block, origin } of effectiveBlocks) {
+    if (typeof block === "string") {
+      if (!isNonBlank(block)) {
+        throw new ConfigurationError("Source instructions must not be blank");
+      }
+      instructions.push({ kind: "inline", text: block });
+    } else {
+      await resolveDeclaredFile(
+        block.file,
+        origin.configPath,
+        origin.scopeRoot,
+        "instructions.file",
+      );
+      instructions.push({
+        kind: "file",
+        declaredPath: block.file,
+        scopeRoot: origin.scopeRoot,
+        configPath: origin.configPath,
+      });
     }
-    instructions = { kind: "inline", text: rawInstructions };
-  } else {
-    await resolveDeclaredFile(
-      rawInstructions.file,
-      instructionsOrigin.configPath,
-      instructionsOrigin.scopeRoot,
-      "instructions.file",
-    );
-    instructions = {
-      kind: "file",
-      declaredPath: rawInstructions.file,
-      scopeRoot: instructionsOrigin.scopeRoot,
-    };
   }
 
   if (
@@ -427,8 +460,8 @@ async function resolveEffectiveSource(
     description,
     instructions,
     ...(queryModule === undefined ? {} : { queryModule }),
-    scope: instructionsOrigin.scope,
-    configPath: instructionsOrigin.configPath,
+    scope: firstBlock.origin.scope,
+    configPath: firstBlock.origin.configPath,
   };
 }
 
@@ -520,22 +553,26 @@ export async function loadCatalog(
 export async function readInstructions(
   source: KnowledgeSource,
 ): Promise<string> {
-  if (source.instructions.kind === "inline") {
-    return source.instructions.text;
+  const texts: string[] = [];
+  for (const block of source.instructions) {
+    if (block.kind === "inline") {
+      texts.push(block.text);
+    } else {
+      try {
+        const currentPath = await resolveDeclaredFile(
+          block.declaredPath,
+          block.configPath,
+          block.scopeRoot,
+          "instructions.file",
+        );
+        texts.push(await readFile(currentPath, "utf8"));
+      } catch (error) {
+        throw new ConfigurationError(
+          `Cannot read instructions for ${source.name}: ${block.declaredPath}`,
+          { cause: error },
+        );
+      }
+    }
   }
-
-  try {
-    const currentPath = await resolveDeclaredFile(
-      source.instructions.declaredPath,
-      source.configPath,
-      source.instructions.scopeRoot,
-      "instructions.file",
-    );
-    return await readFile(currentPath, "utf8");
-  } catch (error) {
-    throw new ConfigurationError(
-      `Cannot read instructions for ${source.name}: ${source.instructions.declaredPath}`,
-      { cause: error },
-    );
-  }
+  return texts.length === 1 ? (texts[0] ?? "") : texts.join("\n");
 }
