@@ -19,6 +19,7 @@
     "npm:pi-hashline-edit",
     "npm:pi-mcp-adapter",
     "npm:pi-tool-display",
+    "npm:pi-omplike-advisor",
     "git:github.com/ZenkakuHiragana/pi-compact-transcript@local/both-fixes",
     {
       "source": "git:github.com/rytswd/pi-agent-extensions",
