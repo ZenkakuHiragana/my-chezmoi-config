@@ -5,7 +5,7 @@
 登録されているか、参照先の実体が存在するかを検査し、結果を有限リストで出す。
 
 出力:
-  1. unaccounted: 制御面で参照されるが allowlist に無い識別子。
+  1. unaccounted: 制御面で参照されるが、allowlist・実体名・定義帯のいずれにも無い識別子。
   2. dangling-routing: スキル名の形で参照されるのに実体名や宣言値が見つからない識別子。
   3. dead-allowlist: allowlist にあるが corpus で使われない制御語彙。
   4. obligation-audit: 曖昧/ヘッジ義務表現の監査リスト。終了コードに影響しない。
@@ -44,7 +44,7 @@ CONTROL_SURFACE_GLOBS = [
 ]
 
 # 診断用の定義母集団 (control surface に加えてドメイン content も含む)。
-# ここから収穫した語は、control surface の語彙許可元にはしない。
+# ここから収穫した語は制御面の語彙許可元に含める（定義済みの語は allowlist への登録を要しない）。
 DEFINITION_GLOBS = CONTROL_SURFACE_GLOBS + [
     "dot_agents/skills/*/references/*.md",
     "dot_agents/skills/*/concerns/*.md",
@@ -271,10 +271,10 @@ def main() -> int:
     surface_refs = collect_refs(repo, surface_files)
     dead_refs = collect_refs(repo, dead_ref_files)
 
-    # 1. unaccounted: 識別子の形なのに allowlist に無い参照。
+    # 1. unaccounted: allowlist・実体名・定義帯のいずれにも無い参照。
     unaccounted: dict[str, list[str]] = {}
     for tok, locs in surface_refs.items():
-        if tok in allowlist:
+        if tok in allowlist or tok in entities or tok in harvested_definitions:
             continue
         if not is_identifier(tok):
             continue

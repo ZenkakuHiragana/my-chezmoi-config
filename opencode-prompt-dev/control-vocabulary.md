@@ -37,7 +37,7 @@
 ### 外部コードと一致する語（英語維持）
 
 - 検査ID: `RR-CONTRACT-1`（`RR-OBL-<連番>` も同形式で英語維持）
-- ツール名とパラメータ: `glob` / `grep` / `webfetch` / `write` / `read` / `task` / `pattern` / `path`
+- ツール名とパラメータ: `glob` / `grep` / `webfetch` / `write` / `read` / `task` / `pattern` / `path` / `ast-grep`
 - 設定キーとスキーマフィールド: `status` / `name` / `agent`
 - 基本: `description` / `chezmoi source-path`
 

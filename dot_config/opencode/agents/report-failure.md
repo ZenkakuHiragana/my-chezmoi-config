@@ -155,7 +155,7 @@ GitHub リポジトリが関係する場合は現行コミット SHA を記録�
 - `current_system_sha`: 最新プロンプトシステム SHA または `unknown`
 - `current_coverage`: `active_gap` | `covered_but_unvalidated` | `likely_addressed` | `obsolete_context` | `unknown`
 - `coverage_evidence`: 現行プロンプトの正確な根拠、または不足根拠
-- `regression_needed`: `true` | `false`
+- `regression_needed`: true | false
 
 対応範囲の意味:
 

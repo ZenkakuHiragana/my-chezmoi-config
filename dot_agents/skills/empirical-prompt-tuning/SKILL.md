@@ -95,7 +95,7 @@ description: プロンプト、スキル、コマンド、またはエージェ�
 ```json
 {
   "requirement_id": "R3",
-  "judgment": "pass | partial | fail",
+  "judgment": "合格 | 部分 | 不合格",
   "evidence": "成果物または採用可能な根拠",
   "missing": "不足しているもの",
   "confidence": "high | medium | low"
@@ -109,7 +109,7 @@ description: プロンプト、スキル、コマンド、またはエージェ�
 合格率:
 
 - `合格` = 1
-- `partial` = 0.5
+- 部分 = 0.5
 - `不合格` = 0
 
 ## 比較
