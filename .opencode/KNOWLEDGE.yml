@@ -1,5 +1,5 @@
 sources:
-  - name: prompt-governance
+  prompt-governance:
     description: >
       プロンプト運用の規則と手順を含む。プロンプトの書き方、義務語彙、英語維持語彙、リファクタリング手順、
       削除（sunset）手順、要件レビュー規律、事例→fixture 化手順を調べるときに使う。
@@ -10,7 +10,7 @@ sources:
       2. 事例からフィクスチャを作る問いでは `.opencode/skills/episode-to-fixture/SKILL.md` を読む。
       3. 問いに関連する候補を Grep で絞り、Read で該当する節を確認する。
 
-  - name: problem-analysis
+  problem-analysis:
     description: >
       プロンプト運用の基礎分析である調査報告を含む。根本課題の見取り図、根拠収集・知識検索の設計、
       コンテキスト管理、信頼崩壊の分析、意図引き出し規律を調べるときに使う。

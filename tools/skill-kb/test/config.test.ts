@@ -327,6 +327,33 @@ test("excludes query_options without a query module", async () => {
   });
 });
 
+test("rejects source map keys with surrounding whitespace", async () => {
+  await withFixture(async ({ workspace, projectConfig }) => {
+    await writeFile(
+      projectConfig,
+      [
+        "sources:",
+        "  \" padded \" :",
+        "    description: Padded source.",
+        "    instructions: Padded instructions.",
+        "  valid:",
+        "    description: Valid source.",
+        "    instructions: Valid instructions.",
+      ].join("\n"),
+    );
+    const catalog = await loadCatalog({
+      cwd: workspace,
+      globalConfigPath: path.join(workspace, "missing.yml"),
+    });
+    assert.equal(catalog.sources.has(" padded "), false);
+    assert.equal(catalog.sources.has("valid"), true);
+    assert.match(
+      catalog.diagnostics.join("\n"),
+      /padded.*leading or trailing whitespace/s,
+    );
+  });
+});
+
 test("invalidates a lower-precedence source when a later entry is invalid", async () => {
   await withFixture(async ({ home, workspace, globalConfig, projectLocalConfig }) => {
     await writeFile(

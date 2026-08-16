@@ -19,11 +19,11 @@
 
 新しい情報源は、作業ワークスペースによらず使うならグローバル設定へ、そのプロジェクトだけで使うならプロジェクト設定へ登録する。
 
-既存の情報源を変更または削除するときは、`get_source` の返却値にある `scope` と `config_path` を確認し、`config_path` の設定を編集する。フィールド単位の上書き後も、`config_path` と `scope` は有効な `instructions` の宣言元を示す。
+既存の情報源を変更または削除するとき、`get_source` の `config_path` は有効な `instructions` の宣言元を確認するときだけ使う。フィールド単位の上書き後は、他のフィールドが別の設定ファイルで宣言されている場合がある。
 
 ## スキーマ
 
-各設定ファイルの `sources` は、source 名をキーとする写像である。値は任意の `description`、`instructions`、`query_module`、`query_options` を持つ source entry である。source entry に `name` を書かない。未知のキーは、その source entry を不成立にする。`query_options` は `query_module` と共に指定し、単独では指定しない。
+各設定ファイルの `sources` は、source 名をキーとする写像である。値は任意の `description`、`instructions`、`query_module`、`query_options` を持つ source entry である。source entry に `name` を書かない。未知のキーは、その source entry を不成立にする。`query_options` は、全設定源を合成した後の情報源に `query_module` が存在する場合だけ有効になる。local 設定では、下位の設定から `query_module` を継承して `query_options` だけを上書きできる。
 
 `description` と `instructions` は、全ての設定源を上書きした後に必須である。local 設定で一方だけを変更するときは、source 名のキーと変更するフィールドだけを書く。
 
@@ -169,5 +169,5 @@ export async function query(
 - `instructions.file` の本文にも同じ規則を適用したか。
 - local 設定には環境依存の値だけを置き、同じ source 名キーの意図しないフィールドを上書きしていないか。
 - `query_module` がある場合、named export `query` の契約を満たすモジュールになっているか。
-- 既存情報源を変更または削除する場合、`get_source` の `config_path` を使ったか。
+- 既存情報源を変更または削除する場合、`get_source` の `config_path` を `instructions` の宣言元確認にだけ使ったか。
 - その変更は MCP サーバーの再起動が必要か。

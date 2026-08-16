@@ -74,6 +74,14 @@ test("stays alive and writes nothing to stdout when no configuration exists", as
     );
     assert.equal(result.exited, false);
     assert.equal(result.stdout, "");
+    for (const checkedPath of [
+      path.join(root, "missing.yml"),
+      path.join(root, "KNOWLEDGE.local.yml"),
+      path.join(workspace, ".opencode", "KNOWLEDGE.yml"),
+      path.join(workspace, ".opencode", "KNOWLEDGE.local.yml"),
+    ]) {
+      assert.equal(result.stderr.includes(checkedPath), true);
+    }
   } finally {
     await rm(root, { recursive: true, force: true });
   }

@@ -1,3 +1,4 @@
+import path from "node:path";
 import { StdioServerTransport } from "@modelcontextprotocol/sdk/server/stdio.js";
 import { loadCatalog } from "./config.js";
 import { buildServerInstructions } from "./guides.js";
@@ -12,8 +13,20 @@ async function main(): Promise<void> {
     console.error(`[skill-kb] ${diagnostic}`);
   }
   if (catalog.sources.size === 0) {
+    const checkedPaths = [
+      catalog.globalConfigPath,
+      path.join(
+        path.dirname(catalog.globalConfigPath),
+        "KNOWLEDGE.local.yml",
+      ),
+      catalog.projectConfigPath,
+      path.join(
+        path.dirname(catalog.projectConfigPath),
+        "KNOWLEDGE.local.yml",
+      ),
+    ];
     console.error(
-      `[skill-kb] No knowledge source is configured, so no tool is published. Checked ${catalog.globalConfigPath} and ${catalog.projectConfigPath}`,
+      `[skill-kb] No knowledge source is configured, so no tool is published. Checked ${checkedPaths.join(", ")}`,
     );
   }
   const server = createServer(catalog, await buildServerInstructions());

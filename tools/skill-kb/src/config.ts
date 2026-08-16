@@ -272,6 +272,17 @@ async function loadLayer(
       );
       continue;
     }
+    if (name !== name.trim()) {
+      invalidNames.add(name);
+      diagnostics.push(
+        formatSourceDiagnostic(
+          layer.configPath,
+          name,
+          "Source name must not have leading or trailing whitespace",
+        ),
+      );
+      continue;
+    }
 
     const parsedEntry = rawSourceSchema.safeParse(rawEntry);
     if (!parsedEntry.success) {
