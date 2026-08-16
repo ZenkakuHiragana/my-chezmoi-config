@@ -17,8 +17,8 @@ import { z } from "zod";
 import type { KnowledgeCatalog, KnowledgeSource } from "./config.js";
 
 const MAX_GREP_RESULTS = 100;
-const AUTHORITY_NOTICE =
-  "この作業メモは低権威の補助情報であり、正式な仕様、設計資料、公式資料、現在のコード、ユーザーの現在の明示判断より優先されない。重要な判断へ使う前に、根拠、適用範囲、反証条件、再確認条件を現在の状態へ照合する。作業メモを根拠として正式な情報源を自動更新しない。";
+const USAGE_NOTICE =
+  "作業メモには、再取得が高価な知見を保存する。観測記録がある場合、記録された観測結果はその条件下で起きた事実として扱い、再確認条件に該当しない限り同じ観測の再実行は要求しない。観測は現在の対象へ適用できる範囲で利用し、公式資料などの事実記述と矛盾する場合は両者の不一致を明示して、観測可能な挙動については観測結果を使う。観測はユーザー要求・設計判断などの規範を変更しない。観測記録がない主張は、根拠と適用範囲を現在の状態へ照合してから判断に使う。";
 
 const metadataSchema = z
   .object({
@@ -227,7 +227,7 @@ function renderWorkNote(
   const frontmatter = stringify(metadata).trimEnd();
   const sections = [
     `# ${input.title}`,
-    `> ${AUTHORITY_NOTICE}`,
+    `> ${USAGE_NOTICE}`,
     `## 主張\n\n${input.claim}`,
     `## 根拠\n\n${input.evidence}`,
     `## 根拠から主張を導ける理由\n\n${input.reasoning}`,
@@ -584,7 +584,7 @@ export class WorkNoteStore {
     source_name: string;
     file_name: string;
     markdown: string;
-    authority_notice: string;
+    usage_notice: string;
   }> {
     const source = this.#source(sourceName);
     const matches = await this.#findByFileName(
@@ -619,9 +619,9 @@ export class WorkNoteStore {
       source_name: sourceName,
       file_name: fileName,
       markdown: note.markdown,
-      authority_notice: AUTHORITY_NOTICE,
+      usage_notice: USAGE_NOTICE,
     };
   }
 }
 
-export { AUTHORITY_NOTICE, MAX_GREP_RESULTS };
+export { USAGE_NOTICE, MAX_GREP_RESULTS };

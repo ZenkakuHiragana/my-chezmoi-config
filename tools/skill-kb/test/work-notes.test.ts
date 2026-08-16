@@ -147,7 +147,7 @@ test("generates the required Markdown and omits empty observation sections", asy
     assert.match(plain, /## この適用範囲とした理由/);
     assert.match(plain, /## 反証条件/);
     assert.match(plain, /## 再確認条件/);
-    assert.match(plain, /低権威の補助情報/);
+    assert.match(plain, /再取得が高価な知見/);
     assert.doesNotMatch(plain, /## 観測・再現情報/);
 
     await store.create({
@@ -249,7 +249,7 @@ test("reads the full note only through a corresponding source", async () => {
     const result = await store.read("global-docs", "mixed.md");
     assert.match(result.markdown, /^---/);
     assert.match(result.markdown, /## 再確認条件/);
-    assert.match(result.authority_notice, /現在の状態へ照合/);
+    assert.match(result.usage_notice, /現在の状態へ照合/);
     await assert.rejects(
       store.read("shared", "mixed.md"),
       /does not exist for knowledge source/,
