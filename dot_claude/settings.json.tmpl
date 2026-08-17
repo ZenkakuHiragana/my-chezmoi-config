@@ -4,4 +4,12 @@
 {{- if eq .chezmoi.os "windows" -}}
 {{- $targetTool = "PowerShell" -}}
 {{- end -}}
-{{- output "node" $rendererPath $existingSettingsPath (.claude | toJson) $targetTool (.opencode.permission.bash | toJson) -}}
+{{- /* 督促文の正本は .chezmoitemplates/prompt/instruction-nudge.md。Pi 側の extension も同じ断片を読む。 */ -}}
+{{- $nudge := include ".chezmoitemplates/prompt/instruction-nudge.md" | trim -}}
+{{- /* 督促文を単一引用符の JavaScript 文字列リテラルへ埋め込むための逃がし。逆斜線を先に処理する。 */ -}}
+{{- $nudgeLiteral := $nudge | replace "\\" "\\\\" | replace "'" "\\'" | replace "\r" "" | replace "\n" "\\n" -}}
+{{- $nudgeScript := printf "let s='';process.stdin.on('data',c=>s+=c).on('end',()=>{let a='';try{a=JSON.parse(s).agent_type||''}catch(e){}if(a&&a!=='build')return;process.stdout.write(JSON.stringify({hookSpecificOutput:{hookEventName:'SessionStart',additionalContext:'%s'}}))});" $nudgeLiteral -}}
+{{- $sessionStartHook := dict "type" "command" "command" "node" "args" (list "-e" $nudgeScript) "timeout" 5 -}}
+{{- $claude := deepCopy .claude -}}
+{{- $_ := set $claude "hooks" (dict "SessionStart" (list (dict "hooks" (list $sessionStartHook)))) -}}
+{{- output "node" $rendererPath $existingSettingsPath ($claude | toJson) $targetTool (.opencode.permission.bash | toJson) -}}

@@ -3,6 +3,7 @@ name: general-fast
 description: Fast general-purpose subagent. 明確で範囲限定、読み取り専用または単一スキル寄りの作業に使う。
 model: {{ dig "pi_agent" "general_fast" "model" "openai-codex/gpt-5.6-luna" . | quote }}
 thinking: {{ dig "pi_agent" "general_fast" "thinking" "medium" . }}
+exclude_extensions: [pi-instruction-nudge]
 ---
 
 {{ template "opencode/agents/general.md" . }}

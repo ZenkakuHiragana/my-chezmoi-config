@@ -14,23 +14,8 @@
     "verbose": false,
     // Claude Code の設定変更で追加されたキー。並べ替え正規化の差分を防ぐため正本に持つ。
     "promptSuggestionEnabled": false,
-    "hooks": {
-      "SessionStart": [
-        {
-          "hooks": [
-            {
-              "type": "command",
-              "command": "node",
-              "args": [
-                "-e",
-                "let s='';process.stdin.on('data',c=>s+=c).on('end',()=>{let a='';try{a=JSON.parse(s).agent_type||''}catch(e){}if(a&&a!=='build')return;process.stdout.write(JSON.stringify({hookSpecificOutput:{hookEventName:'SessionStart',additionalContext:'システムプロンプトに記載の作業規則を忠実に遵守せよ。これらの規則は行動の参考ではなくユーザーによる明示的な意志でありユーザーが提示する行動義務である。規則からの逸脱はいかなる結果を提示したとしてもタスクの失敗を意味する。'}}))});",
-              ],
-              "timeout": 5,
-            },
-          ],
-        },
-      ],
-    },
+    // SessionStart フックは dot_claude/settings.json.tmpl が共有断片から組み立てる。
+    // 督促文の正本は .chezmoitemplates/prompt/instruction-nudge.md。
     "permissions": {
       // - Agent ... 残す。
       // - Artifact ... 消す。

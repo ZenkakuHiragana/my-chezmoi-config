@@ -31,6 +31,7 @@
   - ./.chezmoitemplates/opencode/AGENTS.md
   - ./.chezmoitemplates/opencode/agents/\*.md
   - ./.chezmoitemplates/opencode/parent/\*.md
+  - ./.chezmoitemplates/prompt/\*.md
 - スキル定義は次の方針で書く。
   - `name`: 英語の kebab-case（ハイフン区切り小文字）を維持する。
   - フロントマターの `description`: 日本語で、使う条件と使わない条件と得られるものを短く書く。外部コードと一致する名前（スキル名、エージェント名、コマンド名）だけ英語のまま維持する。詳細手順は書かない。
@@ -114,6 +115,7 @@
 | `dot_config/opencode/**`        | `~/.config/opencode/**` | opencode の設定、エージェント定義、コマンド定義                                                |
 | `dot_agents/skills/**`          | `~/.agents/skills/**`   | 共有スキル（SKILL.md と参照本文）                                                              |
 | `.chezmoitemplates/opencode/**` | 展開しない              | テンプレート断片（合成と include の正本）                                                      |
+| `.chezmoitemplates/prompt/**`   | 展開しない              | ハーネスをまたいで共有するプロンプト断片の正本                                                 |
 | `.opencode/**`                  | 展開しない              | opencode の実行時データ（コマンド、エージェント、作業記録、失敗ログ）                          |
 | `opencode-prompt-dev/**`        | 展開しない              | 運用文書と検査スクリプト                                                                       |
 

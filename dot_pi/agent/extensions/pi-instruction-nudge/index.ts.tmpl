@@ -1,0 +1,46 @@
+import type {
+  ExtensionAPI,
+  ExtensionContext,
+} from "@earendil-works/pi-coding-agent";
+
+// 督促文の本体は共有断片から chezmoi が展開時に埋め込む。ここでは編集しない。
+const NUDGE_TEXT = {{ include ".chezmoitemplates/prompt/instruction-nudge.md" | trim | toJson }};
+
+/** 会話文脈へ入れる督促メッセージの種別。 */
+const NUDGE_MESSAGE_TYPE = "instruction-nudge";
+/** 注入済みであることをセッションへ残す印の種別。LLM 文脈には入らない。 */
+const NUDGE_MARKER_TYPE = "instruction-nudge-injected";
+/** 注入対象とするモデル識別子の接頭辞。 */
+const TARGET_MODEL_PREFIX = "claude-";
+
+function isTargetModel(model: { readonly id: string } | undefined): boolean {
+  return model !== undefined &&
+    model.id.toLowerCase().startsWith(TARGET_MODEL_PREFIX);
+}
+
+function isInjected(ctx: ExtensionContext): boolean {
+  return ctx.sessionManager
+    .getEntries()
+    .some((entry) => entry.type === "custom" && entry.customType === NUDGE_MARKER_TYPE);
+}
+
+export default function piInstructionNudge(pi: ExtensionAPI): void {
+  // 印はセッションへ残るため、拡張の再読み込みをまたいでも二重注入にならない。
+  const injectOnce = (ctx: ExtensionContext): void => {
+    if (isInjected(ctx)) return;
+    pi.appendEntry(NUDGE_MARKER_TYPE);
+    pi.sendMessage(
+      { customType: NUDGE_MESSAGE_TYPE, content: NUDGE_TEXT, display: false },
+      { deliverAs: "nextTurn" },
+    );
+  };
+
+  pi.on("session_start", (_event, ctx) => {
+    if (isTargetModel(ctx.model)) injectOnce(ctx);
+  });
+
+  // 起動時が対象外モデルで、途中で対象モデルへ切り替えた場合をここで拾う。
+  pi.on("model_select", (event, ctx) => {
+    if (isTargetModel(event.model)) injectOnce(ctx);
+  });
+}
