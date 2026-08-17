@@ -2,6 +2,7 @@
 .chezmoidata/opencode-specific.json
 .chezmoidata/opencode-specific.jsonc
 .chezmoidata/pi-specific.json
+.chezmoidata/pi-specific.jsonc
 .chezmoitemplates/codex/config-specific.toml
 .chezmoitemplates/lazydocker/lazydocker-specific.yml
 .opencode/local-failure-logs/

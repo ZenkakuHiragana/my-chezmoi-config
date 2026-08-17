@@ -1,8 +1,7 @@
 sources:
   prompt-governance:
     description: >
-      プロンプト運用の規則と手順を含む。プロンプトの書き方、義務語彙、英語維持語彙、リファクタリング手順、
-      削除（sunset）手順、要件レビュー規律、事例→fixture 化手順を調べるときに使う。
+      プロンプト運用の規則と手順を含む。プロンプトの書き方、義務語彙、英語維持語彙、リファクタリング手順、事例→fixture 化手順を調べるときに使う。
       事例→fixture 化手順以外の個別スキル定義やエージェント定義、基礎分析の調査報告には使わない。
     instructions: |
       プロンプト運用文書は opencode-prompt-dev/ 直下の .md ファイル群、事例からフィクスチャを作る手順は `.opencode/skills/episode-to-fixture/SKILL.md` が対象。

@@ -24,12 +24,12 @@
     {
       "source": "git:github.com/rytswd/pi-agent-extensions",
       "extensions": [
-        "-direnv\\index.ts",
-        "-fetch\\index.ts",
-        "-notify\\index.ts",
-        "-permission-gate\\index.ts",
-        "-slow-mode\\index.ts",
-        "-statusline\\index.ts"
+        "-direnv/index.ts",
+        "-fetch/index.ts",
+        "-notify/index.ts",
+        "-permission-gate/index.ts",
+        "-slow-mode/index.ts",
+        "-statusline/index.ts"
       ]
     },
     "npm:@cortexkit/pi-magic-context",
