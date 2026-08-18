@@ -52,7 +52,10 @@
           "~/.local/share/chezmoi/.opencode/local-failure-logs/**",
           "~/.config/opencode/KNOWLEDGE.yml",
           "~/.config/opencode/KNOWLEDGE.local.yml",
-          "~/.config/opencode/knowledge-instructions/**"
+          "~/.config/opencode/knowledge-instructions/**",
+          "~/AppData/Local/Temp/opencode/**",
+          "/tmp/opencode/**",
+          "/dev/null"
         ],
         "deny": [],
         "outsideDefault": "deny",
