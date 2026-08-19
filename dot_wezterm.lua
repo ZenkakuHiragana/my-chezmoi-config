@@ -66,6 +66,12 @@ config.keys = {
       title = "Select multiplexer domain",
     }),
   },
+  -- Windows + herdr + Pi で Ctrl-J による改行ができないので、暫定回避
+  {
+    key = "j",
+    mods = "CTRL",
+    action = wezterm.action.SendString("\x0a"),
+  },
 }
 
 if wezterm.target_triple:find("windows") then
