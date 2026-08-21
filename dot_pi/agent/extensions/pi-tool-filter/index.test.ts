@@ -11,7 +11,8 @@
 // - 管理ソースと展開後`index.ts`、テンプレート出力と実行時`config.jsonc`の一致
 // - `read` / `write`の直接判定、allow優先、外部書き込みの既定拒否、`ask`を返さない二値判定
 // - BashのAST、既知ラッパー、`find -exec` / `-execdir`、`find -delete`、`xargs`、shell `-c`の再帰検査
-// - Bashの固定リダイレクトのread / write / read-write分類と、ヒアドキュメント等を対象外にすること
+// - Python / Node.jsのインライン本文（`-c` / `-e`）とheredoc本文の再帰検査、`python -m`、`-EncodedCommand`復号
+// - Bashの固定リダイレクトのread / write / read-write分類と、heredoc本文の言語別検査（データ消費コマンドは対象外）
 // - `cd` / `Set-Location`後の相対パス、存在しないパス、Windowsパス、動的置換値の扱い
 // - PowerShellの固定cmdlet集合、前置きオプション付き`-c` / `-Command`、標準AST縮退経路
 // - 判定中に試験対象のファイルやディレクトリを作らないこと、試験用設定を最後に復元すること
@@ -143,9 +144,13 @@ test("Piフィルターの解析依存は拡張自身から解決される", () 
   assert.deepEqual(runtimePackage, managedPackage, "展開後package.jsonが管理ソースと一致する");
   assert.equal(runtimeLock, managedLock, "展開後package-lock.jsonが管理ソースと一致する");
   assert.equal(managedPackage.dependencies["tree-sitter-bash"], "0.25.1", "tree-sitter-bashを拡張自身が宣言する");
+  assert.equal(managedPackage.dependencies["tree-sitter-python"], "0.25.0", "tree-sitter-pythonを拡張自身が宣言する");
+  assert.equal(managedPackage.dependencies["tree-sitter-javascript"], "0.25.0", "tree-sitter-javascriptを拡張自身が宣言する");
   assert.equal(managedPackage.dependencies["web-tree-sitter"], "0.26.12", "web-tree-sitterを拡張自身が宣言する");
   assert.ok(existsSync(join(extensionDir, "node_modules", "web-tree-sitter")), "拡張自身のweb-tree-sitter依存が存在する");
   assert.ok(existsSync(join(extensionDir, "node_modules", "tree-sitter-bash")), "拡張自身のtree-sitter-bash依存が存在する");
+  assert.ok(existsSync(join(extensionDir, "node_modules", "tree-sitter-python")), "拡張自身のtree-sitter-python依存が存在する");
+  assert.ok(existsSync(join(extensionDir, "node_modules", "tree-sitter-javascript")), "拡張自身のtree-sitter-javascript依存が存在する");
   assert.equal(readFileSync("dot_pi/agent/extensions/pi-tool-filter/index.ts", "utf8").includes("@gotgenes/pi-permission-system"), false, "別拡張を依存解決の起点にしない");
 });
 
@@ -317,13 +322,95 @@ test("Piフィルター v24 のパス役割と実行前判定", async () => {
   }
 });
 
+test("Piフィルター v25 のスクリプト本文検査", async () => {
+  const originalConfig = readFileSync(configPath, "utf8");
+  const baseConfig = readConfig();
+  const outside = join(homedir(), "pi-tool-filter-v25-never-created.txt");
+  const outsideDirectory = join(homedir(), "pi-tool-filter-v25-directory-never-created");
+  const outsideShell = outside.replaceAll("\\", "/");
+  const base64Utf16le = (body: string) => Buffer.from(body, "utf16le").toString("base64");
+  assert.equal(existsSync(outside), false, "試験対象ファイルが事前に存在しない");
+  assert.equal(existsSync(outsideDirectory), false, "試験対象ディレクトリが事前に存在しない");
+
+  const strippedConfig = structuredClone(baseConfig);
+  strippedConfig.bash.deny = [];
+  const gitPushConfig = structuredClone(strippedConfig);
+  gitPushConfig.bash.deny.push("git push *");
+
+  try {
+    let handler = await handlerFor(structuredClone(baseConfig));
+    const encodedBody = "git push";
+    const encodedB64 = base64Utf16le(encodedBody);
+    blocked(await call(handler, "bash", { command: `pwsh -EncodedCommand ${encodedB64}` }), "pwsh -EncodedCommand の既存拒否Glob");
+
+    handler = await handlerFor(structuredClone(gitPushConfig));
+    blocked(await call(handler, "bash", { command: `python -c "import subprocess; subprocess.run(['git','push','--force-with-lease'])"` }), "python -c のリテラルsubprocess");
+    allowed(await call(handler, "bash", { command: `python -c "import subprocess; subprocess.run(['printf','safe'])"` }), "python -c の安全なsubprocess");
+    blocked(await call(handler, "bash", { command: `python -c "import subprocess; origin='feature'; subprocess.run(['git','push',origin])"` }), "python -c の変数がGlobの*に覆われる位置");
+    allowed(await call(handler, "bash", { command: `python -c "import subprocess; prog='git'; subprocess.run([prog,'push'])"` }), "python -c の未証明のプログラム名");
+    blocked(await call(handler, "bash", { command: `python -c "import os; os.system('git push')"` }), "python -c のos.system文字列");
+    blocked(await call(handler, "bash", { command: `node -e "require('child_process').execSync('git push')"` }), "node -e のexecSync");
+    blocked(await call(handler, "bash", { command: `node -e "const { spawn } = require('child_process'); spawn('git', ['push'], { stdio: 'inherit' })"` }), "node -e のspawn argv");
+    allowed(await call(handler, "bash", { command: `node -e "console.log('safe')"` }), "node -e の安全な本文");
+
+    blocked(await call(handler, "bash", { command: `python - <<'PY'\nsubprocess.run(['git','push'])\nPY` }), "python heredoc クォート付き");
+    blocked(await call(handler, "bash", { command: `python3 - <<PY\nimport os\nos.system("git push")\nPY` }), "python heredoc 展開文字なしのクォート無し");
+    allowed(await call(handler, "bash", { command: `python3 - <<PY\nimport subprocess\nsubprocess.run([prog, 'push'])\nPY` }), "python heredoc 未証明の本文");
+    allowed(await call(handler, "bash", { command: `python - <<PY\ndo $x\nPY` }), "python heredoc 展開文字のあるクォート無し");
+    blocked(await call(handler, "bash", { command: `bash <<'EOF'\ngit push origin main\nEOF` }), "bash heredoc 本文の再帰検査");
+    blocked(await call(handler, "bash", { command: `node - <<'JS'\nrequire('child_process').execSync('git push');\nJS` }), "node heredoc 本文");
+    allowed(await call(handler, "bash", { command: `cat <<EOF\nsafe\nEOF` }), "データ消費コマンドのheredocは対象外");
+
+    blocked(await call(handler, "bash", { command: `python -c "import subprocess; subprocess.run(['touch','relative-never-created'], cwd='../../../../')"` }), "python subprocess cwdでの外部write");
+
+    const forkConfig = structuredClone(strippedConfig);
+    forkConfig.bash.deny.push("node child.js git push *");
+    handler = await handlerFor(forkConfig);
+    blocked(await call(handler, "bash", { command: `node -e "require('child_process').fork('child.js', ['git','push'])"` }), "node -e のfork argv");
+
+    const pipConfig = structuredClone(strippedConfig);
+    pipConfig.bash.deny.push("pip install *");
+    handler = await handlerFor(pipConfig);
+    blocked(await call(handler, "bash", { command: "python -m pip install requests" }), "python -m のモジュール先頭検査");
+    blocked(await call(handler, "bash", { command: "python3 -m pip install --upgrade pip" }), "python3 -m のモジュール先頭検査");
+    allowed(await call(handler, "bash", { command: "python -m http.server 8000" }), "python -m の検査対象外モジュール");
+
+    handler = await handlerFor(structuredClone(strippedConfig));
+    allowed(await call(handler, "bash", { command: "python -m pip install requests" }), "pip拒否の無い設定では許可");
+
+    const spaceConfig = structuredClone(strippedConfig);
+    spaceConfig.bash.deny.push("git commit -m fix bug");
+    handler = await handlerFor(spaceConfig);
+    allowed(await call(handler, "bash", { command: `python -c "import subprocess; subprocess.run(['git','commit','-m','fix bug'])"` }), "スペースを含む要素は任意一致になり正確Globに一致しない");
+    const spaceAnyConfig = structuredClone(strippedConfig);
+    spaceAnyConfig.bash.deny.push("git commit -m *");
+    handler = await handlerFor(spaceAnyConfig);
+    blocked(await call(handler, "bash", { command: `python -c "import subprocess; subprocess.run(['git','commit','-m','fix bug'])"` }), "スペースを含む要素は任意一致でGlobに一致");
+
+    const encConfig = structuredClone(strippedConfig);
+    encConfig.bash.deny.push("git push *");
+    handler = await handlerFor(encConfig);
+    const encodedResult = await call(handler, "bash", { command: `pwsh -EncodedCommand ${encodedB64}` });
+    blocked(encodedResult, "pwsh -EncodedCommand の復号後の本文拒否");
+    const commandResult = await call(handler, "bash", { command: `pwsh -Command "${encodedBody}"` });
+    blocked(commandResult, "pwsh -Command 経由の拒否");
+    assert.equal(encodedResult?.reason, commandResult?.reason, "-EncodedCommand は -Command と同じ理由を返す");
+
+    assert.equal(existsSync(outside), false, "拒否・判定中に外部試験対象を作成しない");
+    assert.equal(existsSync(outsideDirectory), false, "拒否・判定中に外部試験対象ディレクトリを作成しない");
+  } finally {
+    writeFileSync(configPath, originalConfig);
+    assert.equal(readFileSync(configPath, "utf8"), originalConfig, "設定を元の内容へ復元できる");
+  }
+});
+
 test("bash 拒否 reason は一致 Glob と作用禁止の意味論を含む", async () => {
   const originalConfig = readFileSync(configPath, "utf8");
   try {
     const handler = await handlerFor(readConfig());
-    const result = await call(handler, "bash", { command: "rm pi-tool-filter-deny-reason-never-created.txt" });
-    assert.equal(result?.block, true, "bash rm は拒否される");
-    assert.ok(result?.reason?.includes("rm *"), "拒否理由に一致した Glob を含む");
+    const result = await call(handler, "bash", { command: "git push" });
+    assert.equal(result?.block, true, "bash git push は拒否される");
+    assert.ok(result?.reason?.includes("git push *"), "拒否理由に一致した Glob を含む");
     assert.ok(result?.reason?.includes("認可判断"), "拒否理由に認可判断の意味論を含む");
     assert.ok(result?.reason?.includes("代替経路"), "拒否理由に代替経路の禁止を含む");
   } finally {

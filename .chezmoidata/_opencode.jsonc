@@ -162,7 +162,6 @@
       "bash": {
         "*": "allow",
         // 未知のコマンドは許可し、危険な操作だけ下で拒否・確認する。
-        // これは bash のコマンド文字列照合であり、別の実行経路まで隔離するものではない。
         // git 操作系: ローカル作業（add / commit / merge / pull / rebase /
         // cherry-pick / revert / stash / worktree / submodule）と reset の
         // 非破壊形式（--soft / --mixed）は許可する。

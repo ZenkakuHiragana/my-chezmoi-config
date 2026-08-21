@@ -578,6 +578,16 @@ function checkBashValues(values: readonly string[], config: FilterConfig) {
 
 const BASH_WRAPPER_NAMES = new Set(["sudo", "env", "command", "time", "nohup", "timeout", "nice", "ionice", "exec", "builtin", "doas", "setsid", "stdbuf", "watch", "flock", "parallel", "rust-parallel", "rush"]);
 const BASH_SHELL_NAMES = new Set(["bash", "sh", "dash", "zsh", "ksh"]);
+const PYTHON_NAMES = new Set(["python", "python3", "py"]);
+const NODE_NAMES = new Set(["node", "nodejs"]);
+const POWER_SHELL_NAMES = new Set(["powershell", "powershell.exe", "pwsh", "pwsh.exe"]);
+const SUBPROCESS_CALL_NAMES = new Set(["run", "call", "Popen", "check_call", "check_output"]);
+const OS_COMMAND_NAMES = new Set(["system", "popen", "spawnv", "spawnvp", "spawnl", "spawnlp", "spawnle", "spawnvpe", "execl", "execle", "execlp", "execv", "execve", "execvp", "execvpe"]);
+const NODE_CHILD_PROCESS_NAMES = new Set(["exec", "execSync", "spawn", "spawnSync", "execFile", "execFileSync", "fork"]);
+const NODE_SHELL_STRING_NAMES = new Set(["exec", "execSync"]);
+const NODE_ARGV_NAMES = new Set(["spawn", "spawnSync", "execFile", "execFileSync"]);
+const NODE_FORK_NAME = "fork";
+const HEREDOC_EXPANSION_CHARS = /[$`\\]/;
 const BASH_EXEC_FLAGS = new Set(["-exec", "-execdir"]);
 function optionTakesValue(commandName: string, option: string): boolean {
   const key = option.toLowerCase().split("=", 1)[0];
@@ -724,25 +734,450 @@ function powerShellWorkingDirectory(command: PowerShellCommand, cwd: string): st
 }
 
 
-async function loadBashParser(): Promise<BashParser | null> {
+// ---- スクリプト本文の抽出と復元（python / node / PowerShell -EncodedCommand / heredoc） ----
+
+function extractPythonBody(parts: CommandParts): string | undefined {
+  if (!PYTHON_NAMES.has(commandBasename(parts.name))) return undefined;
+  for (let index = 0; index < parts.args.length; index += 1) {
+    const value = parts.args[index];
+    if (value === "--") return undefined;
+    if (value === "-c") return parts.args[index + 1];
+    const combined = value.match(/^-c([\s\S]+)$/);
+    if (combined) return combined[1];
+  }
+  return undefined;
+}
+
+function extractNodeBody(parts: CommandParts): string | undefined {
+  if (!NODE_NAMES.has(commandBasename(parts.name))) return undefined;
+  for (let index = 0; index < parts.args.length; index += 1) {
+    const value = parts.args[index];
+    if (value === "--") return undefined;
+    if (value === "-e" || value === "--eval" || value === "-p" || value === "--print") return parts.args[index + 1];
+    const combined = value.match(/^(-e|--eval|-p|--print)([\s\S]+)$/);
+    if (combined) return combined[2];
+  }
+  return undefined;
+}
+
+function extractPowerShellEncodedBody(command: string): string | undefined {
+  const match = command.match(/(?:^|[;&|]\s*)["']?(?:powershell|pwsh)(?:\.exe)?["']?(?:\s+(?:"(?:\\.|[^"])*"|'(?:''|[^'])*'|[^\s;&|]+))*\s+-(?:EncodedCommand|enc)\s+([A-Za-z0-9+/=]+)$/i);
+  if (!match) return undefined;
+  const bytes = Buffer.from(match[1], "base64");
+  const utf16 = bytes.toString("utf16le");
+  if (utf16 && Buffer.from(utf16, "utf16le").equals(bytes) && !utf16.includes("\uFFFD")) return utf16;
+  const utf8 = bytes.toString("utf8");
+  if (utf8 && Buffer.from(utf8, "utf8").equals(bytes) && !utf8.includes("\uFFFD")) return utf8;
+  return undefined;
+}
+
+function unescapeCommon(content: string): string | undefined {
+  let result = "";
+  for (let index = 0; index < content.length; index += 1) {
+    const char = content[index];
+    if (char !== "\\") { result += char; continue; }
+    const next = content[index + 1];
+    if (next === undefined) return undefined;
+    const simple: Record<string, string> = { "\\": "\\", "'": "'", '"': '"', n: "\n", r: "\r", t: "\t", b: "\b", f: "\f", v: "\v", a: "\x07", "0": "\0" };
+    if (simple[next] !== undefined) { result += simple[next]; index += 1; continue; }
+    if (next === "x") {
+      const hex = content.slice(index + 2, index + 4);
+      if (/^[0-9a-fA-F]{2}$/.test(hex)) { result += String.fromCharCode(parseInt(hex, 16)); index += 3; continue; }
+      return undefined;
+    }
+    if (next === "u") {
+      const hex = content.slice(index + 2, index + 6);
+      if (/^[0-9a-fA-F]{4}$/.test(hex)) { result += String.fromCharCode(parseInt(hex, 16)); index += 5; continue; }
+      return undefined;
+    }
+    return undefined;
+  }
+  return result;
+}
+
+function pythonStringValue(node: BashNode): string | undefined {
+  const text = node.text;
+  const prefix = text.match(/^[rRuUbBfF]*/)?.[0] ?? "";
+  if (prefix.includes("f") || prefix.includes("F") || prefix.includes("b") || prefix.includes("B")) return undefined;
+  const rest = text.slice(prefix.length);
+  if (rest.length < 2) return undefined;
+  const quote = rest[0];
+  if (quote !== "'" && quote !== '"') return undefined;
+  const triple = rest.startsWith(quote.repeat(3));
+  const close = triple ? rest.lastIndexOf(quote.repeat(3)) : rest.lastIndexOf(quote);
+  if (close < (triple ? 3 : 1)) return undefined;
+  const content = rest.slice(triple ? 3 : 1, close);
+  return prefix.includes("r") || prefix.includes("R") ? content : unescapeCommon(content);
+}
+
+function jsStringValue(node: BashNode): string | undefined {
+  const text = node.text;
+  if (text.length < 2) return undefined;
+  const quote = text[0];
+  if (quote !== '"' && quote !== "'" && quote !== "`") return undefined;
+  if (quote === "`" && text.includes("${")) return undefined;
+  return unescapeCommon(text.slice(1, -1));
+}
+
+// argv 要素を再構成トークンへ変換する。シェルが構文として解釈し得る文字
+// （空白・展開・メタ文字）を含む要素は任意一致 `*` にする。join の単語分割の
+// 曖昧さと、シェル=False で実行されるリテラルが bash 構文として誤解釈される
+// ことを防ぐ。拒否は「値によらず一致が証明できる場合」だけに働く。
+function argvToken(value: string): string {
+  return /[\s$`\\;&|<>()]/.test(value) ? "*" : value;
+}
+
+function concatenatedValue(node: BashNode): string | undefined {
+  let result = "";
+  for (let index = 0; index < node.childCount; index += 1) {
+    const child = node.child(index);
+    if (child?.type !== "string") continue;
+    const value = pythonStringValue(child);
+    if (value === undefined) return undefined;
+    result += value;
+  }
+  return result;
+}
+
+function pythonSequenceTokens(node: BashNode): string[] {
+  const tokens: string[] = [];
+  for (let index = 0; index < node.childCount; index += 1) {
+    const child = node.child(index);
+    if (!child || child.type === "[" || child.type === "]" || child.type === "(" || child.type === ")" || child.type === ",") continue;
+    if (child.type === "string") tokens.push(argvToken(pythonStringValue(child) ?? "*"));
+    else if (child.type === "concatenated_string") tokens.push(argvToken(concatenatedValue(child) ?? "*"));
+    else tokens.push("*");
+  }
+  return tokens;
+}
+
+function pythonSequenceFirstLiteral(node: BashNode): string | undefined {
+  for (let index = 0; index < node.childCount; index += 1) {
+    const child = node.child(index);
+    if (!child || child.type === "[" || child.type === "]" || child.type === "(" || child.type === ")" || child.type === ",") continue;
+    if (child.type === "string") return pythonStringValue(child);
+    if (child.type === "concatenated_string") return concatenatedValue(child);
+    return undefined;
+  }
+  return undefined;
+}
+
+type ScriptCallTarget = { module?: string; name: string };
+function pythonCallTarget(node: BashNode): ScriptCallTarget | undefined {
+  const fnNode = node.childForFieldName?.("function");
+  if (!fnNode) return undefined;
+  if (fnNode.type === "attribute") {
+    const objectNode = fnNode.childForFieldName?.("object");
+    const attrNode = fnNode.childForFieldName?.("attribute");
+    if (!objectNode || !attrNode || objectNode.type !== "identifier") return undefined;
+    const module = objectNode.text.trim();
+    const name = attrNode.text.trim();
+    return (module === "subprocess" && SUBPROCESS_CALL_NAMES.has(name)) || (module === "os" && OS_COMMAND_NAMES.has(name))
+      ? { module, name }
+      : undefined;
+  }
+  if (fnNode.type === "identifier") {
+    const name = fnNode.text.trim();
+    return SUBPROCESS_CALL_NAMES.has(name) ? { name } : undefined;
+  }
+  return undefined;
+}
+
+function nodeCallTarget(node: BashNode): ScriptCallTarget | undefined {
+  const fnNode = node.childForFieldName?.("function");
+  if (!fnNode) return undefined;
+  if (fnNode.type === "identifier") {
+    const name = fnNode.text.trim();
+    return NODE_CHILD_PROCESS_NAMES.has(name) ? { name } : undefined;
+  }
+  if (fnNode.type === "member_expression") {
+    for (let index = 0; index < fnNode.childCount; index += 1) {
+      const child = fnNode.child(index);
+      if (child?.type !== "property_identifier") continue;
+      const name = child.text.trim();
+      return NODE_CHILD_PROCESS_NAMES.has(name) ? { name } : undefined;
+    }
+  }
+  return undefined;
+}
+
+function jsArrayTokens(node: BashNode): string[] {
+  const tokens: string[] = [];
+  for (let index = 0; index < node.childCount; index += 1) {
+    const child = node.child(index);
+    if (!child || child.type === "[" || child.type === "]" || child.type === ",") continue;
+    if (child.type === "string") tokens.push(argvToken(jsStringValue(child) ?? "*"));
+    else if (child.type === "template_string") tokens.push(argvToken(jsStringValue(child) ?? "*"));
+    else tokens.push("*");
+  }
+  return tokens;
+}
+
+function jsStringValueOf(node: BashNode): string | undefined {
+  return node.type === "string" || node.type === "template_string" ? jsStringValue(node) : undefined;
+}
+
+function jsObjectCwd(options: BashNode | undefined, cwd: string): string {
+  if (!options) return cwd;
+  for (let index = 0; index < options.childCount; index += 1) {
+    const child = options.child(index);
+    if (child?.type !== "pair") continue;
+    const key = child.child(0);
+    if (key?.type !== "property_identifier" || key.text.trim() !== "cwd") continue;
+    const value = child.childCount > 2 ? child.child(2) : undefined;
+    const literal = value ? jsStringValueOf(value) : undefined;
+    return literal && isStaticPathValue(literal) ? resolveExistingPath(literal, cwd) : cwd;
+  }
+  return cwd;
+}
+
+function pythonCallKeywords(argsNode: BashNode): Map<string, BashNode> {
+  const keywords = new Map<string, BashNode>();
+  for (let index = 0; index < argsNode.childCount; index += 1) {
+    const child = argsNode.child(index);
+    if (child?.type !== "keyword_argument") continue;
+    const nameNode = child.child(0);
+    const valueNode = child.childCount > 2 ? child.child(2) : undefined;
+    if (nameNode?.type === "identifier" && valueNode) keywords.set(nameNode.text.trim(), valueNode);
+  }
+  return keywords;
+}
+
+function pythonPositionalArgs(argsNode: BashNode): BashNode[] {
+  const items: BashNode[] = [];
+  for (let index = 0; index < argsNode.childCount; index += 1) {
+    const child = argsNode.child(index);
+    if (!child || child.type === "," || child.type === "(" || child.type === ")" || child.type === "keyword_argument") continue;
+    items.push(child);
+  }
+  return items;
+}
+
+async function inspectPythonBody(body: string, config: FilterConfig, cwd: string, depth: number, boundaryCwd = cwd) {
+  const parser = await getParser("python");
+  if (!parser) return undefined;
+  let tree: BashTree | null = null;
+  try {
+    tree = parser.parse(body);
+    if (!tree || treeHasSyntaxError(tree.rootNode)) return undefined;
+    const stack = [tree.rootNode];
+    while (stack.length > 0) {
+      const node = stack.pop();
+      if (!node) continue;
+      if (node.type === "call") {
+        const target = pythonCallTarget(node);
+        if (target) {
+          const decision = await inspectPythonCall(node, target, config, cwd, depth, boundaryCwd);
+          if (decision) return decision;
+        }
+      }
+      for (let index = node.childCount - 1; index >= 0; index -= 1) {
+        const child = node.child(index);
+        if (child) stack.push(child);
+      }
+    }
+    return undefined;
+  } catch {
+    return undefined;
+  } finally {
+    tree?.delete();
+  }
+}
+
+async function inspectPythonCall(node: BashNode, target: ScriptCallTarget, config: FilterConfig, cwd: string, depth: number, boundaryCwd: string) {
+  const argsNode = node.childForFieldName?.("arguments");
+  if (!argsNode) return undefined;
+  const keywords = pythonCallKeywords(argsNode);
+  const items = pythonPositionalArgs(argsNode);
+  const first = items[0];
+  if (!first) return undefined;
+  const shell = keywords.get("shell")?.type === "true";
+  let execCwd = cwd;
+  const cwdNode = keywords.get("cwd");
+  if (cwdNode?.type === "string") {
+    const value = pythonStringValue(cwdNode);
+    if (value) execCwd = resolveExistingPath(value, cwd);
+  }
+  let text: string | undefined;
+  if (target.module === "os") {
+    if (first.type === "string") text = pythonStringValue(first);
+  } else if (first.type === "list" || first.type === "tuple") {
+    if (shell) text = pythonSequenceFirstLiteral(first);
+    else {
+      const tokens = pythonSequenceTokens(first);
+      if (tokens.length > 0) text = tokens.join(" ");
+    }
+  } else if (first.type === "string") {
+    const value = pythonStringValue(first);
+    if (value !== undefined) text = shell ? value : argvToken(value);
+  } else if (first.type === "concatenated_string") {
+    const value = concatenatedValue(first);
+    if (value !== undefined) text = shell ? value : argvToken(value);
+  }
+  if (text) {
+    const decision = await inspectBash(text, config, execCwd, depth + 1, boundaryCwd);
+    if (decision) return decision;
+  }
+  return undefined;
+}
+
+async function inspectNodeJsBody(body: string, config: FilterConfig, cwd: string, depth: number, boundaryCwd = cwd) {
+  const parser = await getParser("javascript");
+  if (!parser) return undefined;
+  let tree: BashTree | null = null;
+  try {
+    tree = parser.parse(body);
+    if (!tree || treeHasSyntaxError(tree.rootNode)) return undefined;
+    const stack = [tree.rootNode];
+    while (stack.length > 0) {
+      const node = stack.pop();
+      if (!node) continue;
+      if (node.type === "call_expression") {
+        const target = nodeCallTarget(node);
+        if (target) {
+          const decision = await inspectNodeJsCall(node, target, config, cwd, depth, boundaryCwd);
+          if (decision) return decision;
+        }
+      }
+      for (let index = node.childCount - 1; index >= 0; index -= 1) {
+        const child = node.child(index);
+        if (child) stack.push(child);
+      }
+    }
+    return undefined;
+  } catch {
+    return undefined;
+  } finally {
+    tree?.delete();
+  }
+}
+
+async function inspectNodeJsCall(node: BashNode, target: ScriptCallTarget, config: FilterConfig, cwd: string, depth: number, boundaryCwd: string) {
+  const argsNode = node.childForFieldName?.("arguments");
+  if (!argsNode) return undefined;
+  const items: BashNode[] = [];
+  for (let index = 0; index < argsNode.childCount; index += 1) {
+    const child = argsNode.child(index);
+    if (!child || child.type === "(" || child.type === ")" || child.type === ",") continue;
+    items.push(child);
+  }
+  const options = [...items].reverse().find((item) => item.type === "object");
+  const execCwd = jsObjectCwd(options, cwd);
+  let text: string | undefined;
+  if (NODE_SHELL_STRING_NAMES.has(target.name)) {
+    const value = items[0] ? jsStringValueOf(items[0]) : undefined;
+    if (value !== undefined) text = value; // exec 系は常にシェル経由
+  } else if (target.name === NODE_FORK_NAME) {
+    const moduleToken = argvToken(items[0] ? jsStringValueOf(items[0]) ?? "*" : "*");
+    const argTokens = items[1]?.type === "array" ? jsArrayTokens(items[1]) : [];
+    text = ["node", moduleToken, ...argTokens].join(" ");
+  } else {
+    const cmdToken = items[0] ? argvToken(jsStringValueOf(items[0]) ?? "*") : "*";
+    const argTokens = items[1]?.type === "array" ? jsArrayTokens(items[1]) : [];
+    text = [cmdToken, ...argTokens].join(" ");
+  }
+  if (text) {
+    const decision = await inspectBash(text, config, execCwd, depth + 1, boundaryCwd);
+    if (decision) return decision;
+  }
+  return undefined;
+}
+
+type BashHeredoc = { body: string; quoted: boolean; ownerStart: number };
+function findBashHeredocs(root: BashNode): BashHeredoc[] {
+  const heredocs: BashHeredoc[] = [];
+  const stack = [root];
+  while (stack.length > 0) {
+    const node = stack.pop();
+    if (!node) continue;
+    if (node.type === "heredoc_redirect") {
+      const statement = node.parent;
+      if (statement?.type === "redirected_statement") {
+        let ownerStart = -1;
+        for (let index = 0; index < statement.childCount; index += 1) {
+          const child = statement.child(index);
+          if (child?.type === "command") { ownerStart = child.startIndex; break; }
+        }
+        let body = "";
+        for (let index = 0; index < node.childCount; index += 1) {
+          const child = node.child(index);
+          if (child?.type === "heredoc_body") body = child.text;
+        }
+        let quoted = false;
+        if (ownerStart >= 0) {
+          for (let index = 0; index < node.childCount; index += 1) {
+            const child = node.child(index);
+            if (child?.type === "heredoc_start") { quoted = child.text.startsWith("'") || child.text.startsWith('"'); break; }
+          }
+          if (body.trim()) heredocs.push({ body: body.trim(), quoted, ownerStart });
+        }
+      }
+    }
+    for (let index = node.childCount - 1; index >= 0; index -= 1) {
+      const child = node.child(index);
+      if (child) stack.push(child);
+    }
+  }
+  return heredocs;
+}
+
+async function inspectHeredocBody(body: string, commandName: string, config: FilterConfig, cwd: string, depth: number, boundaryCwd = cwd) {
+  const base = commandBasename(commandName);
+  if (BASH_SHELL_NAMES.has(base)) return inspectBash(body, config, cwd, depth + 1, boundaryCwd);
+  if (PYTHON_NAMES.has(base)) return inspectPythonBody(body, config, cwd, depth + 1, boundaryCwd);
+  if (NODE_NAMES.has(base)) return inspectNodeJsBody(body, config, cwd, depth + 1, boundaryCwd);
+  if (POWER_SHELL_NAMES.has(base)) return checkPowerShellBody(body, config, cwd, boundaryCwd);
+  return undefined;
+}
+
+function pythonModuleArgs(args: readonly string[]): { module: string; rest: string[] } | undefined {
+  for (let index = 0; index < args.length; index += 1) {
+    const value = args[index];
+    if (value === "-m") {
+      const module = args[index + 1];
+      return module ? { module, rest: args.slice(index + 2) } : undefined;
+    }
+    const combined = value.match(/^-m(.+)$/);
+    if (combined) return { module: combined[1], rest: args.slice(index + 1) };
+  }
+  return undefined;
+}
+
+const PARSER_WASM_PATHS = {
+  bash: "tree-sitter-bash/tree-sitter-bash.wasm",
+  python: "tree-sitter-python/tree-sitter-python.wasm",
+  javascript: "tree-sitter-javascript/tree-sitter-javascript.wasm",
+} as const;
+type ParserKind = keyof typeof PARSER_WASM_PATHS;
+
+async function loadParser(kind: ParserKind): Promise<BashParser | null> {
   try {
     const extensionRequire = createRequire(import.meta.url);
     const webPath = extensionRequire.resolve("web-tree-sitter");
     const webWasm = extensionRequire.resolve("web-tree-sitter/web-tree-sitter.wasm");
-    const bashWasm = extensionRequire.resolve("tree-sitter-bash/tree-sitter-bash.wasm");
+    const wasmPath = extensionRequire.resolve(PARSER_WASM_PATHS[kind]);
     const treeSitter = (await import(pathToFileURL(webPath).href)) as unknown as TreeSitterModule;
     await treeSitter.Parser.init({ locateFile: () => webWasm });
     const parser = new treeSitter.Parser();
-    parser.setLanguage(await treeSitter.Language.load(bashWasm));
+    parser.setLanguage(await treeSitter.Language.load(wasmPath));
     return parser;
   } catch {
     return null;
   }
 }
-let bashParserPromise: Promise<BashParser | null> | undefined;
+
+const parserPromises = new Map<ParserKind, Promise<BashParser | null>>();
+function getParser(kind: ParserKind): Promise<BashParser | null> {
+  let promise = parserPromises.get(kind);
+  if (!promise) {
+    promise = loadParser(kind);
+    parserPromises.set(kind, promise);
+  }
+  return promise;
+}
+
 function getBashParser(): Promise<BashParser | null> {
-  bashParserPromise ??= loadBashParser();
-  return bashParserPromise;
+  return getParser("bash");
 }
 
 function runPowerShellParser(body: string): PowerShellCommand[] | null {
@@ -778,6 +1213,8 @@ async function inspectCommandParts(parts: CommandParts, config: FilterConfig, cw
   if (pathDecision) return pathDecision;
   const powerShellBody = extractPowerShellBody(commandText);
   if (powerShellBody) return checkPowerShellBody(powerShellBody, config, cwd, boundaryCwd);
+  const encodedBody = extractPowerShellEncodedBody(commandText);
+  if (encodedBody) return checkPowerShellBody(encodedBody, config, cwd, boundaryCwd);
   if (depth >= 3) return undefined;
   const shellBody = extractShellBody(parts);
   if (shellBody) {
@@ -785,6 +1222,25 @@ async function inspectCommandParts(parts: CommandParts, config: FilterConfig, cw
     if (nestedDecision) return nestedDecision;
   }
   const name = commandBasename(parts.name);
+  if (PYTHON_NAMES.has(name)) {
+    const pythonBody = extractPythonBody(parts);
+    if (pythonBody) {
+      const nestedDecision = await inspectPythonBody(pythonBody, config, cwd, depth + 1, boundaryCwd);
+      if (nestedDecision) return nestedDecision;
+    }
+    const moduleArgs = pythonModuleArgs(parts.args);
+    if (moduleArgs) {
+      const nestedDecision = await inspectCommandParts({ name: moduleArgs.module, args: moduleArgs.rest }, config, cwd, depth + 1, boundaryCwd);
+      if (nestedDecision) return nestedDecision;
+    }
+  }
+  if (NODE_NAMES.has(name)) {
+    const nodeBody = extractNodeBody(parts);
+    if (nodeBody) {
+      const nestedDecision = await inspectNodeJsBody(nodeBody, config, cwd, depth + 1, boundaryCwd);
+      if (nestedDecision) return nestedDecision;
+    }
+  }
   if (name === "find") {
     for (const nested of findNestedCommands(parts)) {
       const nestedDecision = await inspectCommandParts(nested, config, cwd, depth + 1, boundaryCwd);
@@ -848,6 +1304,11 @@ async function inspectBashWithoutParser(command: string, config: FilterConfig, c
       const powerShellDecision = checkPowerShellBody(body, config, cwd, boundaryCwd);
       if (powerShellDecision) return powerShellDecision;
     }
+    const encoded = extractPowerShellEncodedBody(candidate);
+    if (encoded) {
+      const powerShellDecision = checkPowerShellBody(encoded, config, cwd, boundaryCwd);
+      if (powerShellDecision) return powerShellDecision;
+    }
   }
   return undefined;
 }
@@ -862,6 +1323,7 @@ async function inspectBash(command: string, config: FilterConfig, cwd = process.
     let currentCwd = cwd;
     const commandNodes = findCommandNodes(tree.rootNode).sort((left, right) => left.startIndex - right.startIndex);
     const redirects = findBashRedirects(tree.rootNode);
+    const heredocs = findBashHeredocs(tree.rootNode);
     const handledRedirects = new Set<BashRedirect>();
     for (const node of commandNodes) {
       const directDecision = checkBashValues(commandValues(node.text), config);
@@ -877,6 +1339,12 @@ async function inspectBash(command: string, config: FilterConfig, cwd = process.
         const nestedDecision = await inspectCommandParts(parts, config, currentCwd, depth, boundaryCwd);
         if (nestedDecision) return nestedDecision;
         currentCwd = bashWorkingDirectory(parts, currentCwd);
+      }
+      for (const heredoc of heredocs) {
+        if (heredoc.ownerStart !== node.startIndex) continue;
+        if (!heredoc.quoted && HEREDOC_EXPANSION_CHARS.test(heredoc.body)) continue;
+        const heredocDecision = await inspectHeredocBody(heredoc.body, parts?.name ?? "", config, currentCwd, depth, boundaryCwd);
+        if (heredocDecision) return heredocDecision;
       }
     }
     for (const redirect of redirects) {
