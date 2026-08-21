@@ -316,3 +316,53 @@ test("Piフィルター v24 のパス役割と実行前判定", async () => {
     assert.equal(readFileSync(configPath, "utf8"), originalConfig, "設定を元の内容へ復元できる");
   }
 });
+
+test("bash 拒否 reason は一致 Glob と作用禁止の意味論を含む", async () => {
+  const originalConfig = readFileSync(configPath, "utf8");
+  try {
+    const handler = await handlerFor(readConfig());
+    const result = await call(handler, "bash", { command: "rm pi-tool-filter-deny-reason-never-created.txt" });
+    assert.equal(result?.block, true, "bash rm は拒否される");
+    assert.ok(result?.reason?.includes("rm *"), "拒否理由に一致した Glob を含む");
+    assert.ok(result?.reason?.includes("認可判断"), "拒否理由に認可判断の意味論を含む");
+    assert.ok(result?.reason?.includes("代替経路"), "拒否理由に代替経路の禁止を含む");
+  } finally {
+    writeFileSync(configPath, originalConfig);
+  }
+});
+
+test("write 明示 deny は作業ディレクトリ内でも拒否する", async () => {
+  const originalConfig = readFileSync(configPath, "utf8");
+  try {
+    const baseConfig = readConfig();
+    const denyConfig = structuredClone(baseConfig);
+    denyConfig.write.deny = [...(denyConfig.write.deny ?? []), "dot_pi/**"];
+    const handler = await handlerFor(denyConfig);
+    blocked(await call(handler, "write", { path: "dot_pi/agent/reject.txt" }), "作業ディレクトリ内 write の明示 deny");
+    blocked(await call(handler, "edit", { path: "dot_pi/agent/reject.txt" }), "作業ディレクトリ内 edit の明示 deny");
+    allowed(await call(handler, "write", { path: "pi-tool-filter-deny-allow.txt" }), "deny と一致しない内部 write");
+  } finally {
+    writeFileSync(configPath, originalConfig);
+  }
+});
+
+test("glob ** は配下ファイルに一致する", () => {
+  const config = { read: { allow: [], deny: [] }, write: { allow: [], deny: [".git/**"] }, outsideDefault: "deny", bash: { allow: [], deny: [] } };
+  const pattern = ".git/**";
+  const matcher = (candidate: string) => {
+    const escapeRegExp = (value: string) => value.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+    const doubleStar = "\u0000";
+    const source = pattern
+      .replaceAll("**", doubleStar)
+      .split("*")
+      .map((part) => escapeRegExp(part).replaceAll("\\?", "."))
+      .join(".*")
+      .replaceAll(doubleStar, ".*");
+    return new RegExp(`^${source}$`, "i").test(candidate);
+  };
+  assert.equal(matcher(".git/index"), true, ".git 直下ファイルに一致");
+  assert.equal(matcher(".git/refs/heads/main"), true, ".git のネストに一致");
+  assert.equal(matcher(".git"), false, ".git 自身には一致しない");
+  assert.equal(matcher("README.md"), false, "配下でないファイルには一致しない");
+  assert.ok(config.write.deny.includes(".git/**"), "require: .git/** は write.deny で表現できる");
+});

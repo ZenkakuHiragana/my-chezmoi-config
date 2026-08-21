@@ -205,10 +205,13 @@ function pathCandidates(pathValue: string, cwd: string): string[] {
 function globToRegExp(pattern: string, commandMode = false): RegExp {
   const normalized = commandMode ? pattern : expandHome(pattern);
   const escapeRegExp = (value: string) => value.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+  const doubleStar = "\u0000";
   let source = normalized
+    .replaceAll("**", doubleStar)
     .split("*")
     .map((part) => escapeRegExp(part).replaceAll("\\?", "."))
-    .join(".*");
+    .join(".*")
+    .replaceAll(doubleStar, ".*");
   if (source.endsWith(" .*")) source = `${source.slice(0, -3)}(?: .*)?`;
   return new RegExp(`^${source}$`, "i");
 }
@@ -260,12 +263,12 @@ function readPathDecision(pathValue: string, cwd: string, config: FilterConfig) 
 }
 
 function writePathDecision(pathValue: string, cwd: string, config: FilterConfig, boundaryCwd = cwd) {
-  if (isInsideDirectory(pathValue, cwd, boundaryCwd)) return undefined;
   const candidates = pathCandidates(pathValue, cwd);
-  if (matchesPathGlob(config.write.allow, candidates)) return undefined;
   if (matchesPathGlob(config.write.deny, candidates)) {
-    return block("外部書き込みの拒否 Glob に一致したため拒否");
+    return block("書き込みの拒否 Glob に一致したため拒否");
   }
+  if (matchesPathGlob(config.write.allow, candidates)) return undefined;
+  if (isInsideDirectory(pathValue, cwd, boundaryCwd)) return undefined;
   return config.outsideDefault === "allow"
     ? undefined
     : block("外部書き込みの未一致時既定値が deny のため拒否");
@@ -558,9 +561,19 @@ function bashPathRoles(parts: CommandParts): Array<readonly [string, PathRole]> 
   return role ? values.map((value) => [value, role] as const) : [];
 }
 
+function matchingCommandPattern(patterns: readonly string[], values: readonly string[]): string | undefined {
+  return patterns.find((pattern) => {
+    const matcher = globToRegExp(pattern, true);
+    return values.some((value) => matcher.test(value));
+  });
+}
+
 function checkBashValues(values: readonly string[], config: FilterConfig) {
   if (matchesCommandGlob(config.bash.allow, values)) return undefined;
-  return matchesCommandGlob(config.bash.deny, values) ? block("設定ファイルの bash 拒否 Glob に一致したため拒否") : undefined;
+  const pattern = matchingCommandPattern(config.bash.deny, values);
+  return pattern
+    ? block(`bash 拒否 Glob「${pattern}」に一致したため拒否。拒否は認可判断であり、同じ副作用を持つ代替経路（別コマンド、スクリプト、言語処理系、API、間接経路）も実行してはならない。`)
+    : undefined;
 }
 
 const BASH_WRAPPER_NAMES = new Set(["sudo", "env", "command", "time", "nohup", "timeout", "nice", "ionice", "exec", "builtin", "doas", "setsid", "stdbuf", "watch", "flock", "parallel", "rust-parallel", "rush"]);

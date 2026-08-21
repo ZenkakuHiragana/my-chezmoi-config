@@ -57,7 +57,10 @@
           "/tmp/opencode/**",
           "/dev/null"
         ],
-        "deny": [],
+        "deny": [
+          ".git",
+          ".git/**"
+        ],
         "outsideDefault": "deny",
       },
     },

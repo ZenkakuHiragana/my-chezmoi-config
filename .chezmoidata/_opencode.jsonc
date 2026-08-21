@@ -33,7 +33,12 @@
     },
     "formatter": {
       "prettier": {
-        "command": ["npx", "prettier", "--write", "$FILE"],
+        "command": [
+          "npx",
+          "prettier",
+          "--write",
+          "$FILE"
+        ],
         "extensions": [
           ".md",
           ".markdown",
@@ -220,14 +225,14 @@
         "git -C * push": "deny",
         "git -C * push *": "deny",
         // ファイル削除禁止
-        "rm *": "deny",
+        // "rm *": "deny",
         // PowerShell: ファイル・レジストリの破壊的変更
-        "Remove-Item *": "deny",
-        "del *": "deny",
-        "erase *": "deny",
-        "rd *": "deny",
-        "ri *": "deny",
-        "rmdir *": "deny",
+        // "Remove-Item *": "deny",
+        // "del *": "deny",
+        // "erase *": "deny",
+        // "rd *": "deny",
+        // "ri *": "deny",
+        // "rmdir *": "deny",
         "Clear-Content *": "deny",
         "clc *": "deny",
         "Clear-Item *": "deny",
