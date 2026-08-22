@@ -391,7 +391,7 @@ test("Piフィルター v25 のスクリプト本文検査", async () => {
     allowed(await call(handler, "bash", { command: `bash -O extdebug <<'EOF'\ngit push\nEOF` }), "値付きオプションは網羅しないため検査機会を逃す（許可側）");
     allowed(await call(handler, "bash", { command: `node --experimental-loader fs -e "require('child_process').execSync('git push')"` }), "値付きオプションは網羅しないため検査機会を逃す（許可側）");
     blocked(await call(handler, "bash", { command: "node -e 'require(\"child_process\")[`execSync`](\"git push\")'" }), "subscript のテンプレートリテラル");
-    allowed(await call(handler, "bash", { command: `pwsh -WorkingDirectory /tmp <<'EOF'\ngit push\nEOF` }), "値付きオプションは網羅しないため検査機会を逃す（許可側）");
+    blocked(await call(handler, "bash", { command: `pwsh -WorkingDirectory /tmp <<'EOF'\ngit push\nEOF` }), "-WorkingDirectory は置換型として追跡し本文を検査する");
     blocked(await call(handler, "bash", { command: `printf 日本 && python <<'PY'\nimport subprocess; subprocess.run(['git','push'])\nPY` }), "非ASCIIを先行させたheredoc本文");
     blocked(await call(handler, "bash", { command: `python <<'PY' | cat\nimport subprocess; subprocess.run(['git','push'])\nPY` }), "パイプ先頭コマンドのheredoc本文");
     blocked(await call(handler, "bash", { command: `python <<'PY' && echo ok\nimport subprocess; subprocess.run(['git','push'])\nPY` }), "&&の左辺コマンドのheredoc本文");
@@ -453,6 +453,19 @@ test("Piフィルター v25 のスクリプト本文検査", async () => {
     allowed(await call(handler, "bash", { command: `python -c "open('relative-open-never-created', 'w')"` }), "A5 ファイルAPI書き込みは検査対象外");
     allowed(await call(handler, "bash", { command: `node -e "require('fs').writeFileSync('relative-write-never-created', 'x')"` }), "A5 fs書き込みは検査対象外");
     allowed(await call(handler, "bash", { command: `printf 'safe' | python -` }), "A6 パイプstdinは検査対象外");
+
+    // 作業ディレクトリ変更の置換型追跡（env -C / os.chdir / process.chdir / -WorkingDirectory）
+    blocked(await call(handler, "bash", { command: `env -C /tmp rm -rf .` }), "env -C は内側コマンドのcwdを置換する");
+    blocked(await call(handler, "bash", { command: `env --chdir=/tmp rm -rf .` }), "env --chdir= は内側コマンドのcwdを置換する");
+    allowed(await call(handler, "bash", { command: `env rm -rf .` }), "env 単独ではcwdは変わらない");
+    allowed(await call(handler, "bash", { command: `env -C $UNSET_VAR rm -rf .` }), "非静的 -C は追跡しない");
+    blocked(await call(handler, "bash", { command: `python -c "import os; os.chdir('/tmp'); import subprocess; subprocess.run(['rm','-rf','.'])"` }), "os.chdir は後続の実行cwdを置換する");
+    allowed(await call(handler, "bash", { command: `python -c "import subprocess; subprocess.run(['rm','-rf','.'])"` }), "chdir なしでは作業領域内のrmは許可");
+    allowed(await call(handler, "bash", { command: `python -c "import os; os.chdir(x); import subprocess; subprocess.run(['rm','-rf','.'])"` }), "非静的 os.chdir は追跡しない");
+    blocked(await call(handler, "bash", { command: `node -e "process.chdir('/tmp'); require('child_process').execSync('rm -rf .')"` }), "process.chdir は後続の実行cwdを置換する");
+    blocked(await call(handler, "bash", { command: `pwsh -WorkingDirectory /tmp -Command "Remove-Item ./evil"` }), "pwsh -WorkingDirectory は本文のcwdを置換する");
+    blocked(await call(handler, "bash", { command: `pwsh -WorkingDirectory /tmp <<'EOF'\nRemove-Item ./evil\nEOF` }), "pwsh -WorkingDirectory の heredoc 本文を置換 cwd で検査");
+    allowed(await call(handler, "bash", { command: `pwsh -Command "Remove-Item ./ok"` }), "作業領域内のRemove-Itemは許可");
 
     const spaceConfig = structuredClone(strippedConfig);
     spaceConfig.bash.deny.push("git commit -m fix bug");

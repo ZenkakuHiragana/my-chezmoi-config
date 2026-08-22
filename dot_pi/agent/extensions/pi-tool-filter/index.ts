@@ -664,6 +664,29 @@ function bashWorkingDirectory(parts: CommandParts, cwd: string): string {
   return pathValue && isStaticPathValue(pathValue) ? resolveExistingPath(pathValue, cwd) : cwd;
 }
 
+// env の -c / -C / --chdir は子プロセスの実行 cwd を置き換える（シェルの cwd は変えない）。
+// ラッパー展開で内側コマンドを検査するときに、この値を実行 cwd として渡す。
+// 値が非静的なら追跡しない（cd 追跡と同じ扱い）。
+function envWorkingDirectory(parts: CommandParts, cwd: string): string {
+  if (commandBasename(parts.name) !== "env") return cwd;
+  const args = parts.args;
+  for (let index = 0; index < args.length; index += 1) {
+    const value = args[index];
+    const key = value.toLowerCase();
+    let dir: string | undefined;
+    if (key === "-c" || key === "--chdir") {
+      dir = args[index + 1];
+    } else if (value.startsWith("--chdir=")) {
+      dir = value.slice("--chdir=".length);
+    }
+    if (dir !== undefined) return isStaticPathValue(dir) ? resolveExistingPath(dir, cwd) : cwd;
+    if (/^[A-Za-z_][A-Za-z0-9_]*=/.test(value)) continue; // 環境変数代入はスキップ
+    if (value.startsWith("-")) continue;
+    break; // 最初の非オプション（コマンド本体）で停止
+  }
+  return cwd;
+}
+
 const POWER_SHELL_READ_COMMANDS = new Set(["get-content", "cat", "type", "gc", "get-childitem", "ls", "dir", "gci", "set-location", "cd", "chdir", "sl"]);
 const POWER_SHELL_WRITE_COMMANDS = new Set(["remove-item", "rm", "del", "erase", "rmdir", "rd", "copy-item", "cp", "copy", "move-item", "mv", "move", "new-item", "ni", "mkdir", "md", "set-content", "sc", "add-content", "ac", "clear-content", "clc", "rename-item", "ren", "rni", "set-acl"]);
 const POWER_SHELL_COPY_COMMANDS = new Set(["copy-item", "cp", "copy"]);
@@ -736,6 +759,34 @@ function powerShellWorkingDirectory(command: PowerShellCommand, cwd: string): st
   const { positional, named } = powerShellArguments(command.elements.slice(1));
   const pathValue = [...(named.get("-path") ?? []), ...(named.get("-literalpath") ?? []), ...positional][0];
   return pathValue && isStaticPathValue(pathValue) ? resolveExistingPath(pathValue, cwd) : cwd;
+}
+
+// pwsh の -WorkingDirectory オプション。起動時の実行 cwd を置き換えるため、
+// 本文（-Command / -EncodedCommand / heredoc stdin）をこの値を起点に検査する。
+// 値が非静的なら追跡しない。
+function powershellWorkingDirectoryOption(parts: CommandParts): string | undefined {
+  const args = parts.args;
+  for (let index = 0; index < args.length; index += 1) {
+    const value = args[index];
+    if (/^-+workingdirectory$/i.test(value)) {
+      const dir = args[index + 1];
+      return dir !== undefined && isStaticPathValue(dir) ? dir : undefined;
+    }
+    const equals = value.match(/^-+workingdirectory=(.+)$/i);
+    if (equals) return isStaticPathValue(equals[1]) ? equals[1] : undefined;
+  }
+  return undefined;
+}
+
+// pwsh の -Command / -EncodedCommand 本文を、-WorkingDirectory を反映した cwd で検査する。
+function inspectPowerShellCommandText(commandText: string, parts: CommandParts, config: FilterConfig, cwd: string, boundaryCwd: string): ToolCallEventResult | undefined {
+  const psWorkingDirectory = powershellWorkingDirectoryOption(parts);
+  const psCwd = psWorkingDirectory ? resolveExistingPath(psWorkingDirectory, cwd) : cwd;
+  const body = extractPowerShellBody(commandText);
+  if (body) return checkPowerShellBody(body, config, psCwd, boundaryCwd);
+  const encoded = extractPowerShellEncodedBody(commandText);
+  if (encoded) return checkPowerShellBody(encoded, config, psCwd, boundaryCwd);
+  return undefined;
 }
 
 
@@ -1072,21 +1123,17 @@ async function inspectPythonBody(body: string, config: FilterConfig, cwd: string
   try {
     tree = parser.parse(body);
     if (!tree || treeHasSyntaxError(tree.rootNode)) return undefined;
-    const stack = [tree.rootNode];
-    while (stack.length > 0) {
-      const node = stack.pop();
-      if (!node) continue;
-      if (node.type === "call") {
-        const target = pythonCallTarget(node);
-        if (target) {
-          const decision = await inspectPythonCall(node, target, config, cwd, depth, boundaryCwd);
-          if (decision) return decision;
-        }
-      }
-      for (let index = node.childCount - 1; index >= 0; index -= 1) {
-        const child = node.child(index);
-        if (child) stack.push(child);
-      }
+    // トップレベル文をソース順に処理し、os.chdir を実行 cwd の置換として追跡する。
+    // 関数定義・条件分岐内の chdir は追跡しない（cd 追跡と同じ静的リテラルの扱い）。
+    let currentCwd = cwd;
+    const root = tree.rootNode;
+    for (let index = 0; index < root.childCount; index += 1) {
+      const statement = root.child(index);
+      if (!statement) continue;
+      const decision = await inspectPythonStatementCalls(statement, config, currentCwd, depth, boundaryCwd);
+      if (decision) return decision;
+      const chdir = pythonChdirTarget(statement);
+      if (chdir) currentCwd = resolveExistingPath(chdir, currentCwd);
     }
     return undefined;
   } catch {
@@ -1094,6 +1141,55 @@ async function inspectPythonBody(body: string, config: FilterConfig, cwd: string
   } finally {
     tree?.delete();
   }
+}
+
+async function inspectPythonStatementCalls(statement: BashNode, config: FilterConfig, cwd: string, depth: number, boundaryCwd: string): Promise<ToolCallEventResult | undefined> {
+  const stack = [statement];
+  while (stack.length > 0) {
+    const node = stack.pop();
+    if (!node) continue;
+    if (node.type === "call") {
+      const target = pythonCallTarget(node);
+      if (target) {
+        const decision = await inspectPythonCall(node, target, config, cwd, depth, boundaryCwd);
+        if (decision) return decision;
+      }
+    }
+    for (let index = node.childCount - 1; index >= 0; index -= 1) {
+      const child = node.child(index);
+      if (child) stack.push(child);
+    }
+  }
+  return undefined;
+}
+
+// トップレベルの os.chdir(<静的パス>) 呼び出し文から、実行 cwd の置換値を取り出す。
+// 式の直接の呼び出しだけを追跡し、代入・条件・関数内に埋め込まれた呼び出しは追跡しない。
+function pythonChdirTarget(statement: BashNode): string | undefined {
+  if (statement.type !== "expression_statement") return undefined;
+  let callNode: BashNode | undefined;
+  for (let index = 0; index < statement.childCount; index += 1) {
+    const child = statement.child(index);
+    if (child?.type === "call") { callNode = child; break; }
+  }
+  if (!callNode) return undefined;
+  const fnNode = callNode.childForFieldName?.("function");
+  if (!fnNode || fnNode.type !== "attribute") return undefined;
+  const objectNode = fnNode.childForFieldName?.("object");
+  const attrNode = fnNode.childForFieldName?.("attribute");
+  if (!objectNode || !attrNode || objectNode.type !== "identifier" || objectNode.text.trim() !== "os") return undefined;
+  if (attrNode.text.trim() !== "chdir") return undefined;
+  const argsNode = callNode.childForFieldName?.("arguments");
+  if (!argsNode) return undefined;
+  for (let index = 0; index < argsNode.childCount; index += 1) {
+    const child = argsNode.child(index);
+    if (!child || child.type === "(" || child.type === ")" || child.type === ",") continue;
+    let value: string | undefined;
+    if (child.type === "string") value = pythonStringValue(child);
+    else if (child.type === "concatenated_string") value = concatenatedValue(child);
+    return value !== undefined && isStaticPathValue(value) ? value : undefined;
+  }
+  return undefined;
 }
 
 async function inspectPythonCall(node: BashNode, target: ScriptCallTarget, config: FilterConfig, cwd: string, depth: number, boundaryCwd: string) {
@@ -1144,21 +1240,16 @@ async function inspectNodeJsBody(body: string, config: FilterConfig, cwd: string
   try {
     tree = parser.parse(body);
     if (!tree || treeHasSyntaxError(tree.rootNode)) return undefined;
-    const stack = [tree.rootNode];
-    while (stack.length > 0) {
-      const node = stack.pop();
-      if (!node) continue;
-      if (node.type === "call_expression") {
-        const target = nodeCallTarget(node);
-        if (target) {
-          const decision = await inspectNodeJsCall(node, target, config, cwd, depth, boundaryCwd);
-          if (decision) return decision;
-        }
-      }
-      for (let index = node.childCount - 1; index >= 0; index -= 1) {
-        const child = node.child(index);
-        if (child) stack.push(child);
-      }
+    // トップレベル文をソース順に処理し、process.chdir を実行 cwd の置換として追跡する。
+    let currentCwd = cwd;
+    const root = tree.rootNode;
+    for (let index = 0; index < root.childCount; index += 1) {
+      const statement = root.child(index);
+      if (!statement) continue;
+      const decision = await inspectNodeJsStatementCalls(statement, config, currentCwd, depth, boundaryCwd);
+      if (decision) return decision;
+      const chdir = nodeChdirTarget(statement);
+      if (chdir) currentCwd = resolveExistingPath(chdir, currentCwd);
     }
     return undefined;
   } catch {
@@ -1166,6 +1257,52 @@ async function inspectNodeJsBody(body: string, config: FilterConfig, cwd: string
   } finally {
     tree?.delete();
   }
+}
+
+async function inspectNodeJsStatementCalls(statement: BashNode, config: FilterConfig, cwd: string, depth: number, boundaryCwd: string): Promise<ToolCallEventResult | undefined> {
+  const stack = [statement];
+  while (stack.length > 0) {
+    const node = stack.pop();
+    if (!node) continue;
+    if (node.type === "call_expression") {
+      const target = nodeCallTarget(node);
+      if (target) {
+        const decision = await inspectNodeJsCall(node, target, config, cwd, depth, boundaryCwd);
+        if (decision) return decision;
+      }
+    }
+    for (let index = node.childCount - 1; index >= 0; index -= 1) {
+      const child = node.child(index);
+      if (child) stack.push(child);
+    }
+  }
+  return undefined;
+}
+
+// トップレベルの process.chdir(<静的パス>) 呼び出し文から、実行 cwd の置換値を取り出す。
+function nodeChdirTarget(statement: BashNode): string | undefined {
+  if (statement.type !== "expression_statement") return undefined;
+  let callNode: BashNode | undefined;
+  for (let index = 0; index < statement.childCount; index += 1) {
+    const child = statement.child(index);
+    if (child?.type === "call_expression") { callNode = child; break; }
+  }
+  if (!callNode) return undefined;
+  const fnNode = callNode.childForFieldName?.("function");
+  if (!fnNode || fnNode.type !== "member_expression") return undefined;
+  const objectNode = fnNode.childForFieldName?.("object");
+  const propertyNode = fnNode.childForFieldName?.("property");
+  if (!objectNode || !propertyNode || objectNode.type !== "identifier" || objectNode.text.trim() !== "process") return undefined;
+  if (propertyNode.type !== "property_identifier" || propertyNode.text.trim() !== "chdir") return undefined;
+  const argsNode = callNode.childForFieldName?.("arguments");
+  if (!argsNode) return undefined;
+  for (let index = 0; index < argsNode.childCount; index += 1) {
+    const child = argsNode.child(index);
+    if (!child || child.type === "(" || child.type === ")" || child.type === ",") continue;
+    const value = child.type === "string" || child.type === "template_string" ? jsStringValue(child) : undefined;
+    return value !== undefined && isStaticPathValue(value) ? value : undefined;
+  }
+  return undefined;
 }
 
 async function inspectNodeJsCall(node: BashNode, target: ScriptCallTarget, config: FilterConfig, cwd: string, depth: number, boundaryCwd: string) {
@@ -1349,6 +1486,10 @@ async function inspectHeredocBody(body: string, parts: CommandParts, config: Fil
     if ((inlineBody !== undefined && inlineBody.trim() !== "-") || hasEncodedOption || hasEmptyCommandValue) return undefined;
     const hasFileOption = effective.args.some((value, index) => /^-+file$/i.test(value) && index + 1 < effective.args.length && effective.args[index + 1] !== "-");
     if (hasFileOption) return undefined;
+    // -WorkingDirectory は値付きオプションとして追跡する。heredoc 本文はそのディレクトリ
+    // を実行 cwd として検査され、値が非静的なら追跡しない（cd 追跡と同じ扱い）
+    const psWorkingDirectory = powershellWorkingDirectoryOption(effective);
+    if (psWorkingDirectory) return checkPowerShellBody(body, config, resolveExistingPath(psWorkingDirectory, cwd), boundaryCwd);
     const stop = interpreterOptionStop(effective.args);
     if (stop < effective.args.length) return undefined;
     return checkPowerShellBody(body, config, cwd, boundaryCwd);
@@ -1438,10 +1579,8 @@ async function inspectCommandParts(parts: CommandParts, config: FilterConfig, cw
   if (directDecision) return directDecision;
   const pathDecision = pathRoleDecisions(bashPathRoles(parts), cwd, config, boundaryCwd);
   if (pathDecision) return pathDecision;
-  const powerShellBody = extractPowerShellBody(commandText);
-  if (powerShellBody) return checkPowerShellBody(powerShellBody, config, cwd, boundaryCwd);
-  const encodedBody = extractPowerShellEncodedBody(commandText);
-  if (encodedBody) return checkPowerShellBody(encodedBody, config, cwd, boundaryCwd);
+  const psDecision = inspectPowerShellCommandText(commandText, parts, config, cwd, boundaryCwd);
+  if (psDecision) return psDecision;
   if (depth >= 3) return undefined;
   const shellBody = extractShellBody(parts);
   if (shellBody) {
@@ -1484,7 +1623,9 @@ async function inspectCommandParts(parts: CommandParts, config: FilterConfig, cw
   if (BASH_WRAPPER_NAMES.has(name)) {
     const nestedArgs = wrappedCommandArgs(name, parts.args);
     if (nestedArgs.length > 0) {
-      const nestedDecision = await inspectCommandParts({ name: nestedArgs[0], args: nestedArgs.slice(1) }, config, cwd, depth + 1, boundaryCwd);
+      // env の -c / -C / --chdir は内側コマンドの実行 cwd を置き換える
+      const nestedCwd = name === "env" ? envWorkingDirectory(parts, cwd) : cwd;
+      const nestedDecision = await inspectCommandParts({ name: nestedArgs[0], args: nestedArgs.slice(1) }, config, nestedCwd, depth + 1, boundaryCwd);
       if (nestedDecision) return nestedDecision;
     }
   }
