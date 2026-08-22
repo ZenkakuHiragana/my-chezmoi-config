@@ -361,6 +361,72 @@ test("Piフィルター v25 のスクリプト本文検査", async () => {
     blocked(await call(handler, "bash", { command: `node - <<'JS'\nrequire('child_process').execSync('git push');\nJS` }), "node heredoc 本文");
     allowed(await call(handler, "bash", { command: `cat <<EOF\nsafe\nEOF` }), "データ消費コマンドのheredocは対象外");
 
+    blocked(await call(handler, "bash", { command: `env python <<'PY'\nimport subprocess; subprocess.run(['git','push'])\nPY` }), "ラッパー経由のpython heredoc");
+    blocked(await call(handler, "bash", { command: `env sudo python <<'PY'\nimport subprocess; subprocess.run(['git','push'])\nPY` }), "多段ラッパー経由のpython heredoc");
+    allowed(await call(handler, "bash", { command: `python -W ignore -c "import subprocess; subprocess.run(['git','push'])"` }), "値付きオプションは網羅しないため検査機会を逃す（許可側）");
+    allowed(await call(handler, "bash", { command: `node --require fs -e "require('child_process').execSync('git push')"` }), "値付きオプションは網羅しないため検査機会を逃す（許可側）");
+    allowed(await call(handler, "bash", { command: `bash --rcfile /dev/null <<'EOF'\ngit push\nEOF` }), "値付きオプションは網羅しないため検査機会を逃す（許可側）");
+    allowed(await call(handler, "bash", { command: `bash --init-file /dev/null <<'EOF'\ngit push\nEOF` }), "値付きオプションは網羅しないため検査機会を逃す（許可側）");
+    blocked(await call(handler, "bash", { command: `bash -s - -- <<'EOF'\ngit push\nEOF` }), "bash -s -- のheredoc本文");
+    allowed(await call(handler, "bash", { command: `<<'PY' python\nimport subprocess; subprocess.run(['git','push'])\nPY` }), "リダイレクト前置形は文法解析不能で検査対象外（I1）");
+    allowed(await call(handler, "bash", { command: `bash -s -c 'echo safe' <<'EOF'\ngit push\nEOF` }), "-sと-c併用では-cが勝ちheredocはデータ");
+    allowed(await call(handler, "bash", { command: `node --report-dir /tmp/r -e "require('child_process').execSync('git push')"` }), "値付きオプションは網羅しないため検査機会を逃す（許可側）");
+    blocked(await call(handler, "bash", { command: `pwsh -File - arg1 <<'EOF'\ngit push\nEOF` }), "pwsh -File - の位置引数があってもstdin本文を検査");
+    allowed(await call(handler, "bash", { command: `bash -c'echo hi' <<'EOF'\ngit push\nEOF` }), "-cの結合形はデータとして対象外");
+    blocked(await call(handler, "bash", { command: `node --eval="require('child_process').execSync('git push')"` }), "--eval=形式のnode -e");
+    blocked(await call(handler, "bash", { command: `bash -xc 'git push'` }), "複合短縮オプションの-c");
+    allowed(await call(handler, "bash", { command: `bash -c '' <<'EOF'\ngit push\nEOF` }), "空の-c本文のheredocはデータ");
+    blocked(await call(handler, "bash", { command: "node -e \"require('child_process')[('execSync')]('git push')\"" }), "括弧付きsubscriptのexecSync");
+    allowed(await call(handler, "bash", { command: `command -v python <<'PY'\nimport subprocess; subprocess.run(['git','push'])\nPY` }), "command -v の照会形は対象コマンドを実行しない");
+    blocked(await call(handler, "bash", { command: `pwsh -File - -Command '' <<'EOF'\ngit push\nEOF` }), "pwsh -File - の後続-Commandはスクリプト引数でstdin本文を検査");
+    blocked(await call(handler, "bash", { command: `pwsh -File - -EncodedCommand AAAA <<'EOF'\ngit push\nEOF` }), "pwsh -File - のstdin本文を検査");
+    blocked(await call(handler, "bash", { command: `pwsh -File - <<'EOF'\ngit push\nEOF` }), "pwsh -File - はstdin本文を実行");
+    allowed(await call(handler, "bash", { command: `pwsh -EncodedCommand //// <<'EOF'\ngit push\nEOF` }), "復号不能の-EncodedCommandは検査不能として許可");
+    allowed(await call(handler, "bash", { command: `python file.py -- - foo <<'PY'\nimport subprocess; subprocess.run(['git','push'])\nPY` }), "A4 スクリプトファイル後の-は対象外");
+    allowed(await call(handler, "bash", { command: `bash script.sh -s <<'EOF'\ngit push\nEOF` }), "A4 スクリプトファイル後の-sは対象外");
+    blocked(await call(handler, "bash", { command: `python - -m pip <<'PY'\nimport subprocess; subprocess.run(['git','push'])\nPY` }), "python - の後の-mはargvでstdin本文を検査");
+    allowed(await call(handler, "bash", { command: `bash -o posix <<'EOF'\ngit push\nEOF` }), "値付きオプションは網羅しないため検査機会を逃す（許可側）");
+    blocked(await call(handler, "bash", { command: `python <<-'PY'\n\timport subprocess; subprocess.run(['git','push'])\nPY` }), "タブ除去heredocのpython本文");
+    allowed(await call(handler, "bash", { command: `node -c file.js -e "require('child_process').execSync('git push')"` }), "A4 node -c (--check) はフラグで、ファイル実行は対象外");
+    allowed(await call(handler, "bash", { command: `bash -O extdebug <<'EOF'\ngit push\nEOF` }), "値付きオプションは網羅しないため検査機会を逃す（許可側）");
+    allowed(await call(handler, "bash", { command: `node --experimental-loader fs -e "require('child_process').execSync('git push')"` }), "値付きオプションは網羅しないため検査機会を逃す（許可側）");
+    blocked(await call(handler, "bash", { command: "node -e 'require(\"child_process\")[`execSync`](\"git push\")'" }), "subscript のテンプレートリテラル");
+    allowed(await call(handler, "bash", { command: `pwsh -WorkingDirectory /tmp <<'EOF'\ngit push\nEOF` }), "値付きオプションは網羅しないため検査機会を逃す（許可側）");
+    blocked(await call(handler, "bash", { command: `printf 日本 && python <<'PY'\nimport subprocess; subprocess.run(['git','push'])\nPY` }), "非ASCIIを先行させたheredoc本文");
+    blocked(await call(handler, "bash", { command: `python <<'PY' | cat\nimport subprocess; subprocess.run(['git','push'])\nPY` }), "パイプ先頭コマンドのheredoc本文");
+    blocked(await call(handler, "bash", { command: `python <<'PY' && echo ok\nimport subprocess; subprocess.run(['git','push'])\nPY` }), "&&の左辺コマンドのheredoc本文");
+    allowed(await call(handler, "bash", { command: `python -c '' <<'PY'\nimport subprocess; subprocess.run(['git','push'])\nPY` }), "空の-c本文のheredocはデータ");
+    blocked(await call(handler, "bash", { command: `pwsh -Command - <<'EOF'\ngit push\nEOF` }), "pwsh -Command - はstdin本文を実行");
+    allowed(await call(handler, "bash", { command: `pwsh -ConfigurationName Microsoft.PowerShell <<'EOF'\ngit push\nEOF` }), "値付きオプションは網羅しないため検査機会を逃す（許可側）");
+    allowed(await call(handler, "bash", { command: `pwsh -WindowStyle Hidden <<'EOF'\ngit push\nEOF` }), "値付きオプションは網羅しないため検査機会を逃す（許可側）");
+    allowed(await call(handler, "bash", { command: "node -e \"'execSync'.foo('git push')\"" }), "オブジェクト側の名前はchild_process呼び出しではない");
+    blocked(await call(handler, "bash", { command: `python -c "import os; os.system('git ' 'push')"` }), "os.systemの隣接文字列リテラル");
+    blocked(await call(handler, "bash", { command: `python -c "import subprocess; subprocess.run(['touch','relative-never-created'], cwd='../../' '../')"` }), "cwdの隣接文字列リテラル");
+    allowed(await call(handler, "bash", { command: `node --input-type module -e "require('child_process').execSync('git push')"` }), "値付きオプションは網羅しないため検査機会を逃す（許可側）");
+    allowed(await call(handler, "bash", { command: `pwsh -ExecutionPolicy Bypass <<'EOF'\ngit push\nEOF` }), "値付きオプションは網羅しないため検査機会を逃す（許可側）");
+    allowed(await call(handler, "bash", { command: `python -x file.py -c "import subprocess; subprocess.run(['git','push'])"` }), "A4 python -x フラグ付きスクリプト実行は検査対象外");
+    allowed(await call(handler, "bash", { command: `python -m pip -c "import subprocess; subprocess.run(['git','push'])"` }), "モジュールの引数はpython本体の-cではない");
+    blocked(await call(handler, "bash", { command: `python - foo <<'PY'\nimport subprocess; subprocess.run(['git','push'])\nPY` }), "python - の位置引数があってもstdin本文を検査");
+    blocked(await call(handler, "bash", { command: `node - foo <<'JS'\nrequire('child_process').execSync('git push');\nJS` }), "node - の位置引数があってもstdin本文を検査");
+    blocked(await call(handler, "bash", { command: `bash -s foo <<'EOF'\ngit push\nEOF` }), "bash -s の位置引数があってもstdin本文を検査");
+    allowed(await call(handler, "bash", { command: `printf safe | python - -c "print(1)"` }), "A6 パイプstdinは検査対象外");
+    allowed(await call(handler, "bash", { command: `env env env env python <<'PY'\nimport subprocess; subprocess.run(['git','push'])\nPY` }), "深さ制限を超えるラッパー段のheredocは検査しない");
+    allowed(await call(handler, "bash", { command: `env sudo python <<'PY'\nimport os; os.system("bash -c 'git push origin'")\nPY` }), "ラッパー段を含む深さでは後続の本文展開はしない");
+    blocked(await call(handler, "bash", { command: `python -c "import subprocess; subprocess.run(['find','/tmp','-delete'])"` }), "OBL-3 find -delete の外部write");
+    allowed(await call(handler, "bash", { command: `python -c "import subprocess; subprocess.run(['cp','README.md','out.txt'])"` }), "OBL-3 作業領域内cpは許可");
+    blocked(await call(handler, "bash", { command: `python -c "  # comment\nimport subprocess; subprocess.run(['git','push'])"` }), "インデント付きコメントが先頭でも本文を検査");
+    allowed(await call(handler, "bash", { command: `pwsh -File script.ps1 <<'EOF'\ngit push\nEOF` }), "A4 pwsh -File heredoc は検査対象外");
+    blocked(await call(handler, "bash", { command: `python -c "import subprocess; subprocess.run(args=['git','push'])"` }), "python argsキーワード引数");
+    blocked(await call(handler, "bash", { command: `python -c "import os; os.popen(cmd='git push')"` }), "os.popenのcmdキーワード引数");
+    blocked(await call(handler, "bash", { command: `python -c "import subprocess; subprocess.run(['git','\\U00000070\\U00000075\\U00000073\\U00000068'])"` }), "python \\Uエスケープの復元");
+    blocked(await call(handler, "bash", { command: `node -e "require('child_process').execSync('git \\u{0070}ush')"` }), "js \\u{...}エスケープの復元");
+    blocked(await call(handler, "bash", { command: `node -e "require('child_process')['execSync']('git push')"` }), "js 計算プロパティのexecSync");
+    allowed(await call(handler, "bash", { command: `python - <<'PY'\n    subprocess.run(['git','push'])\nPY` }), "トップレベルインデントのpython heredocは実行不能");
+    allowed(await call(handler, "bash", { command: `bash <<'A'\nbash <<'B'\nbash <<'C'\npython - <<'D'\nimport subprocess; subprocess.run(['git','push'])\nD\nC\nB\nA` }), "深さ制限を超えるheredoc再帰は検査しない");
+    allowed(await call(handler, "bash", { command: `python -c "print(1)" <<'PY'\nimport subprocess; subprocess.run(['git','push'])\nPY` }), "-c併用のheredocはデータとして対象外");
+    allowed(await call(handler, "bash", { command: `bash -c 'echo hi' <<'EOF'\ngit push\nEOF` }), "bash -c併用のheredocはデータとして対象外");
+    allowed(await call(handler, "bash", { command: `python -c "import os; os.spawnv('git', ['push'])"` }), "契約外のos APIは検査対象外");
+
     blocked(await call(handler, "bash", { command: `python -c "import subprocess; subprocess.run(['touch','relative-never-created'], cwd='../../../../')"` }), "python subprocess cwdでの外部write");
 
     const forkConfig = structuredClone(strippedConfig);
@@ -377,6 +443,16 @@ test("Piフィルター v25 のスクリプト本文検査", async () => {
 
     handler = await handlerFor(structuredClone(strippedConfig));
     allowed(await call(handler, "bash", { command: "python -m pip install requests" }), "pip拒否の無い設定では許可");
+
+    handler = await handlerFor(structuredClone(pipConfig));
+    allowed(await call(handler, "bash", { command: "python file.py -m pip install requests" }), "A4 python file.py -m は検査対象外");
+    handler = await handlerFor(structuredClone(gitPushConfig));
+    allowed(await call(handler, "bash", { command: `python file.py -c "import subprocess; subprocess.run(['git','push'])"` }), "A4 python file.py -c は検査対象外");
+    allowed(await call(handler, "bash", { command: `node file.js -e "require('child_process').execSync('git push')"` }), "A4 node file.js -e は検査対象外");
+    allowed(await call(handler, "bash", { command: `python file.py <<'PY'\nimport subprocess; subprocess.run(['git','push'])\nPY` }), "A4 python file.py heredoc は検査対象外");
+    allowed(await call(handler, "bash", { command: `python -c "open('relative-open-never-created', 'w')"` }), "A5 ファイルAPI書き込みは検査対象外");
+    allowed(await call(handler, "bash", { command: `node -e "require('fs').writeFileSync('relative-write-never-created', 'x')"` }), "A5 fs書き込みは検査対象外");
+    allowed(await call(handler, "bash", { command: `printf 'safe' | python -` }), "A6 パイプstdinは検査対象外");
 
     const spaceConfig = structuredClone(strippedConfig);
     spaceConfig.bash.deny.push("git commit -m fix bug");
@@ -395,6 +471,13 @@ test("Piフィルター v25 のスクリプト本文検査", async () => {
     const commandResult = await call(handler, "bash", { command: `pwsh -Command "${encodedBody}"` });
     blocked(commandResult, "pwsh -Command 経由の拒否");
     assert.equal(encodedResult?.reason, commandResult?.reason, "-EncodedCommand は -Command と同じ理由を返す");
+
+    const fffdBody = "Write-Output '\uFFFD'; git push";
+    const fffdEncoded = await call(handler, "bash", { command: `pwsh -EncodedCommand ${base64Utf16le(fffdBody)}` });
+    const fffdCommand = await call(handler, "bash", { command: `pwsh -Command "${fffdBody}"` });
+    blocked(fffdEncoded, "U+FFFDを含む本文の復号後拒否");
+    assert.equal(fffdEncoded?.reason, fffdCommand?.reason, "U+FFFDを含む本文も-Commandと同じ理由");
+    allowed(await call(handler, "bash", { command: `pwsh -EncodedCommand ${base64Utf16le("git push\n# \uD800")}` }), "孤立サロゲートを含む本文は検査不能として許可");
 
     assert.equal(existsSync(outside), false, "拒否・判定中に外部試験対象を作成しない");
     assert.equal(existsSync(outsideDirectory), false, "拒否・判定中に外部試験対象ディレクトリを作成しない");

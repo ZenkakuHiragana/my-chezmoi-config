@@ -343,7 +343,7 @@ function commandParts(node: BashNode): CommandParts | undefined {
     if (!child || child.type === "variable_assignment") continue;
     if (child.type === "command_name" || SHELL_ARGUMENT_NODE_TYPES.has(child.type)) {
       const token = shellTokenText(child.text);
-      if (token) tokens.push(token);
+      if (token !== undefined) tokens.push(token); // 空文字列（''）も引数の値として保持する
     }
   }
   return tokens.length > 0 ? { name: tokens[0], args: tokens.slice(1) } : undefined;
@@ -582,7 +582,7 @@ const PYTHON_NAMES = new Set(["python", "python3", "py"]);
 const NODE_NAMES = new Set(["node", "nodejs"]);
 const POWER_SHELL_NAMES = new Set(["powershell", "powershell.exe", "pwsh", "pwsh.exe"]);
 const SUBPROCESS_CALL_NAMES = new Set(["run", "call", "Popen", "check_call", "check_output"]);
-const OS_COMMAND_NAMES = new Set(["system", "popen", "spawnv", "spawnvp", "spawnl", "spawnlp", "spawnle", "spawnvpe", "execl", "execle", "execlp", "execv", "execve", "execvp", "execvpe"]);
+const OS_COMMAND_NAMES = new Set(["system", "popen"]);
 const NODE_CHILD_PROCESS_NAMES = new Set(["exec", "execSync", "spawn", "spawnSync", "execFile", "execFileSync", "fork"]);
 const NODE_SHELL_STRING_NAMES = new Set(["exec", "execSync"]);
 const NODE_ARGV_NAMES = new Set(["spawn", "spawnSync", "execFile", "execFileSync"]);
@@ -633,7 +633,12 @@ function extractShellBody(parts: CommandParts): string | undefined {
   for (let index = 0; index < parts.args.length; index += 1) {
     const value = parts.args[index];
     if (value === "--") return undefined;
-    if (/^-[^-]*c/.test(value)) return parts.args[index + 1];
+    if (/^-[^-]*c/.test(value)) {
+      // `-c'code'` は同じ要素に本文、`-xc 'code'` は結合部が空なら次の要素が本文
+      const attached = value.slice(value.indexOf("c") + 1);
+      const code = attached !== "" ? attached : parts.args[index + 1];
+      if (code !== undefined) return code;
+    }
   }
   return undefined;
 }
@@ -736,28 +741,84 @@ function powerShellWorkingDirectory(command: PowerShellCommand, cwd: string): st
 
 // ---- スクリプト本文の抽出と復元（python / node / PowerShell -EncodedCommand / heredoc） ----
 
-function extractPythonBody(parts: CommandParts): string | undefined {
-  if (!PYTHON_NAMES.has(commandBasename(parts.name))) return undefined;
-  for (let index = 0; index < parts.args.length; index += 1) {
-    const value = parts.args[index];
-    if (value === "--") return undefined;
-    if (value === "-c") return parts.args[index + 1];
+// python / node 等の実行時オプション走査の終端。最初のオプションでない引数
+// （スクリプトファイル）が現れると、それ以降の -c / -e / -m はスクリプトの
+// 引数であり、インライン本文やモジュール実行としては扱わない。
+// 値付きオプションの網羅はしない（契約の「含まない範囲」）。値付きオプションの
+// 値はスクリプトファイル扱いで停止し、その奥の -c / -e / -m は検査されない。
+// それは検査機会を逃すだけで許可側へ倒れる。
+function interpreterOptionStop(args: readonly string[]): number {
+  for (let index = 0; index < args.length; index += 1) {
+    const value = args[index];
+    if (value === "--") return index;
+    if (value.startsWith("-")) continue;
+    return index;
+  }
+  return args.length;
+}
+
+// インタープリターの実行モード。最初に現れた本文源（-c / -m / - / ファイル）が勝つ。
+// python / node の CLI は -c・-m・ファイル・-（stdin）のうち先に来たものが本文源になり、
+// 残りは argv として渡る。この模倣は既存の cd 追跡（bashWorkingDirectory）と同種であり、
+// 現行の決定子を超えて拡張しない（契約の「含まない範囲」）。値付きオプションの値は
+// ファイル扱いで先に勝つため、その奥のフラグは検査されない（許可側へ倒れる）。
+type InterpreterMode = "inline" | "module" | "stdin" | "file" | "none";
+function interpreterMode(args: readonly string[], inlineFlags: readonly string[], stdinFlags: readonly string[] = []): InterpreterMode {
+  for (let index = 0; index < args.length; index += 1) {
+    const value = args[index];
+    if (value === "--") return "file";
+    if (value === "-") return "stdin";
+    if (inlineFlags.some((flag) => value === flag || value.startsWith(flag))) return "inline";
+    if (value === "-m" || value.startsWith("-m")) return "module";
+    if (stdinFlags.some((flag) => value === flag)) return "stdin";
+    if (value.startsWith("-")) continue;
+    return "file";
+  }
+  return "none";
+}
+
+function pythonBodyFromInline(args: readonly string[]): string | undefined {
+  for (let index = 0; index < args.length; index += 1) {
+    const value = args[index];
+    if (value === "-c") return args[index + 1];
     const combined = value.match(/^-c([\s\S]+)$/);
     if (combined) return combined[1];
   }
   return undefined;
 }
 
-function extractNodeBody(parts: CommandParts): string | undefined {
-  if (!NODE_NAMES.has(commandBasename(parts.name))) return undefined;
-  for (let index = 0; index < parts.args.length; index += 1) {
-    const value = parts.args[index];
-    if (value === "--") return undefined;
-    if (value === "-e" || value === "--eval" || value === "-p" || value === "--print") return parts.args[index + 1];
+function nodeBodyFromInline(args: readonly string[]): string | undefined {
+  for (let index = 0; index < args.length; index += 1) {
+    const value = args[index];
+    if (value === "-e" || value === "--eval" || value === "-p" || value === "--print") return args[index + 1];
     const combined = value.match(/^(-e|--eval|-p|--print)([\s\S]+)$/);
-    if (combined) return combined[2];
+    if (combined) return combined[2].replace(/^=/, ""); // `--eval=<本文>` の = を除去する
   }
   return undefined;
+}
+
+function extractPythonBody(parts: CommandParts): string | undefined {
+  if (!PYTHON_NAMES.has(commandBasename(parts.name))) return undefined;
+  if (interpreterMode(parts.args, ["-c"]) !== "inline") return undefined;
+  return pythonBodyFromInline(parts.args);
+}
+
+function extractNodeBody(parts: CommandParts): string | undefined {
+  if (!NODE_NAMES.has(commandBasename(parts.name))) return undefined;
+  if (interpreterMode(parts.args, ["-e", "--eval", "-p", "--print"]) !== "inline") return undefined;
+  return nodeBodyFromInline(parts.args);
+}
+
+function containsLoneSurrogate(value: string): boolean {
+  for (let index = 0; index < value.length; index += 1) {
+    const code = value.charCodeAt(index);
+    if (code >= 0xd800 && code <= 0xdbff) {
+      const next = value.charCodeAt(index + 1);
+      if (!(next >= 0xdc00 && next <= 0xdfff)) return true;
+      index += 1;
+    } else if (code >= 0xdc00 && code <= 0xdfff) return true;
+  }
+  return false;
 }
 
 function extractPowerShellEncodedBody(command: string): string | undefined {
@@ -765,13 +826,13 @@ function extractPowerShellEncodedBody(command: string): string | undefined {
   if (!match) return undefined;
   const bytes = Buffer.from(match[1], "base64");
   const utf16 = bytes.toString("utf16le");
-  if (utf16 && Buffer.from(utf16, "utf16le").equals(bytes) && !utf16.includes("\uFFFD")) return utf16;
+  if (utf16 && !containsLoneSurrogate(utf16) && Buffer.from(utf16, "utf16le").equals(bytes)) return utf16;
   const utf8 = bytes.toString("utf8");
-  if (utf8 && Buffer.from(utf8, "utf8").equals(bytes) && !utf8.includes("\uFFFD")) return utf8;
+  if (utf8 && Buffer.from(utf8, "utf8").equals(bytes)) return utf8;
   return undefined;
 }
 
-function unescapeCommon(content: string): string | undefined {
+function unescapeCommon(content: string, mode: "python" | "js"): string | undefined {
   let result = "";
   for (let index = 0; index < content.length; index += 1) {
     const char = content[index];
@@ -786,8 +847,27 @@ function unescapeCommon(content: string): string | undefined {
       return undefined;
     }
     if (next === "u") {
+      if (content[index + 2] === "{" && content[index + 3] !== undefined) {
+        if (mode !== "js") return undefined;
+        const close = content.indexOf("}", index + 2);
+        if (close < 0) return undefined;
+        const hex = content.slice(index + 3, close);
+        if (/^[0-9a-fA-F]{1,6}$/.test(hex)) {
+          const codePoint = parseInt(hex, 16);
+          if (codePoint <= 0x10ffff) { result += String.fromCodePoint(codePoint); index = close; continue; }
+        }
+        return undefined;
+      }
       const hex = content.slice(index + 2, index + 6);
       if (/^[0-9a-fA-F]{4}$/.test(hex)) { result += String.fromCharCode(parseInt(hex, 16)); index += 5; continue; }
+      return undefined;
+    }
+    if (next === "U" && mode === "python") {
+      const hex = content.slice(index + 2, index + 10);
+      if (/^[0-9a-fA-F]{8}$/.test(hex)) {
+        const codePoint = parseInt(hex, 16);
+        if (codePoint <= 0x10ffff) { result += String.fromCodePoint(codePoint); index += 9; continue; }
+      }
       return undefined;
     }
     return undefined;
@@ -807,7 +887,7 @@ function pythonStringValue(node: BashNode): string | undefined {
   const close = triple ? rest.lastIndexOf(quote.repeat(3)) : rest.lastIndexOf(quote);
   if (close < (triple ? 3 : 1)) return undefined;
   const content = rest.slice(triple ? 3 : 1, close);
-  return prefix.includes("r") || prefix.includes("R") ? content : unescapeCommon(content);
+  return prefix.includes("r") || prefix.includes("R") ? content : unescapeCommon(content, "python");
 }
 
 function jsStringValue(node: BashNode): string | undefined {
@@ -816,7 +896,7 @@ function jsStringValue(node: BashNode): string | undefined {
   const quote = text[0];
   if (quote !== '"' && quote !== "'" && quote !== "`") return undefined;
   if (quote === "`" && text.includes("${")) return undefined;
-  return unescapeCommon(text.slice(1, -1));
+  return unescapeCommon(text.slice(1, -1), "js");
 }
 
 // argv 要素を再構成トークンへ変換する。シェルが構文として解釈し得る文字
@@ -891,11 +971,36 @@ function nodeCallTarget(node: BashNode): ScriptCallTarget | undefined {
     return NODE_CHILD_PROCESS_NAMES.has(name) ? { name } : undefined;
   }
   if (fnNode.type === "member_expression") {
-    for (let index = 0; index < fnNode.childCount; index += 1) {
-      const child = fnNode.child(index);
-      if (child?.type !== "property_identifier") continue;
-      const name = child.text.trim();
-      return NODE_CHILD_PROCESS_NAMES.has(name) ? { name } : undefined;
+    const property = fnNode.childForFieldName?.("property");
+    if (property) {
+      const name = property.type === "property_identifier" ? property.text.trim() : property.type === "string" ? jsStringValue(property) : undefined;
+      if (name !== undefined && NODE_CHILD_PROCESS_NAMES.has(name)) return { name };
+    }
+  }
+  if (fnNode.type === "subscript_expression") {
+    // プロパティ側（ブラケット内）だけを見る。オブジェクト側の文字列を誤認しない。
+    // 動的な名前解決の網羅はしない（契約の「含まない範囲」）。ここまでの対応は
+    // 文字列・補間なしテンプレート・括弧付きの静的な形に限る。
+    let indexNode = fnNode.childForFieldName?.("index");
+    // 括弧付き（`[('execSync')]` 等）は内側の式を辿る
+    for (let hops = 0; hops < 3 && indexNode?.type === "parenthesized_expression"; hops += 1) {
+      for (let i = 0; i < indexNode.childCount; i += 1) {
+        const child = indexNode.child(i);
+        if (child && child.type !== "(" && child.type !== ")") { indexNode = child; break; }
+      }
+    }
+    const candidates = indexNode ? [indexNode] : [];
+    if (!indexNode) {
+      for (let index = 1; index < fnNode.childCount; index += 1) {
+        const child = fnNode.child(index);
+        if (child) candidates.push(child);
+      }
+    }
+    for (const child of candidates) {
+      let name: string | undefined;
+      if (child.type === "string") name = jsStringValue(child);
+      else if (child.type === "template_string" && !child.text.includes("${")) name = jsStringValue(child);
+      if (name !== undefined && NODE_CHILD_PROCESS_NAMES.has(name)) return { name };
     }
   }
   return undefined;
@@ -954,6 +1059,13 @@ function pythonPositionalArgs(argsNode: BashNode): BashNode[] {
 }
 
 async function inspectPythonBody(body: string, config: FilterConfig, cwd: string, depth: number, boundaryCwd = cwd) {
+  // コメント行は任意のインデントで書けるため、最初の非空・非コメント行を見る。
+  // トップレベルのインデントは IndentationError で実行されない。
+  const firstStatement = body.split("\n").map((line) => line.trimEnd()).find((line) => {
+    const trimmed = line.trim();
+    return trimmed.length > 0 && !trimmed.startsWith("#");
+  }) ?? "";
+  if (/^[ \t]/.test(firstStatement)) return undefined;
   const parser = await getParser("python");
   if (!parser) return undefined;
   let tree: BashTree | null = null;
@@ -989,18 +1101,20 @@ async function inspectPythonCall(node: BashNode, target: ScriptCallTarget, confi
   if (!argsNode) return undefined;
   const keywords = pythonCallKeywords(argsNode);
   const items = pythonPositionalArgs(argsNode);
-  const first = items[0];
+  const first = items[0] ?? keywords.get("args") ?? (target.module === "os" ? keywords.get("command") ?? keywords.get("cmd") : undefined);
   if (!first) return undefined;
   const shell = keywords.get("shell")?.type === "true";
   let execCwd = cwd;
   const cwdNode = keywords.get("cwd");
-  if (cwdNode?.type === "string") {
-    const value = pythonStringValue(cwdNode);
+  if (cwdNode?.type === "string" || cwdNode?.type === "concatenated_string") {
+    const value = cwdNode.type === "string" ? pythonStringValue(cwdNode) : concatenatedValue(cwdNode);
     if (value) execCwd = resolveExistingPath(value, cwd);
   }
   let text: string | undefined;
   if (target.module === "os") {
     if (first.type === "string") text = pythonStringValue(first);
+    else if (first.type === "concatenated_string") text = concatenatedValue(first);
+    else text = "*"; // 非リテラルは任意一致として再構成（値によらず一致が証明できる場合のみ拒否）
   } else if (first.type === "list" || first.type === "tuple") {
     if (shell) text = pythonSequenceFirstLiteral(first);
     else {
@@ -1013,6 +1127,8 @@ async function inspectPythonCall(node: BashNode, target: ScriptCallTarget, confi
   } else if (first.type === "concatenated_string") {
     const value = concatenatedValue(first);
     if (value !== undefined) text = shell ? value : argvToken(value);
+  } else {
+    text = "*"; // 非リテラルは任意一致として再構成
   }
   if (text) {
     const decision = await inspectBash(text, config, execCwd, depth + 1, boundaryCwd);
@@ -1065,8 +1181,8 @@ async function inspectNodeJsCall(node: BashNode, target: ScriptCallTarget, confi
   const execCwd = jsObjectCwd(options, cwd);
   let text: string | undefined;
   if (NODE_SHELL_STRING_NAMES.has(target.name)) {
-    const value = items[0] ? jsStringValueOf(items[0]) : undefined;
-    if (value !== undefined) text = value; // exec 系は常にシェル経由
+    const value = items[0] ? jsStringValueOf(items[0]) ?? "*" : "*"; // exec 系は常にシェル経由。非リテラルは任意一致として再構成
+    text = value;
   } else if (target.name === NODE_FORK_NAME) {
     const moduleToken = argvToken(items[0] ? jsStringValueOf(items[0]) ?? "*" : "*");
     const argTokens = items[1]?.type === "array" ? jsArrayTokens(items[1]) : [];
@@ -1084,32 +1200,79 @@ async function inspectNodeJsCall(node: BashNode, target: ScriptCallTarget, confi
 }
 
 type BashHeredoc = { body: string; quoted: boolean; ownerStart: number };
-function findBashHeredocs(root: BashNode): BashHeredoc[] {
+function findStatementCommands(statement: BashNode): BashNode[] {
+  const found: BashNode[] = [];
+  const stack = [statement];
+  while (stack.length > 0) {
+    const node = stack.pop();
+    if (!node) continue;
+    if (node.type === "command") { found.push(node); continue; }
+    // ネストした redirected_statement のコマンドは、別の heredoc が処理する
+    if (node.type === "redirected_statement" && node !== statement) continue;
+    for (let index = node.childCount - 1; index >= 0; index -= 1) {
+      const child = node.child(index);
+      if (child) stack.push(child);
+    }
+  }
+  return found;
+}
+function findBashHeredocs(root: BashNode, rawText: string): BashHeredoc[] {
   const heredocs: BashHeredoc[] = [];
   const stack = [root];
+  const statementCommands = new Map<number, BashNode[]>();
   while (stack.length > 0) {
     const node = stack.pop();
     if (!node) continue;
     if (node.type === "heredoc_redirect") {
       const statement = node.parent;
       if (statement?.type === "redirected_statement") {
-        let ownerStart = -1;
-        for (let index = 0; index < statement.childCount; index += 1) {
-          const child = statement.child(index);
-          if (child?.type === "command") { ownerStart = child.startIndex; break; }
+        // 同一 statement のコマンド探索は heredoc ごとに繰り返さない
+        let commands = statementCommands.get(statement.startIndex);
+        if (!commands) {
+          commands = findStatementCommands(statement);
+          statementCommands.set(statement.startIndex, commands);
         }
-        let body = "";
+        // 本文を消費するコマンドは、構文上この heredoc に最も近いコマンド。
+        // 通常は直前（`A && B <<'PY'` は B、`python <<'PY' | cat` は python）だが、
+        // リダイレクト前置形（`<<'PY' python`）では直後になる。
+        let ownerStart = -1;
+        let bestEnd = -1;
+        let bestStart = -1;
+        for (const command of commands) {
+          if (command.endIndex <= node.startIndex && command.endIndex > bestEnd) {
+            bestEnd = command.endIndex;
+            ownerStart = command.startIndex;
+          }
+          if (command.startIndex >= node.endIndex && (bestStart < 0 || command.startIndex < bestStart)) {
+            bestStart = command.startIndex;
+          }
+        }
+        if (ownerStart < 0) ownerStart = bestStart;
+        let quoted = false;
+        let tabStrip = false;
+        let bodyStart = -1;
+        let bodyEnd = -1;
         for (let index = 0; index < node.childCount; index += 1) {
           const child = node.child(index);
-          if (child?.type === "heredoc_body") body = child.text;
-        }
-        let quoted = false;
-        if (ownerStart >= 0) {
-          for (let index = 0; index < node.childCount; index += 1) {
-            const child = node.child(index);
-            if (child?.type === "heredoc_start") { quoted = child.text.startsWith("'") || child.text.startsWith('"'); break; }
+          if (child?.type === "heredoc_start") {
+            quoted = child.text.startsWith("'") || child.text.startsWith('"');
+            bodyStart = child.endIndex;
+          } else if (child?.type === "heredoc_end") {
+            bodyEnd = child.startIndex;
+          } else if (child?.text === "<<-") {
+            tabStrip = true;
           }
-          if (body.trim()) heredocs.push({ body: body.trim(), quoted, ownerStart });
+        }
+        if (ownerStart >= 0 && bodyStart >= 0 && bodyEnd > bodyStart) {
+          // tree-sitter-bash のオフセットは UTF-16 コード単位に等しく、
+          // heredoc の本文開始は「開始デリミタ行の最初の改行の直後」で始まる。
+          // パイプライン等で開始行に後続トークン（| cat 等）が続く場合は、
+          // heredoc_start の直後ではなく改行位置から切り出す。
+          const lineBreak = rawText.indexOf("\n", bodyStart);
+          const contentStart = lineBreak >= 0 && lineBreak < bodyEnd ? lineBreak + 1 : bodyStart;
+          let body = rawText.slice(contentStart, bodyEnd).replace(/^\r/, "");
+          if (tabStrip) body = body.split("\n").map((line) => line.replace(/^\t+/, "")).join("\n");
+          if (body.trim()) heredocs.push({ body, quoted, ownerStart });
         }
       }
     }
@@ -1121,16 +1284,80 @@ function findBashHeredocs(root: BashNode): BashHeredoc[] {
   return heredocs;
 }
 
-async function inspectHeredocBody(body: string, commandName: string, config: FilterConfig, cwd: string, depth: number, boundaryCwd = cwd) {
-  const base = commandBasename(commandName);
-  if (BASH_SHELL_NAMES.has(base)) return inspectBash(body, config, cwd, depth + 1, boundaryCwd);
-  if (PYTHON_NAMES.has(base)) return inspectPythonBody(body, config, cwd, depth + 1, boundaryCwd);
-  if (NODE_NAMES.has(base)) return inspectNodeJsBody(body, config, cwd, depth + 1, boundaryCwd);
-  if (POWER_SHELL_NAMES.has(base)) return checkPowerShellBody(body, config, cwd, boundaryCwd);
+// heredoc 本文を消費する実効コマンドを、既知ラッパーを剥いたうえで決める。
+// 本文をコードとして実行せずデータとしてのみ消費する呼び出し（-c / -e 併用や
+// スクリプトファイル指定）は検査対象外とする。
+async function inspectHeredocBody(body: string, parts: CommandParts, config: FilterConfig, cwd: string, depth: number, boundaryCwd = cwd) {
+  let effective = parts;
+  let hops = 0;
+  // ラッパー剥き。多段（2 段以上）は意図的回避の典型であり、網羅しない
+  // （契約の「含まない範囲」）。現行の上限と深さガードは維持し、これ以上は拡張しない。
+  for (let index = 0; index < 5; index += 1) {
+    const wrapperName = commandBasename(effective.name);
+    if (!BASH_WRAPPER_NAMES.has(wrapperName)) break;
+    // `command -v python` などの照会形は対象コマンドを実行しない。
+    // heredoc は実行されないデータとして扱う
+    if (wrapperName === "command" && (effective.args[0]?.startsWith("-") ?? false)) return undefined;
+    const nestedArgs = wrappedCommandArgs(wrapperName, effective.args);
+    if (nestedArgs.length === 0) break;
+    effective = { name: nestedArgs[0], args: nestedArgs.slice(1) };
+    hops += 1;
+  }
+  if (depth + hops >= 3) return undefined; // ラッパー段数も既存の深さ制限に数える
+  const effectiveDepth = depth + hops;
+  const base = commandBasename(effective.name);
+  if (BASH_SHELL_NAMES.has(base)) {
+    const inline = extractShellBody(effective);
+    // `-s` は stdin を本文として実行するが、-c が同時にある場合は -c が勝ち、
+    // スクリプトファイルが先行すればその引数になる
+    const readsStdin = inline === undefined && interpreterMode(effective.args, ["-c"], ["-s"]) === "stdin";
+    if (!readsStdin && inline !== undefined) return undefined;
+    const stop = interpreterOptionStop(effective.args);
+    if (!readsStdin && stop < effective.args.length) return undefined;
+    return inspectBash(body, config, cwd, effectiveDepth + 1, boundaryCwd);
+  }
+  if (PYTHON_NAMES.has(base)) {
+    if (extractPythonBody(effective) !== undefined) return undefined;
+    if (pythonModuleArgs(effective.args)) return undefined;
+    // `-`（stdin 本文）がモードのときは、後続の位置引数があっても検査する
+    const readsStdin = interpreterMode(effective.args, ["-c"]) === "stdin";
+    const stop = interpreterOptionStop(effective.args);
+    if (!readsStdin && stop < effective.args.length) return undefined;
+    return inspectPythonBody(body, config, cwd, effectiveDepth + 1, boundaryCwd);
+  }
+  if (NODE_NAMES.has(base)) {
+    if (extractNodeBody(effective) !== undefined) return undefined;
+    // `-`（stdin 本文）がモードのときは、後続の位置引数があっても検査する
+    const readsStdin = interpreterMode(effective.args, ["-e", "--eval", "-p", "--print"]) === "stdin";
+    const stop = interpreterOptionStop(effective.args);
+    if (!readsStdin && stop < effective.args.length) return undefined;
+    return inspectNodeJsBody(body, config, cwd, effectiveDepth + 1, boundaryCwd);
+  }
+  if (POWER_SHELL_NAMES.has(base)) {
+    // -File の値が `-` の場合は stdin 本文を実行するため、後続の位置引数は
+    // スクリプトの引数であり、PowerShell 本体のオプションとして扱わない
+    const fileIsStdin = effective.args.some((value, index) => /^-+file$/i.test(value) && index + 1 < effective.args.length && effective.args[index + 1] === "-");
+    if (fileIsStdin) return checkPowerShellBody(body, config, cwd, boundaryCwd);
+    const argsText = [effective.name, ...effective.args].join(" ");
+    const inlineBody = extractPowerShellBody(argsText);
+    // `-Command -` は stdin を本文として実行するため、heredoc 本文はデータではない。
+    // 値が空文字列の -Command / -c も同様にデータ消費。
+    // （値の無い -Command は stdin 本文の実行形であり、空文字列の値を持つ場合のみデータ）
+    const hasEmptyCommandValue = effective.args.some((value, index) => /^-+(?:command|c)$/i.test(value) && index + 1 < effective.args.length && effective.args[index + 1] === "");
+    // -EncodedCommand は値の復号可否に関わらず heredoc 本文を実行しない（復号不能は検査不能）
+    const hasEncodedOption = effective.args.some((value) => /^-+(?:encodedcommand|enc)$/i.test(value));
+    if ((inlineBody !== undefined && inlineBody.trim() !== "-") || hasEncodedOption || hasEmptyCommandValue) return undefined;
+    const hasFileOption = effective.args.some((value, index) => /^-+file$/i.test(value) && index + 1 < effective.args.length && effective.args[index + 1] !== "-");
+    if (hasFileOption) return undefined;
+    const stop = interpreterOptionStop(effective.args);
+    if (stop < effective.args.length) return undefined;
+    return checkPowerShellBody(body, config, cwd, boundaryCwd);
+  }
   return undefined;
 }
 
 function pythonModuleArgs(args: readonly string[]): { module: string; rest: string[] } | undefined {
+  if (interpreterMode(args, ["-c"]) !== "module") return undefined;
   for (let index = 0; index < args.length; index += 1) {
     const value = args[index];
     if (value === "-m") {
@@ -1323,7 +1550,13 @@ async function inspectBash(command: string, config: FilterConfig, cwd = process.
     let currentCwd = cwd;
     const commandNodes = findCommandNodes(tree.rootNode).sort((left, right) => left.startIndex - right.startIndex);
     const redirects = findBashRedirects(tree.rootNode);
-    const heredocs = findBashHeredocs(tree.rootNode);
+    const heredocs = findBashHeredocs(tree.rootNode, command);
+    const heredocsByOwner = new Map<number, BashHeredoc[]>();
+    for (const heredoc of heredocs) {
+      const owned = heredocsByOwner.get(heredoc.ownerStart) ?? [];
+      owned.push(heredoc);
+      heredocsByOwner.set(heredoc.ownerStart, owned);
+    }
     const handledRedirects = new Set<BashRedirect>();
     for (const node of commandNodes) {
       const directDecision = checkBashValues(commandValues(node.text), config);
@@ -1340,10 +1573,10 @@ async function inspectBash(command: string, config: FilterConfig, cwd = process.
         if (nestedDecision) return nestedDecision;
         currentCwd = bashWorkingDirectory(parts, currentCwd);
       }
-      for (const heredoc of heredocs) {
-        if (heredoc.ownerStart !== node.startIndex) continue;
+      for (const heredoc of heredocsByOwner.get(node.startIndex) ?? []) {
         if (!heredoc.quoted && HEREDOC_EXPANSION_CHARS.test(heredoc.body)) continue;
-        const heredocDecision = await inspectHeredocBody(heredoc.body, parts?.name ?? "", config, currentCwd, depth, boundaryCwd);
+        if (!parts || depth >= 3) continue;
+        const heredocDecision = await inspectHeredocBody(heredoc.body, parts, config, currentCwd, depth, boundaryCwd);
         if (heredocDecision) return heredocDecision;
       }
     }
