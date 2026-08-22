@@ -583,6 +583,9 @@ const NODE_NAMES = new Set(["node", "nodejs"]);
 const POWER_SHELL_NAMES = new Set(["powershell", "powershell.exe", "pwsh", "pwsh.exe"]);
 const SUBPROCESS_CALL_NAMES = new Set(["run", "call", "Popen", "check_call", "check_output"]);
 const OS_COMMAND_NAMES = new Set(["system", "popen"]);
+const PYTHON_FILE_WRITE_NAMES = new Set(["remove", "unlink", "rename", "replace"]);
+const NODE_FILE_READ_NAMES = new Set(["readFile", "readFileSync"]);
+const NODE_FILE_WRITE_NAMES = new Set(["writeFile", "writeFileSync", "rm", "rmSync", "unlink", "unlinkSync", "rename", "renameSync"]);
 const NODE_CHILD_PROCESS_NAMES = new Set(["exec", "execSync", "spawn", "spawnSync", "execFile", "execFileSync", "fork"]);
 const NODE_SHELL_STRING_NAMES = new Set(["exec", "execSync"]);
 const NODE_ARGV_NAMES = new Set(["spawn", "spawnSync", "execFile", "execFileSync"]);
@@ -1057,6 +1060,118 @@ function nodeCallTarget(node: BashNode): ScriptCallTarget | undefined {
   return undefined;
 }
 
+function pythonStaticStringValue(node: BashNode | undefined): string | undefined {
+  if (!node) return undefined;
+  if (node.type === "string") return pythonStringValue(node);
+  if (node.type === "concatenated_string") return concatenatedValue(node);
+  return undefined;
+}
+
+function pythonFileCallTarget(node: BashNode): ScriptCallTarget | undefined {
+  const fnNode = node.childForFieldName?.("function");
+  if (!fnNode) return undefined;
+  if (fnNode.type === "identifier" && fnNode.text.trim() === "open") return { name: "open" };
+  if (fnNode.type !== "attribute") return undefined;
+  const objectNode = fnNode.childForFieldName?.("object");
+  const attrNode = fnNode.childForFieldName?.("attribute");
+  if (!objectNode || !attrNode || objectNode.type !== "identifier") return undefined;
+  const module = objectNode.text.trim();
+  const name = attrNode.text.trim();
+  if (module === "io" && name === "open") return { module, name };
+  if (module === "os" && PYTHON_FILE_WRITE_NAMES.has(name)) return { module, name };
+  return undefined;
+}
+
+function pythonFileModeRoles(mode: string): PathRole[] | undefined {
+  if (!/^[rwax](?:[bt+]|U)*$/.test(mode)) return undefined;
+  const base = mode[0];
+  const roles: PathRole[] = [];
+  if (base === "r" || mode.includes("+")) roles.push("read");
+  if (base === "w" || base === "a" || base === "x" || mode.includes("+")) roles.push("write");
+  return roles.length > 0 ? roles : undefined;
+}
+
+function pythonFilePathRoles(node: BashNode, target: ScriptCallTarget): Array<readonly [string, PathRole]> {
+  const argsNode = node.childForFieldName?.("arguments");
+  if (!argsNode) return [];
+  const keywords = pythonCallKeywords(argsNode);
+  const items = pythonPositionalArgs(argsNode);
+  const positionalOrKeyword = (index: number, keyword: string) => pythonStaticStringValue(items[index] ?? keywords.get(keyword));
+
+  if (target.module === "os") {
+    if (target.name === "remove" || target.name === "unlink") {
+      const path = positionalOrKeyword(0, "path");
+      return path ? [[path, "write"]] : [];
+    }
+    const source = positionalOrKeyword(0, "src");
+    const destination = positionalOrKeyword(1, "dst");
+    return [source, destination].filter((value): value is string => value !== undefined).map((value) => [value, "write"] as const);
+  }
+
+  const path = positionalOrKeyword(0, "file");
+  if (path === undefined) return [];
+  const modeNode = items[1] ?? keywords.get("mode");
+  const mode = modeNode ? pythonStaticStringValue(modeNode) : "r";
+  if (mode === undefined) return [];
+  return (pythonFileModeRoles(mode) ?? []).map((role) => [path, role] as const);
+}
+
+function nodeCallArguments(node: BashNode): BashNode[] {
+  const argsNode = node.childForFieldName?.("arguments");
+  if (!argsNode) return [];
+  const items: BashNode[] = [];
+  for (let index = 0; index < argsNode.childCount; index += 1) {
+    const child = argsNode.child(index);
+    if (!child || child.type === "(" || child.type === ")" || child.type === ",") continue;
+    items.push(child);
+  }
+  return items;
+}
+
+function nodeRequiredModulePath(node: BashNode | undefined): string | undefined {
+  if (!node || node.type !== "call_expression") return undefined;
+  const fnNode = node.childForFieldName?.("function");
+  if (!fnNode || fnNode.type !== "identifier" || fnNode.text.trim() !== "require") return undefined;
+  const moduleName = jsStringValueOf(nodeCallArguments(node)[0]);
+  return moduleName === "fs" || moduleName === "node:fs" || moduleName === "fs/promises" ? moduleName : undefined;
+}
+
+function nodeFsModulePath(node: BashNode | undefined): string | undefined {
+  if (!node) return undefined;
+  if (node.type === "identifier" && node.text.trim() === "fs") return "fs";
+  const required = nodeRequiredModulePath(node);
+  if (required) return required;
+  if (node.type !== "member_expression") return undefined;
+  const property = node.childForFieldName?.("property");
+  if (!property || property.type !== "property_identifier" || property.text.trim() !== "promises") return undefined;
+  const object = nodeFsModulePath(node.childForFieldName?.("object"));
+  return object === "fs" || object === "node:fs" ? "fs/promises" : undefined;
+}
+
+function nodeFileCallTarget(node: BashNode): ScriptCallTarget | undefined {
+  const fnNode = node.childForFieldName?.("function");
+  if (!fnNode || fnNode.type !== "member_expression") return undefined;
+  const property = fnNode.childForFieldName?.("property");
+  if (!property || property.type !== "property_identifier") return undefined;
+  const name = property.text.trim();
+  const module = nodeFsModulePath(fnNode.childForFieldName?.("object"));
+  if (!module) return undefined;
+  return NODE_FILE_READ_NAMES.has(name) || NODE_FILE_WRITE_NAMES.has(name) ? { module, name } : undefined;
+}
+
+function nodeFilePathRoles(node: BashNode, target: ScriptCallTarget): Array<readonly [string, PathRole]> {
+  const items = nodeCallArguments(node);
+  if (NODE_FILE_WRITE_NAMES.has(target.name) && (target.name === "rename" || target.name === "renameSync")) {
+    return items.slice(0, 2)
+      .map((item) => jsStringValueOf(item))
+      .filter((value): value is string => value !== undefined)
+      .map((value) => [value, "write"] as const);
+  }
+  const path = jsStringValueOf(items[0]);
+  if (path === undefined) return [];
+  return [[path, NODE_FILE_READ_NAMES.has(target.name) ? "read" : "write"]];
+}
+
 function jsArrayTokens(node: BashNode): string[] {
   const tokens: string[] = [];
   for (let index = 0; index < node.childCount; index += 1) {
@@ -1069,8 +1184,8 @@ function jsArrayTokens(node: BashNode): string[] {
   return tokens;
 }
 
-function jsStringValueOf(node: BashNode): string | undefined {
-  return node.type === "string" || node.type === "template_string" ? jsStringValue(node) : undefined;
+function jsStringValueOf(node: BashNode | undefined): string | undefined {
+  return node && (node.type === "string" || node.type === "template_string") ? jsStringValue(node) : undefined;
 }
 
 function jsObjectCwd(options: BashNode | undefined, cwd: string): string {
@@ -1149,9 +1264,14 @@ async function inspectPythonStatementCalls(statement: BashNode, config: FilterCo
     const node = stack.pop();
     if (!node) continue;
     if (node.type === "call") {
-      const target = pythonCallTarget(node);
-      if (target) {
-        const decision = await inspectPythonCall(node, target, config, cwd, depth, boundaryCwd);
+      const fileTarget = pythonFileCallTarget(node);
+      if (fileTarget) {
+        const decision = pathRoleDecisions(pythonFilePathRoles(node, fileTarget), cwd, config, boundaryCwd);
+        if (decision) return decision;
+      }
+      const commandTarget = pythonCallTarget(node);
+      if (commandTarget) {
+        const decision = await inspectPythonCall(node, commandTarget, config, cwd, depth, boundaryCwd);
         if (decision) return decision;
       }
     }
@@ -1265,9 +1385,14 @@ async function inspectNodeJsStatementCalls(statement: BashNode, config: FilterCo
     const node = stack.pop();
     if (!node) continue;
     if (node.type === "call_expression") {
-      const target = nodeCallTarget(node);
-      if (target) {
-        const decision = await inspectNodeJsCall(node, target, config, cwd, depth, boundaryCwd);
+      const fileTarget = nodeFileCallTarget(node);
+      if (fileTarget) {
+        const decision = pathRoleDecisions(nodeFilePathRoles(node, fileTarget), cwd, config, boundaryCwd);
+        if (decision) return decision;
+      }
+      const commandTarget = nodeCallTarget(node);
+      if (commandTarget) {
+        const decision = await inspectNodeJsCall(node, commandTarget, config, cwd, depth, boundaryCwd);
         if (decision) return decision;
       }
     }

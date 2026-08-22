@@ -450,8 +450,40 @@ test("Piフィルター v25 のスクリプト本文検査", async () => {
     allowed(await call(handler, "bash", { command: `python file.py -c "import subprocess; subprocess.run(['git','push'])"` }), "A4 python file.py -c は検査対象外");
     allowed(await call(handler, "bash", { command: `node file.js -e "require('child_process').execSync('git push')"` }), "A4 node file.js -e は検査対象外");
     allowed(await call(handler, "bash", { command: `python file.py <<'PY'\nimport subprocess; subprocess.run(['git','push'])\nPY` }), "A4 python file.py heredoc は検査対象外");
-    allowed(await call(handler, "bash", { command: `python -c "open('relative-open-never-created', 'w')"` }), "A5 ファイルAPI書き込みは検査対象外");
-    allowed(await call(handler, "bash", { command: `node -e "require('fs').writeFileSync('relative-write-never-created', 'x')"` }), "A5 fs書き込みは検査対象外");
+    blocked(await call(handler, "bash", { command: `python -c "open('~/.bashrc').read()"` }), "A5 Python open 読み取りは read deny で拒否");
+    blocked(await call(handler, "bash", { command: `python -c "io.open('~/.bashrc', 'r')"` }), "A5 Python io.open 読み取りは read deny で拒否");
+    blocked(await call(handler, "bash", { command: `python -c "open('${outsideShell}', 'w')"` }), "A5 Python open 書き込みは外部 write 既定値で拒否");
+    blocked(await call(handler, "bash", { command: `python -c "open('${outsideShell}', 'r+')"` }), "A5 Python open の r+ は write として拒否");
+    blocked(await call(handler, "bash", { command: `python -c "import os; os.rename('${outsideShell}', 'pi-tool-filter-file-api-renamed-never-created')"` }), "A5 Python os.rename は write として拒否");
+    blocked(await call(handler, "bash", { command: `node -e "require('fs').readFileSync('~/.bashrc')"` }), "A5 Node.js fs 読み取りは read deny で拒否");
+    blocked(await call(handler, "bash", { command: `node -e "require('fs').writeFileSync('${outsideShell}', 'x')"` }), "A5 Node.js fs 書き込みは外部 write 既定値で拒否");
+    blocked(await call(handler, "bash", { command: `node -e "require('fs/promises').writeFile('${outsideShell}', 'x')"` }), "A5 Node.js fs/promises 書き込みは外部 write 既定値で拒否");
+    blocked(await call(handler, "bash", { command: `node -e "fs.promises.readFile('~/.bashrc')"` }), "A5 Node.js fs.promises 読み取りは read deny で拒否");
+    blocked(await call(handler, "bash", { command: `node -e "require('node:fs').renameSync('${outsideShell}', 'pi-tool-filter-file-api-renamed-never-created')"` }), "A5 Node.js fs.rename は write として拒否");
+    blocked(await call(handler, "bash", { command: `node -e "require('fs').rmSync('${outsideShell}')"` }), "A5 Node.js fs.rm は write として拒否");
+    blocked(await call(handler, "bash", { command: `python -c "import os; os.remove('${outsideShell}')"` }), "A5 Python os.remove は write として拒否");
+    allowed(await call(handler, "bash", { command: `python -c "open('relative-open-never-created', 'w')"` }), "A5 Python open の作業ディレクトリ内 write は許可");
+    allowed(await call(handler, "bash", { command: `node -e "require('fs').writeFileSync('relative-write-never-created', 'x')"` }), "A5 Node.js fs の作業ディレクトリ内 write は許可");
+    allowed(await call(handler, "bash", { command: `python -c "path='~/.bashrc'; open(path).read()"` }), "A5 Python 動的 path は追加拒否しない");
+    allowed(await call(handler, "bash", { command: `python -c "mode='w'; open('~/.bashrc', mode)"` }), "A5 Python 動的 mode は追加拒否しない");
+    allowed(await call(handler, "bash", { command: `node -e "const path = '~/.bashrc'; require('fs').readFileSync(path)"` }), "A5 Node.js 動的 path は追加拒否しない");
+    allowed(await call(handler, "bash", { command: `node -e "const moduleName = 'fs'; require(moduleName).readFileSync('~/.bashrc')"` }), "A5 Node.js 動的 module は追加拒否しない");
+    blocked(await call(handler, "bash", { command: `python -c "import os; os.chdir('..'); open('pi-tool-filter-file-api-cwd-never-created', 'w')"` }), "A5 Python os.chdir 後の相対 write は外部 write として拒否");
+    blocked(await call(handler, "bash", { command: `node -e "process.chdir('..'); require('fs').writeFileSync('pi-tool-filter-file-api-cwd-never-created', 'x')"` }), "A5 Node.js process.chdir 後の相対 write は外部 write として拒否");
+
+    const fileAllowConfig = structuredClone(strippedConfig);
+    fileAllowConfig.read.allow.push("~/.bashrc");
+    handler = await handlerFor(fileAllowConfig);
+    allowed(await call(handler, "bash", { command: `python -c "open('~/.bashrc').read()"` }), "A5 Python open は read allow に従う");
+
+    const fileDenyPriorityConfig = structuredClone(strippedConfig);
+    fileDenyPriorityConfig.write.outsideDefault = "allow";
+    fileDenyPriorityConfig.write.allow.push(outside);
+    fileDenyPriorityConfig.write.deny.push(outside);
+    handler = await handlerFor(fileDenyPriorityConfig);
+    blocked(await call(handler, "bash", { command: `node -e "require('fs').writeFileSync('${outsideShell}', 'x')"` }), "A5 Node.js fs は write deny を write allow より優先");
+
+    handler = await handlerFor(structuredClone(gitPushConfig));
     allowed(await call(handler, "bash", { command: `printf 'safe' | python -` }), "A6 パイプstdinは検査対象外");
 
     // 作業ディレクトリ変更の置換型追跡（env -C / os.chdir / process.chdir / -WorkingDirectory）
