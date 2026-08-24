@@ -26,11 +26,11 @@ $ARGUMENTS
 
 - `AGENTS.md`
 - `opencode-prompt-dev/prompt-principles.md`
+- `opencode-prompt-dev/prompt-refactor-checklist.md`
 
 関係する場合は読む。
 
 - `~/.local/share/chezmoi/.opencode/local-failure-logs/`
-- `opencode-prompt-dev/prompt-refactor-checklist.md`
 
 ## 2. 関連するプロンプト面を読む
 
