@@ -8,9 +8,10 @@ packages/**
 scripts/**
 tools/**
 {{- if eq .chezmoi.os "windows" }}
+.config/herdr/
+.config/lazygit/
 .config/nvim/**
 .config/zellij/
-.config/lazygit/
 {{- else if eq .chezmoi.os "linux" }}
 AppData/
 Documents/
