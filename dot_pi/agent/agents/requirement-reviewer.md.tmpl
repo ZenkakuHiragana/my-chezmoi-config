@@ -6,4 +6,4 @@ thinking: {{ dig "pi_agent" "requirement_reviewer" "thinking" "max" . }}
 exclude_extensions: [pi-instruction-nudge]
 ---
 
-{{ regexReplaceAll "(?s)^---\n.*?\n---\n\n?" (includeTemplate "dot_config/opencode/agents/requirement-reviewer.md.tmpl" .) "" -}}
+{{ template "opencode/agents/requirement-reviewer.md" . }}

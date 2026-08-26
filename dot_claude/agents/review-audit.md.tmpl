@@ -6,4 +6,4 @@ effort: {{ dig "claude_agent" "review_audit" "effort" "high" . }}
 color: purple
 ---
 
-{{ regexReplaceAll "(?s)^---\n.*?\n---\n\n?" (includeTemplate "dot_config/opencode/agents/review-audit.md.tmpl" .) "" -}}
+{{ template "opencode/agents/review-audit.md" . }}
