@@ -37,7 +37,7 @@ const CHILD_ENV = "PI_SUBAGENT_CHILD";
 const SCOUT_AGENT = "context-scout";
 const FIRST_TURN_TIMEOUT_MS = 30_000;
 const LATER_TURN_TIMEOUT_MS = 16_000;
-const TURN_BUDGET = { maxTurns: 2, graceTurns: 1 } as const;
+const TURN_BUDGET = { maxTurns: 8, graceTurns: 1666666 } as const;
 const TOOL_BUDGET = {
   soft: 8,
   hard: 16,
