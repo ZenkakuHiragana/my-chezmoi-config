@@ -3,7 +3,7 @@
 name: context-scout
 description: ユーザー依頼に関係する対象固有の事実を情報源から探索し、確認した事実を`contact_supervisor`で親へ配送する読み取り専用エージェント。依頼の解決・実装・設計・要件決定には使わない。
 model: {{ dig "pi_agent" "context-scout" "model" "openai-codex/gpt-5.6-luna" . | quote }}
-thinking: {{ dig "pi_agent" "context-scout" "thinking" "minimum" . }}
+thinking: {{ dig "pi_agent" "context-scout" "thinking" "minimal" . }}
 systemPromptMode: replace
 inheritProjectContext: true
 inheritSkills: false
