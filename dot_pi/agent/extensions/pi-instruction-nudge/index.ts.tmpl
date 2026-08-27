@@ -14,6 +14,8 @@ function isTargetModel(model: { readonly id: string } | undefined): boolean {
 }
 
 export default function piInstructionNudge(pi: ExtensionAPI): void {
+  if (process.env.PI_SUBAGENT_CHILD === "1") return;
+
   // 圧縮で失われないよう、ユーザープロンプトごとにシステムプロンプトへ督促文を追記する。
   // before_agent_start はユーザープロンプトから始まる agent run ごとに一度発火し、
   // 返した systemPrompt は run 全体で保持され、run 完全終了で解除される。

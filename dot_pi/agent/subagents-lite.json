@@ -1,9 +1,0 @@
-{
-  "agent": {
-    "disableDefaultAgents": true,
-    "systemPromptMode": "replace"
-  },
-  "concurrency": {
-    "default": 32
-  }
-}

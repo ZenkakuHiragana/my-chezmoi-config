@@ -14,8 +14,11 @@
   "fullscreenScrollbar": "auto",
   "defaultThinkingLevel": "max",
   "hideThinkingBlock": true,
+  "subagents": {
+    "disableBuiltins": true
+  },
   "packages": [
-    "npm:pi-subagents-lite",
+    "npm:pi-subagents",
     "npm:pi-mcp-adapter",
     "npm:pi-tool-display",
     "npm:pi-omplike-advisor",

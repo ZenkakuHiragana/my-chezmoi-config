@@ -3,6 +3,9 @@ name: general-strong
 description: Strong general-purpose subagent. 広めの調査、設計判断、競合する根拠の整理に使う。
 model: {{ dig "pi_agent" "general_strong" "model" "openai-codex/gpt-5.6-luna" . | quote }}
 thinking: {{ dig "pi_agent" "general_strong" "thinking" "max" . }}
+systemPromptMode: replace
+inheritProjectContext: true
+inheritSkills: true
 exclude_extensions: [pi-instruction-nudge]
 ---
 
