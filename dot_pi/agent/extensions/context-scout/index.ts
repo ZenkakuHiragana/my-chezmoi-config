@@ -27,8 +27,12 @@ interface SubagentDelegationRequest {
 
 interface ScoutRun {
   request: SubagentDelegationRequest;
+  baseTask: string;
+  parentSignal?: AbortSignal;
   runId?: string;
   pendingActivity: string[];
+  activityHistory: string[];
+  finished?: boolean;
   stopTimer?: ReturnType<typeof setTimeout>;
 }
 
@@ -96,7 +100,7 @@ function contentText(content: unknown): string {
     .join("\n");
 }
 
-const ACTIVITY_TOOLS = new Set(["read", "grep", "find", "ls", "bash", "questionnaire", "edit", "write"]);
+const ACTIVITY_TOOLS = new Set(["read", "grep", "find", "ls", "bash", "edit", "write"]);
 
 function activityInput(toolName: string, input: Record<string, unknown>): Record<string, unknown> {
   if (toolName === "read") {
@@ -104,10 +108,16 @@ function activityInput(toolName: string, input: Record<string, unknown>): Record
       ["path", "line_start", "line_end", "offset", "limit"].includes(key)));
   }
   if (toolName === "edit" || toolName === "write") {
-    return Object.fromEntries(Object.entries(input).filter(([key]) =>
-      ["path", "oldText", "newText", "content"].includes(key)));
+    return Object.fromEntries(Object.entries(input).filter(([key]) => key === "path"));
   }
-  return input;
+  if (toolName === "bash") {
+    return Object.fromEntries(Object.entries(input).filter(([key]) => key === "command"));
+  }
+  if (toolName === "grep" || toolName === "find" || toolName === "ls") {
+    const keys = new Set(["path", "pattern", "glob", "query", "ignoreCase", "literal", "context", "limit"]);
+    return Object.fromEntries(Object.entries(input).filter(([key]) => keys.has(key)));
+  }
+  return {};
 }
 
 function formatToolCallActivity(event: ToolCallEvent): string {
@@ -127,7 +137,6 @@ function formatToolResultActivity(event: ToolResultEvent): string {
     isError: event.isError,
     result: contentText(event.content),
   };
-  if (event.toolName === "questionnaire") result.question = event.input;
   if (event.toolName === "bash") {
     const match = event.isError ? contentText(event.content).match(/Command exited with code (-?\d+)/) : undefined;
     result.exitStatus = match ? Number(match[1]) : event.isError ? "unknown" : 0;
@@ -226,6 +235,7 @@ export default function registerContextScout(pi: ExtensionAPI): void {
   };
   const stopAfterParentTurn = (): void => {
     for (const scout of scouts.values()) {
+      if (scout.finished) continue;
       if (scout.stopTimer) clearTimeout(scout.stopTimer);
       scout.stopTimer = setTimeout(() => {
         if (scouts.get(scout.request.requestId) !== scout) return;
@@ -236,8 +246,24 @@ export default function registerContextScout(pi: ExtensionAPI): void {
     }
   };
   const stopAll = (): void => {
-    for (const scout of scouts.values()) cancelScout(pi, scout);
+    for (const scout of scouts.values()) {
+      if (!scout.finished) cancelScout(pi, scout);
+    }
     scouts.clear();
+  };
+  const watchParentAbort = (scout: ScoutRun): void => {
+    const signal = scout.parentSignal;
+    if (!signal) return;
+    if (signal.aborted) {
+      cancelScout(pi, scout);
+      scouts.delete(scout.request.requestId);
+      return;
+    }
+    signal.addEventListener("abort", () => {
+      if (scout.finished || scouts.get(scout.request.requestId) !== scout) return;
+      cancelScout(pi, scout);
+      scouts.delete(scout.request.requestId);
+    }, { once: true });
   };
 
   pi.events.on(SUBAGENT_DELEGATION_UPDATE_EVENT, (value) => {
@@ -254,13 +280,19 @@ export default function registerContextScout(pi: ExtensionAPI): void {
     if (!scout) return;
     if (value.ownerRunId !== scout.request.ownerRunId || value.nodeId !== scout.request.nodeId) return;
     if (scout.stopTimer) clearTimeout(scout.stopTimer);
-    scouts.delete(value.requestId);
+    scout.runId = undefined;
+    scout.finished = value.status === "completed";
+    scout.pendingActivity.splice(0);
+    if (!scout.finished) scouts.delete(value.requestId);
   });
   pi.on("agent_start", clearPostTurnStops);
   pi.on("agent_end", stopAfterParentTurn);
   pi.on("session_shutdown", stopAll);
 
   pi.on("before_agent_start", (event, ctx) => {
+    for (const [requestId, scout] of scouts) {
+      if (scout.finished) scouts.delete(requestId);
+    }
     const requestId = randomUUID();
     const ownerRunId = ctx.sessionManager.getSessionId() || "context-scout-session";
     const nodeId = `context-scout-${requestId}`;
@@ -275,33 +307,53 @@ export default function registerContextScout(pi: ExtensionAPI): void {
       thinking: "low",
       result: { kind: "text" },
     };
-    const scout = { request, pendingActivity: [] } satisfies ScoutRun;
+    const scout = {
+      request,
+      baseTask: request.task,
+      parentSignal: ctx.signal,
+      pendingActivity: [],
+      activityHistory: [],
+    } satisfies ScoutRun;
     scouts.set(request.requestId, scout);
-    if (ctx.signal) {
-      if (ctx.signal.aborted) {
-        cancelScout(pi, scout);
-        scouts.delete(request.requestId);
-      } else {
-        ctx.signal.addEventListener("abort", () => {
-          if (scouts.get(request.requestId) !== scout) return;
-          cancelScout(pi, scout);
-          scouts.delete(request.requestId);
-        }, { once: true });
-      }
-    }
+    watchParentAbort(scout);
     startScout(pi, scout);
     return { message: findingGuidanceMessage() };
   });
 
+  const restartFinishedScout = (scout: ScoutRun): void => {
+    if (!scout.finished) return;
+    scouts.delete(scout.request.requestId);
+    if (scout.stopTimer) clearTimeout(scout.stopTimer);
+    scout.stopTimer = undefined;
+    scout.request = {
+      ...scout.request,
+      requestId: randomUUID(),
+      nodeId: `context-scout-${randomUUID()}`,
+      task: `${scout.baseTask}\n\n${scout.activityHistory.join("\n\n")}`,
+    };
+    scout.runId = undefined;
+    scout.finished = false;
+    scout.pendingActivity.splice(0);
+    scouts.set(scout.request.requestId, scout);
+    watchParentAbort(scout);
+    startScout(pi, scout);
+  };
+  const deliverActivity = (activity: string): void => {
+    const message = activityMessage(activity);
+    for (const scout of Array.from(scouts.values())) {
+      scout.activityHistory.push(message);
+      const wasFinished = scout.finished === true;
+      restartFinishedScout(scout);
+      if (!wasFinished) sendSteer(scout, message);
+    }
+  };
+
   pi.on("tool_call", (event) => {
     if (scouts.size === 0 || !ACTIVITY_TOOLS.has(event.toolName)) return;
-    const activity = formatToolCallActivity(event);
-    for (const scout of scouts.values()) sendSteer(scout, activityMessage(activity));
+    deliverActivity(formatToolCallActivity(event));
   });
   pi.on("tool_result", (event) => {
-    if (scouts.size === 0 || !ACTIVITY_TOOLS.has(event.toolName)) return;
-    if (event.toolName === "read" || event.toolName === "edit" || event.toolName === "write") return;
-    const activity = formatToolResultActivity(event);
-    for (const scout of scouts.values()) sendSteer(scout, activityMessage(activity));
+    if (scouts.size === 0 || !ACTIVITY_TOOLS.has(event.toolName) || event.toolName === "read" || event.toolName === "edit" || event.toolName === "write") return;
+    deliverActivity(formatToolResultActivity(event));
   });
 }
