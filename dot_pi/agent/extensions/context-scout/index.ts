@@ -22,9 +22,6 @@ interface SubagentDelegationRequest {
   context: "fresh" | "fork";
   cwd: string;
   thinking?: "off" | "minimal" | "low" | "medium" | "high" | "xhigh" | "max";
-  timeoutMs?: number;
-  turnBudget?: { maxTurns: number; graceTurns?: number };
-  toolBudget?: { soft?: number; hard: number; block?: string[] | "*" };
   result: { kind: "text" };
 }
 
@@ -38,12 +35,6 @@ interface ScoutRun {
 const CHILD_ENV = "PI_SUBAGENT_CHILD";
 const SCOUT_AGENT = "context-scout";
 const POST_TURN_GRACE_MS = 5_000;
-const TURN_BUDGET = { maxTurns: 8, graceTurns: 2 } as const;
-const TOOL_BUDGET = {
-  soft: 8,
-  hard: 16,
-  block: ["read", "grep", "find", "ls", "mcp"],
-} as const;
 
 function isRecord(value: unknown): value is Record<string, unknown> {
   return typeof value === "object" && value !== null && !Array.isArray(value);
@@ -282,9 +273,6 @@ export default function registerContextScout(pi: ExtensionAPI): void {
       context: "fresh",
       cwd: ctx.cwd,
       thinking: "low",
-      timeoutMs: 30_000,
-      turnBudget: TURN_BUDGET,
-      toolBudget: TOOL_BUDGET,
       result: { kind: "text" },
     };
     const scout = { request, pendingActivity: [] } satisfies ScoutRun;
