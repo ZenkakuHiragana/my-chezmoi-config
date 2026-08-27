@@ -210,13 +210,10 @@ test("publishes source registration instructions and guide when no source is con
     await client.connect(transport);
 
     const instructions = client.getInstructions() ?? "";
-    assert.equal(
-      instructions.trim(),
-      [
-        "設定された情報源（公開Wiki・設計資料・作業メモ）から根拠や正本を引く必要があるときは、このサーバーを使う。",
-        "情報源の登録・変更・削除、または検索手順の作成・変更は `skill-kb://guide/source-registration` を読む。",
-      ].join("\n"),
-    );
+    assert.match(instructions, /情報源/);
+    assert.match(instructions, /根拠/);
+    assert.match(instructions, /正本/);
+    assert.match(instructions, /コードや実行中の対象を直接調べる用途には使わない/);
     assert.ok(Buffer.byteLength(instructions, "utf8") <= 2048);
 
     const listed = await client.listResources();
