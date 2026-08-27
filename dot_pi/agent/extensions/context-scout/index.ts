@@ -3,11 +3,15 @@ import type {
   BeforeAgentStartEvent,
   ExtensionAPI,
   ExtensionContext,
+  ToolCallEvent,
+  ToolResultEvent,
 } from "@earendil-works/pi-coding-agent";
 import type { AgentMessage } from "@earendil-works/pi-agent-core";
 const SUBAGENT_DELEGATION_REQUEST_EVENT = "prompt-template:subagent:request";
 const SUBAGENT_DELEGATION_CANCEL_EVENT = "prompt-template:subagent:cancel";
 const SUBAGENT_DELEGATION_RESPONSE_EVENT = "prompt-template:subagent:response";
+const SUBAGENT_DELEGATION_UPDATE_EVENT = "prompt-template:subagent:update";
+const SUBAGENT_RPC_REQUEST_EVENT = "subagents:rpc:v1:request";
 
 interface SubagentDelegationRequest {
   requestId: string;
@@ -26,6 +30,8 @@ interface SubagentDelegationRequest {
 
 interface ScoutRun {
   request: SubagentDelegationRequest;
+  runId?: string;
+  pendingActivity: string[];
   stopTimer?: ReturnType<typeof setTimeout>;
 }
 
@@ -89,6 +95,65 @@ function buildScoutTask(event: BeforeAgentStartEvent, ctx: ExtensionContext): st
   return sections.join("\n\n");
 }
 
+function contentText(content: unknown): string {
+  if (!Array.isArray(content)) return "";
+  return content
+    .filter((part): part is { type: "text"; text: string } =>
+      isRecord(part) && part.type === "text" && typeof part.text === "string",
+    )
+    .map((part) => part.text)
+    .join("\n");
+}
+
+const ACTIVITY_TOOLS = new Set(["read", "grep", "find", "ls", "bash", "questionnaire", "edit", "write"]);
+
+function activityInput(toolName: string, input: Record<string, unknown>): Record<string, unknown> {
+  if (toolName === "read") {
+    return Object.fromEntries(Object.entries(input).filter(([key]) =>
+      ["path", "line_start", "line_end", "offset", "limit"].includes(key)));
+  }
+  if (toolName === "edit" || toolName === "write") {
+    return Object.fromEntries(Object.entries(input).filter(([key]) =>
+      ["path", "oldText", "newText", "content"].includes(key)));
+  }
+  return input;
+}
+
+function formatToolCallActivity(event: ToolCallEvent): string {
+  return JSON.stringify({
+    type: "tool_call",
+    tool: event.toolName,
+    toolCallId: event.toolCallId,
+    input: activityInput(event.toolName, event.input),
+  });
+}
+
+function formatToolResultActivity(event: ToolResultEvent): string {
+  const result: Record<string, unknown> = {
+    type: "tool_result",
+    tool: event.toolName,
+    toolCallId: event.toolCallId,
+    isError: event.isError,
+    result: contentText(event.content),
+  };
+  if (event.toolName === "questionnaire") result.question = event.input;
+  if (event.toolName === "bash") {
+    const match = event.isError ? contentText(event.content).match(/Command exited with code (-?\d+)/) : undefined;
+    result.exitStatus = match ? Number(match[1]) : event.isError ? "unknown" : 0;
+  }
+  return JSON.stringify(result);
+}
+
+function activityMessage(activity: string): string {
+  return [
+    "PARENT_TOOL_ACTIVITY",
+    "親エージェントが現在の作業中に実際に接触したツールと、その結果の機械的な記録。",
+    "親の原因仮説、設計意図、重要度判断、変更方針を推測してはならない。",
+    "接触は対象の重要性、正しさ、変更対象であることの根拠ではない。外部情報を探索する対象の具体化と、確認した外部事実が接触面へ適用可能かの判断にだけ使う。",
+    activity,
+  ].join("\n");
+}
+
 function findingGuidanceMessage(): {
   customType: string;
   content: string;
@@ -121,6 +186,15 @@ function startScout(pi: ExtensionAPI, scout: ScoutRun): void {
 
 function cancelScout(pi: ExtensionAPI, scout: ScoutRun): void {
   if (scout.stopTimer) clearTimeout(scout.stopTimer);
+  if (scout.runId) {
+    pi.events.emit(SUBAGENT_RPC_REQUEST_EVENT, {
+      version: 1,
+      requestId: randomUUID(),
+      method: "interrupt",
+      params: { id: scout.runId },
+      source: { extension: "context-scout" },
+    });
+  }
   pi.events.emit(SUBAGENT_DELEGATION_CANCEL_EVENT, {
     requestId: scout.request.requestId,
     ownerRunId: scout.request.ownerRunId,
@@ -132,6 +206,25 @@ export default function registerContextScout(pi: ExtensionAPI): void {
   if (process.env[CHILD_ENV] === "1") return;
 
   const scouts = new Map<string, ScoutRun>();
+  const sendSteer = (scout: ScoutRun, message: string): void => {
+    if (!scout.runId) {
+      scout.pendingActivity.push(message);
+      return;
+    }
+    const requestId = randomUUID();
+    pi.events.emit(SUBAGENT_RPC_REQUEST_EVENT, {
+      version: 1,
+      requestId,
+      method: "steer",
+      params: { id: scout.runId, message, mode: "auto" },
+      source: { extension: "context-scout" },
+    });
+  };
+  const flushActivity = (scout: ScoutRun): void => {
+    if (!scout.runId) return;
+    const pending = scout.pendingActivity.splice(0);
+    for (const message of pending) sendSteer(scout, message);
+  };
   const clearPostTurnStops = (): void => {
     for (const scout of scouts.values()) {
       if (scout.stopTimer) {
@@ -156,6 +249,14 @@ export default function registerContextScout(pi: ExtensionAPI): void {
     scouts.clear();
   };
 
+  pi.events.on(SUBAGENT_DELEGATION_UPDATE_EVENT, (value) => {
+    if (!isRecord(value) || typeof value.requestId !== "string" || typeof value.runId !== "string") return;
+    const scout = scouts.get(value.requestId);
+    if (!scout) return;
+    if (value.ownerRunId !== scout.request.ownerRunId || value.nodeId !== scout.request.nodeId) return;
+    scout.runId = value.runId;
+    flushActivity(scout);
+  });
   pi.events.on(SUBAGENT_DELEGATION_RESPONSE_EVENT, (value) => {
     if (!isRecord(value) || typeof value.requestId !== "string") return;
     const scout = scouts.get(value.requestId);
@@ -186,7 +287,7 @@ export default function registerContextScout(pi: ExtensionAPI): void {
       toolBudget: TOOL_BUDGET,
       result: { kind: "text" },
     };
-    const scout = { request } satisfies ScoutRun;
+    const scout = { request, pendingActivity: [] } satisfies ScoutRun;
     scouts.set(request.requestId, scout);
     if (ctx.signal) {
       if (ctx.signal.aborted) {
@@ -202,5 +303,17 @@ export default function registerContextScout(pi: ExtensionAPI): void {
     }
     startScout(pi, scout);
     return { message: findingGuidanceMessage() };
+  });
+
+  pi.on("tool_call", (event) => {
+    if (scouts.size === 0 || !ACTIVITY_TOOLS.has(event.toolName)) return;
+    const activity = formatToolCallActivity(event);
+    for (const scout of scouts.values()) sendSteer(scout, activityMessage(activity));
+  });
+  pi.on("tool_result", (event) => {
+    if (scouts.size === 0 || !ACTIVITY_TOOLS.has(event.toolName)) return;
+    if (event.toolName === "read" || event.toolName === "edit" || event.toolName === "write") return;
+    const activity = formatToolResultActivity(event);
+    for (const scout of scouts.values()) sendSteer(scout, activityMessage(activity));
   });
 }
