@@ -3,9 +3,6 @@ name: review-audit
 description: Audit one frozen review finding set and correction candidate without discovering new issues. 固定済みレビュー手続きの独立監査専用。
 model: {{ dig "pi_agent" "review_audit" "model" "openai-codex/gpt-5.6-luna" . | quote }}
 thinking: {{ dig "pi_agent" "review_audit" "thinking" "max" . }}
-systemPromptMode: replace
-inheritProjectContext: true
-inheritSkills: true
 exclude_extensions: [pi-instruction-nudge]
 ---
 
