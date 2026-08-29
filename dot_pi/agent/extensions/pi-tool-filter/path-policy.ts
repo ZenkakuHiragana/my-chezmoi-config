@@ -102,6 +102,14 @@ export function block(reason: string): ToolCallEventResult {
   return { block: true, reason };
 }
 
+// 既知の危険モード（tar -P / 7z -spf / unzip -:）で、書き込み先を静的に閉じられないことを表す値。
+// pathRoleDecisions はこの値を write として見ると、危険モードとして拒否する。
+export const UNBOUNDED_WRITE = "<unbounded-write>";
+
+function isUnboundedWrite(pathValue: string): boolean {
+  return pathValue === UNBOUNDED_WRITE;
+}
+
 function pathDecision(
   pathValue: string,
   cwd: string,
@@ -156,6 +164,9 @@ export function pathRoleDecisions(
   boundaryCwd = cwd,
 ): ToolCallEventResult | undefined {
   for (const [value, role] of paths) {
+    if (role === "write" && isUnboundedWrite(value)) {
+      return block("書き込み先を静的に閉じられないモード（tar -P / 7z -spf / unzip -: 等）のため拒否");
+    }
     if (!isStaticPathValue(value)) continue;
     const decision = role === "read"
       ? readPathDecision(value, cwd, config)

@@ -21,9 +21,10 @@
 // forward（仕様単位）:
 // - "--" 以降を別コマンド（target）で再解釈する。例: gh repo clone ... -- <gitflags>。
 //
-// このテーブルは「代表的な使い方」を対象にする。副作用が複雑で代表的な形に
-// 収まらないもの（7z -sdel の元ファイル削除、sed の script とファイル列の扱い、
-// find -delete の走査意味論、複雑な転送先）は載せず「既知の残差」として扱う
+// このテーブルは「代表的な使い方」を対象にする。破壊的・in-place（sed -i / 7z -sdel /
+// git clean -f）と既知の危険モード（tar -P / 7z -spf / unzip -: ）は仕様へ含めた。
+// それでも複雑で代表的な形に収まらないもの（sed の -e / -f での script 位置ずれ、
+// gzip / bzip2 の既定元ファイル削除、perl / ruby -i、複雑な転送先）は「既知の残差」として扱う
 // （要件契約 区別3 fail-open）。
 
 export type TargetSelector =
@@ -40,12 +41,18 @@ export type ToolSpec = {
   flags?: readonly string[];
   // 構文：値付きオプション（位置引数の番地を保つ）。意味論は writes / reads へ明示する。
   valueOptions?: readonly string[];
-  // 書き込み先の取り出し（複数あれば各々 path 方針を判定する）。
+  // 書き込み先（destination）。cwd は既定出力先で、明示 destination があればフォールバックとしてのみ使う。
   writes?: readonly TargetSelector[];
   // 読み込み先の取り出し。既定はなし。
   reads?: readonly TargetSelector[];
+  // 追加の書き込み先（destination とは独立して常に検査する）。
+  // 例: git clone --separate-git-dir は working tree 出力とは別に metadata を書く。
+  extraWrites?: readonly TargetSelector[];
   // "--" 以降を target（別コマンド）で再解釈する（gh repo clone の git flags 転送）。
   forward?: { via: string; target: readonly string[] };
+  // 既知の危険モード：指定フラグが有ると、書き込み先を静的に閉じられない（外へ出られる）。
+  // 例: tar -P/--absolute-names、7z -spf、unzip -:。
+  unbounded?: { flags: readonly string[]; reason: string };
 };
 
 // git の代表的な値付きオプション（グローバル + clone / worktree 系）。
@@ -82,7 +89,8 @@ export const TOOL_SPECS: readonly ToolSpec[] = [
   {
     command: ["git", "clone"],
     valueOptions: GIT_VALUE_OPTIONS,
-    writes: [{ kind: "positional", index: 1 }, { kind: "option", option: "--separate-git-dir" }, { kind: "cwd" }],
+    writes: [{ kind: "positional", index: 1 }, { kind: "cwd" }],
+    extraWrites: [{ kind: "option", option: "--separate-git-dir" }],
     reads: [{ kind: "option", option: "--reference" }, { kind: "option", option: "--template" }],
   },
   { command: ["git", "init"], valueOptions: GIT_VALUE_OPTIONS, writes: [{ kind: "positional", index: 0 }, { kind: "cwd" }] },
@@ -129,18 +137,24 @@ export const TOOL_SPECS: readonly ToolSpec[] = [
       { kind: "option-by-mode", option: "-f", readWhen: ["-x", "--extract", "--get", "-t", "--list"], writeWhen: ["-c", "--create", "-r", "--append", "-A", "--catenate", "-u", "--update"] },
     ],
     reads: [{ kind: "option-by-mode", option: "-f", readWhen: ["-x", "--extract", "--get", "-t", "--list"], writeWhen: ["-c", "--create", "-r", "--append", "-A", "--catenate", "-u", "--update"] }],
+    // -P / --absolute-names は archive 内の絶対パスや .. を尊重し、出力先の外へ書ける。
+    unbounded: { flags: ["-P", "--absolute-names"], reason: "tar -P(absolute-names) は出力先ディレクトリの外へ書ける" },
   },
   {
     command: ["unzip"],
     valueOptions: ["-d", "--dir", "-P", "--password", "-x", "--exclude", "-o"],
     writes: [
-      { kind: "option", option: "-d", whenNotFlags: ["-l", "-t", "-v", "-Z"] },
-      { kind: "option", option: "--dir", whenNotFlags: ["-l", "-t", "-v", "-Z"] },
-      { kind: "cwd", whenNotFlags: ["-l", "-t", "-v", "-Z"] },
+      { kind: "option", option: "-d", whenNotFlags: ["-l", "-t", "-v", "-Z", "-p", "-c"] },
+      { kind: "option", option: "--dir", whenNotFlags: ["-l", "-t", "-v", "-Z", "-p", "-c"] },
+      { kind: "cwd", whenNotFlags: ["-l", "-t", "-v", "-Z", "-p", "-c"] },
     ],
+    // -: は .. で extraction root の外へ出ることを再許可する。
+    unbounded: { flags: ["-:"], reason: "unzip -: は extraction root の外へ書ける" },
   },
-  { command: ["7z", "x"], valueOptions: ["-o"], writes: [{ kind: "option", option: "-o", attached: true }, { kind: "cwd" }] },
-  { command: ["7za", "x"], valueOptions: ["-o"], writes: [{ kind: "option", option: "-o", attached: true }, { kind: "cwd" }] },
+  { command: ["7z", "x"], valueOptions: ["-o"], writes: [{ kind: "option", option: "-o", attached: true }, { kind: "cwd" }], unbounded: { flags: ["-spf"], reason: "7z -spf は archive に記録された完全パスへ書き戻す" } },
+  { command: ["7za", "x"], valueOptions: ["-o"], writes: [{ kind: "option", option: "-o", attached: true }, { kind: "cwd" }], unbounded: { flags: ["-spf"], reason: "7z -spf は archive に記録された完全パスへ書き戻す" } },
+  { command: ["7z", "e"], valueOptions: ["-o"], writes: [{ kind: "option", option: "-o", attached: true }, { kind: "cwd" }], unbounded: { flags: ["-spf"], reason: "7z -spf は archive に記録された完全パスへ書き戻す" } },
+  { command: ["7za", "e"], valueOptions: ["-o"], writes: [{ kind: "option", option: "-o", attached: true }, { kind: "cwd" }], unbounded: { flags: ["-spf"], reason: "7z -spf は archive に記録された完全パスへ書き戻す" } },
   { command: ["7z", "a"], valueOptions: ["-o"], writes: [{ kind: "positional", index: 0 }, { kind: "positional-range", start: 1, whenFlags: ["-sdel"] }] },
   { command: ["7za", "a"], valueOptions: ["-o"], writes: [{ kind: "positional", index: 0 }, { kind: "positional-range", start: 1, whenFlags: ["-sdel"] }] },
 

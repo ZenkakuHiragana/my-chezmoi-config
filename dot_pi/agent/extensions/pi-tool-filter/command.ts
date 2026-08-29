@@ -8,6 +8,7 @@ import {
   isStaticPathValue,
   matchesCommandGlob,
   resolveExistingPath,
+  UNBOUNDED_WRITE,
 } from "./path-policy.ts";
 
 function normalizeCommand(command: string): string {
@@ -354,14 +355,48 @@ function hasAnyFlag(args: readonly string[], flags: readonly string[]): boolean 
 // セレクタを1つ解決して絶対パスを返す。未解決は undefined。
 // セレクタを解決して絶対パスを返す。positional-range は複数パスを返す。
 // option-by-mode は role（write / read）でモード条件を判定する。
-function resolveSelectorPaths(selector: TargetSelector, parts: CommandParts, positionals: readonly string[], execCwd: string, role: "write" | "read"): string[] {
+// tar の伝統形モード（第一の非オプション位置引数が英字クラスタ: xf / xvf / cf / tf）。
+// 値付きオプション（-C <dir> 等）はその値も位置引数として数えないようスキップする。
+function tarTraditionalMode(parts: CommandParts, valueOptions: readonly string[] | undefined): string {
+  const valueSet = new Set(valueOptions ?? []);
+  for (let index = 0; index < parts.args.length; index += 1) {
+    const arg = parts.args[index];
+    if (arg === "--") continue;
+    if (arg.startsWith("-")) {
+      const key = arg.split("=", 1)[0];
+      const isExactValue = valueSet.has(arg);
+      const isAttachedValue = valueSet.has(key) && key.length === 2 && /^-[a-zA-Z]$/.test(key) && arg.length > key.length;
+      if (isExactValue && !arg.includes("=")) index += 1;
+      continue;
+    }
+    if (/^[a-zA-Z]+$/.test(arg)) return arg.toLowerCase();
+    return "";
+  }
+  return "";
+}
+
+// モードフラグ判定。tar は伝統形（`tar xf` 等）の英字クラスタも mode として認識する。
+function hasModeFlag(parts: CommandParts, spec: ToolSpec, flags: readonly string[]): boolean {
+  if (hasAnyFlag(parts.args, flags)) return true;
+  if (spec.command[0] === "tar") {
+    const mode = tarTraditionalMode(parts, spec.valueOptions);
+    for (const flag of flags) {
+      if (/^-[a-zA-Z]$/.test(flag) && mode.includes(flag[1])) return true;
+    }
+  }
+  return false;
+}
+
+// セレクタを解決して絶対パスを返す。positional-range は複数パスを返す。
+// option-by-mode は role（write / read）でモード条件を判定する。
+function resolveSelectorPaths(selector: TargetSelector, parts: CommandParts, positionals: readonly string[], execCwd: string, role: "write" | "read", spec?: ToolSpec): string[] {
   if (selector.kind === "option-by-mode") {
     const modeFlags = role === "write" ? selector.writeWhen : selector.readWhen;
-    if (!hasAnyFlag(parts.args, modeFlags)) return [];
+    if (!(spec ? hasModeFlag(parts, spec, modeFlags) : hasAnyFlag(parts.args, modeFlags))) return [];
     const value = findOptionValue(parts.args, selector.option);
     return value !== undefined && isStaticPathValue(value) ? [resolveExistingPath(value, execCwd)] : [];
   }
-  if (!selectorApplies(selector, parts)) return [];
+  if (!(spec ? selectorApplies(selector, parts, spec) : selectorApplies(selector, parts))) return [];
   if (selector.kind === "cwd") return [execCwd];
   if (selector.kind === "positional") {
     const value = positionals[selector.index];
@@ -377,9 +412,15 @@ function resolveSelectorPaths(selector: TargetSelector, parts: CommandParts, pos
   return [];
 }
 
-function selectorApplies(selector: TargetSelector, parts: CommandParts): boolean {
-  if (selector.whenFlags && !hasAnyFlag(parts.args, selector.whenFlags)) return false;
-  if (selector.whenNotFlags && hasAnyFlag(parts.args, selector.whenNotFlags)) return false;
+function selectorApplies(selector: TargetSelector, parts: CommandParts, spec?: ToolSpec): boolean {
+  if (selector.whenFlags) {
+    const all = spec ? hasModeFlag(parts, spec, selector.whenFlags) : hasAnyFlag(parts.args, selector.whenFlags);
+    if (!all) return false;
+  }
+  if (selector.whenNotFlags) {
+    const any = spec ? hasModeFlag(parts, spec, selector.whenNotFlags) : hasAnyFlag(parts.args, selector.whenNotFlags);
+    if (any) return false;
+  }
   return true;
 }
 
@@ -389,7 +430,7 @@ function resolveWriteTargets(spec: ToolSpec, parts: CommandParts, positionals: r
   const explicit: string[] = [];
   let cwdFallback = false;
   for (const selector of spec.writes ?? []) {
-    const paths = resolveSelectorPaths(selector, parts, positionals, execCwd, "write");
+    const paths = resolveSelectorPaths(selector, parts, positionals, execCwd, "write", spec);
     if (selector.kind === "cwd") {
       if (paths.length > 0) cwdFallback = true;
     } else if (paths.length > 0) {
@@ -402,7 +443,7 @@ function resolveWriteTargets(spec: ToolSpec, parts: CommandParts, positionals: r
 function resolveReadTargets(spec: ToolSpec, parts: CommandParts, positionals: readonly string[], execCwd: string): string[] {
   const results: string[] = [];
   for (const selector of spec.reads ?? []) {
-    results.push(...resolveSelectorPaths(selector, parts, positionals, execCwd, "read"));
+    results.push(...resolveSelectorPaths(selector, parts, positionals, execCwd, "read", spec));
   }
   return results;
 }
@@ -414,17 +455,28 @@ function buildForwardTarget(forward: NonNullable<ToolSpec["forward"]>, forwarded
 export function commandPathRoles(parts: CommandParts, cwd: string, depth = 0): Array<[string, PathRole]> {
   const matched = matchToolSpec(parts);
   if (matched) {
+    const spec = matched.spec;
+    // 既知の危険モード（tar -P / 7z -spf / unzip -:）は書き込み先を静的に閉じられない。
+    if (spec.unbounded && hasAnyFlag(parts.args, spec.unbounded.flags)) {
+      return [[UNBOUNDED_WRITE, "write"]];
+    }
     const execCwd = commandWorkingDirectory(parts, cwd);
-    const reads = resolveReadTargets(matched.spec, parts, matched.positionals, execCwd);
-    const writes = resolveWriteTargets(matched.spec, parts, matched.positionals, execCwd);
+    const reads = resolveReadTargets(spec, parts, matched.positionals, execCwd);
+    const writes = resolveWriteTargets(spec, parts, matched.positionals, execCwd);
     let roles: Array<[string, PathRole]> = [
       ...reads.map((value) => [value, "read"] as [string, PathRole]),
       ...writes.map((value) => [value, "write"] as [string, PathRole]),
     ];
+    // 追加の書き込み先（destination とは独立）。--separate-git-dir は working tree 出力とは別に metadata を書く。
+    for (const selector of spec.extraWrites ?? []) {
+      for (const value of resolveSelectorPaths(selector, parts, matched.positionals, execCwd, "write", spec)) {
+        roles.push([value, "write"] as [string, PathRole]);
+      }
+    }
     // "--" を別コマンドへ転送する仕様（gh repo clone）は、転送先（git clone）で再解釈して
     // 追加の write / read（--separate-git-dir 等）を拾う。深さを制限して循環を防ぐ。
-    if (matched.spec.forward && matched.forwarded && depth < 3) {
-      const target = buildForwardTarget(matched.spec.forward, matched.forwarded, matched.positionals);
+    if (spec.forward && matched.forwarded && depth < 3) {
+      const target = buildForwardTarget(spec.forward, matched.forwarded, matched.positionals);
       roles = [...roles, ...commandPathRoles(target, cwd, depth + 1)];
     }
     return roles;

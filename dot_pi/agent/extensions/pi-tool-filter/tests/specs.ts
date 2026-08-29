@@ -62,6 +62,18 @@ export function registerSpecTests(): void {
       blocked(await call(handler, "bash", { command: "cd ~ && git clean -fd" }), "git clean -fd 境界外 cwd 拒否");
       allowed(await call(handler, "bash", { command: "git clean -n" }), "git clean -n (dry-run) 遮断しない");
 
+      // destination(cwd fallback) と追加出力(--separate-git-dir)は独立。伝統形 tar xf / 7z e。
+      blocked(await call(handler, "bash", { command: "cd ~ && git clone --separate-git-dir " + cwd + "/meta https://x/y" }), "cd ~ && git clone --separate-git-dir 境界外 worktree 拒否");
+      blocked(await call(handler, "bash", { command: "cd ~ && tar xf x.tar" }), "tar xf (伝統形) 境界外 cwd 拒否");
+      blocked(await call(handler, "bash", { command: `tar -C ${home}/out xf x.tar` }), "tar -C dir xf 境界外 拒否");
+      blocked(await call(handler, "bash", { command: "cd ~ && 7z e x.7z" }), "7z e 境界外 cwd 拒否");
+
+      // 既知の危険モード（unbounded）は拒否。unzip -p（stdout）は遮断しない。
+      blocked(await call(handler, "bash", { command: `tar -xPf evil.tar -C ${cwd}/out` }), "tar -xPf 高危険モード 拒否");
+      blocked(await call(handler, "bash", { command: `7z x evil.7z -spf -o${cwd}/out` }), "7z x -spf 高危険モード 拒否");
+      blocked(await call(handler, "bash", { command: `unzip -: evil.zip -d ${cwd}/out` }), "unzip -: 高危険モード 拒否");
+      allowed(await call(handler, "bash", { command: "unzip -p x.zip" }), "unzip -p (stdout) 遮断しない");
+
       // option-value / forward：別地点への metadata 書き込みと、git flags の転送。
       blocked(await call(handler, "bash", { command: `git clone --separate-git-dir ${home}/g.git https://x/y ${cwd}/safe` }), "git clone --separate-git-dir 境界外 拒否");
       blocked(await call(handler, "bash", { command: `gh repo clone owner/repo ${cwd}/safe -- --separate-git-dir=${home}/g.git` }), "gh repo clone --gitflags 境界外 拒否");
