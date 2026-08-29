@@ -766,8 +766,6 @@ export default function registerContextScout(pi: ExtensionAPI): void {
   const scouts = new Set<ScoutRun>();
   const parentContacts: string[] = [];
   const pendingBatchFacts: ReportFactInput[] = [];
-  const committedBatches: Array<{ id: string; facts: ReportFactInput[] }> = [];
-  let nextBatchId = 0;
   let parentTurnActive = false;
   let scoutGeneration = 0;
   let shuttingDown = false;
@@ -1036,17 +1034,16 @@ export default function registerContextScout(pi: ExtensionAPI): void {
   });
 
   pi.on("context", (event) => {
-    const inContextIds = new Set<string>();
+    let changed = false;
     const messages = event.messages.map((message) => {
       const custom = message as { role?: string; customType?: string; details?: unknown };
       if (custom.role !== "custom" || custom.customType !== FINDINGS_CUSTOM_TYPE) return message;
-      const details = custom.details as { id?: string; facts?: ReportFactInput[] } | undefined;
-      if (details?.id) inContextIds.add(details.id);
-      return findingsBatchMessage(details?.facts ?? []);
+      changed = true;
+      const facts = (custom.details as { facts?: ReportFactInput[] } | undefined)?.facts;
+      return findingsBatchMessage(facts ?? []);
     });
-    const toAppend = committedBatches.filter((batch) => !inContextIds.has(batch.id));
-    if (toAppend.length === 0 && inContextIds.size === 0) return;
-    return { messages: [...messages, ...toAppend.map((batch) => findingsBatchMessage(batch.facts))] };
+    if (!changed) return;
+    return { messages };
   });
 
   pi.on("agent_start", (_event, ctx) => {
@@ -1058,15 +1055,12 @@ export default function registerContextScout(pi: ExtensionAPI): void {
     if (shuttingDown || !parentTurnActive) return;
     const facts = pendingBatchFacts.splice(0);
     if (facts.length === 0) return;
-    nextBatchId += 1;
-    const batch = { id: `cs-${nextBatchId}`, facts };
-    committedBatches.push(batch);
     pi.sendMessage({
       customType: FINDINGS_CUSTOM_TYPE,
       content: findingsBatchText(facts),
       display: true,
-      details: { id: batch.id, facts },
-    }, { triggerTurn: false });
+      details: { facts },
+    }, { deliverAs: "steer" });
   });
 
   pi.on("agent_settled", stopAfterParentTurn);
@@ -1081,7 +1075,6 @@ export default function registerContextScout(pi: ExtensionAPI): void {
     stopAll();
     parentTurnActive = true;
     parentContacts.length = 0;
-    committedBatches.length = 0;
     const creation = createScout(event, ctx, generation);
     void creation
       .then(async (scout) => {
