@@ -514,10 +514,48 @@ function createReportFactTool(onReport: (input: ReportFactInput) => void): ToolD
   } as ToolDefinition;
 }
 
-function createReadParentContextTool(
-  ctx: ExtensionContext,
-  currentPrompt: string,
-): ToolDefinition {
+type ParentContextItem = { role: "user" | "assistant"; text: string };
+
+function snapshotParentContext(ctx: ExtensionContext): ParentContextItem[] {
+  return ctx.sessionManager.getBranch().flatMap((entry) => {
+    if (
+      entry.type !== "message"
+      || (entry.message.role !== "user" && entry.message.role !== "assistant")
+    ) return [];
+    const text = textFromMessage(entry.message);
+    return text ? [{ role: entry.message.role, text }] : [];
+  });
+}
+
+function lastExchange(items: readonly ParentContextItem[]): ParentContextItem[] {
+  let lastAssistantIndex = -1;
+  for (let index = items.length - 1; index >= 0; index -= 1) {
+    if (items[index].role === "assistant") {
+      lastAssistantIndex = index;
+      break;
+    }
+  }
+  const result: ParentContextItem[] = [];
+  if (lastAssistantIndex >= 0) {
+    for (let index = lastAssistantIndex - 1; index >= 0; index -= 1) {
+      if (items[index].role === "user") {
+        result.push(items[index]);
+        break;
+      }
+    }
+    result.push(items[lastAssistantIndex]);
+    return result;
+  }
+  for (let index = items.length - 1; index >= 0; index -= 1) {
+    if (items[index].role === "user") {
+      result.push(items[index]);
+      break;
+    }
+  }
+  return result;
+}
+
+function createReadParentContextTool(snapshot: ParentContextItem[]): ToolDefinition {
   const parameters = {
     type: "object",
     properties: {},
@@ -527,36 +565,19 @@ function createReadParentContextTool(
   return {
     name: "read_parent_context",
     label: "read_parent_context",
-    description: "親エージェントのユーザー発言と返答を照応解決のために読む。",
-    promptSnippet: "必要なときだけ親エージェントの会話本文を読む",
+    description: "親エージェントの直前のユーザー発言と返答を照応解決のために読む。",
+    promptSnippet: "必要なときだけ親エージェントの直近の返答を読む",
     parameters,
     execute: async () => {
-      const messages = ctx.sessionManager.getBranch().flatMap((entry) => {
-        if (
-          entry.type !== "message"
-          || (entry.message.role !== "user" && entry.message.role !== "assistant")
-        ) return [];
-        const text = textFromMessage(entry.message);
-        return text ? [{ role: entry.message.role, text }] : [];
-      });
-      let currentPromptIndex = -1;
-      for (let index = messages.length - 1; index >= 0; index -= 1) {
-        const message = messages[index];
-        if (message.role === "user" && message.text === currentPrompt) {
-          currentPromptIndex = index;
-          break;
-        }
-      }
-      if (currentPromptIndex !== -1) messages.splice(currentPromptIndex, 1);
-      messages.push({ role: "user", text: currentPrompt });
+      const exchange = lastExchange(snapshot);
       return {
         content: [{
           type: "text",
-          text: messages.length > 0
+          text: exchange.length > 0
             ? [
                 "PARENT_CONTEXT",
-                "以下は親エージェントのユーザー・アシスタント本文である。道具の結果やシステム指示は含まない。",
-                ...messages.map((entry) => `${entry.role.toUpperCase()}:\n<<<\n${entry.text}\n>>>`),
+                "以下は親エージェントの直前のユーザー・アシスタント本文である。道具の結果やシステム指示は含まない。",
+                ...exchange.map((entry) => `${entry.role.toUpperCase()}:\n<<<\n${entry.text}\n>>>`),
               ].join("\n\n")
             : "親エージェントの参照可能な本文はありません。",
         }],
@@ -772,25 +793,23 @@ export default function registerContextScout(pi: ExtensionAPI): void {
   });
 
   const closeSession = (session: AgentSession): void => {
-    try {
-      void session.abort().catch((error) => {
+    void (async () => {
+      try {
+        await session.abort();
+      } catch (error) {
         console.error("context-scoutの停止に失敗した:", error);
-      });
-    } catch (error) {
-      console.error("context-scoutの停止要求に失敗した:", error);
-    }
-    try {
-      void session.extensionRunner.emit({ type: "session_shutdown", reason: "quit" } as never).catch((error) => {
+      }
+      try {
+        await session.extensionRunner.emit({ type: "session_shutdown", reason: "quit" } as never);
+      } catch (error) {
         console.error("context-scoutの拡張停止に失敗した:", error);
-      });
-    } catch (error) {
-      console.error("context-scoutの拡張停止要求に失敗した:", error);
-    }
-    try {
-      session.dispose();
-    } catch (error) {
-      console.error("context-scoutの破棄に失敗した:", error);
-    }
+      }
+      try {
+        session.dispose();
+      } catch (error) {
+        console.error("context-scoutの破棄に失敗した:", error);
+      }
+    })();
   };
 
   const retireScout = (scout: ScoutRun): void => {
@@ -878,8 +897,17 @@ export default function registerContextScout(pi: ExtensionAPI): void {
 
     let reportFinding: (input: ReportFactInput) => void = () => undefined;
     const reportFactTool = createReportFactTool((input) => reportFinding(input));
-    const readParentContextTool = createReadParentContextTool(ctx, event.prompt);
-    const settingsManager = SettingsManager.inMemory();
+    const readParentContextTool = createReadParentContextTool(snapshotParentContext(ctx));
+    const contextWindow = model.contextWindow;
+    const compactionSettings = Number.isFinite(contextWindow) && contextWindow > 0
+      ? {
+          reserveTokens: Math.min(16384, Math.floor(contextWindow * 0.10)),
+          keepRecentTokens: Math.min(20000, Math.floor(contextWindow * 0.10)),
+        }
+      : undefined;
+    const settingsManager = SettingsManager.inMemory(
+      compactionSettings ? { compaction: compactionSettings } : {},
+    );
     const resourceLoader = new DefaultResourceLoader({
       cwd: ctx.cwd,
       agentDir: getAgentDir(),
@@ -973,7 +1001,7 @@ export default function registerContextScout(pi: ExtensionAPI): void {
       }
     });
     reportFinding = (input) => {
-      if (scout.stopped || !scout.acceptingFindings || !parentTurnActive || shuttingDown || generation !== scoutGeneration || ctx.signal?.aborted) return;
+      if (scout.stopped || !scout.acceptingFindings || shuttingDown || generation !== scoutGeneration || ctx.signal?.aborted) return;
       scout.transcript.addFinding(input);
       pendingFindings.push({ finding: input });
       pi.appendEntry("context-scout-finding", input);
@@ -1042,7 +1070,7 @@ export default function registerContextScout(pi: ExtensionAPI): void {
     parentTurnActive = true;
     for (const scout of scouts) watchParentAbort(scout, ctx.signal);
   });
-  pi.on("agent_end", stopAfterParentTurn);
+  pi.on("agent_settled", stopAfterParentTurn);
   pi.on("session_shutdown", () => {
     shuttingDown = true;
     scoutGeneration += 1;
