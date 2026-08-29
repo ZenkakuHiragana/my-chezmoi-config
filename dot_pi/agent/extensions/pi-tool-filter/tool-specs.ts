@@ -28,6 +28,7 @@
 
 export type TargetSelector =
   | { kind: "positional"; index: number; whenFlags?: readonly string[]; whenNotFlags?: readonly string[] }
+  | { kind: "positional-range"; start: number; whenFlags?: readonly string[]; whenNotFlags?: readonly string[] }
   | { kind: "option"; option: string; attached?: boolean; whenFlags?: readonly string[]; whenNotFlags?: readonly string[] }
   | { kind: "cwd"; whenFlags?: readonly string[]; whenNotFlags?: readonly string[] }
   | { kind: "option-by-mode"; option: string; readWhen: readonly string[]; writeWhen: readonly string[] };
@@ -140,6 +141,13 @@ export const TOOL_SPECS: readonly ToolSpec[] = [
   },
   { command: ["7z", "x"], valueOptions: ["-o"], writes: [{ kind: "option", option: "-o", attached: true }, { kind: "cwd" }] },
   { command: ["7za", "x"], valueOptions: ["-o"], writes: [{ kind: "option", option: "-o", attached: true }, { kind: "cwd" }] },
-  { command: ["7z", "a"], valueOptions: ["-o"], writes: [{ kind: "positional", index: 0 }] },
-  { command: ["7za", "a"], valueOptions: ["-o"], writes: [{ kind: "positional", index: 0 }] },
+  { command: ["7z", "a"], valueOptions: ["-o"], writes: [{ kind: "positional", index: 0 }, { kind: "positional-range", start: 1, whenFlags: ["-sdel"] }] },
+  { command: ["7za", "a"], valueOptions: ["-o"], writes: [{ kind: "positional", index: 0 }, { kind: "positional-range", start: 1, whenFlags: ["-sdel"] }] },
+
+  // 破壊的・in-place：フラグでオペランドが書込み／削除対象になる。
+  // sed -i <script> <file...> → file 列（positional 1 以降）が in-place 書込み。
+  // 注意: -e / -f で script 位置がずれるため、代表的な `-i <script> <file...>` 形だけを扱う。
+  { command: ["sed"], valueOptions: ["-e", "--expression", "-f", "--file", "-n", "--quiet"], writes: [{ kind: "positional-range", start: 1, whenFlags: ["-i", "--in-place"] }], reads: [{ kind: "positional-range", start: 1 }] },
+  // git clean -f はリポジトリ（cwd）の未追跡ファイルを削除する。-n は dry-run で削除しない。
+  { command: ["git", "clean"], valueOptions: GIT_VALUE_OPTIONS, writes: [{ kind: "cwd", whenFlags: ["-f", "-fd", "-ff", "--force"], whenNotFlags: ["-n", "--dry-run"] }] },
 ];

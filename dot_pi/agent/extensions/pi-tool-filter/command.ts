@@ -321,7 +321,10 @@ function gitWorkingDirectory(parts: CommandParts, cwd: string): string {
   let dir = cwd;
   for (let index = 0; index < parts.args.length; index += 1) {
     const arg = parts.args[index];
-    const value = arg === "-C" ? parts.args[index + 1] : arg.startsWith("-C=") ? arg.slice(3) : undefined;
+    let value: string | undefined;
+    if (arg === "-C") value = parts.args[index + 1];
+    else if (arg.startsWith("-C=")) value = arg.slice(3);
+    else if (arg.startsWith("-C") && arg.length > 2) value = arg.slice(2); // -C<path>（添付形）
     if (value !== undefined && isStaticPathValue(value)) dir = resolveExistingPath(value, dir);
   }
   return dir;
@@ -349,17 +352,29 @@ function hasAnyFlag(args: readonly string[], flags: readonly string[]): boolean 
 }
 
 // セレクタを1つ解決して絶対パスを返す。未解決は undefined。
-function resolveSelectorValue(selector: TargetSelector, parts: CommandParts, positionals: readonly string[], execCwd: string): string | undefined {
-  if (selector.kind === "cwd") return execCwd;
+// セレクタを解決して絶対パスを返す。positional-range は複数パスを返す。
+// option-by-mode は role（write / read）でモード条件を判定する。
+function resolveSelectorPaths(selector: TargetSelector, parts: CommandParts, positionals: readonly string[], execCwd: string, role: "write" | "read"): string[] {
+  if (selector.kind === "option-by-mode") {
+    const modeFlags = role === "write" ? selector.writeWhen : selector.readWhen;
+    if (!hasAnyFlag(parts.args, modeFlags)) return [];
+    const value = findOptionValue(parts.args, selector.option);
+    return value !== undefined && isStaticPathValue(value) ? [resolveExistingPath(value, execCwd)] : [];
+  }
+  if (!selectorApplies(selector, parts)) return [];
+  if (selector.kind === "cwd") return [execCwd];
   if (selector.kind === "positional") {
     const value = positionals[selector.index];
-    return value !== undefined && isStaticPathValue(value) ? resolveExistingPath(value, execCwd) : undefined;
+    return value !== undefined && isStaticPathValue(value) ? [resolveExistingPath(value, execCwd)] : [];
   }
-  if (selector.kind === "option" || selector.kind === "option-by-mode") {
-    const value = findOptionValue(parts.args, selector.option, selector.kind === "option" && selector.attached === true);
-    return value !== undefined && isStaticPathValue(value) ? resolveExistingPath(value, execCwd) : undefined;
+  if (selector.kind === "positional-range") {
+    return positionals.slice(selector.start).filter((value) => isStaticPathValue(value)).map((value) => resolveExistingPath(value, execCwd));
   }
-  return undefined;
+  if (selector.kind === "option") {
+    const value = findOptionValue(parts.args, selector.option, selector.attached === true);
+    return value !== undefined && isStaticPathValue(value) ? [resolveExistingPath(value, execCwd)] : [];
+  }
+  return [];
 }
 
 function selectorApplies(selector: TargetSelector, parts: CommandParts): boolean {
@@ -368,24 +383,17 @@ function selectorApplies(selector: TargetSelector, parts: CommandParts): boolean
   return true;
 }
 
-// 書き込み先を解決する。明示（positional / option / option-by-mode(write)）が1件でもあればそれだけを使い、
+// 書き込み先を解決する。明示（positional / option / option-by-mode(write) / positional-range）が1件でもあればそれだけを使い、
 // 無ければ cwd を既定の出力先とする（明示 dir と cwd を二重に判定しない）。
 function resolveWriteTargets(spec: ToolSpec, parts: CommandParts, positionals: readonly string[], execCwd: string): string[] {
   const explicit: string[] = [];
   let cwdFallback = false;
   for (const selector of spec.writes ?? []) {
-    if (selector.kind === "option-by-mode") {
-      if (!hasAnyFlag(parts.args, selector.writeWhen)) continue;
-      const value = resolveSelectorValue(selector, parts, positionals, execCwd);
-      if (value) explicit.push(value);
-      continue;
-    }
-    if (!selectorApplies(selector, parts)) continue;
-    const value = resolveSelectorValue(selector, parts, positionals, execCwd);
+    const paths = resolveSelectorPaths(selector, parts, positionals, execCwd, "write");
     if (selector.kind === "cwd") {
-      if (value) cwdFallback = true;
-    } else if (value) {
-      explicit.push(value);
+      if (paths.length > 0) cwdFallback = true;
+    } else if (paths.length > 0) {
+      explicit.push(...paths);
     }
   }
   return explicit.length > 0 ? explicit : cwdFallback ? [execCwd] : [];
@@ -394,15 +402,7 @@ function resolveWriteTargets(spec: ToolSpec, parts: CommandParts, positionals: r
 function resolveReadTargets(spec: ToolSpec, parts: CommandParts, positionals: readonly string[], execCwd: string): string[] {
   const results: string[] = [];
   for (const selector of spec.reads ?? []) {
-    if (selector.kind === "option-by-mode") {
-      if (!hasAnyFlag(parts.args, selector.readWhen)) continue;
-      const value = resolveSelectorValue(selector, parts, positionals, execCwd);
-      if (value) results.push(value);
-      continue;
-    }
-    if (!selectorApplies(selector, parts)) continue;
-    const value = resolveSelectorValue(selector, parts, positionals, execCwd);
-    if (value) results.push(value);
+    results.push(...resolveSelectorPaths(selector, parts, positionals, execCwd, "read"));
   }
   return results;
 }

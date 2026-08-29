@@ -55,6 +55,13 @@ export function registerSpecTests(): void {
       allowed(await call(handler, "bash", { command: "7z a out.7z files" }), "7z a (作成) 境界内 遮断しない");
       blocked(await call(handler, "bash", { command: `python -m venv ${home}/venv` }), "python -m venv 境界外 拒否");
 
+      // 破壊的・in-place：フラグでオペランドが書込み／削除対象になる。
+      blocked(await call(handler, "bash", { command: `sed -i s/x/y/ ${home}/file` }), "sed -i 境界外 拒否");
+      allowed(await call(handler, "bash", { command: `sed s/x/y/ ${home}/file` }), "sed 非 -i は遮断しない");
+      blocked(await call(handler, "bash", { command: `7z a out.7z ${home}/file -sdel` }), "7z a -sdel 境界外 input 拒否");
+      blocked(await call(handler, "bash", { command: "cd ~ && git clean -fd" }), "git clean -fd 境界外 cwd 拒否");
+      allowed(await call(handler, "bash", { command: "git clean -n" }), "git clean -n (dry-run) 遮断しない");
+
       // option-value / forward：別地点への metadata 書き込みと、git flags の転送。
       blocked(await call(handler, "bash", { command: `git clone --separate-git-dir ${home}/g.git https://x/y ${cwd}/safe` }), "git clone --separate-git-dir 境界外 拒否");
       blocked(await call(handler, "bash", { command: `gh repo clone owner/repo ${cwd}/safe -- --separate-git-dir=${home}/g.git` }), "gh repo clone --gitflags 境界外 拒否");
