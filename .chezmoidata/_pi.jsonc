@@ -59,7 +59,8 @@
         ],
         "deny": [
           ".git",
-          ".git/**"
+          ".git/**",
+          "**/NUL"
         ],
         "outsideDefault": "deny",
       },
