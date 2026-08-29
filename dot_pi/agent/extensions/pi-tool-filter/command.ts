@@ -252,7 +252,7 @@ function findStartPaths(args: readonly string[]): string[] {
 // 仕様に一致しなければ既存の bashPathRoles（cp / mv / find / cd / cat / rm / mkdir / touch /
 // chmod / chown）へフォールバックする。仕様は「どこに書くか」の解釈だけを提供し、
 // 方針（allow / deny / outsideDefault）は path-policy が所有する。
-function matchToolSpec(parts: CommandParts): { spec: ToolSpec; positionals: string[] } | undefined {
+function matchToolSpec(parts: CommandParts): { spec: ToolSpec; positionals: string[]; forwarded: string[] | undefined } | undefined {
   const name = commandBasename(parts.name).replace(/\.exe$/i, "");
   for (const spec of TOOL_SPECS) {
     if (spec.command[0] !== name) continue;
@@ -260,13 +260,15 @@ function matchToolSpec(parts: CommandParts): { spec: ToolSpec; positionals: stri
     const valueSet = new Set(spec.valueOptions ?? []);
     const flagSet = new Set(spec.flags ?? []);
     const positionals: string[] = [];
+    let forwarded: string[] | undefined;
     const seenFlags = new Set<string>();
     let matchedIndex = 0;
     let mismatched = false;
     for (let index = 0; index < parts.args.length; index += 1) {
       const arg = parts.args[index];
       if (arg === "--") {
-        for (let rest = index + 1; rest < parts.args.length; rest += 1) positionals.push(parts.args[rest]);
+        // "--" 以降は転送 tail として保持し、位置引数には数えない。
+        forwarded = parts.args.slice(index + 1);
         break;
       }
       if (arg.startsWith("-")) {
@@ -275,12 +277,12 @@ function matchToolSpec(parts: CommandParts): { spec: ToolSpec; positionals: stri
           continue;
         }
         const key = arg.split("=", 1)[0];
-        // 値付きオプションは、その値も位置引数に数えないよう消費する。
-        if ((valueSet.has(key) || valueSet.has(arg)) && !arg.includes("=")) index += 1;
+        const isExactValue = valueSet.has(arg);
+        const isAttachedValue = valueSet.has(key) && key.length === 2 && /^-[a-zA-Z]$/.test(key) && arg.length > key.length;
+        // Exact "-o" は次の引数を値として消費する。attached（-o<dir>）や "=" 形は消費しない。
+        if (isExactValue && !arg.includes("=")) index += 1;
         continue;
       }
-      // サブコマンドトークンは「先頭の連続する非オプション」でなければならない。
-      // git help clone の clone は後続で、git clone には一致しない（区別2 の過剰拒否を防ぐ）。
       if (matchedIndex < tokens.length) {
         if (arg === tokens[matchedIndex]) {
           matchedIndex += 1;
@@ -292,17 +294,23 @@ function matchToolSpec(parts: CommandParts): { spec: ToolSpec; positionals: stri
       positionals.push(arg);
     }
     if (!mismatched && matchedIndex === tokens.length && [...flagSet].every((flag) => seenFlags.has(flag))) {
-      return { spec, positionals };
+      return { spec, positionals, forwarded };
     }
   }
   return undefined;
 }
 
-function findOptionValue(args: readonly string[], option: string): string | undefined {
+function findOptionValue(args: readonly string[], option: string, attached = false): string | undefined {
   for (let index = 0; index < args.length; index += 1) {
     const arg = args[index];
     if (arg === option) return args[index + 1];
     if (arg.startsWith(`${option}=`)) return arg.slice(option.length + 1);
+    if (attached && option.length === 2 && /^-[a-zA-Z]$/.test(option) && arg.startsWith(option) && arg.length > option.length) return arg.slice(option.length);
+    // クラスタ短縮中の値付きオプション（tar -cf 中の -f）。値は次の引数。
+    if (!attached && option.length === 2 && /^-[a-zA-Z]$/.test(option)) {
+      const ch = option.slice(1);
+      if (/^-[a-zA-Z]+$/.test(arg) && !arg.startsWith("--") && arg.includes(ch) && arg !== option) return args[index + 1];
+    }
   }
   return undefined;
 }
@@ -344,13 +352,11 @@ function hasAnyFlag(args: readonly string[], flags: readonly string[]): boolean 
 function resolveSelectorValue(selector: TargetSelector, parts: CommandParts, positionals: readonly string[], execCwd: string): string | undefined {
   if (selector.kind === "cwd") return execCwd;
   if (selector.kind === "positional") {
-    const value = selector.index === undefined ? undefined : positionals[selector.index];
+    const value = positionals[selector.index];
     return value !== undefined && isStaticPathValue(value) ? resolveExistingPath(value, execCwd) : undefined;
   }
-  if (selector.kind === "option") {
-    const option = selector.option;
-    if (option === undefined) return undefined;
-    const value = findOptionValue(parts.args, option);
+  if (selector.kind === "option" || selector.kind === "option-by-mode") {
+    const value = findOptionValue(parts.args, selector.option, selector.kind === "option" && selector.attached === true);
     return value !== undefined && isStaticPathValue(value) ? resolveExistingPath(value, execCwd) : undefined;
   }
   return undefined;
@@ -362,12 +368,18 @@ function selectorApplies(selector: TargetSelector, parts: CommandParts): boolean
   return true;
 }
 
-// 書き込み先を解決する。明示（positional / option）が1件でもあればそれだけを使い、
+// 書き込み先を解決する。明示（positional / option / option-by-mode(write)）が1件でもあればそれだけを使い、
 // 無ければ cwd を既定の出力先とする（明示 dir と cwd を二重に判定しない）。
 function resolveWriteTargets(spec: ToolSpec, parts: CommandParts, positionals: readonly string[], execCwd: string): string[] {
   const explicit: string[] = [];
   let cwdFallback = false;
-  for (const selector of spec.writes) {
+  for (const selector of spec.writes ?? []) {
+    if (selector.kind === "option-by-mode") {
+      if (!hasAnyFlag(parts.args, selector.writeWhen)) continue;
+      const value = resolveSelectorValue(selector, parts, positionals, execCwd);
+      if (value) explicit.push(value);
+      continue;
+    }
     if (!selectorApplies(selector, parts)) continue;
     const value = resolveSelectorValue(selector, parts, positionals, execCwd);
     if (selector.kind === "cwd") {
@@ -382,6 +394,12 @@ function resolveWriteTargets(spec: ToolSpec, parts: CommandParts, positionals: r
 function resolveReadTargets(spec: ToolSpec, parts: CommandParts, positionals: readonly string[], execCwd: string): string[] {
   const results: string[] = [];
   for (const selector of spec.reads ?? []) {
+    if (selector.kind === "option-by-mode") {
+      if (!hasAnyFlag(parts.args, selector.readWhen)) continue;
+      const value = resolveSelectorValue(selector, parts, positionals, execCwd);
+      if (value) results.push(value);
+      continue;
+    }
     if (!selectorApplies(selector, parts)) continue;
     const value = resolveSelectorValue(selector, parts, positionals, execCwd);
     if (value) results.push(value);
@@ -389,16 +407,27 @@ function resolveReadTargets(spec: ToolSpec, parts: CommandParts, positionals: re
   return results;
 }
 
-export function commandPathRoles(parts: CommandParts, cwd: string): Array<[string, PathRole]> {
+function buildForwardTarget(forward: NonNullable<ToolSpec["forward"]>, forwarded: readonly string[], positionals: readonly string[]): CommandParts {
+  return { name: forward.target[0], args: [...forward.target.slice(1), ...forwarded, ...positionals] };
+}
+
+export function commandPathRoles(parts: CommandParts, cwd: string, depth = 0): Array<[string, PathRole]> {
   const matched = matchToolSpec(parts);
   if (matched) {
     const execCwd = commandWorkingDirectory(parts, cwd);
     const reads = resolveReadTargets(matched.spec, parts, matched.positionals, execCwd);
     const writes = resolveWriteTargets(matched.spec, parts, matched.positionals, execCwd);
-    return [
+    let roles: Array<[string, PathRole]> = [
       ...reads.map((value) => [value, "read"] as [string, PathRole]),
       ...writes.map((value) => [value, "write"] as [string, PathRole]),
     ];
+    // "--" を別コマンドへ転送する仕様（gh repo clone）は、転送先（git clone）で再解釈して
+    // 追加の write / read（--separate-git-dir 等）を拾う。深さを制限して循環を防ぐ。
+    if (matched.spec.forward && matched.forwarded && depth < 3) {
+      const target = buildForwardTarget(matched.spec.forward, matched.forwarded, matched.positionals);
+      roles = [...roles, ...commandPathRoles(target, cwd, depth + 1)];
+    }
+    return roles;
   }
   // 既存の generic（cp / mv / find / cd / cat / rm / mkdir / touch / chmod / chown）へフォールバック。
   return bashPathRoles(parts) as Array<[string, PathRole]>;

@@ -12,7 +12,6 @@ import {
   BASH_SHELL_NAMES,
   BASH_WRAPPER_NAMES,
   HEREDOC_EXPANSION_CHARS,
-  bashPathRoles,
   bashWorkingDirectory,
   checkBashValues,
   commandBasename,

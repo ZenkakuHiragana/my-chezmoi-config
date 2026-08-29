@@ -47,11 +47,17 @@ export function registerSpecTests(): void {
       blocked(await call(handler, "bash", { command: `tar -xvf x.tar -C ${home}/out` }), "tar 解凍 -C 境界外 拒否");
       allowed(await call(handler, "bash", { command: "tar -tf x.tar" }), "tar 一覧は遮断しない");
       allowed(await call(handler, "bash", { command: "tar -cf out.tar files" }), "tar 作成は遮断しない");
+      blocked(await call(handler, "bash", { command: `tar -cf ${home}/oops.tar files` }), "tar -cf 境界外 archive 拒否");
       blocked(await call(handler, "bash", { command: `unzip x.zip -d ${home}/out` }), "unzip -d 境界外 拒否");
       allowed(await call(handler, "bash", { command: "unzip -l x.zip" }), "unzip 一覧は遮断しない");
       blocked(await call(handler, "bash", { command: "cd ~ && 7z x x.7z" }), "7z x 境界外 cwd 拒否");
+      blocked(await call(handler, "bash", { command: `7z x x.7z -o${home}/out` }), "7z x -o 境界外 拒否");
       allowed(await call(handler, "bash", { command: "7z a out.7z files" }), "7z a (作成) 境界内 遮断しない");
       blocked(await call(handler, "bash", { command: `python -m venv ${home}/venv` }), "python -m venv 境界外 拒否");
+
+      // option-value / forward：別地点への metadata 書き込みと、git flags の転送。
+      blocked(await call(handler, "bash", { command: `git clone --separate-git-dir ${home}/g.git https://x/y ${cwd}/safe` }), "git clone --separate-git-dir 境界外 拒否");
+      blocked(await call(handler, "bash", { command: `gh repo clone owner/repo ${cwd}/safe -- --separate-git-dir=${home}/g.git` }), "gh repo clone --gitflags 境界外 拒否");
 
       // 仕様に合致しない使い方 / 未知コマンドは遮断しない。
       allowed(await call(handler, "bash", { command: "gh repo fork owner/repo" }), "--clone なし fork は遮断しない");
