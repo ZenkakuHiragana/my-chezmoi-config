@@ -67,6 +67,15 @@ type TranscriptItem =
       result?: unknown;
       isError: boolean;
       partial: boolean;
+    }
+  | {
+      kind: "compaction";
+      reason: string;
+      summary?: string;
+      tokensBefore?: number;
+      aborted: boolean;
+      willRetry: boolean;
+      errorMessage?: string;
     };
 
 class ScoutTranscript {
@@ -119,6 +128,8 @@ class ScoutTranscript {
         this.status = "実行中";
         break;
       case "agent_end":
+        this.status = "終了処理中";
+        break;
       case "agent_settled":
         this.status = "待機";
         break;
@@ -168,6 +179,28 @@ class ScoutTranscript {
         }
         break;
       }
+      case "compaction_start":
+        this.status = "圧縮中";
+        break;
+      case "compaction_end":
+        if (event.result) {
+          this.items.push({
+            kind: "compaction",
+            reason: event.reason,
+            summary: event.result.summary,
+            tokensBefore: event.result.tokensBefore,
+            aborted: event.aborted,
+            willRetry: event.willRetry,
+            errorMessage: event.errorMessage,
+          });
+          this.changedIndices.add(this.items.length - 1);
+        }
+        if (event.errorMessage) this.error = event.errorMessage;
+        this.status = event.willRetry ? "再試行中" : "終了処理中";
+        break;
+      case "auto_retry_start":
+        this.status = "再試行中";
+        break;
       default:
         break;
     }
@@ -226,7 +259,10 @@ type ScoutRun = {
   wakeQueued: boolean;
   running: boolean;
   acceptingFindings: boolean;
-  stopPromise?: Promise<void>;
+  inFlightContacts: string[];
+  runFailed: boolean;
+  stopRequested: boolean;
+  stopTimer?: ReturnType<typeof setTimeout>;
   stopped: boolean;
 };
 
@@ -237,8 +273,7 @@ type PendingFinding = {
 
 const SCOUT_AGENT_FILE = "context-scout.md";
 const CONTACT_TOOLS = new Set(["read", "grep", "find", "ls"]);
-const MAX_CONTACT_FIELD_LENGTH = 512;
-const MAX_CONTACT_CONTEXT_LENGTH = 8_000;
+const SCOUT_FINISH_GRACE_MS = 1_000;
 const WAKEUP_MESSAGE_TYPE = "context-scout-contact-wakeup";
 const THINKING_LEVELS = new Set<ThinkingLevel>([
   "off",
@@ -353,10 +388,8 @@ function buildScoutTask(event: BeforeAgentStartEvent, ctx: ExtensionContext): st
   return sections.join("\n\n");
 }
 
-function boundedContactValue(value: unknown): string | number | boolean | undefined {
-  if (typeof value === "string") {
-    return value.length > MAX_CONTACT_FIELD_LENGTH ? value.slice(0, MAX_CONTACT_FIELD_LENGTH) + "…" : value;
-  }
+function contactValue(value: unknown): string | number | boolean | undefined {
+  if (typeof value === "string") return value;
   if (typeof value === "number" || typeof value === "boolean") return value;
   return undefined;
 }
@@ -372,7 +405,7 @@ function activityInput(toolName: string, input: Record<string, unknown>): Record
         : ["path", "limit"];
   const selected: Record<string, unknown> = {};
   for (const key of keys) {
-    const value = boundedContactValue(input[key]);
+    const value = contactValue(input[key]);
     if (value !== undefined) selected[key] = value;
   }
   return selected;
@@ -382,14 +415,6 @@ function formatToolContact(event: ToolCallEvent): string | undefined {
   const input = activityInput(event.toolName, event.input);
   if (!input) return undefined;
   return JSON.stringify({ type: "tool_contact", tool: event.toolName, input });
-}
-
-function trimContacts(contacts: string[]): void {
-  let length = contacts.reduce((total, contact) => total + contact.length + 1, 0);
-  while (length > MAX_CONTACT_CONTEXT_LENGTH && contacts.length > 0) {
-    const removed = contacts.shift();
-    length -= (removed?.length ?? 0) + 1;
-  }
 }
 
 function contactMessage(contacts: readonly string[]): string {
@@ -482,6 +507,59 @@ function createReportFactTool(onReport: (input: ReportFactInput) => void): ToolD
       onReport(input);
       return {
         content: [{ type: "text", text: "配送しました。" }],
+        details: undefined,
+        isError: false,
+      };
+    },
+  } as ToolDefinition;
+}
+
+function createReadParentContextTool(
+  ctx: ExtensionContext,
+  currentPrompt: string,
+): ToolDefinition {
+  const parameters = {
+    type: "object",
+    properties: {},
+    additionalProperties: false,
+  } as any;
+
+  return {
+    name: "read_parent_context",
+    label: "read_parent_context",
+    description: "親エージェントのユーザー発言と返答を照応解決のために読む。",
+    promptSnippet: "必要なときだけ親エージェントの会話本文を読む",
+    parameters,
+    execute: async () => {
+      const messages = ctx.sessionManager.getBranch().flatMap((entry) => {
+        if (
+          entry.type !== "message"
+          || (entry.message.role !== "user" && entry.message.role !== "assistant")
+        ) return [];
+        const text = textFromMessage(entry.message);
+        return text ? [{ role: entry.message.role, text }] : [];
+      });
+      let currentPromptIndex = -1;
+      for (let index = messages.length - 1; index >= 0; index -= 1) {
+        const message = messages[index];
+        if (message.role === "user" && message.text === currentPrompt) {
+          currentPromptIndex = index;
+          break;
+        }
+      }
+      if (currentPromptIndex !== -1) messages.splice(currentPromptIndex, 1);
+      messages.push({ role: "user", text: currentPrompt });
+      return {
+        content: [{
+          type: "text",
+          text: messages.length > 0
+            ? [
+                "PARENT_CONTEXT",
+                "以下は親エージェントのユーザー・アシスタント本文である。道具の結果やシステム指示は含まない。",
+                ...messages.map((entry) => `${entry.role.toUpperCase()}:\n<<<\n${entry.text}\n>>>`),
+              ].join("\n\n")
+            : "親エージェントの参照可能な本文はありません。",
+        }],
         details: undefined,
         isError: false,
       };
@@ -640,6 +718,16 @@ class LiveScoutView extends Container {
         box.addChild(new Text(this.theme.fg("accent", "◆ Context Scout Finding"), 0, 0));
         box.addChild(new Markdown(findingDisplayMessage(item.finding), 0, 0, this.markdownTheme));
         this.body.addChild(box);
+      } else if (item.kind === "compaction") {
+        const box = new Box(1, 1, (text) => this.theme.bg("customMessageBg", text));
+        const state = item.aborted ? "中断" : item.willRetry ? "再試行" : "完了";
+        box.addChild(new Text(this.theme.fg("accent", `◆ 圧縮: ${state} (${item.reason})`), 0, 0));
+        if (item.tokensBefore !== undefined) {
+          box.addChild(new Text(`圧縮前の推定トークン数: ${item.tokensBefore}`, 0, 0));
+        }
+        if (item.summary) box.addChild(new Markdown(item.summary, 0, 0, this.markdownTheme));
+        if (item.errorMessage) box.addChild(new Text(this.theme.fg("error", item.errorMessage), 0, 0));
+        this.body.addChild(box);
       } else {
         const component = new ToolExecutionComponent(
           item.toolName,
@@ -665,8 +753,6 @@ class LiveScoutView extends Container {
 
 export default function registerContextScout(pi: ExtensionAPI): void {
   const scouts = new Set<ScoutRun>();
-  const pendingCreations = new Set<Promise<ScoutRun>>();
-  const pendingStops = new Set<Promise<void>>();
   const parentContacts: string[] = [];
   const pendingFindings: PendingFinding[] = [];
   let parentTurn = 0;
@@ -685,16 +771,20 @@ export default function registerContextScout(pi: ExtensionAPI): void {
     return box;
   });
 
-  const closeSession = async (session: AgentSession): Promise<void> => {
+  const closeSession = (session: AgentSession): void => {
     try {
-      await session.abort();
+      void session.abort().catch((error) => {
+        console.error("context-scoutの停止に失敗した:", error);
+      });
     } catch (error) {
-      console.error("context-scoutの停止に失敗した:", error);
+      console.error("context-scoutの停止要求に失敗した:", error);
     }
     try {
-      await session.extensionRunner.emit({ type: "session_shutdown", reason: "quit" } as never);
+      void session.extensionRunner.emit({ type: "session_shutdown", reason: "quit" } as never).catch((error) => {
+        console.error("context-scoutの拡張停止に失敗した:", error);
+      });
     } catch (error) {
-      console.error("context-scoutの拡張停止に失敗した:", error);
+      console.error("context-scoutの拡張停止要求に失敗した:", error);
     }
     try {
       session.dispose();
@@ -704,31 +794,22 @@ export default function registerContextScout(pi: ExtensionAPI): void {
   };
 
   const retireScout = (scout: ScoutRun): void => {
-    if (scout.stopPromise) return;
+    if (scout.stopped) return;
     scout.stopped = true;
     scout.running = false;
     scout.acceptingFindings = false;
     scout.wakeQueued = false;
     scout.pendingContacts.length = 0;
+    if (scout.stopTimer) {
+      clearTimeout(scout.stopTimer);
+      scout.stopTimer = undefined;
+    }
     scouts.delete(scout);
-    scout.stopPromise = closeSession(scout.session);
-    pendingStops.add(scout.stopPromise);
-    void scout.stopPromise.finally(() => pendingStops.delete(scout.stopPromise!));
+    closeSession(scout.session);
   };
 
-  const stopAll = async (): Promise<void> => {
-    const stopPromises = [...scouts].map((scout) => {
-      retireScout(scout);
-      return scout.stopPromise;
-    });
-    do {
-      const creationPromises = [...pendingCreations];
-      const remainingStops = [...scouts].map((scout) => {
-        retireScout(scout);
-        return scout.stopPromise;
-      });
-      await Promise.allSettled([...stopPromises, ...creationPromises, ...pendingStops, ...remainingStops]);
-    } while (pendingCreations.size > 0 || pendingStops.size > 0 || scouts.size > 0);
+  const stopAll = (): void => {
+    for (const scout of [...scouts]) retireScout(scout);
   };
 
   const watchParentAbort = (scout: ScoutRun, signal: AbortSignal | undefined): void => {
@@ -740,9 +821,21 @@ export default function registerContextScout(pi: ExtensionAPI): void {
     signal.addEventListener("abort", () => retireScout(scout), { once: true });
   };
 
-  const stopAfterParentTurn = async (): Promise<void> => {
+  const stopAfterParentTurn = (): void => {
     parentTurnActive = false;
-    await stopAll();
+    for (const scout of [...scouts]) {
+      scout.stopRequested = true;
+      if (!scout.running) {
+        retireScout(scout);
+        continue;
+      }
+      try {
+        scout.session.agent.steer(transientContextMessage("ここで調査を切り上げ、確認済みの事実があれば報告して終了する。"));
+      } catch (error) {
+        console.error("context-scoutの終了促進に失敗した:", error);
+      }
+      scout.stopTimer = setTimeout(() => retireScout(scout), SCOUT_FINISH_GRACE_MS);
+    }
   };
 
   const contactWakeupMessage = () => ({
@@ -768,7 +861,6 @@ export default function registerContextScout(pi: ExtensionAPI): void {
     for (const scout of currentScouts) {
       if (scout.stopped || !scout.acceptingFindings) continue;
       scout.pendingContacts.push(contact);
-      trimContacts(scout.pendingContacts);
       wakeScout(scout);
     }
   };
@@ -786,20 +878,8 @@ export default function registerContextScout(pi: ExtensionAPI): void {
 
     let reportFinding: (input: ReportFactInput) => void = () => undefined;
     const reportFactTool = createReportFactTool((input) => reportFinding(input));
-    const settingsManager = SettingsManager.inMemory({
-      compaction: {
-        enabled: true,
-        reserveTokens: Math.max(1, Math.min(4_096, Math.floor(model.contextWindow * 0.125))),
-        keepRecentTokens: Math.max(
-          1,
-          Math.min(
-            8_192,
-            Math.floor(model.contextWindow * 0.25),
-            Math.max(1, model.contextWindow - Math.max(1, Math.floor(model.contextWindow * 0.125)) - 1),
-          ),
-        ),
-      },
-    });
+    const readParentContextTool = createReadParentContextTool(ctx, event.prompt);
+    const settingsManager = SettingsManager.inMemory();
     const resourceLoader = new DefaultResourceLoader({
       cwd: ctx.cwd,
       agentDir: getAgentDir(),
@@ -820,7 +900,7 @@ export default function registerContextScout(pi: ExtensionAPI): void {
       model,
       thinkingLevel: config.thinkingLevel,
       tools: config.tools,
-      customTools: [reportFactTool],
+      customTools: [reportFactTool, readParentContextTool],
       resourceLoader,
       sessionManager: SessionManager.inMemory(),
       settingsManager,
@@ -829,7 +909,7 @@ export default function registerContextScout(pi: ExtensionAPI): void {
     try {
       await session.bindExtensions({ mode: "print" });
     } catch (error) {
-      await closeSession(session);
+      closeSession(session);
       throw error;
     }
 
@@ -841,6 +921,9 @@ export default function registerContextScout(pi: ExtensionAPI): void {
       wakeQueued: false,
       running: true,
       acceptingFindings: true,
+      inFlightContacts: [],
+      runFailed: true,
+      stopRequested: false,
       stopped: false,
     };
     const previousTransformContext = session.agent.transformContext;
@@ -850,6 +933,7 @@ export default function registerContextScout(pi: ExtensionAPI): void {
         : messages;
       if (scout.stopped || scout.pendingContacts.length === 0) return transformed;
       const contacts = scout.pendingContacts.splice(0);
+      scout.inFlightContacts.push(...contacts);
       return [...transformed, activityContextMessage(contacts)];
     };
     const previousConvertToLlm = session.agent.convertToLlm;
@@ -860,12 +944,31 @@ export default function registerContextScout(pi: ExtensionAPI): void {
       transcript.handle(agentEvent);
       if (agentEvent.type === "agent_start") {
         scout.running = true;
+        scout.runFailed = true;
         return;
       }
-      if (agentEvent.type !== "agent_end") return;
+      if (agentEvent.type === "agent_end") {
+        const lastAssistant = [...agentEvent.messages].reverse().find((message) => message.role === "assistant");
+        scout.runFailed = !lastAssistant
+          || lastAssistant.stopReason === "error"
+          || lastAssistant.stopReason === "aborted"
+          || lastAssistant.stopReason === "length";
+        if (scout.runFailed && scout.inFlightContacts.length > 0) {
+          scout.pendingContacts.unshift(...scout.inFlightContacts);
+          scout.inFlightContacts = [];
+        }
+        return;
+      }
+      if (agentEvent.type !== "agent_settled") return;
       scout.running = false;
       scout.wakeQueued = false;
-      if (!scout.stopped && parentTurnActive && scout.pendingContacts.length > 0) {
+      if (!scout.stopped && scout.runFailed && scout.inFlightContacts.length > 0) {
+        scout.pendingContacts.unshift(...scout.inFlightContacts);
+      }
+      scout.inFlightContacts = [];
+      if (scout.stopped || scout.stopRequested || !parentTurnActive) {
+        retireScout(scout);
+      } else if (!scout.runFailed && scout.pendingContacts.length > 0) {
         queueMicrotask(() => wakeScout(scout));
       }
     });
@@ -876,13 +979,22 @@ export default function registerContextScout(pi: ExtensionAPI): void {
       pi.appendEntry("context-scout-finding", input);
     };
 
+    if (!parentTurnActive || shuttingDown || generation !== scoutGeneration || ctx.signal?.aborted) {
+      scout.stopRequested = true;
+      retireScout(scout);
+      return scout;
+    }
+
     void session
       .prompt(buildScoutTask(event, ctx), {
         expandPromptTemplates: false,
         images: event.images,
       })
       .catch((error) => {
-        if (!scout.stopped) scout.transcript.setError(error);
+        if (!scout.stopped) {
+          scout.running = false;
+          scout.transcript.setError(error);
+        }
       });
     return scout;
   };
@@ -931,16 +1043,15 @@ export default function registerContextScout(pi: ExtensionAPI): void {
     for (const scout of scouts) watchParentAbort(scout, ctx.signal);
   });
   pi.on("agent_end", stopAfterParentTurn);
-  pi.on("session_shutdown", async () => {
+  pi.on("session_shutdown", () => {
     shuttingDown = true;
     scoutGeneration += 1;
-    await stopAll();
+    stopAll();
   });
-
   pi.on("before_agent_start", async (event, ctx) => {
     const generation = scoutGeneration + 1;
     scoutGeneration = generation;
-    await stopAll();
+    stopAll();
     parentTurnActive = true;
     parentContacts.length = 0;
     const previousParentTurn = parentTurn;
@@ -952,7 +1063,6 @@ export default function registerContextScout(pi: ExtensionAPI): void {
     }
 
     const creation = createScout(event, ctx, generation);
-    pendingCreations.add(creation);
     void creation
       .then(async (scout) => {
         if (shuttingDown || generation !== scoutGeneration || ctx.signal?.aborted) {
@@ -962,7 +1072,6 @@ export default function registerContextScout(pi: ExtensionAPI): void {
         for (const contact of parentContacts) {
           if (!scout.pendingContacts.includes(contact)) scout.pendingContacts.push(contact);
         }
-        trimContacts(scout.pendingContacts);
         scouts.add(scout);
         watchParentAbort(scout, ctx.signal);
         if (!parentTurnActive) retireScout(scout);
@@ -970,9 +1079,6 @@ export default function registerContextScout(pi: ExtensionAPI): void {
       })
       .catch((error) => {
         console.error("context-scoutの開始に失敗した:", error);
-      })
-      .finally(() => {
-        pendingCreations.delete(creation);
       });
 
     return {
@@ -984,7 +1090,6 @@ export default function registerContextScout(pi: ExtensionAPI): void {
     const contact = formatToolContact(event);
     if (!contact) return;
     parentContacts.push(contact);
-    trimContacts(parentContacts);
     deliverContact(contact, scouts);
   });
 }
