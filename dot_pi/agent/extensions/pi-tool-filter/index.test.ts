@@ -24,11 +24,13 @@ import { registerGlobTests } from "./tests/glob.ts";
 import { registerPathTests } from "./tests/path.ts";
 import { registerReasonTests } from "./tests/reason.ts";
 import { registerScriptTests } from "./tests/script.ts";
+import { registerSpecTests } from "./tests/specs.ts";
 import { registerWriteTests } from "./tests/write.ts";
 
 registerDependencyTests();
 registerPathTests();
 registerScriptTests();
+registerSpecTests();
 registerReasonTests();
 registerWriteTests();
 registerGlobTests();

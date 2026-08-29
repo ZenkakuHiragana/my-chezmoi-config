@@ -17,6 +17,7 @@ import {
   checkBashValues,
   commandBasename,
   commandParts,
+  commandPathRoles,
   commandValues,
   envWorkingDirectory,
   extractShellBody,
@@ -472,7 +473,7 @@ async function inspectCommandParts(parts: CommandParts, config: FilterConfig, cw
   const commandText = [parts.name, ...parts.args].join(" ");
   const directDecision = checkBashValues(commandValues(commandText), config);
   if (directDecision) return directDecision;
-  const pathDecision = pathRoleDecisions(bashPathRoles(parts), cwd, config, boundaryCwd);
+  const pathDecision = pathRoleDecisions(commandPathRoles(parts, cwd), cwd, config, boundaryCwd);
   if (pathDecision) return pathDecision;
   const psDecision = inspectPowerShellCommandText(commandText, parts, config, cwd, boundaryCwd);
   if (psDecision) return psDecision;

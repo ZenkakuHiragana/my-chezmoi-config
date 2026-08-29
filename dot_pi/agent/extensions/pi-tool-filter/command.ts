@@ -1,5 +1,7 @@
 import type { BashNode, BashRedirect, CommandParts, FilterConfig, PathRole } from "./types.ts";
 import { findCommandNodes } from "./parser.ts";
+import { TOOL_SPECS } from "./tool-specs.ts";
+import type { ToolSpec, TargetSelector } from "./tool-specs.ts";
 import {
   block,
   globToRegExp,
@@ -244,6 +246,162 @@ function findStartPaths(args: readonly string[]): string[] {
     if (isStaticPathValue(value)) paths.push(value);
   }
   return paths.length > 0 ? paths : ["."];
+}
+
+// 仕様テーブル（tool-specs.ts）に従って、コマンドの代表的な使い方の読み書き先を決める。
+// 仕様に一致しなければ既存の bashPathRoles（cp / mv / find / cd / cat / rm / mkdir / touch /
+// chmod / chown）へフォールバックする。仕様は「どこに書くか」の解釈だけを提供し、
+// 方針（allow / deny / outsideDefault）は path-policy が所有する。
+function matchToolSpec(parts: CommandParts): { spec: ToolSpec; positionals: string[] } | undefined {
+  const name = commandBasename(parts.name).replace(/\.exe$/i, "");
+  for (const spec of TOOL_SPECS) {
+    if (spec.command[0] !== name) continue;
+    const tokens = spec.command.slice(1);
+    const valueSet = new Set(spec.valueOptions ?? []);
+    const flagSet = new Set(spec.flags ?? []);
+    const positionals: string[] = [];
+    const seenFlags = new Set<string>();
+    let matchedIndex = 0;
+    let mismatched = false;
+    for (let index = 0; index < parts.args.length; index += 1) {
+      const arg = parts.args[index];
+      if (arg === "--") {
+        for (let rest = index + 1; rest < parts.args.length; rest += 1) positionals.push(parts.args[rest]);
+        break;
+      }
+      if (arg.startsWith("-")) {
+        if (flagSet.has(arg)) {
+          seenFlags.add(arg);
+          continue;
+        }
+        const key = arg.split("=", 1)[0];
+        // 値付きオプションは、その値も位置引数に数えないよう消費する。
+        if ((valueSet.has(key) || valueSet.has(arg)) && !arg.includes("=")) index += 1;
+        continue;
+      }
+      // サブコマンドトークンは「先頭の連続する非オプション」でなければならない。
+      // git help clone の clone は後続で、git clone には一致しない（区別2 の過剰拒否を防ぐ）。
+      if (matchedIndex < tokens.length) {
+        if (arg === tokens[matchedIndex]) {
+          matchedIndex += 1;
+          continue;
+        }
+        mismatched = true;
+        break;
+      }
+      positionals.push(arg);
+    }
+    if (!mismatched && matchedIndex === tokens.length && [...flagSet].every((flag) => seenFlags.has(flag))) {
+      return { spec, positionals };
+    }
+  }
+  return undefined;
+}
+
+function findOptionValue(args: readonly string[], option: string): string | undefined {
+  for (let index = 0; index < args.length; index += 1) {
+    const arg = args[index];
+    if (arg === option) return args[index + 1];
+    if (arg.startsWith(`${option}=`)) return arg.slice(option.length + 1);
+  }
+  return undefined;
+}
+
+// git -C <dir> は実行ディレクトリを変える。positional / option の相対パスは
+// このディレクトリを基準に解決する必要がある（境界外 -C のバイパスを防ぐ）。
+function gitWorkingDirectory(parts: CommandParts, cwd: string): string {
+  let dir = cwd;
+  for (let index = 0; index < parts.args.length; index += 1) {
+    const arg = parts.args[index];
+    const value = arg === "-C" ? parts.args[index + 1] : arg.startsWith("-C=") ? arg.slice(3) : undefined;
+    if (value !== undefined && isStaticPathValue(value)) dir = resolveExistingPath(value, dir);
+  }
+  return dir;
+}
+
+function commandWorkingDirectory(parts: CommandParts, cwd: string): string {
+  return commandBasename(parts.name).replace(/\.exe$/i, "") === "git" ? gitWorkingDirectory(parts, cwd) : cwd;
+}
+
+// フラグの存在を判定する（クラスタ短縮 -xf 中の -x も認識）。
+// tar -xf / -cf / -tf、unzip -l / -t などのモード分岐に使う。
+function hasAnyFlag(args: readonly string[], flags: readonly string[]): boolean {
+  for (const flag of flags) {
+    if (flag.startsWith("--")) {
+      if (args.includes(flag)) return true;
+    } else {
+      const ch = flag.slice(1);
+      for (const arg of args) {
+        if (arg === flag) return true;
+        if (ch.length === 1 && /^-[a-zA-Z]/.test(arg) && !arg.startsWith("--") && arg.includes(ch)) return true;
+      }
+    }
+  }
+  return false;
+}
+
+// セレクタを1つ解決して絶対パスを返す。未解決は undefined。
+function resolveSelectorValue(selector: TargetSelector, parts: CommandParts, positionals: readonly string[], execCwd: string): string | undefined {
+  if (selector.kind === "cwd") return execCwd;
+  if (selector.kind === "positional") {
+    const value = selector.index === undefined ? undefined : positionals[selector.index];
+    return value !== undefined && isStaticPathValue(value) ? resolveExistingPath(value, execCwd) : undefined;
+  }
+  if (selector.kind === "option") {
+    const option = selector.option;
+    if (option === undefined) return undefined;
+    const value = findOptionValue(parts.args, option);
+    return value !== undefined && isStaticPathValue(value) ? resolveExistingPath(value, execCwd) : undefined;
+  }
+  return undefined;
+}
+
+function selectorApplies(selector: TargetSelector, parts: CommandParts): boolean {
+  if (selector.whenFlags && !hasAnyFlag(parts.args, selector.whenFlags)) return false;
+  if (selector.whenNotFlags && hasAnyFlag(parts.args, selector.whenNotFlags)) return false;
+  return true;
+}
+
+// 書き込み先を解決する。明示（positional / option）が1件でもあればそれだけを使い、
+// 無ければ cwd を既定の出力先とする（明示 dir と cwd を二重に判定しない）。
+function resolveWriteTargets(spec: ToolSpec, parts: CommandParts, positionals: readonly string[], execCwd: string): string[] {
+  const explicit: string[] = [];
+  let cwdFallback = false;
+  for (const selector of spec.writes) {
+    if (!selectorApplies(selector, parts)) continue;
+    const value = resolveSelectorValue(selector, parts, positionals, execCwd);
+    if (selector.kind === "cwd") {
+      if (value) cwdFallback = true;
+    } else if (value) {
+      explicit.push(value);
+    }
+  }
+  return explicit.length > 0 ? explicit : cwdFallback ? [execCwd] : [];
+}
+
+function resolveReadTargets(spec: ToolSpec, parts: CommandParts, positionals: readonly string[], execCwd: string): string[] {
+  const results: string[] = [];
+  for (const selector of spec.reads ?? []) {
+    if (!selectorApplies(selector, parts)) continue;
+    const value = resolveSelectorValue(selector, parts, positionals, execCwd);
+    if (value) results.push(value);
+  }
+  return results;
+}
+
+export function commandPathRoles(parts: CommandParts, cwd: string): Array<[string, PathRole]> {
+  const matched = matchToolSpec(parts);
+  if (matched) {
+    const execCwd = commandWorkingDirectory(parts, cwd);
+    const reads = resolveReadTargets(matched.spec, parts, matched.positionals, execCwd);
+    const writes = resolveWriteTargets(matched.spec, parts, matched.positionals, execCwd);
+    return [
+      ...reads.map((value) => [value, "read"] as [string, PathRole]),
+      ...writes.map((value) => [value, "write"] as [string, PathRole]),
+    ];
+  }
+  // 既存の generic（cp / mv / find / cd / cat / rm / mkdir / touch / chmod / chown）へフォールバック。
+  return bashPathRoles(parts) as Array<[string, PathRole]>;
 }
 
 const BASH_PATH_COMMANDS = new Map<string, PathRole>([["cd", "read"], ["cat", "read"], ["rm", "write"], ["mkdir", "write"], ["touch", "write"], ["chmod", "write"], ["chown", "write"]]);
