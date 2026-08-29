@@ -262,18 +262,12 @@ type ScoutRun = {
   inFlightContacts: string[];
   runFailed: boolean;
   stopRequested: boolean;
-  stopTimer?: ReturnType<typeof setTimeout>;
   stopped: boolean;
-};
-
-type PendingFinding = {
-  finding: ReportFactInput;
-  deliveredInTurn?: number;
 };
 
 const SCOUT_AGENT_FILE = "context-scout.md";
 const CONTACT_TOOLS = new Set(["read", "grep", "find", "ls"]);
-const SCOUT_FINISH_GRACE_MS = 1_000;
+const FINDINGS_CUSTOM_TYPE = "context-scout-findings";
 const WAKEUP_MESSAGE_TYPE = "context-scout-contact-wakeup";
 const THINKING_LEVELS = new Set<ThinkingLevel>([
   "off",
@@ -451,20 +445,16 @@ function activityContextMessage(contacts: readonly string[]): AgentMessage {
   return transientContextMessage(contactMessage(contacts));
 }
 
-function findingsContextMessage(findings: readonly ReportFactInput[]): AgentMessage {
-  return transientContextMessage([
+function findingsBatchText(findings: readonly ReportFactInput[]): string {
+  return [
     "PARENT_EXTERNAL_FINDINGS",
     "以下はcontext-scoutが外部情報源で確認した事実の配送であり、ユーザー発言ではない。",
     ...findings.map((finding, index) => `FINDING ${index + 1}\n${findingMessage(finding)}`),
-  ].join("\n\n"));
+  ].join("\n\n");
 }
 
-function isReportFactInput(value: unknown): value is ReportFactInput {
-  return isRecord(value)
-    && typeof value.external_target === "string"
-    && typeof value.confirmed_fact === "string"
-    && typeof value.applicability === "string"
-    && typeof value.evidence === "string";
+function findingsBatchMessage(findings: readonly ReportFactInput[]): Extract<AgentMessage, { role: "user" }> {
+  return transientContextMessage(findingsBatchText(findings));
 }
 
 function findingDisplayMessage(input: ReportFactInput): string {
@@ -775,20 +765,24 @@ class LiveScoutView extends Container {
 export default function registerContextScout(pi: ExtensionAPI): void {
   const scouts = new Set<ScoutRun>();
   const parentContacts: string[] = [];
-  const pendingFindings: PendingFinding[] = [];
-  let parentTurn = 0;
+  const pendingBatchFacts: ReportFactInput[] = [];
+  const committedBatches: Array<{ id: string; facts: ReportFactInput[] }> = [];
+  let nextBatchId = 0;
   let parentTurnActive = false;
   let scoutGeneration = 0;
   let shuttingDown = false;
 
-  pi.registerEntryRenderer<ReportFactInput>("context-scout-finding", (entry, _options, theme) => {
+  pi.registerMessageRenderer<{ facts: ReportFactInput[] }>(FINDINGS_CUSTOM_TYPE, (message, _options, theme) => {
     const box = new Box(1, 1, (text) => theme.bg("customMessageBg", text));
-    if (!isReportFactInput(entry.data)) {
-      box.addChild(new Text(theme.fg("error", "◆ Context Scout Finding: データ不正"), 0, 0));
-      return box;
+    const facts = message.details?.facts ?? [];
+    box.addChild(new Text(theme.fg("accent", "◆ Context Scout Findings"), 0, 0));
+    if (facts.length === 0) {
+      box.addChild(new Text(theme.fg("dim", "（findingなし）"), 0, 0));
+    } else {
+      for (const finding of facts) {
+        box.addChild(new Markdown(findingDisplayMessage(finding), 0, 0, markdownThemeFrom(theme)));
+      }
     }
-    box.addChild(new Text(theme.fg("accent", "◆ Context Scout Finding"), 0, 0));
-    box.addChild(new Markdown(findingDisplayMessage(entry.data), 0, 0, markdownThemeFrom(theme)));
     return box;
   });
 
@@ -819,10 +813,6 @@ export default function registerContextScout(pi: ExtensionAPI): void {
     scout.acceptingFindings = false;
     scout.wakeQueued = false;
     scout.pendingContacts.length = 0;
-    if (scout.stopTimer) {
-      clearTimeout(scout.stopTimer);
-      scout.stopTimer = undefined;
-    }
     scouts.delete(scout);
     closeSession(scout.session);
   };
@@ -842,18 +832,10 @@ export default function registerContextScout(pi: ExtensionAPI): void {
 
   const stopAfterParentTurn = (): void => {
     parentTurnActive = false;
+    pendingBatchFacts.length = 0;
     for (const scout of [...scouts]) {
       scout.stopRequested = true;
-      if (!scout.running) {
-        retireScout(scout);
-        continue;
-      }
-      try {
-        scout.session.agent.steer(transientContextMessage("ここで調査を切り上げ、確認済みの事実があれば報告して終了する。"));
-      } catch (error) {
-        console.error("context-scoutの終了促進に失敗した:", error);
-      }
-      scout.stopTimer = setTimeout(() => retireScout(scout), SCOUT_FINISH_GRACE_MS);
+      retireScout(scout);
     }
   };
 
@@ -1003,8 +985,7 @@ export default function registerContextScout(pi: ExtensionAPI): void {
     reportFinding = (input) => {
       if (scout.stopped || !scout.acceptingFindings || shuttingDown || generation !== scoutGeneration || ctx.signal?.aborted) return;
       scout.transcript.addFinding(input);
-      pendingFindings.push({ finding: input });
-      pi.appendEntry("context-scout-finding", input);
+      pendingBatchFacts.push(input);
     };
 
     if (!parentTurnActive || shuttingDown || generation !== scoutGeneration || ctx.signal?.aborted) {
@@ -1055,21 +1036,39 @@ export default function registerContextScout(pi: ExtensionAPI): void {
   });
 
   pi.on("context", (event) => {
-    const findings = pendingFindings.filter((record) => record.deliveredInTurn === undefined);
-    if (findings.length === 0) return;
-    for (const record of findings) record.deliveredInTurn = parentTurn;
-    return {
-      messages: [
-        ...event.messages,
-        findingsContextMessage(findings.map((record) => record.finding)),
-      ],
-    };
+    const inContextIds = new Set<string>();
+    const messages = event.messages.map((message) => {
+      const custom = message as { role?: string; customType?: string; details?: unknown };
+      if (custom.role !== "custom" || custom.customType !== FINDINGS_CUSTOM_TYPE) return message;
+      const details = custom.details as { id?: string; facts?: ReportFactInput[] } | undefined;
+      if (details?.id) inContextIds.add(details.id);
+      return findingsBatchMessage(details?.facts ?? []);
+    });
+    const toAppend = committedBatches.filter((batch) => !inContextIds.has(batch.id));
+    if (toAppend.length === 0 && inContextIds.size === 0) return;
+    return { messages: [...messages, ...toAppend.map((batch) => findingsBatchMessage(batch.facts))] };
   });
 
   pi.on("agent_start", (_event, ctx) => {
     parentTurnActive = true;
     for (const scout of scouts) watchParentAbort(scout, ctx.signal);
   });
+
+  pi.on("turn_end", () => {
+    if (shuttingDown || !parentTurnActive) return;
+    const facts = pendingBatchFacts.splice(0);
+    if (facts.length === 0) return;
+    nextBatchId += 1;
+    const batch = { id: `cs-${nextBatchId}`, facts };
+    committedBatches.push(batch);
+    pi.sendMessage({
+      customType: FINDINGS_CUSTOM_TYPE,
+      content: findingsBatchText(facts),
+      display: true,
+      details: { id: batch.id, facts },
+    }, { triggerTurn: false });
+  });
+
   pi.on("agent_settled", stopAfterParentTurn);
   pi.on("session_shutdown", () => {
     shuttingDown = true;
@@ -1082,14 +1081,7 @@ export default function registerContextScout(pi: ExtensionAPI): void {
     stopAll();
     parentTurnActive = true;
     parentContacts.length = 0;
-    const previousParentTurn = parentTurn;
-    parentTurn += 1;
-    for (let index = pendingFindings.length - 1; index >= 0; index -= 1) {
-      if (pendingFindings[index]?.deliveredInTurn === previousParentTurn) {
-        pendingFindings.splice(index, 1);
-      }
-    }
-
+    committedBatches.length = 0;
     const creation = createScout(event, ctx, generation);
     void creation
       .then(async (scout) => {
