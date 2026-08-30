@@ -326,6 +326,7 @@ function findStatementCommands(statement: BashNode): BashNode[] {
 }
 function findBashHeredocs(root: BashNode, rawText: string): BashHeredoc[] {
   const heredocs: BashHeredoc[] = [];
+  const rawBytes = Buffer.from(rawText, "utf8");
   const stack = [root];
   const statementCommands = new Map<number, BashNode[]>();
   while (stack.length > 0) {
@@ -372,13 +373,13 @@ function findBashHeredocs(root: BashNode, rawText: string): BashHeredoc[] {
           }
         }
         if (ownerStart >= 0 && bodyStart >= 0 && bodyEnd > bodyStart) {
-          // tree-sitter-bash のオフセットは UTF-16 コード単位に等しく、
-          // heredoc の本文開始は「開始デリミタ行の最初の改行の直後」で始まる。
+          // tree-sitter-bash のノード位置は UTF-8 バイト位置であるため、
+          // 本文の改行検索と切り出しも同じバイト列上で行う。
           // パイプライン等で開始行に後続トークン（| cat 等）が続く場合は、
           // heredoc_start の直後ではなく改行位置から切り出す。
-          const lineBreak = rawText.indexOf("\n", bodyStart);
+          const lineBreak = rawBytes.indexOf(0x0a, bodyStart);
           const contentStart = lineBreak >= 0 && lineBreak < bodyEnd ? lineBreak + 1 : bodyStart;
-          let body = rawText.slice(contentStart, bodyEnd).replace(/^\r/, "");
+          let body = rawBytes.subarray(contentStart, bodyEnd).toString("utf8").replace(/^\r/, "");
           if (tabStrip) body = body.split("\n").map((line) => line.replace(/^\t+/, "")).join("\n");
           if (body.trim()) heredocs.push({ body, quoted, ownerStart });
         }
@@ -392,19 +393,17 @@ function findBashHeredocs(root: BashNode, rawText: string): BashHeredoc[] {
   return heredocs;
 }
 
-// heredoc 本文を消費する実効コマンドを、既知ラッパーを剥いたうえで決める。
-// 本文をコードとして実行せずデータとしてのみ消費する呼び出し（-c / -e 併用や
-// スクリプトファイル指定）は検査対象外とする。
+// heredoc を標準入力から読む実効コマンドを、既知ラッパーを剥いたうえで決める。
+// 明示的な本文源（-c / -e / -Command / スクリプトファイル）がある場合は、
+// そのコマンドへ渡る標準入力の再解釈までは追跡しない。
 async function inspectHeredocBody(body: string, parts: CommandParts, config: FilterConfig, cwd: string, depth: number, boundaryCwd = cwd): Promise<ToolCallEventResult | undefined> {
   let effective = parts;
   let hops = 0;
-  // ラッパー剥き。多段（2 段以上）は意図的回避の典型であり、網羅しない
-  // （契約の「含まない範囲」）。現行の上限と深さガードは維持し、これ以上は拡張しない。
+  // ラッパーは depth + hops < 3 の範囲まで剥く。それを超える多段呼び出しは検査しない。
   for (let index = 0; index < 5; index += 1) {
     const wrapperName = commandBasename(effective.name);
     if (!BASH_WRAPPER_NAMES.has(wrapperName)) break;
-    // `command -v python` などの照会形は対象コマンドを実行しない。
-    // heredoc は実行されないデータとして扱う
+    // `command -v python` などの照会形は対象コマンドを実行しないため、heredocも検査しない。
     if (wrapperName === "command" && (effective.args[0]?.startsWith("-") ?? false)) return undefined;
     const nestedArgs = wrappedCommandArgs(wrapperName, effective.args);
     if (nestedArgs.length === 0) break;
@@ -448,11 +447,11 @@ async function inspectHeredocBody(body: string, parts: CommandParts, config: Fil
     if (fileIsStdin) return checkPowerShellBody(body, config, cwd, boundaryCwd);
     const argsText = [effective.name, ...effective.args].join(" ");
     const inlineBody = extractPowerShellBody(argsText);
-    // `-Command -` は stdin を本文として実行するため、heredoc 本文はデータではない。
-    // 値が空文字列の -Command / -c も同様にデータ消費。
-    // （値の無い -Command は stdin 本文の実行形であり、空文字列の値を持つ場合のみデータ）
+    // `-Command -` は標準入力を本文として実行する。
+    // 値が空文字列の -Command / -c は本文を明示しているため、標準入力の再解釈は追跡しない。
+    // （値の無い -Command は標準入力本文の実行形であり、空文字列の値を持つ場合のみ別本文）
     const hasEmptyCommandValue = effective.args.some((value, index) => /^-+(?:command|c)$/i.test(value) && index + 1 < effective.args.length && effective.args[index + 1] === "");
-    // -EncodedCommand は値の復号可否に関わらず heredoc 本文を実行しない（復号不能は検査不能）
+    // -EncodedCommand の本文は別途検査するが、そこから標準入力へ渡る heredoc の再解釈は追跡しない（復号不能は検査不能）
     const hasEncodedOption = effective.args.some((value) => /^-+(?:encodedcommand|enc)$/i.test(value));
     if ((inlineBody !== undefined && inlineBody.trim() !== "-") || hasEncodedOption || hasEmptyCommandValue) return undefined;
     const hasFileOption = effective.args.some((value, index) => /^-+file$/i.test(value) && index + 1 < effective.args.length && effective.args[index + 1] !== "-");

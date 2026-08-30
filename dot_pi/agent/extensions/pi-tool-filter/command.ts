@@ -352,9 +352,6 @@ function hasAnyFlag(args: readonly string[], flags: readonly string[]): boolean 
   return false;
 }
 
-// セレクタを1つ解決して絶対パスを返す。未解決は undefined。
-// セレクタを解決して絶対パスを返す。positional-range は複数パスを返す。
-// option-by-mode は role（write / read）でモード条件を判定する。
 // tar の伝統形モード（第一の非オプション位置引数が英字クラスタ: xf / xvf / cf / tf）。
 // 値付きオプション（-C <dir> 等）はその値も位置引数として数えないようスキップする。
 function tarTraditionalMode(parts: CommandParts, valueOptions: readonly string[] | undefined): string {
@@ -525,10 +522,11 @@ export const HEREDOC_EXPANSION_CHARS = /[$`\\]/;
 export const BASH_EXEC_FLAGS = new Set(["-exec", "-execdir"]);
 
 function optionTakesValue(commandName: string, option: string): boolean {
-  const key = option.toLowerCase().split("=", 1)[0];
-  if (commandName === "env") return new Set(["-u", "--unset", "-c", "--chdir"]).has(key);
-  if (commandName === "timeout") return new Set(["-s", "--signal", "-k", "--kill-after"]).has(key);
-  return new Set(["-u", "--user", "-g", "--group", "-c", "--chdir", "-d", "--directory", "-n", "--adjustment", "-s", "--signal"]).has(key);
+  const key = option.split("=", 1)[0];
+  if (commandName === "env") return new Set(["-u", "--unset", "-C", "--chdir"]).has(key);
+  const normalizedKey = key.toLowerCase();
+  if (commandName === "timeout") return new Set(["-s", "--signal", "-k", "--kill-after"]).has(normalizedKey);
+  return new Set(["-u", "--user", "-g", "--group", "-c", "--chdir", "-d", "--directory", "-n", "--adjustment", "-s", "--signal"]).has(normalizedKey);
 }
 export function wrappedCommandArgs(name: string, args: readonly string[]): string[] {
   let index = 0;
@@ -592,7 +590,7 @@ export function bashWorkingDirectory(parts: CommandParts, cwd: string): string {
   return pathValue && isStaticPathValue(pathValue) ? resolveExistingPath(pathValue, cwd) : cwd;
 }
 
-// env の -c / -C / --chdir は子プロセスの実行 cwd を置き換える（シェルの cwd は変えない）。
+// env の -C / --chdir は子プロセスの実行 cwd を置き換える（シェルの cwd は変えない）。
 // ラッパー展開で内側コマンドを検査するときに、この値を実行 cwd として渡す。
 // 値が非静的なら追跡しない（cd 追跡と同じ扱い）。
 export function envWorkingDirectory(parts: CommandParts, cwd: string): string {
@@ -600,9 +598,8 @@ export function envWorkingDirectory(parts: CommandParts, cwd: string): string {
   const args = parts.args;
   for (let index = 0; index < args.length; index += 1) {
     const value = args[index];
-    const key = value.toLowerCase();
     let dir: string | undefined;
-    if (key === "-c" || key === "--chdir") {
+    if (value === "-C" || value === "--chdir") {
       dir = args[index + 1];
     } else if (value.startsWith("--chdir=")) {
       dir = value.slice("--chdir=".length);

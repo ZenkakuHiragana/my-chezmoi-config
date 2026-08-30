@@ -182,6 +182,7 @@ export function registerScriptTests(): void {
       blocked(await call(handler, "bash", { command: `env --chdir=/tmp rm -rf .` }), "env --chdir= は内側コマンドのcwdを置換する");
       allowed(await call(handler, "bash", { command: `env rm -rf .` }), "env 単独ではcwdは変わらない");
       allowed(await call(handler, "bash", { command: `env -C $UNSET_VAR rm -rf .` }), "非静的 -C は追跡しない");
+      allowed(await call(handler, "bash", { command: `env -c /tmp rm -rf .` }), "env の無効な小文字 -c を -C と同一視しない");
       blocked(await call(handler, "bash", { command: `python -c "import os; os.chdir('/tmp'); import subprocess; subprocess.run(['rm','-rf','.'])"` }), "os.chdir は後続の実行cwdを置換する");
       allowed(await call(handler, "bash", { command: `python -c "import subprocess; subprocess.run(['rm','-rf','.'])"` }), "chdir なしでは作業領域内のrmは許可");
       allowed(await call(handler, "bash", { command: `python -c "import os; os.chdir(x); import subprocess; subprocess.run(['rm','-rf','.'])"` }), "非静的 os.chdir は追跡しない");

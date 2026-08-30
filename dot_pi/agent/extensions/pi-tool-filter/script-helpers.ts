@@ -19,9 +19,8 @@ export const NODE_FORK_NAME = "fork";
 // python / node 等の実行時オプション走査の終端。最初のオプションでない引数
 // （スクリプトファイル）が現れると、それ以降の -c / -e / -m はスクリプトの
 // 引数であり、インライン本文やモジュール実行としては扱わない。
-// 値付きオプションの網羅はしない（契約の「含まない範囲」）。値付きオプションの
-// 値はスクリプトファイル扱いで停止し、その奥の -c / -e / -m は検査されない。
-// それは検査機会を逃すだけで許可側へ倒れる。
+// 値付きオプションはここでは解釈せず、その値をスクリプトファイルとして扱う。
+// その奥の -c / -e / -m は検査されず、別の拒否条件がなければ許可される。
 export function interpreterOptionStop(args: readonly string[]): number {
   for (let index = 0; index < args.length; index += 1) {
     const value = args[index];
@@ -34,9 +33,8 @@ export function interpreterOptionStop(args: readonly string[]): number {
 
 // インタープリターの実行モード。最初に現れた本文源（-c / -m / - / ファイル）が勝つ。
 // python / node の CLI は -c・-m・ファイル・-（stdin）のうち先に来たものが本文源になり、
-// 残りは argv として渡る。この模倣は既存の cd 追跡（bashWorkingDirectory）と同種であり、
-// 現行の決定子を超えて拡張しない（契約の「含まない範囲」）。値付きオプションの値は
-// ファイル扱いで先に勝つため、その奥のフラグは検査されない（許可側へ倒れる）。
+// 残りは argv として渡る。値付きオプションは解釈せず、その値をファイルとして先に扱うため、
+// その奥のフラグは検査されない。
 export function interpreterMode(args: readonly string[], inlineFlags: readonly string[], stdinFlags: readonly string[] = []): InterpreterMode {
   for (let index = 0; index < args.length; index += 1) {
     const value = args[index];

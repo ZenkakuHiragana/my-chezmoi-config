@@ -9,7 +9,7 @@
 //
 // 主に次を確認する。
 // - 管理ソースの実装ファイル群と展開後の実行時ファイル群、テンプレート出力と実行時`config.jsonc`の一致
-// - `read` / `write`の直接判定、allow優先、外部書き込みの既定拒否、`ask`を返さない二値判定
+// - `read`パスとBashの直接判定のallow優先、`write`パスのdeny優先、外部書き込みの既定拒否、`ask`を返さない二値判定
 // - BashのAST、既知ラッパー、`find -exec` / `-execdir`、`find -delete`、`xargs`、shell `-c`の再帰検査
 // - Python / Node.jsのインライン本文（`-c` / `-e`）とheredoc本文の再帰検査、`python -m`、`-EncodedCommand`復号
 // - Bashの固定リダイレクトのread / write / read-write分類と、heredoc本文の言語別検査（データ消費コマンドは対象外）

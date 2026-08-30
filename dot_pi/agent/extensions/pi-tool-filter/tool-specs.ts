@@ -24,8 +24,8 @@
 // このテーブルは「代表的な使い方」を対象にする。破壊的・in-place（sed -i / 7z -sdel /
 // git clean -f）と既知の危険モード（tar -P / 7z -spf / unzip -: ）は仕様へ含めた。
 // それでも複雑で代表的な形に収まらないもの（sed の -e / -f での script 位置ずれ、
-// gzip / bzip2 の既定元ファイル削除、perl / ruby -i、複雑な転送先）は「既知の残差」として扱う
-// （要件契約 区別3 fail-open）。
+// gzip / bzip2 の既定元ファイル削除、perl / ruby -i、複雑な転送先）はこの表で解釈しない。
+// その場合、この表から書き込み先の判定結果は生成されない。
 
 export type TargetSelector =
   | { kind: "positional"; index: number; whenFlags?: readonly string[]; whenNotFlags?: readonly string[] }
