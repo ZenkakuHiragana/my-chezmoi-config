@@ -1,22 +1,4 @@
 {
-  // "opencode_agent": {
-  //   "general_fast": {
-  //     "model": "opencode-go/gpt-5.6-luna",
-  //     "reasoningEffort": "high",
-  //   },
-  //   "general_strong": {
-  //     "model": "opencode-go/gpt-5.6-luna",
-  //     "reasoningEffort": "max",
-  //   },
-  //   "requirement_reviewer": {
-  //     "model": "opencode-go/gpt-5.6-luna",
-  //     "reasoningEffort": "high",
-  //   },
-  //   "review_audit": {
-  //     "model": "opencode-go/gpt-5.6-luna",
-  //     "reasoningEffort": "high",
-  //   },
-  // },
   "opencode": {
     "$schema": "https://opencode.ai/config.json",
     "share": "disabled",

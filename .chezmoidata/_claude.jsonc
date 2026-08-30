@@ -63,22 +63,4 @@
       ],
     },
   },
-  "claude_agent": {
-    "general_fast": {
-      "model": "sonnet",
-      "effort": "high",
-    },
-    "general_strong": {
-      "model": "opus",
-      "effort": "high",
-    },
-    "requirement_reviewer": {
-      "model": "opus",
-      "effort": "high",
-    },
-    "review_audit": {
-      "model": "sonnet",
-      "effort": "medium",
-    },
-  },
 }

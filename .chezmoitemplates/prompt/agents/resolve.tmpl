@@ -1,0 +1,7 @@
+{{- $values := index . "values" -}}
+{{- $harness := index . "harness" -}}
+{{- if hasKey $values $harness -}}
+{{- index $values $harness -}}
+{{- else -}}
+{{- index $values "default" -}}
+{{- end -}}

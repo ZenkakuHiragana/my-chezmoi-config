@@ -1,12 +1,16 @@
+{{- $filename := base .chezmoi.targetFile -}}
+{{- $name := trimSuffix (ext $filename) $filename -}}
+{{- $agent := index .agents $name -}}
+{{- $profile := index .modelProfiles $agent.modelProfile -}}
+{{- $bodyTemplate := printf "prompt/agents/%s.md" $name -}}
 ---
-description: 固定済みの指摘集合と修正候補を、新しい問題を発見せずに監査する。
+description: {{ $agent.description | quote }}
 mode: subagent
-model: {{ .opencode_agent.review_audit.model | default "openai/gpt-5.4" | quote }}
-reasoningEffort: {{ .opencode_agent.review_audit.reasoningEffort | default "medium" }}
-textVerbosity: low
+model: {{ template "prompt/agents/resolve.tmpl" (dict "values" $profile "harness" "opencode") }}
+variant: {{ template "prompt/agents/resolve.tmpl" (dict "values" $agent.effort "harness" "opencode") }}
 permission:
   edit: deny
   task: deny
 ---
 
-{{ template "opencode/agents/review-audit.md" . }}
+{{ includeTemplate $bodyTemplate . }}

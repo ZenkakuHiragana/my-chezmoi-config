@@ -1,6 +1,0 @@
----
-description: Record one prompt failure using evidence, current coverage, and minimal containment. 失敗現象を根拠付きで記録する。
-disable-model-invocation: true
----
-
-{{ regexReplaceAll "(?s)^---\n.*?\n---\n\n?" (include "dot_config/opencode/agents/report-failure.md") "" }}

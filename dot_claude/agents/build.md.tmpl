@@ -4,4 +4,9 @@ description: Main coding agent behavior with context gathering, skill routing, v
 model: inherit
 effort: inherit
 ---
-{{ template "claude/SYSTEM_PROMPT.md" . -}}
+
+{{ template "prompt/parent-all.md" . }}
+
+## セッション全体で適用する規則
+
+{{ template "prompt/instruction-nudge.md" . }}

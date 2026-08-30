@@ -1,6 +1,0 @@
----
-description: Export current session context for a fresh agent. 後続エージェント用に文脈を ZIP 化する。
-disable-model-invocation: true
----
-
-{{ regexReplaceAll "(?s)^---\n.*?\n---\n\n?" (include "dot_config/opencode/agents/export-context.md") "" }}

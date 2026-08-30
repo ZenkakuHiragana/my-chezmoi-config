@@ -1,0 +1,36 @@
+agents:
+  general-fast:
+    description: general-fast
+    modelProfile: fast
+    effort:
+      default: minimal
+      claude: high
+  general-strong:
+    description: general-strong
+    modelProfile: strong
+    effort:
+      default: medium
+      claude: high
+  requirement-reviewer:
+    description: Requirement Reviewer
+    modelProfile: strong
+    effort:
+      default: medium
+      claude: high
+  review-audit:
+    description: Review Audit
+    modelProfile: fast
+    effort:
+      default: minimal
+      claude: medium
+modelProfiles:
+  fast:
+    default: openai-codex/gpt-5.6-luna
+    claude: sonnet
+    codex: gpt-5.6-luna
+    opencode: openai/gpt-5.6-luna
+  strong:
+    default: openai-codex/gpt-5.6-luna
+    claude: opus
+    codex: gpt-5.6-luna
+    opencode: openai/gpt-5.6-luna

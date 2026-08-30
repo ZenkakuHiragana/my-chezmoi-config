@@ -1,0 +1,11 @@
+{{- $filename := base .chezmoi.targetFile -}}
+{{- $name := trimSuffix (ext $filename) $filename -}}
+{{- $agent := index .agents $name -}}
+{{- $profile := index .modelProfiles $agent.modelProfile -}}
+{{- $bodyTemplate := printf "prompt/agents/%s.md" $name -}}
+name = {{ $name | quote }}
+description = {{ $agent.description | quote }}
+model = {{ includeTemplate "prompt/agents/resolve.tmpl" (dict "values" $profile "harness" "codex") | quote }}
+model_reasoning_effort = {{ includeTemplate "prompt/agents/resolve.tmpl" (dict "values" $agent.effort "harness" "codex") | quote }}
+
+developer_instructions = {{ includeTemplate $bodyTemplate . | toJson }}

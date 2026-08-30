@@ -1,9 +1,14 @@
+{{- $filename := base .chezmoi.targetFile -}}
+{{- $name := trimSuffix (ext $filename) $filename -}}
+{{- $agent := index .agents $name -}}
+{{- $profile := index .modelProfiles $agent.modelProfile -}}
+{{- $bodyTemplate := printf "prompt/agents/%s.md" $name -}}
 ---
-name: requirement-reviewer
-description: Run assigned requirement review units from a frozen review packet and return only the review result. 固定済み要件レビュー単位の実行専用。
-model: {{ dig "pi_agent" "requirement_reviewer" "model" "openai-codex/gpt-5.6-luna" . | quote }}
-thinking: {{ dig "pi_agent" "requirement_reviewer" "thinking" "max" . }}
+name: {{ $name }}
+description: {{ $agent.description | quote }}
+model: {{ template "prompt/agents/resolve.tmpl" (dict "values" $profile "harness" "pi") }}
+thinking: {{ template "prompt/agents/resolve.tmpl" (dict "values" $agent.effort "harness" "pi") }}
 exclude_extensions: [pi-instruction-nudge]
 ---
 
-{{ template "opencode/agents/requirement-reviewer.md" . }}
+{{ includeTemplate $bodyTemplate . }}

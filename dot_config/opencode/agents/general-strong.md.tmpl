@@ -1,10 +1,13 @@
+{{- $filename := base .chezmoi.targetFile -}}
+{{- $name := trimSuffix (ext $filename) $filename -}}
+{{- $agent := index .agents $name -}}
+{{- $profile := index .modelProfiles $agent.modelProfile -}}
+{{- $bodyTemplate := printf "prompt/agents/%s.md" $name -}}
 ---
-description: 広めの調査、設計判断、競合結果の整理を担当する。
+description: {{ $agent.description | quote }}
 mode: subagent
-model: {{ .opencode_agent.general_strong.model | default "openai/gpt-5.4" | quote }}
-reasoningEffort: {{ .opencode_agent.general_strong.reasoningEffort | default "medium" }}
-textVerbosity: low
+model: {{ template "prompt/agents/resolve.tmpl" (dict "values" $profile "harness" "opencode") }}
+variant: {{ template "prompt/agents/resolve.tmpl" (dict "values" $agent.effort "harness" "opencode") }}
 ---
 
-{{ template "opencode/agents/general.md" . }}
-{{ template "opencode/AGENTS.md" . }}
+{{ includeTemplate $bodyTemplate . }}

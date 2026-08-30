@@ -1,6 +1,0 @@
----
-name: cmd-extract-failure-patterns
-description: 失敗ログとセッションレポートから反復パターンを採掘する。ユーザーが反復するプロンプトまたは作業手順の失敗をまとめて要約することを明示したときだけ使う。
----
-
-{{ regexReplaceAll "(?s)^---\n.*?\n---\n\n?" (include "dot_config/opencode/agents/extract-failure-patterns.md") "" }}

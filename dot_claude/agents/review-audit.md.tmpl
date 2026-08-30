@@ -1,9 +1,14 @@
+{{- $filename := base .chezmoi.targetFile -}}
+{{- $name := trimSuffix (ext $filename) $filename -}}
+{{- $agent := index .agents $name -}}
+{{- $profile := index .modelProfiles $agent.modelProfile -}}
+{{- $bodyTemplate := printf "prompt/agents/%s.md" $name -}}
 ---
-name: review-audit
-description: Audit one frozen review finding set and correction candidate without discovering new issues. 固定済みレビュー手続きの独立監査専用。
-model: {{ dig "claude_agent" "review_audit" "model" "opus" . | quote }}
-effort: {{ dig "claude_agent" "review_audit" "effort" "high" . }}
+name: {{ $name }}
+description: {{ $agent.description | quote }}
+model: {{ template "prompt/agents/resolve.tmpl" (dict "values" $profile "harness" "claude") }}
+effort: {{ template "prompt/agents/resolve.tmpl" (dict "values" $agent.effort "harness" "claude") }}
 color: purple
 ---
 
-{{ template "opencode/agents/review-audit.md" . }}
+{{ includeTemplate $bodyTemplate . }}

@@ -1,12 +1,16 @@
+{{- $filename := base .chezmoi.targetFile -}}
+{{- $name := trimSuffix (ext $filename) $filename -}}
+{{- $agent := index .agents $name -}}
+{{- $profile := index .modelProfiles $agent.modelProfile -}}
+{{- $bodyTemplate := printf "prompt/agents/%s.md" $name -}}
 ---
-description: 固定済みレビュー束の要件レビュー単位を実行し、レビュー結果だけを返す。
+description: {{ $agent.description | quote }}
 mode: subagent
-model: {{ .opencode_agent.requirement_reviewer.model | default "openai/gpt-5.4" | quote }}
-reasoningEffort: {{ .opencode_agent.requirement_reviewer.reasoningEffort | default "medium" }}
-textVerbosity: low
+model: {{ template "prompt/agents/resolve.tmpl" (dict "values" $profile "harness" "opencode") }}
+variant: {{ template "prompt/agents/resolve.tmpl" (dict "values" $agent.effort "harness" "opencode") }}
 permission:
   edit: deny
   task: deny
 ---
 
-{{ template "opencode/agents/requirement-reviewer.md" . }}
+{{ includeTemplate $bodyTemplate . }}

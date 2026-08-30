@@ -1,10 +1,14 @@
+{{- $filename := base .chezmoi.targetFile -}}
+{{- $name := trimSuffix (ext $filename) $filename -}}
+{{- $agent := index .agents $name -}}
+{{- $profile := index .modelProfiles $agent.modelProfile -}}
+{{- $bodyTemplate := printf "prompt/agents/%s.md" $name -}}
 ---
-name: general-fast
-description: Fast general-purpose subagent. 明確で範囲限定、読み取り専用または単一スキル寄りの作業に使う。
-model: {{ dig "pi_agent" "general_fast" "model" "openai-codex/gpt-5.6-luna" . | quote }}
-thinking: {{ dig "pi_agent" "general_fast" "thinking" "medium" . }}
+name: {{ $name }}
+description: {{ $agent.description | quote }}
+model: {{ template "prompt/agents/resolve.tmpl" (dict "values" $profile "harness" "pi") }}
+thinking: {{ template "prompt/agents/resolve.tmpl" (dict "values" $agent.effort "harness" "pi") }}
 exclude_extensions: [pi-instruction-nudge]
 ---
 
-{{ template "opencode/agents/general.md" . }}
-{{ template "opencode/AGENTS.md" . }}
+{{ includeTemplate $bodyTemplate . }}

@@ -1,10 +1,13 @@
+{{- $filename := base .chezmoi.targetFile -}}
+{{- $name := trimSuffix (ext $filename) $filename -}}
+{{- $agent := index .agents $name -}}
+{{- $profile := index .modelProfiles $agent.modelProfile -}}
+{{- $bodyTemplate := printf "prompt/agents/%s.md" $name -}}
 ---
-description: 明確で範囲限定の作業、読み取り専用、または単一スキル寄りの作業を担当する。
+description: {{ $agent.description | quote }}
 mode: subagent
-model: {{ .opencode_agent.general_fast.model | quote }}
-reasoningEffort: {{ .opencode_agent.general_fast.reasoningEffort | default "medium" }}
-textVerbosity: low
+model: {{ template "prompt/agents/resolve.tmpl" (dict "values" $profile "harness" "opencode") }}
+variant: {{ template "prompt/agents/resolve.tmpl" (dict "values" $agent.effort "harness" "opencode") }}
 ---
 
-{{ template "opencode/agents/general.md" . }}
-{{ template "opencode/AGENTS.md" . }}
+{{ includeTemplate $bodyTemplate . }}

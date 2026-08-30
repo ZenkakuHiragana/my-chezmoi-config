@@ -1,6 +1,0 @@
----
-name: cmd-report-failure
-description: プロンプトまたは作業手順の失敗を、証拠と最小限の整理付きで失敗記録として記録する。ユーザーが失敗を一件の記録として残したいと明示したときだけ使う。
----
-
-{{ regexReplaceAll "(?s)^---\n.*?\n---\n\n?" (include "dot_config/opencode/agents/report-failure.md") "" }}
