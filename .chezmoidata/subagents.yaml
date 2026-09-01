@@ -1,24 +1,32 @@
 agents:
   general-fast:
-    description: general-fast
+    description: >
+      汎用サブエージェント。単純なタスク向け。
+      目的により適合する専用のサブエージェントが他に利用可能な場合は使わない。
     modelProfile: fast
     effort:
       default: minimal
       claude: high
   general-strong:
-    description: general-strong
+    description: >
+      汎用サブエージェント。複雑なタスク向け。
+      目的により適合する専用のサブエージェントが他に利用可能な場合は使わない。
     modelProfile: strong
     effort:
       default: medium
       claude: high
   requirement-reviewer:
-    description: Requirement Reviewer
+    description: >
+      要件契約候補、または固定要件から派生した仕様・作業契約を独立検査するときに使う。
+      一般成果物・コード・文章品質のレビューには使わない。対象そのものへの参照を入力として必要とする。
     modelProfile: strong
     effort:
       default: medium
       claude: high
   review-audit:
-    description: Review Audit
+    description: >
+      初回レビューの固定済み指摘集合について、親の裁定と該当する修正候補だけを監査するときに使う。
+      新しい欠陥を探す成果物レビューには使わない。監査用入力ファイルを必要とする。
     modelProfile: fast
     effort:
       default: minimal
