@@ -107,11 +107,15 @@ def _markdown_files(path: Path) -> list[Path]:
 
 
 def _skill_roots(repo: Path) -> list[Path]:
-    return _sorted_unique(
+    roots = [
         repo / container / "skills"
         for container in SKILL_CONTAINER_NAMES
         if (repo / container / "skills").is_dir()
-    )
+    ]
+    exact_skills = repo / "dot_agents" / "exact_skills"
+    if exact_skills.is_dir():
+        roots.append(exact_skills)
+    return _sorted_unique(roots)
 
 
 def discover_skills(repo: Path) -> list[SkillDirectory]:
