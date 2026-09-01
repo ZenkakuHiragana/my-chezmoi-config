@@ -7,11 +7,11 @@ description: >
 
 ## レビュー観点の選択
 
-以下の対応に当てはまるすべての `review.md` を読み、成果物の種類に固有の検査観点、入力、手順、指摘、完了条件を把握する。
+以下の対応に当てはまるすべての `review.md` を入口として読み、そこからリンクされた成果物の種類に固有の詳細観点、入力、手順、指摘、完了条件を把握する。
 
-- `references/code`: 実行可能なソフトウェアコード
-- `references/documents`: 人間や LLM が読む自然言語で書かれた文章、コメント、プロンプト、スキルの本文
-- `references/instructions`: スキルの本文、システムプロンプト、AGENTS.md など LLM への指示として用いられる文章
+- [`references/code/review.md`](references/code/review.md): 実行可能なソフトウェアコード
+- [`references/documents/review.md`](references/documents/review.md): 人間や LLM が読む自然言語で書かれた文章、コメント、プロンプト、スキルの本文
+- [`references/instructions/review.md`](references/instructions/review.md): スキルの本文、システムプロンプト、AGENTS.md など LLM への指示として用いられる文章
 
 ## 入力
 
