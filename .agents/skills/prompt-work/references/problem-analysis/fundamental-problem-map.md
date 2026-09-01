@@ -188,22 +188,22 @@ P1〜P5は診断軸であり、個々の失敗を一意に説明する真理値�
 
 この文書が固定するのは問題構造と設計仮説であり、個別介入の有効性ではない。介入の価値は、介入ごとの外部観測で別に確かめる。
 
-- P1の意図抽出: [`fundamental-problem-analysis/intent-elicitation-discipline.md`](fundamental-problem-analysis/intent-elicitation-discipline.md)
+- P1の意図抽出: [`problem-analysis/intent-elicitation-discipline.md`](problem-analysis/intent-elicitation-discipline.md)
   - 実装先: `task-grounding`（5変換境界、判断材料の役割と確定状態、判断の閉鎖、探索範囲の停止）
   - 未実装: 提示の忠実度梯子、提示内容の保存（何を見せて得た判断かの記録）
-- P2の信頼崩壊と監査問題: [`fundamental-problem-analysis/trust-collapse.md`](fundamental-problem-analysis/trust-collapse.md)
+- P2の信頼崩壊と監査問題: [`problem-analysis/trust-collapse.md`](problem-analysis/trust-collapse.md)
   - 実装先: `task-grounding`（判断の露出、未確認部分の露出、観測欄の判別対象）、`requirement-reviewer`（依頼対応、条項根拠、外部観測、情報の所有先、判別力検査と削除テスト）、`review-orchestration`（人間の確認面の縮小、レビュー周回台帳）
   - 未実装: 変更の分母の機械的列挙、左全域性の実装後監査、計器の較正可能性（較正フィクスチャは `fixtures/requirement-review-v2/` に基線つきで存在。較正の実施手順と周期は未実装）
-- P2/P4の根拠収集: [`fundamental-problem-analysis/evidence-retrieval.md`](fundamental-problem-analysis/evidence-retrieval.md)
+- P2/P4の根拠収集: [`problem-analysis/evidence-retrieval.md`](problem-analysis/evidence-retrieval.md)
   - 実装先: `investigation` / `public-research` への委譲経路（`task-grounding` 手順4）
   - 未実装: 情報源の優先順位と canonical trust、fallback 経路、証拠の採用/不採用の追跡
-- P3の文脈管理: [`fundamental-problem-analysis/context-management.md`](fundamental-problem-analysis/context-management.md)
+- P3の文脈管理: [`problem-analysis/context-management.md`](problem-analysis/context-management.md)
   - 実装先: magic-context（OpenCode）
   - 未実装: Claude Code 向けの文脈管理
 - 規則の減価確認: [`sunset-ablation-procedure.md`](sunset-ablation-procedure.md)
   - 実装先: なし
   - 未実装: 減価確認の手順、ablation による効果検証
-- Knowns / Unknownsの管理例: [`fundamental-problem-analysis/corpus/a-field-guide-to-fable.md`](fundamental-problem-analysis/corpus/a-field-guide-to-fable.md)
+- Knowns / Unknownsの管理例: [`problem-analysis/corpus/a-field-guide-to-fable.md`](problem-analysis/corpus/a-field-guide-to-fable.md)
 
 ## 出典
 

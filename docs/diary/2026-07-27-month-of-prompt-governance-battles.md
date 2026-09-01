@@ -2,7 +2,7 @@
 
 ## これは何？
 
-[前回の記事](./2026-07-15-review-loop-doom-loop-battle.md)（ドゥームループ戦、7/12〜7/15）の続編であり、この1ヶ月の総集編である。戦場は同じく `opencode-prompt-dev` のプロンプト統治システム。ただし戦争はあの1勝では終わらなかった。
+[前回の記事](./2026-07-15-review-loop-doom-loop-battle.md)（ドゥームループ戦、7/12〜7/15）の続編であり、この1ヶ月の総集編である。戦場は同じくプロンプト統治システム。ただし戦争はあの1勝では終わらなかった。
 
 この記事は 2026-06-29 から 2026-07-27 までの約1ヶ月を、git 履歴（87 コミット）、OpenCode のセッションログ（ルート 243 セッション／サブエージェント込み 1,397 セッション・約 17,700 メッセージ）、失敗ログの山（73件）を突き合わせて振り返った記録である。ドゥームループ戦そのものは前回の記事に全部書いてあるので、ここでは要約にとどめる。
 
@@ -34,7 +34,7 @@
 
 ### 根本問題地図の誕生
 
-7/2〜3、`Claude Fable 5 の問題認識の差はどこから来るか` という問いから外部コーパスの収集が始まった（`opencode-prompt-dev/fundamental-problem-analysis/corpus/a-field-guide-to-fable.md`、`opencode-prompt-dev/fundamental-problem-analysis/corpus/tweets.md`）。Fable 5 の流儀——Known Knowns／Known Unknowns／Unknown Knowns／Unknown Unknowns の4象限で未知を扱う作法——が、このリポジトリの設計語彙に本格的に混入したのはここからである。
+7/2〜3、`Claude Fable 5 の問題認識の差はどこから来るか` という問いから外部コーパスの収集が始まった（`problem-analysis/corpus/a-field-guide-to-fable.md`、`problem-analysis/corpus/tweets.md`）。Fable 5 の流儀——Known Knowns／Known Unknowns／Unknown Knowns／Unknown Unknowns の4象限で未知を扱う作法——が、このリポジトリの設計語彙に本格的に混入したのはここからである。
 
 7/5 前後に `fundamental-problem-map.md` が形になる。根本課題は「委任の4面にまたがる知識配置の不一致を、少ない検証労力で反証対象と衝突できる形へ外部化すること」。委任の4面は実態面（照合先）と意図面・推論面・評価面（主体面）からなり、Rumsfeld Matrixは各主体面への知識配置図として適用される。今月作ったもののほとんどは、この地図から枝分かれした。
 
