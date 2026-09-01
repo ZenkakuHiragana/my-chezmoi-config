@@ -11,8 +11,8 @@
   4. obligation-audit: 曖昧/ヘッジ義務表現の監査リスト。終了コードに影響しない。
   5. file-name-reference: 制御面で規則・手順をファイル名で参照する箇所。
 
-原本: opencode-prompt-dev/control-vocabulary.md
-使い方: python opencode-prompt-dev/check_vocabulary.py [--repo <path>] [--verbose]
+原本: `prompt-work` スキルの関連文書にある control-vocabulary.md
+使い方: python check_vocabulary.py [--repo <path>] [--verbose]
 終了コード: 検出があれば 1、無ければ 0。
 """
 
@@ -50,7 +50,7 @@ DEFINITION_GLOBS = CONTROL_SURFACE_GLOBS + [
     "dot_agents/skills/*/concerns/*.md",
     "dot_agents/skills/*/profiles/*.md",
     "AGENTS.md",
-    "opencode-prompt-dev/*.md",
+    ".agents/skills/*/*.md",
 ]
 
 BACKTICK = re.compile(r"`([^`\n]+)`")
@@ -113,7 +113,7 @@ def load_files(repo: Path, globs: list[str]) -> list[Path]:
 
 
 def parse_allowlist(repo: Path) -> set[str]:
-    path = repo / "opencode-prompt-dev" / "control-vocabulary.md"
+    path = repo / ".agents" / "skills" / "prompt-work" / "references" / "control-vocabulary.md"
     text = path.read_text(encoding="utf-8")
     start = text.find("## 維持する制御語彙")
     end = text.find("## 日本語化する語")
@@ -263,7 +263,7 @@ def main() -> int:
     allowlist = parse_allowlist(repo)
     entities = entity_names(repo)
     def_files = load_files(repo, DEFINITION_GLOBS)
-    allowlist_path = (repo / "opencode-prompt-dev" / "control-vocabulary.md").resolve()
+    allowlist_path = (repo / ".agents" / "skills" / "prompt-work" / "references" / "control-vocabulary.md").resolve()
     dead_ref_files = [p for p in def_files if p.resolve() != allowlist_path]
     surface_files = load_files(repo, CONTROL_SURFACE_GLOBS)
 

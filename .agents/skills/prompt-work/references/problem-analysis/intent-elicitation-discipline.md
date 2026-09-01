@@ -4,7 +4,7 @@
 
 本書は、実装前に判断材料を増やし、露出した実装上の選択を処理する規律を定める。対象は、質問だけではない。正本調査、実行、計測、例示、差分、試作、実利用も発見経路に含む。
 
-上位の不可避制約は `opencode-prompt-dev/fundamental-problem-map.md` に従う。基準化、判断、実現、実行、評価の五つの変換境界と、具体化の停止規則は `opencode-prompt-dev/fundamental-problem-analysis/trust-collapse.md` に従う。本書は、そのうち発見、提示、露出した判断の閉鎖を扱う。
+上位の不可避制約は `fundamental-problem-map.md` に従う。基準化、判断、実現、実行、評価の五つの変換境界と、具体化の停止規則は `trust-collapse.md` に従う。本書は、そのうち発見、提示、露出した判断の閉鎖を扱う。
 
 完全な意図の復元、重要判断の完全列挙、Unknown Unknownsの不存在は扱わない。
 
@@ -225,6 +225,5 @@ A/B提示は、特定の差を判断してもらう局所手段として使う�
 
 ## 参照資料
 
-- `opencode-prompt-dev/fundamental-problem-map.md` — P1/P4の不可避制約、知識配置図、命題的無知と非命題的無知。
-- `opencode-prompt-dev/fundamental-problem-analysis/trust-collapse.md` — 五つの変換境界、判断上の役割と確定状態、具体化の停止規則。
-- `dot_agents/skills/context-clarification/SKILL.md` — 現行の準備完了判定と契約固定経路。
+- `fundamental-problem-map.md` — P1/P4の不可避制約、知識配置図、命題的無知と非命題的無知。
+- `trust-collapse.md` — 五つの変換境界、判断上の役割と確定状態、具体化の停止規則。

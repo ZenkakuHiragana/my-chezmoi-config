@@ -20,17 +20,11 @@ $ARGUMENTS
 失敗事例の記録が主目的なら `/report-failure` を勧める。
 広い整理や統合が主目的なら `/refine-prompt` を勧める。
 
-## 1. 管理文書を先に読む
-
-最初に読む。
-
-- `AGENTS.md`
-- `opencode-prompt-dev/prompt-principles.md`
-- `opencode-prompt-dev/prompt-refactor-checklist.md`
+## 1. に読む
 
 関係する場合は読む。
 
-- `~/.local/share/chezmoi/.opencode/local-failure-logs/`
+- `.opencode/local-failure-logs/`
 
 ## 2. 関連するプロンプト面を読む
 

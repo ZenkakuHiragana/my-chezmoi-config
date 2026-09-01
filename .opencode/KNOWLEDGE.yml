@@ -1,12 +1,12 @@
 sources:
   prompt-governance:
     description: >
-      プロンプト運用の規則と手順を含む。プロンプトの書き方、義務語彙、英語維持語彙、リファクタリング手順、事例→fixture 化手順を調べるときに使う。
+      プロンプト運用の規則と手順を含む。プロンプトの書き方、義務語彙、英語維持語彙、リファクタリング手順、事例 → fixture 化手順を調べるときに使う。
       事例→fixture 化手順以外の個別スキル定義やエージェント定義、基礎分析の調査報告には使わない。
     instructions: |
-      プロンプト運用文書は opencode-prompt-dev/ 直下の .md ファイル群、事例からフィクスチャを作る手順は `.opencode/skills/episode-to-fixture/SKILL.md` が対象。
-      1. 一般の運用規則は Glob で `opencode-prompt-dev/*.md` の一覧を取得する。
-      2. 事例からフィクスチャを作る問いでは `.opencode/skills/episode-to-fixture/SKILL.md` を読む。
+      プロンプト運用文書は .agents/skills/prompt-work/references/ 直下の .md ファイル群、事例からフィクスチャを作る手順は `episode-to-fixture` が対象。
+      1. 一般の運用規則は Glob で `.agents/prompt-work/references/*.md` の一覧を取得する。
+      2. 事例からフィクスチャを作る問いでは `episode-to-fixture` スキルを読む。
       3. 問いに関連する候補を Grep で絞り、Read で該当する節を確認する。
 
   problem-analysis:
@@ -15,7 +15,7 @@ sources:
       コンテキスト管理、信頼崩壊の分析、意図引き出し規律を調べるときに使う。
       具体的な運用規則や手順（prompt-governance）、個別の事例・fixture・日誌には使わない。
     instructions: |
-      opencode-prompt-dev/fundamental-problem-analysis/ 配下の .md ファイル群が対象。
-      1. Glob で `opencode-prompt-dev/fundamental-problem-analysis/**/*.md` の一覧を取得する。
+      .agents/skills/prompt-work/references/problem-analysis/ 配下の .md ファイル群が対象。
+      1. Glob で `.agents/skills/prompt-work/references/problem-analysis/**/*.md` の一覧を取得する。
       2. 問いに関連しそうなファイル名を選び、Grep でさらに絞り込む。
       3. Read で本文を読み、該当する節を根拠として引用する。

@@ -3,7 +3,6 @@ AGENTS.md
 CLAUDE.md
 .opencode/work/
 .opencode/**
-opencode-prompt-dev/**
 packages/**
 scripts/**
 tools/**

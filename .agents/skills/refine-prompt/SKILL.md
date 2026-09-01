@@ -95,9 +95,7 @@ $ARGUMENTS
 
 存在する場合は、最初に読む。
 
-- 見つけた共有規則ファイル
-- `opencode-prompt-dev/prompt-principles.md` などの管理原則
-- `opencode-prompt-dev/prompt-refactor-checklist.md` などのチェックリスト
+- 共有規則ファイル
 
 専用のローカル失敗ログがある場合は、今回の依頼または失敗の選別と介入判断からの引き渡しに関係する事例、レポート、まとまりだけ読む。
 失敗ログが存在するだけで、無関係な過去の失敗を編集要件にしない。
