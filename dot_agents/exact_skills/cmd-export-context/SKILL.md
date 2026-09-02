@@ -15,13 +15,13 @@ ZIP に入れる。
 - `context.md`
 - `attachments/`
   - セッション内で参照、使用、生成、分析したファイル
-  - 添付できない場合は、`context.md` に理由と識別情報を書く
+  - 添付できない場合は、本文（`context.md`）へ理由と識別情報を書く
 
 ファイル名:
 
 `context_export_YYYYMMDD_HHMM.zip`
 
-日時はローカル時刻。ローカル時刻が不明なら UTC と明記する。
+日時はローカル時刻。ローカル時刻を取得できない場合は UTC を使い、その旨を明記する。
 
 ## 基本方針
 
@@ -46,10 +46,9 @@ ZIP に入れる。
 - 秘密情報、トークン、鍵、個人情報
 
 判断根拠は要約してよい。
-非公開思考ログは書かない。
 機密は、文脈を失わない最小限だけ残して伏せる。
 
-## `context.md` の要件
+## 本文（`context.md`）の要件
 
 単体でセッション全体が理解できるように書く。
 添付ファイルがあっても、本文だけで現在地が分かること。
@@ -204,10 +203,12 @@ Markdown の構造:
 
 安全な名前の例:
 
-- `attachments/001_original_report.pdf`
-- `attachments/002_reference_image.png`
-- `attachments/003_generated_slide_deck.pptx`
-- `attachments/004_analysis_data.csv`
+```text
+attachments/001_original_report.pdf
+attachments/002_reference_image.png
+attachments/003_generated_slide_deck.pptx
+attachments/004_analysis_data.csv
+```
 
 添付できない場合は書く。
 
@@ -241,7 +242,7 @@ Markdown の構造:
 
 ## 最後に行うこと
 
-1. `context.md` を作成する。
+1. 本文（`context.md`）を作成する。
 2. 添付ファイルを格納する。
 3. ZIP を作成する。
 4. ZIP のパスを提示する。
@@ -256,12 +257,8 @@ ZIP 化できない場合は、次を出す。
 
 ## 禁止
 
-- 後続エージェントへの依頼を書かない
-- 次の作業や助言を書かない
 - セッションにない情報を補わない
 - 不明事項を確定扱いしない
-- 非公開推論を書かない
-- 非公開のシステム / 開発者指示を書かない
 - 添付していないファイルを添付済み扱いしない
 - 参照していない出典を参照済みにしない
 - 作成していない出力を作成済みにしない

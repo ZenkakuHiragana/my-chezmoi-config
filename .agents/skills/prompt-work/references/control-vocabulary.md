@@ -53,6 +53,51 @@
 - レビューの項目: `検査項目`
 - 出力契約のフィールド: `確認方法`
 - 根拠接地の判定: `未決`
+- 失敗採掘の報告方針: `インシデント作成` / `履歴メモ作成` / `回帰シナリオ作成` / `スキップ` / `手動レビュー` / `未作成`
+- 派生フィクスチャの分岐: `対象選択状態` / `実行経路` / `導出` / `調査のみ` / `あり`
+
+### スキル名・エージェント名
+
+- スキル名: `claim-grounding` / `task-grounding` / `requirement-contract` / `review-orchestration` / `review-response` / `empirical-prompt-tuning` / `derive-fixture-variants` / `retrospective-codify` / `cmd-report-failure` / `cmd-triage-failure` / `cmd-extract-failure-patterns`
+- エージェント名: `requirement-reviewer` / `review-audit` / `general-fast` / `general-strong` / `panellist-*`
+
+### コマンド
+
+- chezmoi: `chezmoi status` / `chezmoi apply` / `chezmoi apply --dry-run 適用先のファイルパス` / `chezmoi apply --no-tty --error-on-conflict 適用先のファイルパス` / `chezmoi apply --no-tty --force 適用先のファイルパス` / `chezmoi apply 配置先の具体的なファイル名` / `chezmoi diff --no-pager 適用先のファイルパス` / `chezmoi init --no-tty --error-on-conflict`
+- git: `git status --porcelain` / `git diff`
+- セッションログ照会: `opencode db --format json "SQLITE3 QUERY"`
+
+### パス・ファイル名・パターン
+
+- このリポジトリの構成資料が示すパス: `*.tmpl` / `./.chezmoi.toml.tmpl` / `./.chezmoidata/` / `./.chezmoiignore` / `./.chezmoitemplates/` / `./.claude/` / `./.codex/` / `./.copilot/` / `./.omp/` / `./.opencode/` / `./.opencode/local-failure-logs/` / `./.opencode/work/` / `./.pi/` / `./AGENTS.md` / `./docs/` / `./dot_agents/exact_skills/` / `./dot_claude/` / `./dot_codex/` / `./dot_config/` / `./dot_config/**` / `./dot_config/opencode/` / `./dot_copilot/` / `./dot_omp/` / `./dot_pi/` / `./packages/` / `./scripts/` / `./tools/skill-kb/` / `.gitignore` / `~/.config/**` / `~/AppData/Local/` / `~/AppData/Roaming/` / `readonly_` / `run_onchange_` / `run_onchange_*` / `AGENTS.md`
+- プロンプト保守作業が参照するパス: `./.opencode/local-failure-logs/session-mining/` / `./.opencode/local-failure-logs/triage/` / `~/.claude/projects/` / `~/.codex/sessions/` / `~/.local/share/opencode/opencode.db` / `~/.omp/agent/sessions/` / `~/.pi/agent/sessions/` / `references/problem-analysis/fundamental-problem-map.md` / `references/quality-principles.md` / `references/obligation-vocabulary.md` / `scripts/check_vocabulary.py` / `.chezmoitemplates/` / `dot_agents/` / `dot_config/`
+- 失敗記録系の保存先: `$(chezmoi source-path)/.opencode/local-failure-logs/` / `~/.local/share/chezmoi/.opencode/local-failure-logs/` / `.opencode/local-failure-logs/` / `session-mining/` / `session-mining/YYYYMMDD-HHMM-session-mining-short-slug.md` / `triage/YYYYMMDD-HHMM-triage-short-slug.md` / `YYYYMMDD-HHMM-short-slug.md` / `fixture-derivation/YYYYMMDD-HHMM-fixture-derivation-short-slug.md` / `docs/fixtures/`
+- 成果物のファイル名: `context.md` / `attachments/` / `context_export_YYYYMMDD_HHMM.zip` / `.opencode/work/panel-evidence-<8英数字>.md` / `-v0`
+
+### スキーマフィールド（英語維持）
+
+- 失敗記録: `problem_classes` / `observed_prompt_context` / `observed_system_sha` / `current_system_sha` / `current_coverage` / `coverage_evidence` / `regression_needed` / `pattern_tags`
+- 汎用サブエージェントの返答: `chosen_skills` / `why_this_choice` / `result` / `evidence` / `verification_performed` / `risks_or_unknowns` / `next_action`
+- パネル調整: `source_id`
+
+### 状態値・分類値（英語維持）
+
+- 対応範囲: `active_gap` / `covered_but_unvalidated` / `likely_addressed` / `obsolete_context` / `unknown`
+- 失敗記録の状態: `captured` / `historical_candidate` / `current_gap` / `covered_unvalidated` / `obsolete` / `triaged` / `corrective_action_defined` / `validation_needed` / `verified_closed`
+- プロンプト文脈: `current` / `legacy`
+- 根源課題: `P1` / `P2` / `P3` / `P4` / `P5`
+- 重大度: `low` / `medium` / `high` / `critical`
+- 失敗の合図の強さ: `confirmed` / `strong` / `weak`
+- 介入種別: `prompt_surface_change` / `command_prompt_change` / `skill_change` / `agent_routing_change` / `artifact_schema_change` / `hook_or_plugin_change` / `harness_change` / `regression_validation_only` / `no_change` / `unclear`
+- プロンプト変更種別: `reword_existing_rule` / `move_to_different_layer` / `merge_overlapping_rules` / `split_overloaded_rule` / `restore_missing_essential` / `add_minimal_new_rule`
+- 実験シナリオ集合: `train` / `validation` / `hold-out`
+- 汎用サブエージェントの `next_action` 値: `none` / `escalate_to_write_ok` / `needs_parent_clarification`
+- パネル調整の根拠種別: `user_provided` / `repo_derivable` / `public_fact` / `None`
+- 語彙検査の診断名: `unaccounted` / `file-ref`
+
+### 固定の出力ラベル
+
+- 文脈エクスポートの該当なし表記: `このセッションでは外部出典を参照していない。` / `生成または変更した成果物はない。` / `再現性に関するメモはない。` / `添付は含まれていない。`
 
 ## 日本語化する語
 

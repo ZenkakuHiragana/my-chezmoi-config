@@ -26,8 +26,8 @@ chezmoi の管理下にあるファイルはユーザーホームディレクト
 - `./.chezmoitemplates/` には複数の実行環境で共有するテンプレート断片がある。
 - `./.chezmoi.toml.tmpl` は chezmoi 自体の設定ファイルである。
 - `./.chezmoiignore` はこのリポジトリの管理下であって chezmoi の設定項目ではないものを `.gitignore` と同様の形式で記述する。
-  - `chezmoi init --no-tty --error-on-conflict` で適用できる。`
-- `./dot_agents/exact_skills/` には実行環境で利用するスキルがある。現在のセッションで実際に利用するには `chezmoi apply 配置先の具体的なファイル名`
+  - `chezmoi init --no-tty --error-on-conflict` で適用できる。
+- `./dot_agents/exact_skills/` には実行環境で利用するスキルがある。現在のセッションで実際に利用するには `chezmoi apply 配置先の具体的なファイル名` を実行する。
 - `./dot_config/` には各種ツールの設定ソースを置く。
   - ツールによっては対応する設定が Windows では `~/AppData/Local/` 以下や `~/AppData/Roaming/` 以下から参照する場合がある。
   - 新規に設定を配置する場合は必ず OS ごとの配置先を確認する。

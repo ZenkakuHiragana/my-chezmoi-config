@@ -200,7 +200,7 @@ P1〜P5は診断軸であり、個々の失敗を一意に説明する真理値�
 - P3の文脈管理: [`problem-analysis/context-management.md`](problem-analysis/context-management.md)
   - 実装先: magic-context（OpenCode）
   - 未実装: Claude Code 向けの文脈管理
-- 規則の減価確認: [`sunset-ablation-procedure.md`](sunset-ablation-procedure.md)
+- 規則の減価確認: `sunset-ablation-procedure.md`（未実装。実体は存在しない）
   - 実装先: なし
   - 未実装: 減価確認の手順、ablation による効果検証
 - Knowns / Unknownsの管理例: [`problem-analysis/corpus/a-field-guide-to-fable.md`](problem-analysis/corpus/a-field-guide-to-fable.md)

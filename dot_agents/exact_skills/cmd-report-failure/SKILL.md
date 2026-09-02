@@ -11,7 +11,7 @@ description: プロンプトまたは作業手順の失敗を、証拠と最小�
 ## 目的
 
 現在のセッション、採掘済みまたは過去のセッション、ユーザー説明から、後で読める失敗記録を作る。
-会話が失われても `cmd-triage-failure` が分析できる根拠を残す。
+会話が失われても、後で失敗の選別（`cmd-triage-failure`）を実行する主体が分析できる根拠を残す。
 
 ## 失敗の合図
 
@@ -53,7 +53,7 @@ description: プロンプトまたは作業手順の失敗を、証拠と最小�
 - 採掘レポートから渡された候補 ID、観測された挙動、根拠、現行対応範囲
 - 関連する現行プロンプト、スキル、エージェント、コマンド
 
-GitHub リポジトリが関係する場合は現行コミット SHA を記録する。不明なら `unknown`。
+GitHub リポジトリが関係する場合は現行コミット SHA を記録する。取得できない場合は `unknown` とする。
 
 `cmd-extract-failure-patterns` から呼び出された場合は、渡された候補1件だけを正式な失敗記録へ変換する。採掘側の報告方針を根源課題分類、重大度、状態の代わりに使ってはならない。
 
@@ -145,7 +145,7 @@ GitHub リポジトリが関係する場合は現行コミット SHA を記録�
 ## 現行システムの対応範囲
 
 過去、採掘済み、取り込み済み会話記録、古い挙動、曖昧な履歴では、現在のプロンプトの不足と即断しない。
-現行プロンプト体系下の現在セッションで起きた失敗は、旧体系の根拠がない限り `observed_prompt_context: current` とする。
+現行プロンプト体系下の現在セッションで起きた失敗は、旧体系の根拠がない限り `observed_prompt_context` を `current` とする。
 
 フィールド:
 
@@ -219,9 +219,8 @@ true にする条件:
 
 失敗ログルート:
 
-1. 現在位置が `chezmoi source-path` 配下なら、`$(chezmoi source-path)/.opencode/local-failure-logs/`
-2. それ以外で `chezmoi source-path` があれば、`$(chezmoi source-path)/.opencode/local-failure-logs/`
-3. それ以外は `~/.local/share/chezmoi/.opencode/local-failure-logs/`
+1. `chezmoi source-path` を解決できる場合は、`$(chezmoi source-path)/.opencode/local-failure-logs/`
+2. 解決できない場合は `~/.local/share/chezmoi/.opencode/local-failure-logs/`
 
 任意の作業リポジトリにある `.opencode/local-failure-logs/` は正本ルートとみなさない。
 
@@ -232,12 +231,14 @@ true にする条件:
 
 `YYYYMMDD-HHMM-short-slug.md`
 
-同一失敗記録の既存レポートがあれば更新する。
+同一の失敗を扱う既存の失敗記録があれば更新する。
 同一と確信できなければ新規作成する。
 
 追跡対象のリポジトリファイルに生の根拠、伏せていない非公開データ、ローカル限定の失敗記録素材を書かない。
 
 ## 失敗記録ひな形
+
+`pattern_tags` の値域は、失敗傾向抽出の手順（`cmd-extract-failure-patterns`）の「パターンタグ」節を正本とする。採掘レポートから渡された値があれば転記し、なければ観測に対応するタグだけを付ける。
 
 ```markdown
 ---
@@ -317,9 +318,9 @@ status: captured | historical_candidate | current_gap | covered_unvalidated | li
 
 ## 最終応答
 
-書いた後に返す。
+書いた後、ユーザーへの最終応答に次を含める。
 
-- 報告パス
+- 失敗記録のパス
 - 1 文の要約
 - 重大度
 - 現行対応範囲
