@@ -76,30 +76,29 @@ function requireStringMap(value, label) {
 
 // 共通 MCP 定義を Claude Code の user スコープ登録へ射影する。
 // enabled が false のものは除外する。
-function projectMcp(mcp) {
+function projectMcp(mcpServers) {
   const projected = {};
   for (const [name, definitionValue] of Object.entries(
-    requireObject(mcp, "mcp"),
+    requireObject(mcpServers, "mcpServers"),
   )) {
-    const label = `mcp ${JSON.stringify(name)}`;
+    const label = `mcpServers ${JSON.stringify(name)}`;
     const definition = requireObject(definitionValue, label);
     if (definition.enabled === false) continue;
 
-    if (definition.type === "local") {
-      const command = definition.command;
-      if (!Array.isArray(command) || command.length === 0) {
-        throw new SyncError(`${label} local command must be a non-empty array`);
+    if (Object.hasOwn(definition, "command")) {
+      if (typeof definition.command !== "string" || definition.command.length === 0) {
+        throw new SyncError(`${label} command must be a non-empty string`);
       }
-      if (!command.every((item) => typeof item === "string")) {
-        throw new SyncError(`${label} local command entries must be strings`);
+      const args = Object.hasOwn(definition, "args") ? definition.args : [];
+      if (!Array.isArray(args) || !args.every((item) => typeof item === "string")) {
+        throw new SyncError(`${label} args must be an array of strings`);
       }
       const env = Object.hasOwn(definition, "env") ? definition.env : {};
-      requireStringMap(env, `${label} local env`);
-      const resolved = command.map((item) => resolveValue(item, label));
+      requireStringMap(env, `${label} env`);
       projected[name] = {
         type: "stdio",
-        command: resolved[0],
-        args: resolved.slice(1),
+        command: resolveValue(definition.command, label),
+        args: args.map((item) => resolveValue(item, label)),
         env: Object.fromEntries(
           Object.entries(env).map(([key, item]) => [
             key,
@@ -110,15 +109,15 @@ function projectMcp(mcp) {
       continue;
     }
 
-    if (definition.type === "remote") {
+    if (Object.hasOwn(definition, "url")) {
       if (typeof definition.url !== "string" || definition.url.length === 0) {
-        throw new SyncError(`${label} remote url must be a string`);
+        throw new SyncError(`${label} url must be a non-empty string`);
       }
       const server = { type: "http", url: resolveValue(definition.url, label) };
       if (definition.headers != null) {
         const headers = requireStringMap(
           definition.headers,
-          `${label} remote headers`,
+          `${label} headers`,
         );
         server.headers = Object.fromEntries(
           Object.entries(headers).map(([key, item]) => [
@@ -131,9 +130,7 @@ function projectMcp(mcp) {
       continue;
     }
 
-    throw new SyncError(
-      `${label} has unsupported type: ${JSON.stringify(definition.type)}`,
-    );
+    throw new SyncError(`${label} must define command or url`);
   }
   return projected;
 }

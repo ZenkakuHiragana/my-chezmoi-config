@@ -319,11 +319,3 @@ permissions:
     /mnt/c/Program\ Files/dotnet/dotnet.exe push *: deny
     '"/mnt/c/Program Files/dotnet/dotnet.exe" push': deny
     '"/mnt/c/Program Files/dotnet/dotnet.exe" push *': deny
-mcp:
-  skill-kb:
-    type: local
-    command:
-      - node
-      - '{file:~/.config/opencode/skill-kb-entrypoint.txt}'
-    timeout: 10000
-    enabled: true

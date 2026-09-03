@@ -1,8 +1,5 @@
-# Pi のグローバル設定。共通の権限と MCP は common.yaml にある。
+# Pi のグローバル設定。共通の MCP は mcp.yaml にある。
 pi:
-  mcp:
-    exa:
-      url: https://mcp.exa.ai/mcp
   tool_filter:
     read:
       allow:

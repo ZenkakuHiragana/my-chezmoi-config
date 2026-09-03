@@ -1,0 +1,12 @@
+{{- $sourceDir := .chezmoi.sourceDir -}}
+{{- $servers := deepCopy .mcpServers -}}
+{{- range $name, $server := $servers -}}
+  {{- if hasKey $server "args" -}}
+    {{- $args := list -}}
+    {{- range $arg := get $server "args" -}}
+      {{- $args = append $args (replace "{file:~/.config/opencode/skill-kb-entrypoint.txt}" (joinPath $sourceDir "tools" "skill-kb" "dist" "src" "index.js") $arg) -}}
+    {{- end -}}
+    {{- $_ := set $server "args" $args -}}
+  {{- end -}}
+{{- end -}}
+{{- dict "mcpServers" $servers | toPrettyJson -}}

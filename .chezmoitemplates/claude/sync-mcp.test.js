@@ -48,16 +48,15 @@ function makeRunner(options = {}) {
 test("projects local and remote definitions and skips disabled ones", () => {
   const projected = projectMcp({
     localServer: {
-      type: "local",
-      command: ["npm", "exec", "--yes", "pkg"],
+      command: "npm",
+      args: ["exec", "--yes", "pkg"],
       env: { TOKEN: "{env:TEST_TOKEN}" },
     },
     remoteServer: {
-      type: "remote",
       url: "https://example.test/mcp",
       headers: { Authorization: "Bearer {env:TEST_KEY}" },
     },
-    disabledServer: { type: "local", command: ["nope"], enabled: false },
+    disabledServer: { command: "nope", enabled: false },
   });
 
   assert.deepEqual(projected, {
@@ -81,7 +80,7 @@ test("expands {file:} placeholders to trimmed file contents", () => {
   fs.writeFileSync(entrypoint, "/opt/app/index.js\n");
 
   const projected = projectMcp({
-    fileServer: { type: "local", command: ["node", `{file:${entrypoint}}`] },
+    fileServer: { command: "node", args: [`{file:${entrypoint}}`] },
   });
 
   assert.deepEqual(projected.fileServer, {
@@ -94,15 +93,15 @@ test("expands {file:} placeholders to trimmed file contents", () => {
 
 test("rejects unsupported types and malformed definitions", () => {
   assert.throws(
-    () => projectMcp({ weird: { type: "carrier-pigeon" } }),
+    () => projectMcp({ weird: { transport: "carrier-pigeon" } }),
     SyncError,
   );
   assert.throws(
-    () => projectMcp({ empty: { type: "local", command: [] } }),
+    () => projectMcp({ empty: { command: "" } }),
     SyncError,
   );
   assert.throws(
-    () => projectMcp({ noUrl: { type: "remote" } }),
+    () => projectMcp({ noUrl: { enabled: true } }),
     SyncError,
   );
 });
@@ -112,13 +111,13 @@ test("handles null env and null headers the same way as before", () => {
   assert.throws(
     () =>
       projectMcp({
-        local: { type: "local", command: ["server"], env: null },
+        local: { command: "server", env: null },
       }),
-    /local env must be a JSON object/,
+    /env must be a JSON object/,
   );
 
   const projected = projectMcp({
-    remote: { type: "remote", url: "https://example.com", headers: null },
+    remote: { url: "https://example.com", headers: null },
   });
   assert.deepEqual(projected.remote, {
     type: "http",
@@ -196,7 +195,7 @@ test("removes servers that are not in the source of truth", () => {
   const { runner, calls } = makeRunner();
 
   const result = syncMcp({
-    mcp: { keep: { type: "local", command: ["keep-cmd"] } },
+    mcp: { keep: { command: "keep-cmd" } },
     claudeJsonPath,
     runner,
     log: () => {},
@@ -220,8 +219,8 @@ test("keeps going when one add fails and exits non-zero", () => {
 
   const result = syncMcp({
     mcp: {
-      broken: { type: "local", command: ["missing-binary"] },
-      healthy: { type: "local", command: ["ok-binary"] },
+      broken: { command: "missing-binary" },
+      healthy: { command: "ok-binary" },
     },
     claudeJsonPath,
     runner,
@@ -241,7 +240,7 @@ test("skips silently with exit code 0 when claude is absent", () => {
   const logged = [];
 
   const result = syncMcp({
-    mcp: { any: { type: "local", command: ["cmd"] } },
+    mcp: { any: { command: "cmd" } },
     claudeJsonPath,
     runner,
     log: (message) => logged.push(message),
@@ -256,7 +255,6 @@ test("skips silently with exit code 0 when claude is absent", () => {
 test("masks header and env values in output", () => {
   const projected = projectMcp({
     remoteServer: {
-      type: "remote",
       url: "https://example.test/mcp",
       headers: { Authorization: "Bearer perm-supersecret-token" },
     },
@@ -285,7 +283,6 @@ test("never logs secrets when an add fails", () => {
   const result = syncMcp({
     mcp: {
       leaky: {
-        type: "remote",
         url: "https://example.test/mcp",
         headers: { Authorization: secret },
       },

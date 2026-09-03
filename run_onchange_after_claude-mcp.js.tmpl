@@ -11,13 +11,13 @@
 // enabled を切り替えれば埋め込み内容が変わるため、発火判定は保たれる。
 
 {{- $enabled := dict -}}
-{{- range $name, $definition := .mcp -}}
+{{- range $name, $definition := .mcpServers -}}
 {{-   if ne (dig "enabled" true $definition) false -}}
 {{-     $_ := set $enabled $name $definition -}}
 {{-   end -}}
 {{- end }}
-const mcp = {{ $enabled | toJson }};
+const mcpServers = {{ $enabled | toJson }};
 const syncPath = {{ joinPath .chezmoi.sourceDir ".chezmoitemplates" "claude" "sync-mcp.js" | toJson }};
 
 const { main } = require(syncPath);
-process.exitCode = main([JSON.stringify(mcp)]);
+process.exitCode = main([JSON.stringify(mcpServers)]);

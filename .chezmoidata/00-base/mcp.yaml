@@ -1,0 +1,11 @@
+# ハーネス共通の MCP 定義。
+# 環境固有の追加は .chezmoidata/99-specific/mcp.yaml に置く。
+mcpServers:
+  exa:
+    url: https://mcp.exa.ai/mcp
+  skill-kb:
+    command: node
+    args:
+      - '{file:~/.config/opencode/skill-kb-entrypoint.txt}'
+    timeout: 10000
+    enabled: true

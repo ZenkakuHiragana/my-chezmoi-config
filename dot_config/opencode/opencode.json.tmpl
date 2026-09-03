@@ -1,5 +1,44 @@
+{{- $sourceDir := .chezmoi.sourceDir -}}
 {{- $config := deepCopy .opencode -}}
-{{- $_ := set $config "mcp" .mcp -}}
+{{- $servers := dict -}}
+{{- range $name, $server := .mcpServers -}}
+  {{- if hasKey $server "command" -}}
+    {{- $command := list (get $server "command") -}}
+    {{- range $arg := (get $server "args" | default (list)) -}}
+      {{- $command = append $command (replace "{file:~/.config/opencode/skill-kb-entrypoint.txt}" (joinPath $sourceDir "tools" "skill-kb" "dist" "src" "index.js") $arg) -}}
+    {{- end -}}
+    {{- $entry := dict "type" "local" "command" $command -}}
+    {{- if hasKey $server "env" -}}
+      {{- $_ := set $entry "environment" (get $server "env") -}}
+    {{- end -}}
+    {{- if hasKey $server "cwd" -}}
+      {{- $_ := set $entry "cwd" (get $server "cwd") -}}
+    {{- end -}}
+    {{- if hasKey $server "timeout" -}}
+      {{- $_ := set $entry "timeout" (get $server "timeout") -}}
+    {{- end -}}
+    {{- if hasKey $server "enabled" -}}
+      {{- $_ := set $entry "enabled" (get $server "enabled") -}}
+    {{- end -}}
+    {{- $_ := set $servers $name $entry -}}
+  {{- else if hasKey $server "url" -}}
+    {{- $entry := dict "type" "remote" "url" (get $server "url") -}}
+    {{- if hasKey $server "headers" -}}
+      {{- $_ := set $entry "headers" (get $server "headers") -}}
+    {{- end -}}
+    {{- if hasKey $server "timeout" -}}
+      {{- $_ := set $entry "timeout" (get $server "timeout") -}}
+    {{- end -}}
+    {{- if hasKey $server "enabled" -}}
+      {{- $_ := set $entry "enabled" (get $server "enabled") -}}
+    {{- end -}}
+    {{- if hasKey $server "oauth" -}}
+      {{- $_ := set $entry "oauth" (get $server "oauth") -}}
+    {{- end -}}
+    {{- $_ := set $servers $name $entry -}}
+  {{- end -}}
+{{- end -}}
+{{- $_ := set $config "mcp" $servers -}}
 {{- $permission := deepCopy (get $config "permission") -}}
 {{- $_ := set $permission "bash" .permissions.bash -}}
 {{- $_ := set $config "permission" $permission -}}
