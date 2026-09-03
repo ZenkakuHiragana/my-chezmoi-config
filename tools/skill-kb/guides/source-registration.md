@@ -118,10 +118,7 @@ sources:
 モジュールは named export の `query` 関数を提供する。
 
 ```ts
-export async function query(
-  query: string,
-  options: unknown,
-): Promise<string>;
+export async function query(query: string, options: unknown): Promise<string>;
 ```
 
 `query_options` の値は解釈せず、そのまま `options` として関数へ渡す。環境依存のパスなど、モジュール固有の値は `KNOWLEDGE.local.yml` の `query_options` に置ける。
@@ -142,7 +139,7 @@ export async function query(
 
 ### `get_source`
 
-`get_source` は、指定した情報源について次だけを返す。
+`get_source` は、指定した情報源について次を返す。
 
 ```json
 {
