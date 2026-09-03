@@ -9,7 +9,7 @@ const test = require("node:test");
 const syncPath = path.join(__dirname, "sync-mcp.js");
 const {
   SyncError,
-  projectOpencodeMcp,
+  projectMcp,
   collectSecrets,
   maskSecrets,
   readRegisteredNames,
@@ -46,7 +46,7 @@ function makeRunner(options = {}) {
 }
 
 test("projects local and remote definitions and skips disabled ones", () => {
-  const projected = projectOpencodeMcp({
+  const projected = projectMcp({
     localServer: {
       type: "local",
       command: ["npm", "exec", "--yes", "pkg"],
@@ -80,7 +80,7 @@ test("expands {file:} placeholders to trimmed file contents", () => {
   const entrypoint = path.join(directory, "entrypoint.txt");
   fs.writeFileSync(entrypoint, "/opt/app/index.js\n");
 
-  const projected = projectOpencodeMcp({
+  const projected = projectMcp({
     fileServer: { type: "local", command: ["node", `{file:${entrypoint}}`] },
   });
 
@@ -94,15 +94,15 @@ test("expands {file:} placeholders to trimmed file contents", () => {
 
 test("rejects unsupported types and malformed definitions", () => {
   assert.throws(
-    () => projectOpencodeMcp({ weird: { type: "carrier-pigeon" } }),
+    () => projectMcp({ weird: { type: "carrier-pigeon" } }),
     SyncError,
   );
   assert.throws(
-    () => projectOpencodeMcp({ empty: { type: "local", command: [] } }),
+    () => projectMcp({ empty: { type: "local", command: [] } }),
     SyncError,
   );
   assert.throws(
-    () => projectOpencodeMcp({ noUrl: { type: "remote" } }),
+    () => projectMcp({ noUrl: { type: "remote" } }),
     SyncError,
   );
 });
@@ -111,13 +111,13 @@ test("rejects unsupported types and malformed definitions", () => {
 test("handles null env and null headers the same way as before", () => {
   assert.throws(
     () =>
-      projectOpencodeMcp({
+      projectMcp({
         local: { type: "local", command: ["server"], env: null },
       }),
     /local env must be a JSON object/,
   );
 
-  const projected = projectOpencodeMcp({
+  const projected = projectMcp({
     remote: { type: "remote", url: "https://example.com", headers: null },
   });
   assert.deepEqual(projected.remote, {
@@ -254,7 +254,7 @@ test("skips silently with exit code 0 when claude is absent", () => {
 });
 
 test("masks header and env values in output", () => {
-  const projected = projectOpencodeMcp({
+  const projected = projectMcp({
     remoteServer: {
       type: "remote",
       url: "https://example.test/mcp",

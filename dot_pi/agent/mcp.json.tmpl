@@ -1,6 +1,6 @@
 {{- $sourceDir := .chezmoi.sourceDir -}}
 {{- $servers := dict -}}
-{{- range $name, $server := .opencode.mcp -}}
+{{- range $name, $server := .mcp -}}
   {{- $type := dig "type" "" $server -}}
   {{- if eq $type "local" -}}
     {{- $command := get $server "command" -}}

@@ -1,0 +1,29 @@
+# Claude Code のグローバル設定。
+claude:
+  model: sonnet
+  agent: build
+  effortLevel: high
+  showThinkingSummaries: true
+  promptSuggestionEnabled: false
+  enabledPlugins:
+    lua-lsp@claude-plugins-official: true
+  permissions:
+    deny:
+      - DesignSync
+      - EnterWorktree
+      - ExitWorktree
+      - Monitor
+      - PushNotification
+      - ReportFindings
+      - Artifact
+      - '{shell:other}'
+      - CronCreate
+      - CronDelete
+      - CronList
+      - NotebookEdit
+      - RemoteTrigger
+      - ScheduleWakeup
+      - TaskOutput
+      - Agent(Explore)
+      - Agent(Plan)
+      - Agent(general-purpose)

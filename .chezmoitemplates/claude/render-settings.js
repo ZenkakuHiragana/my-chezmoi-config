@@ -92,16 +92,16 @@ function loadSpecificSettings(jsonText) {
   );
 }
 
-function loadOpencodeBashRules(jsonText) {
+function loadBashRules(jsonText) {
   const value = requireObject(
-    parseJson(jsonText, "opencode permission.bash argument"),
-    "opencode permission.bash",
+    parseJson(jsonText, "permissions.bash argument"),
+    "permissions.bash",
   );
 
   return Object.entries(value).map(([pattern, action]) => {
     if (!Object.hasOwn(PERMISSION_PRIORITY, action)) {
       throw new RenderError(
-        `opencode permission.bash has unsupported action for ${JSON.stringify(pattern)}: ${JSON.stringify(action)}`,
+        `permissions.bash has unsupported action for ${JSON.stringify(pattern)}: ${JSON.stringify(action)}`,
       );
     }
     return [pattern, action];
@@ -204,7 +204,7 @@ function assertPortableRules(rules) {
         continue;
       if (!globPatternCovers(leftPattern, rightPattern)) continue;
       throw new RenderError(
-        "opencode permission.bash contains a rule order that Claude permissions cannot represent: " +
+        "permissions.bash contains a rule order that Claude permissions cannot represent: " +
           `#${leftIndex + 1} ${JSON.stringify(leftPattern)} => ${JSON.stringify(leftAction)} is overridden by ` +
           `#${rightIndex + 1} ${JSON.stringify(rightPattern)} => ${JSON.stringify(rightAction)}`,
       );
@@ -239,7 +239,7 @@ function resolvePermissionPlaceholders(settings, otherTool) {
   }
 }
 
-function projectOpencodeBashRules(rules, targetTool) {
+function projectBashRules(rules, targetTool) {
   if (!TARGET_TOOLS.includes(targetTool)) {
     throw new RenderError(
       `unsupported target tool: ${JSON.stringify(targetTool)}`,
@@ -281,7 +281,7 @@ function mergeProjectedPermissions(settings, targetTool, projected) {
   }
   if (existingDeny.includes(targetTool)) {
     throw new RenderError(
-      `cannot project opencode permission.bash to ${targetTool}: permissions.deny disables ${JSON.stringify(targetTool)}`,
+      `cannot project permissions.bash to ${targetTool}: permissions.deny disables ${JSON.stringify(targetTool)}`,
     );
   }
 
@@ -497,7 +497,7 @@ function renderSettings(
   existingJson,
   managedJson,
   targetTool,
-  opencodeBashJson,
+  bashRulesJson,
   specificJson = "{}",
 ) {
   const otherTool = resolveOtherShellTool(targetTool);
@@ -529,11 +529,11 @@ function renderSettings(
     };
   }
 
-  const rules = loadOpencodeBashRules(opencodeBashJson);
+  const rules = loadBashRules(bashRulesJson);
   mergeProjectedPermissions(
     desired,
     targetTool,
-    projectOpencodeBashRules(rules, targetTool),
+    projectBashRules(rules, targetTool),
   );
 
   let result = existingJson === "" ? "{}" : existingJson;
@@ -556,7 +556,7 @@ function main(argv) {
   if (argv.length !== 5) {
     process.stderr.write(
       "usage: render-settings.js <existing-settings-json> <managed-settings-json> " +
-        "<target-tool> <opencode-bash-json> <claude-specific-json>\n",
+        "<target-tool> <bash-rules-json> <claude-specific-json>\n",
     );
     return 2;
   }

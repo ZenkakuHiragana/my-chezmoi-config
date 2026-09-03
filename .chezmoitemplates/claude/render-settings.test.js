@@ -134,7 +134,8 @@ test("CLI rejects a wrong argument count", () => {
 
   assert.equal(result.status, 2);
   assert.match(result.stderr, /usage: render-settings\.js/);
-  assert.doesNotMatch(result.stderr, /opencode-mcp-json/);
+  assert.match(result.stderr, /<bash-rules-json>/);
+  assert.doesNotMatch(result.stderr, /opencode-bash-json/);
 });
 
 test("CLI identifies malformed existing settings input by location", () => {

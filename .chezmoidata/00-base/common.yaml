@@ -1,0 +1,329 @@
+# ハーネス非依存の権限と MCP の共通設定。
+permissions:
+  bash:
+    '*': allow
+    # 未知のコマンドは許可し、危険な操作だけ下で拒否・確認する。
+    # git 操作系: ローカル作業（add / commit / merge / pull / rebase /
+    # cherry-pick / revert / stash / worktree / submodule）と reset の
+    # 非破壊形式（--soft / --mixed）は許可する。
+    # 拒否するのは外部書き込み・未コミット破棄・履歴・参照・復旧基盤の破壊。
+    # うっかり破壊の防止が目的。意図的な回避（GIT_DIR / --git-dir / エイリアス等）は想定しない。
+    # パターン末尾の * は省略可能（単体も捕捉）。直接続く形と挟まる形の2本立て。
+    # 外部書き込み
+    git push *: deny
+    # 未コミット破棄・ブランチ・作業ツリー操作
+    git restore *: deny
+    git checkout *: deny
+    git switch *: deny
+    git reset --hard *: deny
+    git reset * --hard *: deny
+    git clean *: deny
+    # 履歴書き換え・参照破壊・復旧基盤破壊
+    git filter-branch *: deny
+    git branch -D *: deny
+    git branch * -D *: deny
+    git tag -d *: deny
+    git tag * -d *: deny
+    git tag -f *: deny
+    git tag * -f *: deny
+    git remote add *: deny
+    git remote remove *: deny
+    git remote set-url *: deny
+    git submodule foreach *: deny
+    git update-ref *: deny
+    git symbolic-ref *: deny
+    git reflog expire *: deny
+    git gc --prune=now *: deny
+    git gc * --prune=now *: deny
+    # git -C 版（通常版と対称）
+    git -C * push *: deny
+    git -C * restore *: deny
+    git -C * checkout *: deny
+    git -C * switch *: deny
+    git -C * reset --hard *: deny
+    git -C * reset * --hard *: deny
+    git -C * clean *: deny
+    git -C * filter-branch *: deny
+    git -C * branch -D *: deny
+    git -C * branch * -D *: deny
+    git -C * tag -d *: deny
+    git -C * tag * -d *: deny
+    git -C * tag -f *: deny
+    git -C * tag * -f *: deny
+    git -C * remote add *: deny
+    git -C * remote remove *: deny
+    git -C * remote set-url *: deny
+    git -C * submodule foreach *: deny
+    git -C * update-ref *: deny
+    git -C * symbolic-ref *: deny
+    git -C * reflog expire *: deny
+    git -C * gc --prune=now *: deny
+    git -C * gc * --prune=now *: deny
+    # ファイル削除禁止
+    # "rm *": deny
+    # PowerShell: ファイル・レジストリの破壊的変更
+    # "Remove-Item *": deny
+    # "del *": deny
+    # "erase *": deny
+    # "rd *": deny
+    # "ri *": deny
+    # "rmdir *": deny
+    Clear-Content *: deny
+    clc *: deny
+    Clear-Item *: deny
+    cli *: deny
+    Remove-ItemProperty *: deny
+    rp *: deny
+    Set-ItemProperty *: deny
+    sp *: deny
+    New-ItemProperty *: deny
+    # PowerShell: ディスク・パーティションの破壊的変更
+    Clear-Disk *: deny
+    Format-Volume *: deny
+    Initialize-Disk *: deny
+    New-Partition *: deny
+    Remove-Partition *: deny
+    Resize-Partition *: deny
+    # PowerShell: 権限・実行制御・アカウント
+    Set-Acl *: deny
+    icacls *: deny
+    takeown *: deny
+    Set-ExecutionPolicy *: deny
+    Unblock-File *: deny
+    New-LocalUser *: deny
+    Remove-LocalUser *: deny
+    Set-LocalUser *: deny
+    Enable-LocalUser *: deny
+    Disable-LocalUser *: deny
+    Add-LocalGroupMember *: deny
+    Remove-LocalGroupMember *: deny
+    Enable-PSRemoting: deny
+    Enable-PSRemoting *: deny
+    # PowerShell: 永続化・サービス・防御設定
+    Register-ScheduledTask *: deny
+    Unregister-ScheduledTask *: deny
+    Set-ScheduledTask *: deny
+    New-Service *: deny
+    Remove-Service *: deny
+    Set-Service *: deny
+    New-NetFirewallRule *: deny
+    Set-NetFirewallRule *: deny
+    Remove-NetFirewallRule *: deny
+    Enable-NetFirewallRule *: deny
+    Disable-NetFirewallRule *: deny
+    Set-NetFirewallProfile *: deny
+    Set-MpPreference *: deny
+    Add-MpPreference *: deny
+    Remove-MpPreference *: deny
+    # PowerShell: 任意コード実行・エンコードされた子シェル
+    Invoke-Expression *: deny
+    iex *: deny
+    powershell -EncodedCommand *: deny
+    powershell -enc *: deny
+    powershell.exe -EncodedCommand *: deny
+    powershell.exe -enc *: deny
+    pwsh -EncodedCommand *: deny
+    pwsh -enc *: deny
+    pwsh.exe -EncodedCommand *: deny
+    pwsh.exe -enc *: deny
+    powershell * -EncodedCommand *: deny
+    powershell * -enc *: deny
+    powershell.exe * -EncodedCommand *: deny
+    powershell.exe * -enc *: deny
+    pwsh * -EncodedCommand *: deny
+    pwsh * -enc *: deny
+    pwsh.exe * -EncodedCommand *: deny
+    pwsh.exe * -enc *: deny
+    # PowerShell: リモート操作・サービス・プロセスの確認
+    Invoke-Command *: ask
+    icm *: ask
+    Enter-PSSession *: ask
+    etsn *: ask
+    New-PSSession *: ask
+    nsn *: ask
+    Stop-Process *: ask
+    kill *: ask
+    spps *: ask
+    Start-Service *: ask
+    sasv *: ask
+    Stop-Service *: ask
+    spsv *: ask
+    Restart-Service *: ask
+    Start-ScheduledTask *: ask
+    Stop-ScheduledTask *: ask
+    Stop-Computer: deny
+    Stop-Computer *: deny
+    Restart-Computer: deny
+    Restart-Computer *: deny
+    # GitHub CLI: 資格情報・認証
+    gh auth login *: deny
+    gh auth logout *: deny
+    gh auth refresh *: deny
+    gh auth setup-git *: deny
+    gh auth switch *: deny
+    gh auth token *: deny
+    gh secret set *: deny
+    gh secret delete *: deny
+    gh variable set *: deny
+    gh variable delete *: deny
+    gh ssh-key add *: deny
+    gh ssh-key delete *: deny
+    gh gpg-key add *: deny
+    gh gpg-key delete *: deny
+    # GitHub CLI: リポジトリ・公開物の外部状態変更
+    gh repo create *: deny
+    gh repo delete *: deny
+    gh repo archive *: deny
+    gh repo edit *: deny
+    gh repo fork *: deny
+    gh repo rename *: deny
+    gh repo sync *: deny
+    gh repo unarchive *: deny
+    gh repo autolink *: deny
+    gh repo deploy-key *: deny
+    gh release create *: deny
+    gh release delete *: deny
+    gh release delete-asset *: deny
+    gh release edit *: deny
+    gh release upload *: deny
+    gh gist create *: deny
+    gh gist delete *: deny
+    gh gist edit *: deny
+    gh gist rename *: deny
+    # GitHub CLI: PR・Issue・CI の外部状態変更
+    gh pr checkout *: deny
+    gh pr create *: deny
+    gh pr close *: deny
+    gh pr comment *: deny
+    gh pr edit *: deny
+    gh pr lock *: deny
+    gh pr merge *: deny
+    gh pr ready *: deny
+    gh pr reopen *: deny
+    gh pr revert *: deny
+    gh pr review *: deny
+    gh pr unlock *: deny
+    gh pr update-branch *: deny
+    gh issue create *: deny
+    gh issue close *: deny
+    gh issue comment *: deny
+    gh issue delete *: deny
+    gh issue develop *: deny
+    gh issue edit *: deny
+    gh issue lock *: deny
+    gh issue reopen *: deny
+    gh issue transfer *: deny
+    gh issue unlock *: deny
+    gh issue pin *: deny
+    gh issue unpin *: deny
+    gh discussion create *: deny
+    gh discussion comment *: deny
+    gh discussion edit *: deny
+    gh label create *: deny
+    gh label delete *: deny
+    gh label edit *: deny
+    gh workflow disable *: deny
+    gh workflow enable *: deny
+    gh workflow run *: deny
+    gh run cancel *: deny
+    gh run delete *: deny
+    gh run rerun *: deny
+    # GitHub CLI: クラウド資源・未検証拡張・任意 API
+    gh codespace cp *: deny
+    gh codespace create *: deny
+    gh codespace delete *: deny
+    gh codespace edit *: deny
+    gh codespace rebuild *: deny
+    gh codespace ssh *: deny
+    gh codespace stop *: deny
+    gh codespace ports visibility *: deny
+    gh codespace ports forward *: deny
+    gh cs cp *: deny
+    gh cs create *: deny
+    gh cs delete *: deny
+    gh cs edit *: deny
+    gh cs rebuild *: deny
+    gh cs ssh *: deny
+    gh cs stop *: deny
+    gh cs ports visibility *: deny
+    gh cs ports forward *: deny
+    gh extension install *: deny
+    gh extension upgrade *: deny
+    gh extension exec *: deny
+    gh ext install *: deny
+    gh ext upgrade *: deny
+    gh ext exec *: deny
+    gh extensions install *: deny
+    gh extensions upgrade *: deny
+    gh extensions exec *: deny
+    gh alias set *: deny
+    gh alias import *: deny
+    gh config set *: deny
+    gh api *: ask
+    # OpenCode: 資格情報、MCP、プラグイン、実行環境
+    opencode auth login *: deny
+    opencode auth logout *: deny
+    opencode mcp add *: deny
+    opencode mcp auth *: deny
+    opencode mcp logout *: deny
+    opencode plugin *: deny
+    opencode plug *: deny
+    opencode upgrade *: deny
+    opencode uninstall *: deny
+    opencode github install *: deny
+    opencode github run *: deny
+    opencode pr *: deny
+    opencode agent create *: deny
+    opencode serve *: deny
+    opencode web *: deny
+    opencode acp *: deny
+    opencode attach *: deny
+    # パッケージ・コンテナ: 資格情報と公開
+    npm login *: deny
+    npm logout *: deny
+    npm publish *: deny
+    npm unpublish *: deny
+    npm access *: deny
+    npm deprecate *: deny
+    npm dist-tag *: deny
+    npm owner *: deny
+    npm token *: deny
+    pnpm login *: deny
+    pnpm logout *: deny
+    pnpm publish *: deny
+    yarn npm login *: deny
+    yarn npm logout *: deny
+    yarn npm publish *: deny
+    bun publish *: deny
+    docker login *: deny
+    docker logout *: deny
+    docker push *: deny
+    docker image push *: deny
+    docker compose push *: deny
+    helm registry login *: deny
+    helm registry logout *: deny
+    helm push *: deny
+    twine upload *: deny
+    gem signin *: deny
+    gem push *: deny
+    gem yank *: deny
+    # ビルドツール: Cargo（公開操作）
+    cargo login: deny
+    cargo login *: deny
+    cargo publish: deny
+    cargo publish *: ask
+    # ビルドツール: dotnet CLI（公開操作）
+    dotnet push: deny
+    dotnet push *: deny
+    /mnt/c/Program\ Files/dotnet/dotnet.exe push: deny
+    /mnt/c/Program\ Files/dotnet/dotnet.exe push *: deny
+    '"/mnt/c/Program Files/dotnet/dotnet.exe" push': deny
+    '"/mnt/c/Program Files/dotnet/dotnet.exe" push *': deny
+mcp:
+  skill-kb:
+    type: local
+    command:
+      - node
+      - '{file:~/.config/opencode/skill-kb-entrypoint.txt}'
+    timeout: 10000
+    enabled: true

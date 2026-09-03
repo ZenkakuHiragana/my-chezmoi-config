@@ -1,7 +1,7 @@
 #!/usr/bin/env node
 "use strict";
 
-// Claude Code の user スコープ MCP 登録を .opencode.mcp と一致させる。
+// Claude Code の user スコープ MCP 登録を共通 MCP 設定と一致させる。
 // ロジックは .chezmoitemplates/claude/sync-mcp.js にある。
 //
 // 有効な定義だけを埋め込む。理由は 2 つある。
@@ -11,7 +11,7 @@
 // enabled を切り替えれば埋め込み内容が変わるため、発火判定は保たれる。
 
 {{- $enabled := dict -}}
-{{- range $name, $definition := .opencode.mcp -}}
+{{- range $name, $definition := .mcp -}}
 {{-   if ne (dig "enabled" true $definition) false -}}
 {{-     $_ := set $enabled $name $definition -}}
 {{-   end -}}

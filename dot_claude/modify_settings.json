@@ -16,4 +16,4 @@
 {{- $claudeSpecific = .claude_specific -}}
 {{- end -}}
 {{- $_ := set $claude "hooks" (dict "SessionStart" (list (dict "hooks" (list $sessionStartHook)))) -}}
-{{- output "node" $rendererPath .chezmoi.stdin ($claude | toJson) $targetTool (.opencode.permission.bash | toJson) ($claudeSpecific | toJson) -}}
+{{- output "node" $rendererPath .chezmoi.stdin ($claude | toJson) $targetTool (.permissions.bash | toJson) ($claudeSpecific | toJson) -}}

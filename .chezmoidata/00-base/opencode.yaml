@@ -1,0 +1,116 @@
+# OpenCode のグローバル設定。共通の権限と MCP は common.yaml にある。
+opencode:
+  $schema: https://opencode.ai/config.json
+  share: disabled
+  small_model: opencode/deepseek-v4-flash-free
+  autoupdate: false
+  agent:
+    plan:
+      disable: true
+  compaction:
+    auto: false
+    prune: false
+  formatter:
+    prettier:
+      command:
+        - npx
+        - prettier
+        - --write
+        - $FILE
+      extensions:
+        - .md
+        - .markdown
+        - .yaml
+        - .yml
+        - .json
+        - .jsonc
+        - .js
+        - .mjs
+        - .cjs
+        - .ts
+        - .css
+        - .html
+        - .htm
+  lsp: {}
+  plugin:
+    - '@prevalentware/opencode-goal-plugin'
+    - '@cortexkit/opencode-magic-context'
+    - opencode-with-claude
+  provider:
+    anthropic:
+      options:
+        baseURL: http://127.0.0.1:3456
+        apiKey: claude
+    github-copilot:
+      models:
+        gpt-5-mini:
+          textVerbosity: low
+        gpt-5.4:
+          options:
+            textVerbosity: low
+        gpt-5.4-mini:
+          options:
+            textVerbosity: low
+    openai:
+      options:
+        headerTimeout: false
+      models:
+        gpt-5.4:
+          options:
+            textVerbosity: low
+        gpt-5.4-mini:
+          options:
+            textVerbosity: low
+    bailian-token-plan-personal:
+      npm: '@ai-sdk/openai-compatible'
+      name: Qwen Cloud
+      options:
+        baseURL: https://token-plan.ap-southeast-1.maas.aliyuncs.com/compatible-mode/v1
+        apiKey: '{env:QWEN_API_KEY}'
+      models:
+        qwen3.8-max-preview:
+          name: Qwen3.8 Max Preview
+          limit:
+            context: 1000000
+            input: 983616
+            output: 131072
+          options:
+            thinking:
+              type: enabled
+              budgetTokens: 99072
+            temperature: 0.6
+            reasoning: true
+  tools:
+    bash: true
+    edit: true
+    glob: true
+    grep: true
+    list: true
+    lsp: true
+    patch: true
+    question: true
+    read: true
+    skill: true
+    todoread: true
+    todowrite: true
+    webfetch: true
+    websearch: true
+    write: true
+  permission:
+    webfetch: allow
+    websearch: allow
+    codesearch: allow
+    skill:
+      '*': allow
+      cmd-*: deny
+    external_directory:
+      '*': ask
+      "~": deny
+      /: deny
+      ~/.agents/skills/**: allow
+      ~/.claude/skills/**: allow
+      /tmp/opencode/**: allow
+      ~/AppData/Local/Temp/opencode/**: allow
+    orchestrator:
+      orch-local-investigator: deny
+      orch-public-researcher: deny

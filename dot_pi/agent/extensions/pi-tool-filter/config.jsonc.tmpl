@@ -1,5 +1,5 @@
 {{- $bashDeny := list -}}
-{{- range $pattern, $action := .opencode.permission.bash -}}
+{{- range $pattern, $action := .permissions.bash -}}
   {{- if eq $action "deny" -}}
     {{- $bashDeny = append $bashDeny $pattern -}}
   {{- end -}}
@@ -16,7 +16,7 @@
     "deny": {{ .pi.tool_filter.write.deny | toPrettyJson }},
     "outsideDefault": "{{ .pi.tool_filter.write.outsideDefault }}"
   },
-  // bash の拒否規則は既存の OpenCode 共通設定から生成する。
+  // bash の拒否規則は共通の権限設定から生成する。
   "bash": {
     "allow": [],
     "deny": {{ $bashDeny | toPrettyJson }}

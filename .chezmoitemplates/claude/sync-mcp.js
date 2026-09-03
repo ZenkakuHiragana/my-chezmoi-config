@@ -74,14 +74,14 @@ function requireStringMap(value, label) {
   return value;
 }
 
-// opencode の mcp 定義を Claude Code の user スコープ登録へ射影する。
+// 共通 MCP 定義を Claude Code の user スコープ登録へ射影する。
 // enabled が false のものは除外する。
-function projectOpencodeMcp(opencodeMcp) {
+function projectMcp(mcp) {
   const projected = {};
   for (const [name, definitionValue] of Object.entries(
-    requireObject(opencodeMcp, "opencode mcp"),
+    requireObject(mcp, "mcp"),
   )) {
-    const label = `opencode mcp ${JSON.stringify(name)}`;
+    const label = `mcp ${JSON.stringify(name)}`;
     const definition = requireObject(definitionValue, label);
     if (definition.enabled === false) continue;
 
@@ -211,7 +211,7 @@ function defaultRunner(args) {
 function syncMcp(options) {
   const { mcp, claudeJsonPath, runner = defaultRunner, log = console.error } =
     options;
-  const projected = projectOpencodeMcp(mcp);
+  const projected = projectMcp(mcp);
   const secrets = collectSecrets(projected);
   const wanted = Object.keys(projected);
   const registered = readRegisteredNames(claudeJsonPath);
@@ -253,11 +253,11 @@ function syncMcp(options) {
 
 function main(argv) {
   if (argv.length !== 1) {
-    process.stderr.write("usage: sync-mcp.js <opencode-mcp-json>\n");
+    process.stderr.write("usage: sync-mcp.js <mcp-json>\n");
     return 2;
   }
   try {
-    const mcp = parseJson(argv[0], "opencode mcp argument");
+    const mcp = parseJson(argv[0], "mcp argument");
     const claudeJsonPath = path.join(os.homedir(), ".claude.json");
     return syncMcp({ mcp, claudeJsonPath }).exitCode;
   } catch (error) {
@@ -269,7 +269,7 @@ function main(argv) {
 
 module.exports = {
   SyncError,
-  projectOpencodeMcp,
+  projectMcp,
   collectSecrets,
   maskSecrets,
   readRegisteredNames,
