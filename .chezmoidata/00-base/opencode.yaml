@@ -1,4 +1,4 @@
-# OpenCode のグローバル設定。共通の権限と MCP は common.yaml にある。
+# OpenCode のグローバル設定。共通の権限は common.yaml、MCP は mcp.yaml にある。
 opencode:
   $schema: https://opencode.ai/config.json
   share: disabled

@@ -10,52 +10,12 @@
 {{- $specific = include $specificPath | trim -}}
 {{- end -}}
 {{- $preservedProjects := output "node" $extractorPath .chezmoi.stdin | trim -}}
+{{- $mcpPath := joinPath .chezmoi.homeDir ".config" "mcp" "mcp.json" -}}
 {{ $base }}
-{{- range $name, $server := .mcpServers }}
-{{- if hasKey $server "command" }}
 
-[mcp_servers.{{ $name }}]
-command = {{ get $server "command" | toJson }}
-{{- if hasKey $server "args" }}
-{{- $args := list }}
-{{- range $arg := get $server "args" }}
-{{- $args = append $args (replace "{file:~/.config/opencode/skill-kb-entrypoint.txt}" (joinPath $.chezmoi.sourceDir "tools" "skill-kb" "dist" "src" "index.js") $arg) }}
-{{- end }}
-args = {{ $args | toJson }}
-{{- end }}
-{{- if hasKey $server "cwd" }}
-cwd = {{ get $server "cwd" | toJson }}
-{{- end }}
-{{- if hasKey $server "enabled" }}
-enabled = {{ get $server "enabled" }}
-{{- end }}
-{{- if hasKey $server "timeout" }}
-tool_timeout_sec = {{ div (get $server "timeout") 1000 }}
-{{- end }}
-{{- if hasKey $server "env" }}
-[mcp_servers.{{ $name }}.env]
-{{- range $key, $value := get $server "env" }}
-{{ $key }} = {{ $value | toJson }}
-{{- end }}
-{{- end }}
-{{- else if hasKey $server "url" }}
-
-[mcp_servers.{{ $name }}]
-url = {{ get $server "url" | toJson }}
-{{- if hasKey $server "enabled" }}
-enabled = {{ get $server "enabled" }}
-{{- end }}
-{{- if hasKey $server "timeout" }}
-tool_timeout_sec = {{ div (get $server "timeout") 1000 }}
-{{- end }}
-{{- if hasKey $server "headers" }}
-[mcp_servers.{{ $name }}.http_headers]
-{{- range $key, $value := get $server "headers" }}
-{{ $key | toJson }} = {{ $value | toJson }}
-{{- end }}
-{{- end }}
-{{- end }}
-{{- end }}
+[mcp_servers.project_mcp]
+command = "npx"
+args = {{ list "-y" "super-mcp-router@2.7.7" "--config" $mcpPath | toJson }}
 {{- if $specific }}
 
 # Machine-specific additions from local source state
