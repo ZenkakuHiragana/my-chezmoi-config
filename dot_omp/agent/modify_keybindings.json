@@ -3,5 +3,7 @@
 {{- if ne (.chezmoi.stdin | trim) "" -}}
 {{- $existing = fromJson .chezmoi.stdin -}}
 {{- end -}}
-{{- $_ := set $existing "tui.input.newLine" (list "alt+enter" "alt+n" "shift+enter" "ctrl+j") -}}
+{{- range $key, $value := .omp.keybindings -}}
+{{- $_ := set $existing $key $value -}}
+{{- end -}}
 {{- $existing | toPrettyJson -}}

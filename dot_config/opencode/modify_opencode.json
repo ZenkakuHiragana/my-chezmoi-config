@@ -3,7 +3,7 @@
 {{- if ne (.chezmoi.stdin | trim) "" -}}
 {{- $existing = fromJson .chezmoi.stdin -}}
 {{- end -}}
-{{- $managed := deepCopy .opencode -}}
+{{- $managed := deepCopy .opencode.settings -}}
 {{- $permission := deepCopy (get $managed "permission") -}}
 {{- $_ := set $permission "bash" .permissions.bash -}}
 {{- $_ := set $managed "permission" $permission -}}

@@ -3,35 +3,92 @@ pi:
   tool_filter:
     read:
       allow:
-        - ~/.local/share/chezmoi/.opencode/local-failure-logs/**
+      - "~/.local/share/chezmoi/.opencode/local-failure-logs/**"
       deny:
-        - ~/.ssh
-        - ~/.ssh/**
-        - ~/.bashrc
-        - ~/.bash_profile
-        - ~/.profile
-        - ~/.zshrc
-        - ~/.zprofile
-        - ~/.aws
-        - ~/.aws/**
-        - ~/.config/gcloud
-        - ~/.config/gcloud/**
-        - ~/.kube/config
-        - ~/.npmrc
-        - ~/.pypirc
-        - ~/.git-credentials
-        - ~/.netrc
+      - "~/.ssh"
+      - "~/.ssh/**"
+      - "~/.bashrc"
+      - "~/.bash_profile"
+      - "~/.profile"
+      - "~/.zshrc"
+      - "~/.zprofile"
+      - "~/.aws"
+      - "~/.aws/**"
+      - "~/.config/gcloud"
+      - "~/.config/gcloud/**"
+      - "~/.kube/config"
+      - "~/.npmrc"
+      - "~/.pypirc"
+      - "~/.git-credentials"
+      - "~/.netrc"
     write:
       allow:
-        - ~/.local/share/chezmoi/.opencode/local-failure-logs/**
-        - ~/.config/opencode/KNOWLEDGE.yml
-        - ~/.config/opencode/KNOWLEDGE.local.yml
-        - ~/.config/opencode/knowledge-instructions/**
-        - ~/AppData/Local/Temp/opencode/**
-        - /tmp/opencode/**
-        - /dev/null
+      - "~/.local/share/chezmoi/.opencode/local-failure-logs/**"
+      - "~/.config/opencode/KNOWLEDGE.yml"
+      - "~/.config/opencode/KNOWLEDGE.local.yml"
+      - "~/.config/opencode/knowledge-instructions/**"
+      - "~/AppData/Local/Temp/opencode/**"
+      - "/tmp/opencode/**"
+      - "/dev/null"
       deny:
-        - .git
-        - .git/**
-        - '**/NUL'
+      - ".git"
+      - ".git/**"
+      - "**/NUL"
       outsideDefault: deny
+  settings:
+    showHardwareCursor: false
+    enableSkillCommands: false
+    transport: auto
+    markdown:
+      mermaid: streaming
+    doubleEscapeAction: tree
+    treeFilterMode: default
+    tuiMode: fullscreen
+    fullscreenScrollbar: auto
+    hideThinkingBlock: true
+    packages:
+    - npm:pi-subagents-lite
+    - npm:pi-mcp-adapter
+    - npm:pi-tool-display
+    - npm:pi-omplike-advisor
+    - git:github.com/ZenkakuHiragana/pi-compact-transcript@local/both-fixes
+    - source: git:github.com/rytswd/pi-agent-extensions
+      extensions:
+      - "-direnv/index.ts"
+      - "-fetch/index.ts"
+      - "-notify/index.ts"
+      - "-permission-gate/index.ts"
+      - "-slow-mode/index.ts"
+      - "-statusline/index.ts"
+    - npm:@cortexkit/pi-magic-context
+    - npm:pi-context-view
+    - npm:@tian.zuo/pi-antigravity
+  modes:
+    modes:
+      advisor:
+        provider: openai-codex
+        modelId: gpt-5.6-luna
+        thinkingLevel: medium
+  compact_transcript:
+    passthroughTools:
+    - edit
+    - write
+  subagents_lite:
+    agent:
+      disableDefaultAgents: true
+      systemPromptMode: replace
+    concurrency:
+      default: 32
+  tool_display:
+    registerToolOverrides:
+      edit: false
+      read: false
+    customToolOverrides:
+      mcp:
+        enabled: true
+        kind: generic
+        outputMode: hidden
+      mcpScript:
+        enabled: true
+        kind: generic
+        outputMode: hidden

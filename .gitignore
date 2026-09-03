@@ -2,7 +2,6 @@
 .chezmoidata/99-specific/*
 !.chezmoidata/99-specific/.gitkeep
 .chezmoitemplates/claude/node_modules/
-.chezmoitemplates/codex/config-specific.toml
 .chezmoitemplates/lazydocker/lazydocker-specific.yml
 .opencode/local-failure-logs/
 .opencode/work/

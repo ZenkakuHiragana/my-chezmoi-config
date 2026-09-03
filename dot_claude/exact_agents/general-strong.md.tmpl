@@ -1,14 +1,1 @@
-{{- $filename := base .chezmoi.targetFile -}}
-{{- $name := trimSuffix (ext $filename) $filename -}}
-{{- $agent := index .agents $name -}}
-{{- $profile := index .modelProfiles $agent.modelProfile -}}
-{{- $bodyTemplate := printf "prompt/agents/%s.md" $name -}}
----
-name: {{ $name }}
-description: {{ $agent.description | quote }}
-model: {{ template "prompt/agents/resolve.tmpl" (dict "values" $profile "harness" "claude") }}
-effort: {{ template "prompt/agents/resolve.tmpl" (dict "values" $agent.effort "harness" "claude") }}
-color: purple
----
-
-{{ includeTemplate $bodyTemplate . }}
+{{ includeTemplate "agent/config.tmpl" (dict "root" . "format" "claude") }}

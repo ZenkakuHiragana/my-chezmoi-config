@@ -1,0 +1,85 @@
+{{- $root := .root -}}
+{{- $format := .format -}}
+{{- $filename := base $root.chezmoi.targetFile -}}
+{{- $name := trimSuffix (ext $filename) $filename -}}
+{{- $agent := index $root.agents $name -}}
+{{- $profile := index $root.modelProfiles $agent.modelProfile -}}
+{{- $bodyTemplate := printf "prompt/agents/%s.md" $name -}}
+{{- $agentSettings := dict -}}
+{{- if hasKey $agent "settings" -}}
+{{- $agentSettings = get $agent "settings" -}}
+{{- end -}}
+{{- $claudeSettings := dict -}}
+{{- if hasKey $agentSettings "claude" -}}
+{{- $claudeSettings = get $agentSettings "claude" -}}
+{{- end -}}
+{{- $claudeColor := "cyan" -}}
+{{- if hasKey $claudeSettings "color" -}}
+{{- $claudeColor = get $claudeSettings "color" -}}
+{{- end -}}
+{{- $opencodeSettings := dict -}}
+{{- if hasKey $agentSettings "opencode" -}}
+{{- $opencodeSettings = get $agentSettings "opencode" -}}
+{{- end -}}
+{{- if eq $format "opencode" -}}
+---
+description: {{ $agent.description | quote }}
+mode: subagent
+model: {{ includeTemplate "prompt/agents/resolve.tmpl" (dict "values" $profile "harness" "opencode") }}
+variant: {{ includeTemplate "prompt/agents/resolve.tmpl" (dict "values" $agent.effort "harness" "opencode") }}
+{{ if hasKey $opencodeSettings "permission" }}
+{{- $permission := get $opencodeSettings "permission" }}
+permission:
+  edit: {{ get $permission "edit" }}
+  task: {{ get $permission "task" }}
+{{ end }}
+---
+
+{{ includeTemplate $bodyTemplate $root }}
+{{- else if eq $format "agy" -}}
+---
+name: {{ $name }}
+description: {{ $agent.description | quote }}
+model: {{ includeTemplate "prompt/agents/resolve.tmpl" (dict "values" $profile "harness" "agy") }}
+effort: {{ includeTemplate "prompt/agents/resolve.tmpl" (dict "values" $agent.effort "harness" "agy") }}
+---
+
+{{ includeTemplate $bodyTemplate $root }}
+{{- else if eq $format "claude" -}}
+---
+name: {{ $name }}
+description: {{ $agent.description | quote }}
+model: {{ includeTemplate "prompt/agents/resolve.tmpl" (dict "values" $profile "harness" "claude") }}
+effort: {{ includeTemplate "prompt/agents/resolve.tmpl" (dict "values" $agent.effort "harness" "claude") }}
+color: {{ $claudeColor }}
+---
+
+{{ includeTemplate $bodyTemplate $root }}
+{{- else if eq $format "codex" -}}
+name = {{ $name | quote }}
+description = {{ $agent.description | quote }}
+model = {{ includeTemplate "prompt/agents/resolve.tmpl" (dict "values" $profile "harness" "codex") | quote }}
+model_reasoning_effort = {{ includeTemplate "prompt/agents/resolve.tmpl" (dict "values" $agent.effort "harness" "codex") | quote }}
+
+developer_instructions = {{ includeTemplate $bodyTemplate $root | toJson }}
+{{- else if eq $format "omp" -}}
+---
+name: {{ $name }}
+description: {{ $agent.description | quote }}
+model: {{ includeTemplate "prompt/agents/resolve.tmpl" (dict "values" $profile "harness" "omp") }}
+thinking: {{ includeTemplate "prompt/agents/resolve.tmpl" (dict "values" $agent.effort "harness" "omp") }}
+exclude_extensions: [pi-instruction-nudge]
+---
+
+{{ includeTemplate $bodyTemplate $root }}
+{{- else if eq $format "pi" -}}
+---
+name: {{ $name }}
+description: {{ $agent.description | quote }}
+model: {{ includeTemplate "prompt/agents/resolve.tmpl" (dict "values" $profile "harness" "pi") }}
+thinking: {{ includeTemplate "prompt/agents/resolve.tmpl" (dict "values" $agent.effort "harness" "pi") }}
+exclude_extensions: [pi-instruction-nudge]
+---
+
+{{ includeTemplate $bodyTemplate $root }}
+{{- end -}}

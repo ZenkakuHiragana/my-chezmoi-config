@@ -117,7 +117,7 @@ test("resolves the shell:other placeholder to the tool not being targeted", () =
 test("CLI rejects an unsupported target tool", () => {
   const result = spawnSync(
     process.execPath,
-    [rendererPath, "", "{}", "zsh", "{}", "{}"],
+    [rendererPath, "", "{}", "zsh", "{}"],
     { encoding: "utf8" },
   );
 
@@ -128,7 +128,7 @@ test("CLI rejects an unsupported target tool", () => {
 test("CLI rejects a wrong argument count", () => {
   const result = spawnSync(
     process.execPath,
-    [rendererPath, "", "{}", "Bash", "{}", "{}", "{}"],
+    [rendererPath, "", "{}", "Bash", "{}", "{}"],
     { encoding: "utf8" },
   );
 
@@ -141,7 +141,7 @@ test("CLI rejects a wrong argument count", () => {
 test("CLI identifies malformed existing settings input by location", () => {
   const result = spawnSync(
     process.execPath,
-    [rendererPath, "{\n  broken\n}", "{}", "PowerShell", "{}", "{}"],
+    [rendererPath, "{\n  broken\n}", "{}", "PowerShell", "{}"],
     { encoding: "utf8" },
   );
 
@@ -155,7 +155,7 @@ test("CLI identifies malformed existing settings input by location", () => {
 test("CLI names the malformed template argument", () => {
   const result = spawnSync(
     process.execPath,
-    [rendererPath, "", "{", "PowerShell", "{}", "{}"],
+    [rendererPath, "", "{", "PowerShell", "{}"],
     { encoding: "utf8" },
   );
 
@@ -170,7 +170,7 @@ test("CLI reports the conflicting permission rules", () => {
   const rules = JSON.stringify({ "git *": "deny", "git status": "allow" });
   const result = spawnSync(
     process.execPath,
-    [rendererPath, "", "{}", "PowerShell", rules, "{}"],
+    [rendererPath, "", "{}", "PowerShell", rules],
     { encoding: "utf8" },
   );
 
@@ -258,41 +258,10 @@ test("excludes mcpServers from every settings input", () => {
       }),
       "PowerShell",
       "{}",
-      JSON.stringify({ mcpServers: { specific: {} } }),
     ),
   );
 
   assert.equal(rendered.mcpServers, undefined);
-});
-
-test("combines specific permissions and overrides specific plugins", () => {
-  const rendered = JSON.parse(
-    renderSettings(
-      "",
-      JSON.stringify({
-        permissions: { allow: ["common"], deny: ["blocked"] },
-        enabledPlugins: { "shared@example": true },
-      }),
-      "Bash",
-      "{}",
-      JSON.stringify({
-        permissions: { allow: ["machine"], deny: ["machine-blocked"] },
-        enabledPlugins: {
-          "shared@example": false,
-          "machine@example": true,
-        },
-      }),
-    ),
-  );
-
-  assert.deepEqual(rendered.permissions, {
-    allow: ["common", "machine"],
-    deny: ["blocked", "machine-blocked"],
-  });
-  assert.deepEqual(rendered.enabledPlugins, {
-    "shared@example": false,
-    "machine@example": true,
-  });
 });
 
 test("sets only missing initial values and preserves other settings", () => {

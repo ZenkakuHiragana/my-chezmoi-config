@@ -3,7 +3,7 @@
 {{- if ne (.chezmoi.stdin | trim) "" -}}
 {{- $existing = fromJson .chezmoi.stdin -}}
 {{- end -}}
-{{- $managed := include ".chezmoitemplates/pi/modes.json" | fromJson -}}
+{{- $managed := deepCopy .pi.modes -}}
 {{- if not (hasKey $existing "modes") -}}
 {{- $_ := set $existing "modes" (dict) -}}
 {{- end -}}

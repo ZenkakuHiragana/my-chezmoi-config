@@ -1,0 +1,8 @@
+# Oh-My-Pi のグローバル設定。
+omp:
+  keybindings:
+    tui.input.newLine:
+      - alt+enter
+      - alt+n
+      - shift+enter
+      - ctrl+j

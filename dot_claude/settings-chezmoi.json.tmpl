@@ -1,4 +1,4 @@
-{{- /* chezmoi が管理する Claude Code の完全な設定。 */ -}}
+{{- /* Claude Code の設定値を native 形式へ変換する。 */ -}}
 {{- $rendererPath := joinPath .chezmoi.sourceDir ".chezmoitemplates" "claude" "render-settings.js" -}}
 {{- $targetTool := "Bash" -}}
 {{- if eq .chezmoi.os "windows" -}}
@@ -8,10 +8,6 @@
 {{- $nudgeLiteral := $nudge | replace "\\" "\\\\" | replace "'" "\\'" | replace "\r" "" | replace "\n" "\\n" -}}
 {{- $nudgeScript := printf "let s='';process.stdin.on('data',c=>s+=c).on('end',()=>{let a='';try{a=JSON.parse(s).agent_type||''}catch(e){}if(a&&a!=='build')return;process.stdout.write(JSON.stringify({hookSpecificOutput:{hookEventName:'SessionStart',additionalContext:'%s'}}))});" $nudgeLiteral -}}
 {{- $sessionStartHook := dict "type" "command" "command" "node" "args" (list "-e" $nudgeScript) "timeout" 5 -}}
-{{- $claude := deepCopy .claude -}}
-{{- $claudeSpecific := dict -}}
-{{- if hasKey . "claude_specific" -}}
-{{- $claudeSpecific = .claude_specific -}}
-{{- end -}}
+{{- $claude := deepCopy .claude.settings -}}
 {{- $_ := set $claude "hooks" (dict "SessionStart" (list (dict "hooks" (list $sessionStartHook)))) -}}
-{{- output "node" $rendererPath "" ($claude | toJson) $targetTool (.permissions.bash | toJson) ($claudeSpecific | toJson) -}}
+{{- output "node" $rendererPath "" ($claude | toJson) $targetTool (.permissions.bash | toJson) -}}

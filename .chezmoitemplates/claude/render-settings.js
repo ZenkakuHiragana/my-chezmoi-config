@@ -85,13 +85,6 @@ function loadManagedSettings(jsonText) {
   );
 }
 
-function loadSpecificSettings(jsonText) {
-  return requireObject(
-    parseJson(jsonText, "Claude-specific settings argument"),
-    "Claude-specific settings",
-  );
-}
-
 function loadBashRules(jsonText) {
   const value = requireObject(
     parseJson(jsonText, "permissions.bash argument"),
@@ -480,54 +473,21 @@ function syncPermissions(text, desired) {
   return result;
 }
 
-function mergePermissionSources(base, specific) {
-  const result = {};
-  for (const action of PERMISSION_ACTIONS) {
-    const left = base[action] ?? [];
-    const right = specific[action] ?? [];
-    if (!Array.isArray(left) || !Array.isArray(right))
-      throw new RenderError(`permissions.${action} must be an array`);
-    const merged = mergeUnique(left, right);
-    if (merged.length > 0) result[action] = merged;
-  }
-  return result;
-}
-
 function renderSettings(
   existingJson,
   managedJson,
   targetTool,
   bashRulesJson,
-  specificJson = "{}",
 ) {
   const otherTool = resolveOtherShellTool(targetTool);
   const managed = structuredClone(loadManagedSettings(managedJson));
-  const specific = structuredClone(loadSpecificSettings(specificJson));
   resolvePermissionPlaceholders(managed, otherTool);
-  resolvePermissionPlaceholders(specific, otherTool);
 
-  const managedPermissions = requireObject(
+  const desired = structuredClone(managed);
+  desired.permissions = requireObject(
     managed.permissions ?? {},
     "managed permissions",
   );
-  const specificPermissions = requireObject(
-    specific.permissions ?? {},
-    "Claude-specific permissions",
-  );
-  const desired = structuredClone(managed);
-  desired.permissions = mergePermissionSources(
-    managedPermissions,
-    specificPermissions,
-  );
-  if (Object.hasOwn(managed, "enabledPlugins") || Object.hasOwn(specific, "enabledPlugins")) {
-    desired.enabledPlugins = {
-      ...requireObject(managed.enabledPlugins ?? {}, "managed enabledPlugins"),
-      ...requireObject(
-        specific.enabledPlugins ?? {},
-        "Claude-specific enabledPlugins",
-      ),
-    };
-  }
 
   const rules = loadBashRules(bashRulesJson);
   mergeProjectedPermissions(
@@ -553,10 +513,10 @@ function renderSettings(
 }
 
 function main(argv) {
-  if (argv.length !== 5) {
+  if (argv.length !== 4) {
     process.stderr.write(
       "usage: render-settings.js <existing-settings-json> <managed-settings-json> " +
-        "<target-tool> <bash-rules-json> <claude-specific-json>\n",
+        "<target-tool> <bash-rules-json>\n",
     );
     return 2;
   }

@@ -7,6 +7,9 @@ agents:
     effort:
       default: minimal
       claude: high
+    settings:
+      claude:
+        color: cyan
   general-strong:
     description: >
       汎用サブエージェント。複雑なタスク向け。
@@ -15,6 +18,9 @@ agents:
     effort:
       default: medium
       claude: high
+    settings:
+      claude:
+        color: purple
   requirement-reviewer:
     description: >
       要件契約候補、または固定済み要件契約から派生した仕様・作業契約を独立検査するときに使う。
@@ -23,6 +29,13 @@ agents:
     effort:
       default: medium
       claude: high
+    settings:
+      claude:
+        color: purple
+      opencode:
+        permission:
+          edit: deny
+          task: deny
   review-audit:
     description: >
       初回レビューの固定済み指摘集合について、親エージェントの裁定と該当する修正候補だけを監査するときに使う。
@@ -31,14 +44,23 @@ agents:
     effort:
       default: minimal
       claude: medium
+    settings:
+      claude:
+        color: purple
+      opencode:
+        permission:
+          edit: deny
+          task: deny
 modelProfiles:
   fast:
     default: openai-codex/gpt-5.6-luna
     claude: sonnet
     codex: gpt-5.6-luna
     opencode: openai/gpt-5.6-luna
+    agy: flash
   strong:
     default: openai-codex/gpt-5.6-luna
     claude: opus
     codex: gpt-5.6-luna
     opencode: openai/gpt-5.6-luna
+    agy: flash
