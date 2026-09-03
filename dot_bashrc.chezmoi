@@ -1,0 +1,8 @@
+# Managed by chezmoi. Source this file from ~/.bashrc to enable the wrapper.
+claude() {
+    command claude --settings "$HOME/.claude/settings-chezmoi.json" "$@"
+}
+
+codex() {
+    command codex --profile chezmoi "$@"
+}

@@ -1,0 +1,13 @@
+{{- /* chezmoi:modify-template */ -}}
+{{- $existing := dict -}}
+{{- if ne (.chezmoi.stdin | trim) "" -}}
+{{- $existing = fromJson .chezmoi.stdin -}}
+{{- end -}}
+{{- $managed := include ".chezmoitemplates/pi/modes.json" | fromJson -}}
+{{- if not (hasKey $existing "modes") -}}
+{{- $_ := set $existing "modes" (dict) -}}
+{{- end -}}
+{{- range $key, $value := $managed.modes -}}
+{{- $_ := set (get $existing "modes") $key $value -}}
+{{- end -}}
+{{- $existing | toPrettyJson -}}

@@ -126,3 +126,12 @@ if (Test-InteractiveShell) {
 }
 
 $env:OPENCODE_DISABLE_CLAUDE_CODE=1
+
+function claude {
+    & claude.exe --settings "$HOME/.claude/settings-chezmoi.json" @args
+}
+
+function codex {
+    $command = Get-Command codex -CommandType Application,ExternalScript -ErrorAction Stop | Select-Object -First 1
+    & $command.Source --profile chezmoi @args
+}

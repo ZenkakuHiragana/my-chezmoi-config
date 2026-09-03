@@ -1,0 +1,7 @@
+{{- /* chezmoi:modify-template */ -}}
+{{- $existing := dict -}}
+{{- if ne (.chezmoi.stdin | trim) "" -}}
+{{- $existing = fromJson .chezmoi.stdin -}}
+{{- end -}}
+{{- $_ := set $existing "tui.input.newLine" (list "alt+enter" "alt+n" "shift+enter" "ctrl+j") -}}
+{{- $existing | toPrettyJson -}}

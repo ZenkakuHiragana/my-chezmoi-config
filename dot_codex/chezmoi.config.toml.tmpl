@@ -1,0 +1,21 @@
+{{- $base := include ".chezmoitemplates/codex/config.base.toml" | trim -}}
+{{- $tables := include ".chezmoitemplates/codex/config.tables.toml" | trim -}}
+{{- $specific := "" -}}
+{{- if stat ".chezmoitemplates/codex/config-specific.toml" -}}
+{{- $specific = include ".chezmoitemplates/codex/config-specific.toml" | trim -}}
+{{- end -}}
+{{- $mcpPath := joinPath .chezmoi.homeDir ".config" "mcp" "mcp.json" -}}
+{{ $base }}
+
+[mcp_servers.project_mcp]
+command = "npx"
+args = {{ list "-y" "super-mcp-router@2.7.7" "--config" $mcpPath | toJson }}
+{{- if $specific }}
+
+# Machine-specific additions from local source state
+{{ $specific }}
+{{- end }}
+{{- if $tables }}
+
+{{ $tables }}
+{{- end }}

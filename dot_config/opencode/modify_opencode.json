@@ -1,0 +1,22 @@
+{{- /* chezmoi:modify-template */ -}}
+{{- $existing := dict -}}
+{{- if ne (.chezmoi.stdin | trim) "" -}}
+{{- $existing = fromJson .chezmoi.stdin -}}
+{{- end -}}
+{{- $managed := deepCopy .opencode -}}
+{{- $permission := deepCopy (get $managed "permission") -}}
+{{- $_ := set $permission "bash" .permissions.bash -}}
+{{- $_ := set $managed "permission" $permission -}}
+{{- range $key, $value := $managed -}}
+{{- if ne $key "permission" -}}
+{{- $_ := set $existing $key $value -}}
+{{- end -}}
+{{- end -}}
+{{- if not (hasKey $existing "permission") -}}
+{{- $_ := set $existing "permission" $permission -}}
+{{- else -}}
+{{- range $key, $value := $permission -}}
+{{- $_ := set (get $existing "permission") $key $value -}}
+{{- end -}}
+{{- end -}}
+{{- $existing | toPrettyJson -}}

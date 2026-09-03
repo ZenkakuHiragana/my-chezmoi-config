@@ -1,5 +1,0 @@
-{{- $config := deepCopy .opencode -}}
-{{- $permission := deepCopy (get $config "permission") -}}
-{{- $_ := set $permission "bash" .permissions.bash -}}
-{{- $_ := set $config "permission" $permission -}}
-{{- $config | toPrettyJson -}}
