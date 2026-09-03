@@ -2,6 +2,8 @@
 .chezmoidata/opencode-specific.json
 .chezmoidata/opencode-specific.jsonc
 .chezmoidata/pi-specific.json
+.chezmoidata/claude-specific.json
+.chezmoitemplates/claude/node_modules/
 .chezmoidata/pi-specific.jsonc
 .chezmoitemplates/codex/config-specific.toml
 .chezmoitemplates/lazydocker/lazydocker-specific.yml

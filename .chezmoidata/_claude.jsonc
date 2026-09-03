@@ -1,20 +1,16 @@
 {
   "claude": {
-    // 初回生成時の fallback。既存の ~/.claude/settings.json に値があればそちらを保持する。
+    // 初回生成時の初期値。既存の ~/.claude/settings.json に値があればそちらを保持する。
     "model": "sonnet",
     "agent": "build",
+    "effortLevel": "high",
+    "showThinkingSummaries": true,
+    "promptSuggestionEnabled": false,
+    // 共通で完全管理するプラグイン。環境別設定は claude_specific.enabledPlugins へ追加する。
     "enabledPlugins": {
       "lua-lsp@claude-plugins-official": true,
     },
-    // 初回生成時の fallback。Claude Code 側の切り替えで既存値が変わった場合は保持する。
-    "effortLevel": "high",
-    "autoUpdatesChannel": "latest",
-    "showThinkingSummaries": true,
-    "theme": "auto",
-    "verbose": false,
-    // Claude Code の設定変更で追加されたキー。並べ替え正規化の差分を防ぐため正本に持つ。
-    "promptSuggestionEnabled": false,
-    // SessionStart フックは dot_claude/settings.json.tmpl が共有断片から組み立てる。
+    // SessionStart フックは dot_claude/modify_settings.json が共有断片から組み立てる。
     // 督促文の正本は .chezmoitemplates/prompt/instruction-nudge.md。
     "permissions": {
       // - Agent ... 残す。

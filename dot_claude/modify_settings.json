@@ -1,4 +1,4 @@
-{{- $existingSettingsPath := joinPath .chezmoi.homeDir ".claude" "settings.json" -}}
+{{- /* chezmoi:modify-template */ -}}
 {{- $rendererPath := joinPath .chezmoi.sourceDir ".chezmoitemplates" "claude" "render-settings.js" -}}
 {{- $targetTool := "Bash" -}}
 {{- if eq .chezmoi.os "windows" -}}
@@ -11,5 +11,9 @@
 {{- $nudgeScript := printf "let s='';process.stdin.on('data',c=>s+=c).on('end',()=>{let a='';try{a=JSON.parse(s).agent_type||''}catch(e){}if(a&&a!=='build')return;process.stdout.write(JSON.stringify({hookSpecificOutput:{hookEventName:'SessionStart',additionalContext:'%s'}}))});" $nudgeLiteral -}}
 {{- $sessionStartHook := dict "type" "command" "command" "node" "args" (list "-e" $nudgeScript) "timeout" 5 -}}
 {{- $claude := deepCopy .claude -}}
+{{- $claudeSpecific := dict -}}
+{{- if hasKey . "claude_specific" -}}
+{{- $claudeSpecific = .claude_specific -}}
+{{- end -}}
 {{- $_ := set $claude "hooks" (dict "SessionStart" (list (dict "hooks" (list $sessionStartHook)))) -}}
-{{- output "node" $rendererPath $existingSettingsPath ($claude | toJson) $targetTool (.opencode.permission.bash | toJson) -}}
+{{- output "node" $rendererPath .chezmoi.stdin ($claude | toJson) $targetTool (.opencode.permission.bash | toJson) ($claudeSpecific | toJson) -}}

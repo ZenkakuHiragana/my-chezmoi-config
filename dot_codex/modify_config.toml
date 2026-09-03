@@ -1,7 +1,7 @@
+{{- /* chezmoi:modify-template */ -}}
 {{- $basePath := ".chezmoitemplates/codex/config.base.toml" -}}
 {{- $tablesPath := ".chezmoitemplates/codex/config.tables.toml" -}}
 {{- $specificPath := ".chezmoitemplates/codex/config-specific.toml" -}}
-{{- $existingConfigPath := joinPath .chezmoi.homeDir ".codex" "config.toml" -}}
 {{- $extractorPath := joinPath .chezmoi.sourceDir ".chezmoitemplates" "codex" "extract-project-trust.js" -}}
 {{- $base := include $basePath | trim -}}
 {{- $tables := include $tablesPath | trim -}}
@@ -9,10 +9,7 @@
 {{- if stat $specificPath -}}
 {{- $specific = include $specificPath | trim -}}
 {{- end -}}
-{{- $preservedProjects := "" -}}
-{{- if stat $existingConfigPath -}}
-{{- $preservedProjects = output "node" $extractorPath $existingConfigPath | trim -}}
-{{- end -}}
+{{- $preservedProjects := output "node" $extractorPath .chezmoi.stdin | trim -}}
 {{ $base }}
 {{- if $specific }}
 
