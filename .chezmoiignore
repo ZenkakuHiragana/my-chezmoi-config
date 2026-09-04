@@ -11,6 +11,7 @@ tools/**
 .config/lazygit/
 .config/nvim/**
 .config/zellij/
+.bashrc.chezmoi
 {{- else if eq .chezmoi.os "linux" }}
 AppData/
 Documents/
