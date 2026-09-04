@@ -1,12 +1,22 @@
 {{- $sourceDir := .chezmoi.sourceDir -}}
-{{- $servers := deepCopy .mcpServers -}}
-{{- range $name, $server := $servers -}}
-  {{- if hasKey $server "args" -}}
-    {{- $args := list -}}
-    {{- range $arg := get $server "args" -}}
-      {{- $args = append $args (replace "{file:~/.config/opencode/skill-kb-entrypoint.txt}" (joinPath $sourceDir "tools" "skill-kb" "dist" "src" "index.js") $arg) -}}
+{{- $servers := dict -}}
+{{- range $name, $source := .mcpServers -}}
+  {{- if ne (dig "enabled" true $source) false -}}
+    {{- $server := deepCopy $source -}}
+    {{- $_ := unset $server "enabled" -}}
+    {{- if hasKey $server "command" -}}
+      {{- $_ := set $server "type" "stdio" -}}
+    {{- else if hasKey $server "url" -}}
+      {{- $_ := set $server "type" "http" -}}
     {{- end -}}
-    {{- $_ := set $server "args" $args -}}
+    {{- if hasKey $server "args" -}}
+      {{- $args := list -}}
+      {{- range $arg := get $server "args" -}}
+        {{- $args = append $args (replace "{file:~/.config/opencode/skill-kb-entrypoint.txt}" (joinPath $sourceDir "tools" "skill-kb" "dist" "src" "index.js") $arg) -}}
+      {{- end -}}
+      {{- $_ := set $server "args" $args -}}
+    {{- end -}}
+    {{- $_ := set $servers $name $server -}}
   {{- end -}}
 {{- end -}}
 {{- dict "mcpServers" $servers | toPrettyJson -}}

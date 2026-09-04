@@ -8,33 +8,30 @@ const test = require("node:test");
 const rendererPath = path.join(__dirname, "render-settings.js");
 const { globPatternCovers, renderSettings } = require(rendererPath);
 
-test("renders preserved settings and projected permissions", () => {
-  const rendered = renderSettings(
-    JSON.stringify({ model: "existing-model", effortLevel: "xhigh" }),
-    JSON.stringify({ model: "fallback", permissions: { deny: ["Bash"] } }),
-    "PowerShell",
-    JSON.stringify({ "git status": "allow", "git push *": "deny", "*": "ask" }),
+function render(managed, targetTool = "PowerShell", bashRules = {}) {
+  return JSON.parse(
+    renderSettings(JSON.stringify(managed), targetTool, JSON.stringify(bashRules)),
   );
+}
 
-  assert.deepEqual(JSON.parse(rendered), {
-    model: "existing-model",
-    effortLevel: "xhigh",
-    permissions: {
-      deny: ["Bash", "PowerShell(git push *)"],
-      allow: ["PowerShell(git status)"],
+test("renders managed settings and projected permissions", () => {
+  assert.deepEqual(
+    render(
+      { model: "sonnet", permissions: { deny: ["Bash"] } },
+      "PowerShell",
+      { "git status": "allow", "git push *": "deny", "*": "ask" },
+    ),
+    {
+      model: "sonnet",
+      permissions: {
+        deny: ["Bash", "PowerShell(git push *)"],
+        allow: ["PowerShell(git status)"],
+      },
     },
-  });
-});
-
-test("treats empty existing settings input as a first run", () => {
-  const rendered = JSON.parse(
-    renderSettings("", JSON.stringify({ agent: "build" }), "PowerShell", "{}"),
   );
-
-  assert.equal(rendered.agent, "build");
 });
 
-test("preserves the managed default agent and hooks", () => {
+test("preserves managed hooks", () => {
   const managed = {
     agent: "build",
     hooks: {
@@ -53,71 +50,46 @@ test("preserves the managed default agent and hooks", () => {
     },
   };
 
-  const rendered = JSON.parse(
-    renderSettings("", JSON.stringify(managed), "PowerShell", "{}"),
-  );
-
-  assert.equal(rendered.agent, "build");
-  assert.deepEqual(rendered.hooks, managed.hooks);
+  assert.deepEqual(render(managed), { ...managed, permissions: {} });
 });
 
-test("never emits mcpServers even when existing settings carry it", () => {
-  const rendered = JSON.parse(
-    renderSettings(
-      JSON.stringify({
-        model: "existing-model",
-        mcpServers: { legacy: { type: "stdio", command: "old" } },
-      }),
-      JSON.stringify({}),
-      "Bash",
-      "{}",
-    ),
+test("never emits mcpServers from managed settings", () => {
+  assert.deepEqual(
+    render({ mcpServers: { managed: {} }, permissions: {} }),
+    { permissions: {} },
   );
-
-  assert.equal(rendered.mcpServers, undefined);
-  assert.equal(rendered.model, "existing-model");
 });
 
 test("projects permissions to Bash on non-Windows targets", () => {
-  const rendered = renderSettings(
-    "",
-    JSON.stringify({ permissions: { deny: ["PowerShell"] } }),
-    "Bash",
-    JSON.stringify({ ls: "allow", "*": "ask" }),
+  assert.deepEqual(
+    render(
+      { permissions: { deny: ["PowerShell"] } },
+      "Bash",
+      { ls: "allow", "*": "ask" },
+    ).permissions,
+    {
+      deny: ["PowerShell"],
+      allow: ["Bash(ls)"],
+    },
   );
-
-  assert.deepEqual(JSON.parse(rendered).permissions, {
-    deny: ["PowerShell"],
-    allow: ["Bash(ls)"],
-  });
 });
 
-test("resolves the shell:other placeholder to the tool not being targeted", () => {
-  const renderedForWindows = renderSettings(
-    "",
-    JSON.stringify({ permissions: { deny: ["{shell:other}"] } }),
-    "PowerShell",
-    "{}",
+test("resolves the shell:other placeholder to the other tool", () => {
+  assert.deepEqual(
+    render({ permissions: { deny: ["{shell:other}"] } }, "PowerShell")
+      .permissions,
+    { deny: ["Bash"] },
   );
-  assert.deepEqual(JSON.parse(renderedForWindows).permissions, {
-    deny: ["Bash"],
-  });
-
-  const renderedForLinux = renderSettings(
-    "",
-    JSON.stringify({ permissions: { deny: ["{shell:other}"] } }),
-    "Bash",
-    "{}",
+  assert.deepEqual(
+    render({ permissions: { deny: ["{shell:other}"] } }, "Bash").permissions,
+    { deny: ["PowerShell"] },
   );
-  assert.deepEqual(JSON.parse(renderedForLinux).permissions, {
-    deny: ["PowerShell"],
-  });
 });
 
 test("CLI rejects an unsupported target tool", () => {
   const result = spawnSync(
     process.execPath,
-    [rendererPath, "", "{}", "zsh", "{}"],
+    [rendererPath, "{}", "zsh", "{}"],
     { encoding: "utf8" },
   );
 
@@ -128,34 +100,20 @@ test("CLI rejects an unsupported target tool", () => {
 test("CLI rejects a wrong argument count", () => {
   const result = spawnSync(
     process.execPath,
-    [rendererPath, "", "{}", "Bash", "{}", "{}"],
+    [rendererPath, "{}", "Bash"],
     { encoding: "utf8" },
   );
 
   assert.equal(result.status, 2);
   assert.match(result.stderr, /usage: render-settings\.js/);
   assert.match(result.stderr, /<bash-rules-json>/);
-  assert.doesNotMatch(result.stderr, /opencode-bash-json/);
+  assert.doesNotMatch(result.stderr, /existing-settings-json/);
 });
 
-test("CLI identifies malformed existing settings input by location", () => {
+test("CLI identifies malformed managed settings input", () => {
   const result = spawnSync(
     process.execPath,
-    [rendererPath, "{\n  broken\n}", "{}", "PowerShell", "{}"],
-    { encoding: "utf8" },
-  );
-
-  assert.equal(result.status, 1);
-  assert.equal(result.stdout, "");
-  assert.match(result.stderr, /render-settings\.js: existing settings input/);
-  assert.match(result.stderr, /invalid JSON/);
-  assert.match(result.stderr, /line 2/i);
-});
-
-test("CLI names the malformed template argument", () => {
-  const result = spawnSync(
-    process.execPath,
-    [rendererPath, "", "{", "PowerShell", "{}"],
+    [rendererPath, "{", "PowerShell", "{}"],
     { encoding: "utf8" },
   );
 
@@ -167,10 +125,14 @@ test("CLI names the malformed template argument", () => {
 });
 
 test("CLI reports the conflicting permission rules", () => {
-  const rules = JSON.stringify({ "git *": "deny", "git status": "allow" });
   const result = spawnSync(
     process.execPath,
-    [rendererPath, "", "{}", "PowerShell", rules],
+    [
+      rendererPath,
+      "{}",
+      "PowerShell",
+      JSON.stringify({ "git *": "deny", "git status": "allow" }),
+    ],
     { encoding: "utf8" },
   );
 
@@ -181,115 +143,6 @@ test("CLI reports the conflicting permission rules", () => {
   );
   assert.match(result.stderr, /#1 "git \*" => "deny"/);
   assert.match(result.stderr, /#2 "git status" => "allow"/);
-});
-
-test("does not rewrite semantically unchanged settings", () => {
-  const existing = `{
-  "unmanaged": { "keep": 1 },
-  "permissions": {
-    "deny": ["Read", "Bash"],
-    "allow": ["AskUserQuestion"]
-  },
-  "enabledPlugins": { "plugin@example": true },
-  "model": "existing"
-}\n`;
-  const rendered = renderSettings(
-    existing,
-    JSON.stringify({
-      model: "fallback",
-      permissions: {
-        deny: ["Bash", "Read"],
-        allow: ["AskUserQuestion"],
-      },
-      enabledPlugins: { "plugin@example": true },
-    }),
-    "PowerShell",
-    "{}",
-  );
-
-  assert.equal(rendered, existing);
-});
-
-test("edits only changed managed values", () => {
-  const existing = `{
-  "unmanaged": { "keep": 1 },
-  "permissions": {
-    "deny": ["old"],
-    "allow": ["keep"]
-  },
-  "enabledPlugins": { "plugin@example": true }
-}\n`;
-  const rendered = renderSettings(
-    existing,
-    JSON.stringify({
-      permissions: { deny: ["new"], allow: ["keep"] },
-      enabledPlugins: { "plugin@example": true },
-    }),
-    "PowerShell",
-    "{}",
-  );
-
-  assert.match(rendered, /"unmanaged": \{ "keep": 1 \}/);
-  assert.match(rendered, /"deny": \[\n      "new"\n    \]/);
-  assert.match(rendered, /"enabledPlugins": \{ "plugin@example": true \}/);
-  assert.doesNotMatch(rendered, /"old"/);
-});
-
-test("inserts a missing root key without reformatting an inline object", () => {
-  const existing = '{\n  "permissions": { "deny": ["x"] }\n}\n';
-  const rendered = renderSettings(
-    existing,
-    JSON.stringify({ model: "m", permissions: { deny: ["x"] } }),
-    "PowerShell",
-    "{}",
-  );
-
-  assert.match(rendered, /"permissions": \{ "deny": \["x"\] \}/);
-  assert.match(rendered, /\n  "model": "m"\n/);
-});
-
-test("excludes mcpServers from every settings input", () => {
-  const rendered = JSON.parse(
-    renderSettings(
-      JSON.stringify({ mcpServers: { existing: {} } }),
-      JSON.stringify({
-        permissions: {},
-        mcpServers: { managed: {} },
-      }),
-      "PowerShell",
-      "{}",
-    ),
-  );
-
-  assert.equal(rendered.mcpServers, undefined);
-});
-
-test("sets only missing initial values and preserves other settings", () => {
-  const rendered = JSON.parse(
-    renderSettings(
-      JSON.stringify({
-        model: "existing",
-        autoUpdatesChannel: "beta",
-      }),
-      JSON.stringify({
-        model: "fallback",
-        agent: "build",
-        effortLevel: "high",
-        showThinkingSummaries: true,
-        promptSuggestionEnabled: false,
-        permissions: {},
-      }),
-      "PowerShell",
-      "{}",
-    ),
-  );
-
-  assert.equal(rendered.model, "existing");
-  assert.equal(rendered.agent, "build");
-  assert.equal(rendered.effortLevel, "high");
-  assert.equal(rendered.showThinkingSummaries, true);
-  assert.equal(rendered.promptSuggestionEnabled, false);
-  assert.equal(rendered.autoUpdatesChannel, "beta");
 });
 
 test("glob coverage handles non-BMP characters as single symbols", () => {

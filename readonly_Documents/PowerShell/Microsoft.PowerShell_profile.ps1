@@ -128,7 +128,7 @@ if (Test-InteractiveShell) {
 $env:OPENCODE_DISABLE_CLAUDE_CODE=1
 
 function claude {
-    & claude.exe --settings "$HOME/.claude/settings-chezmoi.json" @args
+    & claude.exe --settings "$HOME/.claude/settings-chezmoi.json" --mcp-config "$HOME/.config/mcp/mcp.json" @args
 }
 
 function codex {

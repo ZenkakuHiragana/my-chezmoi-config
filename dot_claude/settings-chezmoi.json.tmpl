@@ -10,4 +10,4 @@
 {{- $sessionStartHook := dict "type" "command" "command" "node" "args" (list "-e" $nudgeScript) "timeout" 5 -}}
 {{- $claude := deepCopy .claude.settings -}}
 {{- $_ := set $claude "hooks" (dict "SessionStart" (list (dict "hooks" (list $sessionStartHook)))) -}}
-{{- output "node" $rendererPath "" ($claude | toJson) $targetTool (.permissions.bash | toJson) -}}
+{{- output "node" $rendererPath ($claude | toJson) $targetTool (.permissions.bash | toJson) -}}

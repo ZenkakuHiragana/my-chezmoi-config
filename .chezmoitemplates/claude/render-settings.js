@@ -1,21 +1,5 @@
 "use strict";
 
-const {
-  applyEdits,
-  findNodeAtLocation,
-  modify,
-  parse,
-  parseTree,
-  printParseErrorCode,
-} = require("jsonc-parser");
-
-const INITIAL_KEYS = [
-  "model",
-  "agent",
-  "effortLevel",
-  "showThinkingSummaries",
-  "promptSuggestionEnabled",
-];
 const PERMISSION_ACTIONS = ["allow", "ask", "deny"];
 const PERMISSION_PRIORITY = { allow: 1, ask: 2, deny: 3 };
 const TARGET_TOOLS = ["PowerShell", "Bash"];
@@ -51,31 +35,6 @@ function requireObject(value, label) {
     throw new RenderError(`${label} must be a JSON object`);
   }
   return value;
-}
-
-function parseJsonc(jsonText, label) {
-  const errors = [];
-  const value = parse(jsonText, errors);
-  if (errors.length > 0) {
-    const error = errors[0];
-    const before = jsonText.slice(0, error.offset);
-    const line = before.split("\n").length;
-    const lastNewline = before.lastIndexOf("\n");
-    const column = error.offset - lastNewline;
-    throw new RenderError(
-      `${label} contains invalid JSON (${`line ${line}, column ${column}: ${printParseErrorCode(error.error)}`})`,
-    );
-  }
-  return value;
-}
-
-function loadExistingSettings(jsonText) {
-  if (jsonText === "") return {};
-
-  return requireObject(
-    parseJsonc(jsonText, "existing settings input"),
-    "existing settings input",
-  );
 }
 
 function loadManagedSettings(jsonText) {
@@ -289,203 +248,12 @@ function mergeProjectedPermissions(settings, targetTool, projected) {
   }
 }
 
-function getAtPath(value, path) {
-  let current = value;
-  for (const segment of path) {
-    if (current === null || typeof current !== "object") return undefined;
-    if (!Object.hasOwn(current, segment)) return undefined;
-    current = current[segment];
-  }
-  return current;
-}
-
-function canonicalize(value) {
-  if (Array.isArray(value)) return value.map(canonicalize);
-  if (value !== null && typeof value === "object") {
-    return Object.fromEntries(
-      Object.keys(value)
-        .sort()
-        .map((key) => [key, canonicalize(value[key])]),
-    );
-  }
-  return value;
-}
-
-function semanticallyEqual(left, right) {
-  return JSON.stringify(canonicalize(left)) === JSON.stringify(canonicalize(right));
-}
-
-function arraysSemanticallyEqual(left, right) {
-  if (!Array.isArray(left) || !Array.isArray(right) || left.length !== right.length)
-    return false;
-  const canonicalItems = (items) =>
-    items.map((item) => JSON.stringify(canonicalize(item))).sort();
-  return semanticallyEqual(canonicalItems(left), canonicalItems(right));
-}
-
-function formattingOptions(text) {
-  return { insertSpaces: true, tabSize: 2, eol: text.includes("\r\n") ? "\r\n" : "\n" };
-}
-
-function lineIndentAt(text, offset) {
-  const lineStart = text.lastIndexOf("\n", offset - 1) + 1;
-  return /^[ \t]*/.exec(text.slice(lineStart, offset))[0];
-}
-
-function formatInsertedValue(value, indent, multiline) {
-  const serialized = JSON.stringify(value, null, multiline ? 2 : undefined);
-  return multiline ? serialized.replace(/\n/g, `\n${indent}`) : serialized;
-}
-
-function insertObjectProperty(text, parentPath, key, value) {
-  const errors = [];
-  const tree = parseTree(text, errors);
-  if (errors.length > 0) return applyEdits(text, modify(text, [...parentPath, key], value, {
-    formattingOptions: formattingOptions(text),
-  }));
-  const objectNode = findNodeAtLocation(tree, parentPath);
-  if (!objectNode || objectNode.type !== "object")
-    return applyEdits(text, modify(text, [...parentPath, key], value, {
-      formattingOptions: formattingOptions(text),
-    }));
-
-  const closeOffset = objectNode.offset + objectNode.length - 1;
-  const objectIndent = lineIndentAt(text, objectNode.offset);
-  const children = objectNode.children ?? [];
-  const firstChild = children[0];
-  const lastChild = children.at(-1);
-  const hasIndentedProperty =
-    firstChild && lineIndentAt(text, firstChild.offset).length > objectIndent.length;
-  const multiline = Boolean(hasIndentedProperty);
-  const childIndent = multiline
-    ? lineIndentAt(text, lastChild.offset)
-    : "";
-  const keyText = JSON.stringify(key);
-  const valueText = formatInsertedValue(value, childIndent, multiline);
-  const beforeClose = text.slice(objectNode.offset + 1, closeOffset);
-  const trailingWhitespace = /[ \t\r\n]*$/.exec(beforeClose)[0];
-  const insertionOffset = closeOffset - trailingWhitespace.length;
-
-  let content;
-  if (children.length === 0) {
-    content = multiline
-      ? `${childIndent}${keyText}: ${valueText}`
-      : ` ${keyText}: ${valueText} `;
-  } else if (multiline) {
-    content = `,\n${childIndent}${keyText}: ${valueText}`;
-  } else {
-    content = `, ${keyText}: ${valueText}`;
-  }
-  return applyEdits(text, [{ offset: insertionOffset, length: 0, content }]);
-}
-
-function setMissingPath(text, path, desired) {
-  let result = text;
-  for (let index = 0; index < path.length; index += 1) {
-    const parentPath = path.slice(0, index);
-    const key = path[index];
-    const current = loadExistingSettings(result);
-    if (getAtPath(current, [...parentPath, key]) !== undefined) continue;
-    const value = index === path.length - 1 ? desired : {};
-    result = insertObjectProperty(result, parentPath, key, value);
-  }
-  return result;
-}
-
-function setPathIfChanged(text, path, desired, compare = semanticallyEqual) {
-  const current = loadExistingSettings(text);
-  const existing = getAtPath(current, path);
-  if (existing !== undefined && compare(existing, desired)) return text;
-  if (existing === undefined) return setMissingPath(text, path, desired);
-  return applyEdits(text, modify(text, path, desired, {
-    formattingOptions: formattingOptions(text),
-  }));
-}
-
-function removePathIfPresent(text, path) {
-  const current = loadExistingSettings(text);
-  if (getAtPath(current, path) === undefined) return text;
-
-  const errors = [];
-  const tree = parseTree(text, errors);
-  const valueNode = findNodeAtLocation(tree, path);
-  const propertyNode = valueNode?.parent;
-  const objectNode = propertyNode?.parent;
-  if (
-    errors.length > 0 ||
-    !propertyNode ||
-    propertyNode.type !== "property" ||
-    !objectNode ||
-    objectNode.type !== "object"
-  )
-    return applyEdits(text, modify(text, path, undefined, {
-      formattingOptions: formattingOptions(text),
-    }));
-
-  const children = objectNode.children ?? [];
-  const index = children.indexOf(propertyNode);
-  let start;
-  let end;
-  if (children.length === 1) {
-    start = objectNode.offset + 1;
-    end = objectNode.offset + objectNode.length - 1;
-  } else if (index < children.length - 1) {
-    start = propertyNode.offset;
-    end = children[index + 1].offset;
-  } else {
-    start = children[index - 1].offset + children[index - 1].length;
-    end = propertyNode.offset + propertyNode.length;
-  }
-  return applyEdits(text, [{ offset: start, length: end - start, content: "" }]);
-}
-
-function syncObjectPath(text, path, desired) {
-  const current = loadExistingSettings(text);
-  const existing = getAtPath(current, path);
-  if (existing === undefined) return setPathIfChanged(text, path, desired);
-  if (existing === null || Array.isArray(existing) || typeof existing !== "object")
-    return setPathIfChanged(text, path, desired);
-
-  let result = text;
-  for (const key of Object.keys(existing)) {
-    if (!Object.hasOwn(desired, key))
-      result = removePathIfPresent(result, [...path, key]);
-  }
-  for (const [key, value] of Object.entries(desired))
-    result = setPathIfChanged(result, [...path, key], value);
-  return result;
-}
-
-function syncPermissions(text, desired) {
-  const current = loadExistingSettings(text);
-  const existing = getAtPath(current, ["permissions"]);
-  if (existing === undefined) return setPathIfChanged(text, ["permissions"], desired);
-  if (existing === null || Array.isArray(existing) || typeof existing !== "object")
-    return setPathIfChanged(text, ["permissions"], desired);
-
-  let result = text;
-  for (const key of Object.keys(existing)) {
-    if (!Object.hasOwn(desired, key))
-      result = removePathIfPresent(result, ["permissions", key]);
-  }
-  for (const [action, values] of Object.entries(desired))
-    result = setPathIfChanged(result, ["permissions", action], values, arraysSemanticallyEqual);
-  return result;
-}
-
-function renderSettings(
-  existingJson,
-  managedJson,
-  targetTool,
-  bashRulesJson,
-) {
+function renderSettings(managedJson, targetTool, bashRulesJson) {
   const otherTool = resolveOtherShellTool(targetTool);
-  const managed = structuredClone(loadManagedSettings(managedJson));
-  resolvePermissionPlaceholders(managed, otherTool);
-
-  const desired = structuredClone(managed);
+  const desired = structuredClone(loadManagedSettings(managedJson));
+  resolvePermissionPlaceholders(desired, otherTool);
   desired.permissions = requireObject(
-    managed.permissions ?? {},
+    desired.permissions ?? {},
     "managed permissions",
   );
 
@@ -496,27 +264,16 @@ function renderSettings(
     projectBashRules(rules, targetTool),
   );
 
-  let result = existingJson === "" ? "{}" : existingJson;
-  for (const key of INITIAL_KEYS) {
-    if (Object.hasOwn(managed, key) && getAtPath(loadExistingSettings(result), [key]) === undefined)
-      result = setPathIfChanged(result, [key], managed[key]);
-  }
-  if (getAtPath(desired, ["hooks", "SessionStart"]) !== undefined)
-    result = setPathIfChanged(result, ["hooks", "SessionStart"], desired.hooks.SessionStart);
-  result = syncPermissions(result, desired.permissions);
-  if (desired.enabledPlugins !== undefined)
-    result = syncObjectPath(result, ["enabledPlugins"], desired.enabledPlugins);
-  // MCP 登録は settings.json では扱わない。Claude Code はこのキーを読まない。
-  // 同期は run_onchange_after_claude-mcp.js が sync-mcp.js 経由で行う。
-  result = removePathIfPresent(result, ["mcpServers"]);
-  return result.endsWith("\n") ? result : `${result}\n`;
+  // MCP は --mcp-config で別の JSON を渡すため、settings.json には出力しない。
+  delete desired.mcpServers;
+  return `${JSON.stringify(desired)}\n`;
 }
 
 function main(argv) {
-  if (argv.length !== 4) {
+  if (argv.length !== 3) {
     process.stderr.write(
-      "usage: render-settings.js <existing-settings-json> <managed-settings-json> " +
-        "<target-tool> <bash-rules-json>\n",
+      "usage: render-settings.js <managed-settings-json> <target-tool> " +
+        "<bash-rules-json>\n",
     );
     return 2;
   }
