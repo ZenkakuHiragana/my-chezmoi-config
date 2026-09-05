@@ -1,1 +1,0 @@
-../.pi/agent/SYSTEM.md
