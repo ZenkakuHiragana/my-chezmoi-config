@@ -5,30 +5,20 @@ import type {
 // 督促文の本体は共有断片から chezmoi が展開時に埋め込む。ここでは編集しない。
 const NUDGE_TEXT = {{ include ".chezmoitemplates/prompt/instruction-nudge.md" | trim | toJson }};
 
-/** 注入対象とするモデル識別子の接頭辞。 */
-const TARGET_MODEL_PREFIX = "claude-";
-
-function isTargetModel(model: { readonly id: string } | undefined): boolean {
-  return model !== undefined &&
-    model.id.toLowerCase().startsWith(TARGET_MODEL_PREFIX);
-}
-
 export default function piInstructionNudge(pi: ExtensionAPI): void {
   if (process.env.PI_SUBAGENT_CHILD === "1") return;
 
   // 圧縮で失われないよう、ユーザープロンプトごとにシステムプロンプトへ督促文を追記する。
   // before_agent_start はユーザープロンプトから始まる agent run ごとに一度発火し、
   // 返した systemPrompt は run 全体で保持され、run 完全終了で解除される。
-  pi.on("before_agent_start", (event, ctx) => {
-    if (!isTargetModel(ctx.model)) return;
+  pi.on("before_agent_start", (event) => {
     return { systemPrompt: `${event.systemPrompt}\n\n${NUDGE_TEXT}` };
   });
 
   // ターン内の逸脱対策: 成功した edit / write の tool_result 末尾へ督促文を追記する。
   // 直前の変更結果と督促文を同じ入力で読ませる。エラー時は TUI のエラー表示へ
   // 督促文が混ざるため追記しない。
-  pi.on("tool_result", (event, ctx) => {
-    if (!isTargetModel(ctx.model)) return;
+  pi.on("tool_result", (event) => {
     if (event.toolName !== "edit" && event.toolName !== "write") return;
     if (event.isError) return;
     return { content: [...event.content, { type: "text", text: NUDGE_TEXT }] };
