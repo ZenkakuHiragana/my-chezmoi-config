@@ -5,7 +5,7 @@ agents:
       目的により適合する専用のサブエージェントが他に利用可能な場合は使わない。
     modelProfile: fast
     effort:
-      default: medium
+      default: low
       claude: high
     settings:
       claude:
@@ -16,7 +16,7 @@ agents:
       目的により適合する専用のサブエージェントが他に利用可能な場合は使わない。
     modelProfile: strong
     effort:
-      default: xhigh
+      default: medium
       claude: high
     settings:
       claude:
@@ -27,7 +27,7 @@ agents:
       一般成果物・コード・文章品質のレビューには使わない。対象そのものへの参照を入力として必要とする。
     modelProfile: strong
     effort:
-      default: high
+      default: medium
       claude: high
     settings:
       claude:
@@ -42,7 +42,7 @@ agents:
       新しい欠陥を探す成果物レビューには使わない。監査用入力ファイルを必要とする。
     modelProfile: fast
     effort:
-      default: medium
+      default: low
       claude: medium
     settings:
       claude:
