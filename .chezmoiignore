@@ -3,6 +3,7 @@ AGENTS.md
 CLAUDE.md
 .opencode/work/
 .opencode/**
+docs/**
 packages/**
 scripts/**
 tools/**
