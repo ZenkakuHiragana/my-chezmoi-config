@@ -51,6 +51,20 @@ agents:
         permission:
           edit: deny
           task: deny
+  reviewer:
+    description: >
+      成果物のレビューをする時に使う。要件契約の独立検査には使わない。対象そのものへの参照を入力として必要とする。
+    modelProfile: strong
+    effort:
+      default: medium
+      claude: high
+    settings:
+      claude:
+        color: cyan
+      opencode:
+        permission:
+          edit: deny
+          task: deny
 modelProfiles:
   fast:
     default: openai-codex/gpt-5.6-sol
