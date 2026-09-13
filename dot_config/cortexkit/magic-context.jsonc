@@ -29,16 +29,13 @@
     "auto_promote": true,
     "injection_budget_tokens": 4000,
     "auto_search": {
-      "enabled": false,
+      "enabled": true,
       "score_threshold": 0.6,
       "min_prompt_chars": 20
     }
   },
   "prompt_surface": {
     "default": "light"
-  },
-  "sidekick": {
-    "disable": true
   },
   "temporal_awareness": true,
   "todowrite": {
