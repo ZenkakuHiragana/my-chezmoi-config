@@ -50,10 +50,10 @@
 
 ## 検査観点
 
-- [目的と結果](concerns/purpose-and-outcomes.md)
-- [適用と権威](concerns/activation-and-routing.md)
-- [実行文脈](concerns/input-and-executability.md)
-- [行動と判断の明確さ](concerns/obligations-and-conflicts.md)
-- [接続と責務](concerns/connection-and-responsibility-boundaries.md)
-- [終了と回復](concerns/stopping-and-return.md)
-- [確認可能性](concerns/verifiability.md)
+- 目的と結果: `concerns/purpose-and-outcomes.md`
+- 適用と権威: `concerns/activation-and-routing.md`
+- 実行文脈: `concerns/input-and-executability.md`
+- 行動と判断の明確さ: `concerns/obligations-and-conflicts.md`
+- 接続と責務: `concerns/connection-and-responsibility-boundaries.md`
+- 終了と回復: `concerns/stopping-and-return.md`
+- 確認可能性: `concerns/verifiability.md`
