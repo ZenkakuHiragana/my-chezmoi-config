@@ -61,6 +61,7 @@ pi:
           - "-permission-gate/index.ts"
           - "-slow-mode/index.ts"
           - "-statusline/index.ts"
+          - "-inbox/index.ts"
       - npm:@cortexkit/pi-magic-context
       - npm:pi-context-view
       - npm:@tian.zuo/pi-antigravity
