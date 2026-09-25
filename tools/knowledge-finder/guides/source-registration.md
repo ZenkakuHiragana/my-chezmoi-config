@@ -58,7 +58,7 @@ sources:
 
 ### source 名のキー
 
-- `sources` のキーが source の識別子である。作業メモの `source_names` と機械的に照合される固定値であり、変更すると既存メモの対応が切れる。
+- `sources` のキーが source の識別子である。`get_source` と `query_source` の `name` に指定する。
 - 同じキーを複数の設定ファイルへ書くと、フィールド単位の上書き対象になる。
 - source entry が不成立になると、そのキーの source は無効化状態になる。より高い優先順位の正常な定義が来るまで、低い優先順位の定義は使わない。
 

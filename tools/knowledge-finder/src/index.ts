@@ -5,12 +5,12 @@ import { buildServerInstructions } from "./guides.js";
 import { createServer } from "./server.js";
 
 async function main(): Promise<void> {
-  const configuredPath = process.env.SKILL_KB_CONFIG;
+  const configuredPath = process.env.KNOWLEDGE_FINDER_CONFIG;
   const catalog = await loadCatalog(
     configuredPath === undefined ? {} : { globalConfigPath: configuredPath },
   );
   for (const diagnostic of catalog.diagnostics) {
-    console.error(`[skill-kb] ${diagnostic}`);
+    console.error(`[knowledge-finder] ${diagnostic}`);
   }
   if (catalog.sources.size === 0) {
     const checkedPaths = [
@@ -26,7 +26,7 @@ async function main(): Promise<void> {
       ),
     ];
     console.error(
-      `[skill-kb] No knowledge source is configured, so no tool is published. Checked ${checkedPaths.join(", ")}`,
+      `[knowledge-finder] No knowledge source is configured, so no tool is published. Checked ${checkedPaths.join(", ")}`,
     );
   }
   const server = createServer(catalog, await buildServerInstructions());
@@ -35,6 +35,6 @@ async function main(): Promise<void> {
 
 main().catch((error: unknown) => {
   const message = error instanceof Error ? error.message : String(error);
-  console.error(`[skill-kb] ${message}`);
+  console.error(`[knowledge-finder] ${message}`);
   process.exitCode = 1;
 });

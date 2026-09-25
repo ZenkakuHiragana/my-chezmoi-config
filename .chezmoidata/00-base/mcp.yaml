@@ -3,9 +3,9 @@
 mcpServers:
   exa:
     url: https://mcp.exa.ai/mcp
-  skill-kb:
+  knowledge-finder:
     command: node
     args:
-      - '{file:~/.config/opencode/skill-kb-entrypoint.txt}'
+      - '{file:~/.config/opencode/knowledge-finder-entrypoint.txt}'
     timeout: 10000
     enabled: true

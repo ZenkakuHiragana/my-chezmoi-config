@@ -29,7 +29,7 @@ export type GuideResource = {
 
 export const GUIDE_RESOURCES: readonly GuideResource[] = [
   {
-    uri: "skill-kb://guide/source-registration",
+    uri: "knowledge-finder://guide/source-registration",
     name: "source-registration-guide",
     title: "情報源の登録規則",
     description:

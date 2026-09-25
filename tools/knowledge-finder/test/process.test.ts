@@ -14,7 +14,7 @@ function runServerUntilIdle(
   return new Promise((resolve, reject) => {
     const child = spawn(process.execPath, [serverPath], {
       cwd,
-      env: { ...process.env, SKILL_KB_CONFIG: configPath },
+      env: { ...process.env, KNOWLEDGE_FINDER_CONFIG: configPath },
       stdio: ["pipe", "pipe", "pipe"],
     });
     let stdout = "";
@@ -45,7 +45,7 @@ function runServerUntilIdle(
 }
 
 test("keeps the server alive and reports YAML parse errors on stderr", async () => {
-  const root = await mkdtemp(path.join(tmpdir(), "skill-kb-process-"));
+  const root = await mkdtemp(path.join(tmpdir(), "knowledge-finder-process-"));
   const workspace = path.join(root, "workspace");
   const projectDirectory = path.join(workspace, ".opencode");
   await mkdir(projectDirectory, { recursive: true });
@@ -64,7 +64,7 @@ test("keeps the server alive and reports YAML parse errors on stderr", async () 
 });
 
 test("stays alive and writes nothing to stdout when no configuration exists", async () => {
-  const root = await mkdtemp(path.join(tmpdir(), "skill-kb-process-"));
+  const root = await mkdtemp(path.join(tmpdir(), "knowledge-finder-process-"));
   const workspace = path.join(root, "workspace");
   await mkdir(workspace);
   try {
@@ -88,7 +88,7 @@ test("stays alive and writes nothing to stdout when no configuration exists", as
 });
 
 test("keeps the server alive and reports invalid sources outside MCP output", async () => {
-  const root = await mkdtemp(path.join(tmpdir(), "skill-kb-process-"));
+  const root = await mkdtemp(path.join(tmpdir(), "knowledge-finder-process-"));
   const workspace = path.join(root, "workspace");
   const projectDirectory = path.join(workspace, ".opencode");
   await mkdir(projectDirectory, { recursive: true });
@@ -116,7 +116,7 @@ test("keeps the server alive and reports invalid sources outside MCP output", as
 });
 
 test("keeps the server alive when a query module cannot be loaded", async () => {
-  const root = await mkdtemp(path.join(tmpdir(), "skill-kb-process-"));
+  const root = await mkdtemp(path.join(tmpdir(), "knowledge-finder-process-"));
   const workspace = path.join(root, "workspace");
   const projectDirectory = path.join(workspace, ".opencode");
   await mkdir(projectDirectory, { recursive: true });

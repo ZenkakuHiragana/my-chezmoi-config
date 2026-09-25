@@ -42,17 +42,18 @@ function resourceText(result: { contents: unknown[] }): string {
 async function assertNoPublishedTool(root: string): Promise<void> {
   const workspace = path.join(root, "workspace");
   const serverPath = path.resolve("dist", "src", "index.js");
-  const client = new Client({ name: "skill-kb-test", version: "1.0.0" });
+  const client = new Client({ name: "knowledge-finder-test", version: "1.0.0" });
   const transport = new StdioClientTransport({
     command: process.execPath,
     args: [serverPath],
     cwd: workspace,
-    env: childEnvironment({ SKILL_KB_CONFIG: path.join(root, "missing.yml") }),
+    env: childEnvironment({ KNOWLEDGE_FINDER_CONFIG: path.join(root, "missing.yml") }),
     stderr: "pipe",
   });
 
   try {
     await client.connect(transport);
+    assert.equal(client.getServerVersion()?.name, "knowledge-finder");
     const listed = await client.listTools();
     assert.deepEqual(listed.tools, []);
   } finally {
@@ -61,7 +62,7 @@ async function assertNoPublishedTool(root: string): Promise<void> {
 }
 
 test("connects and publishes no tool when no configuration file exists", async () => {
-  const root = await mkdtemp(path.join(tmpdir(), "skill-kb-absent-"));
+  const root = await mkdtemp(path.join(tmpdir(), "knowledge-finder-absent-"));
   await mkdir(path.join(root, "workspace"));
   try {
     await assertNoPublishedTool(root);
@@ -71,7 +72,7 @@ test("connects and publishes no tool when no configuration file exists", async (
 });
 
 test("connects and publishes no tool when the source map is empty", async () => {
-  const root = await mkdtemp(path.join(tmpdir(), "skill-kb-empty-"));
+  const root = await mkdtemp(path.join(tmpdir(), "knowledge-finder-empty-"));
   const projectDirectory = path.join(root, "workspace", ".opencode");
   await mkdir(projectDirectory, { recursive: true });
   await writeFile(
@@ -86,7 +87,7 @@ test("connects and publishes no tool when the source map is empty", async () => 
 });
 
 test("publishes no query tool when no source has a query module", async () => {
-  const root = await mkdtemp(path.join(tmpdir(), "skill-kb-no-query-"));
+  const root = await mkdtemp(path.join(tmpdir(), "knowledge-finder-no-query-"));
   const workspace = path.join(root, "workspace");
   const projectDirectory = path.join(workspace, ".opencode");
   await mkdir(projectDirectory, { recursive: true });
@@ -100,25 +101,19 @@ test("publishes no query tool when no source has a query module", async () => {
     ].join("\n"),
   );
   const serverPath = path.resolve("dist", "src", "index.js");
-  const client = new Client({ name: "skill-kb-test", version: "1.0.0" });
+  const client = new Client({ name: "knowledge-finder-test", version: "1.0.0" });
   const transport = new StdioClientTransport({
     command: process.execPath,
     args: [serverPath],
     cwd: workspace,
-    env: childEnvironment({ SKILL_KB_CONFIG: path.join(root, "missing.yml") }),
+    env: childEnvironment({ KNOWLEDGE_FINDER_CONFIG: path.join(root, "missing.yml") }),
     stderr: "pipe",
   });
   try {
     await client.connect(transport);
+    assert.equal(client.getServerVersion()?.name, "knowledge-finder");
     const listed = await client.listTools();
-    assert.equal(
-      listed.tools.some((tool) => tool.name === "query_source"),
-      false,
-    );
-    assert.equal(
-      listed.tools.some((tool) => tool.name === "get_source"),
-      true,
-    );
+    assert.deepEqual(listed.tools.map((tool) => tool.name), ["get_source"]);
   } finally {
     await client.close();
     await rm(root, { recursive: true, force: true });
@@ -126,7 +121,7 @@ test("publishes no query tool when no source has a query module", async () => {
 });
 
 test("keeps the MCP connection and publishes no tool for an invalid document", async () => {
-  const root = await mkdtemp(path.join(tmpdir(), "skill-kb-invalid-document-"));
+  const root = await mkdtemp(path.join(tmpdir(), "knowledge-finder-invalid-document-"));
   const workspace = path.join(root, "workspace");
   const projectDirectory = path.join(workspace, ".opencode");
   await mkdir(projectDirectory, { recursive: true });
@@ -140,16 +135,17 @@ test("keeps the MCP connection and publishes no tool for an invalid document", a
     ].join("\n"),
   );
   const serverPath = path.resolve("dist", "src", "index.js");
-  const client = new Client({ name: "skill-kb-test", version: "1.0.0" });
+  const client = new Client({ name: "knowledge-finder-test", version: "1.0.0" });
   const transport = new StdioClientTransport({
     command: process.execPath,
     args: [serverPath],
     cwd: workspace,
-    env: childEnvironment({ SKILL_KB_CONFIG: path.join(root, "missing.yml") }),
+    env: childEnvironment({ KNOWLEDGE_FINDER_CONFIG: path.join(root, "missing.yml") }),
     stderr: "pipe",
   });
   try {
     await client.connect(transport);
+    assert.equal(client.getServerVersion()?.name, "knowledge-finder");
     const listed = await client.listTools();
     assert.deepEqual(listed.tools, []);
   } finally {
@@ -159,18 +155,18 @@ test("keeps the MCP connection and publishes no tool for an invalid document", a
 });
 
 test("keeps the MCP connection and publishes the guide for a YAML parse error", async () => {
-  const root = await mkdtemp(path.join(tmpdir(), "skill-kb-parse-error-"));
+  const root = await mkdtemp(path.join(tmpdir(), "knowledge-finder-parse-error-"));
   const workspace = path.join(root, "workspace");
   const projectDirectory = path.join(workspace, ".opencode");
   await mkdir(projectDirectory, { recursive: true });
   await writeFile(path.join(projectDirectory, "KNOWLEDGE.yml"), "sources: [");
   const serverPath = path.resolve("dist", "src", "index.js");
-  const client = new Client({ name: "skill-kb-test", version: "1.0.0" });
+  const client = new Client({ name: "knowledge-finder-test", version: "1.0.0" });
   const transport = new StdioClientTransport({
     command: process.execPath,
     args: [serverPath],
     cwd: workspace,
-    env: childEnvironment({ SKILL_KB_CONFIG: path.join(root, "missing.yml") }),
+    env: childEnvironment({ KNOWLEDGE_FINDER_CONFIG: path.join(root, "missing.yml") }),
     stderr: "pipe",
   });
   try {
@@ -180,10 +176,10 @@ test("keeps the MCP connection and publishes the guide for a YAML parse error", 
     const listedResources = await client.listResources();
     assert.deepEqual(
       listedResources.resources.map((resource) => resource.uri),
-      ["skill-kb://guide/source-registration"],
+      ["knowledge-finder://guide/source-registration"],
     );
     const guide = await client.readResource({
-      uri: "skill-kb://guide/source-registration",
+      uri: "knowledge-finder://guide/source-registration",
     });
     assert.match(resourceText(guide), /## 誤りの扱い/);
   } finally {
@@ -193,16 +189,16 @@ test("keeps the MCP connection and publishes the guide for a YAML parse error", 
 });
 
 test("publishes source registration instructions and guide when no source is configured", async () => {
-  const root = await mkdtemp(path.join(tmpdir(), "skill-kb-guides-"));
+  const root = await mkdtemp(path.join(tmpdir(), "knowledge-finder-guides-"));
   const workspace = path.join(root, "workspace");
   await mkdir(workspace);
   const serverPath = path.resolve("dist", "src", "index.js");
-  const client = new Client({ name: "skill-kb-test", version: "1.0.0" });
+  const client = new Client({ name: "knowledge-finder-test", version: "1.0.0" });
   const transport = new StdioClientTransport({
     command: process.execPath,
     args: [serverPath],
     cwd: workspace,
-    env: childEnvironment({ SKILL_KB_CONFIG: path.join(root, "missing.yml") }),
+    env: childEnvironment({ KNOWLEDGE_FINDER_CONFIG: path.join(root, "missing.yml") }),
     stderr: "pipe",
   });
 
@@ -218,11 +214,11 @@ test("publishes source registration instructions and guide when no source is con
 
     const listed = await client.listResources();
     assert.deepEqual(listed.resources.map((resource) => resource.uri).sort(), [
-      "skill-kb://guide/source-registration",
+      "knowledge-finder://guide/source-registration",
     ]);
 
     const guide = await client.readResource({
-      uri: "skill-kb://guide/source-registration",
+      uri: "knowledge-finder://guide/source-registration",
     });
     assert.match(resourceText(guide), /## 反映条件/);
   } finally {
@@ -231,8 +227,8 @@ test("publishes source registration instructions and guide when no source is con
   }
 });
 
-test("publishes all tools and supports work-note operations over stdio", async () => {
-  const root = await mkdtemp(path.join(tmpdir(), "skill-kb-integration-"));
+test("publishes source tools and rejects removed work-note operations over stdio", async () => {
+  const root = await mkdtemp(path.join(tmpdir(), "knowledge-finder-integration-"));
   const workspace = path.join(root, "workspace");
   const projectDirectory = path.join(workspace, ".opencode");
   const globalDirectory = path.join(root, "global");
@@ -285,21 +281,18 @@ test("publishes all tools and supports work-note operations over stdio", async (
     command: process.execPath,
     args: [serverPath],
     cwd: workspace,
-    env: childEnvironment({ SKILL_KB_CONFIG: globalConfig }),
+    env: childEnvironment({ KNOWLEDGE_FINDER_CONFIG: globalConfig }),
     stderr: "pipe",
   });
-  const client = new Client({ name: "skill-kb-test", version: "1.0.0" });
+  const client = new Client({ name: "knowledge-finder-test", version: "1.0.0" });
 
   try {
     await client.connect(transport);
+    assert.equal(client.getServerVersion()?.name, "knowledge-finder");
     const listed = await client.listTools();
     assert.deepEqual(listed.tools.map((tool) => tool.name).sort(), [
-      "create_work_note",
       "get_source",
-      "grep_work_notes",
       "query_source",
-      "read_work_note",
-      "update_work_note",
     ]);
     const tool = listed.tools.find(
       (candidate) => candidate.name === "get_source",
@@ -365,12 +358,8 @@ test("publishes all tools and supports work-note operations over stdio", async (
     assert.deepEqual(
       (await client.listTools()).tools.map((candidate) => candidate.name).sort(),
       [
-        "create_work_note",
         "get_source",
-        "grep_work_notes",
         "query_source",
-        "read_work_note",
-        "update_work_note",
       ],
     );
 
@@ -397,74 +386,12 @@ test("publishes all tools and supports work-note operations over stdio", async (
     assert.equal(unknownResult.isError, true);
     assert.match(textResult(unknownResult), /Unknown knowledge source/);
 
-    const noteArguments = {
-      source_names: ["shared"],
-      file_name: "stdio-note.md",
-      title: "stdio 統合試験",
-      claim: "stdio 経由で作業メモを扱える",
-      evidence: "MCPクライアントから各ツールを呼び出した結果",
-      reasoning: "公開された実経路を直接使用しているため",
-      scope: "このビルドと試験環境",
-      scope_basis: "他の版は試していないため",
-      defeaters: "いずれかの呼出しが失敗した場合",
-      revalidate_when: "MCP SDKまたはツール契約が変わった場合",
-    };
-    const createResult = await client.callTool(
-      {
-        name: "create_work_note",
-        arguments: noteArguments,
-      },
-      CallToolResultSchema,
-    );
-    assert.equal(createResult.isError, undefined);
-    assert.equal(
-      JSON.parse(textResult(createResult)).file_name,
-      "stdio-note.md",
-    );
+    for (const name of ["create_work_note", "update_work_note", "grep_work_notes", "read_work_note"]) {
+      const result = await client.callTool({ name, arguments: {} }, CallToolResultSchema);
+      assert.equal(result.isError, true);
+      assert.match(textResult(result), /not found/i);
+    }
 
-    const grepResult = await client.callTool(
-      {
-        name: "grep_work_notes",
-        arguments: { source_name: "shared", pattern: "stdio 経由" },
-      },
-      CallToolResultSchema,
-    );
-    assert.deepEqual(JSON.parse(textResult(grepResult)).matches, [
-      "stdio-note.md",
-    ]);
-
-    const readResult = await client.callTool(
-      {
-        name: "read_work_note",
-        arguments: { source_name: "shared", file_name: "stdio-note.md" },
-      },
-      CallToolResultSchema,
-    );
-    assert.match(JSON.parse(textResult(readResult)).markdown, /## 再確認条件/);
-
-    const updateResult = await client.callTool(
-      {
-        name: "update_work_note",
-        arguments: {
-          ...noteArguments,
-          claim: "stdio 経由で作業メモを作成、検索、読取り、更新できる",
-          change_reason: "更新経路も確認するため",
-        },
-      },
-      CallToolResultSchema,
-    );
-    assert.equal(updateResult.isError, undefined);
-    const updatedRead = await client.callTool(
-      {
-        name: "read_work_note",
-        arguments: { source_name: "shared", file_name: "stdio-note.md" },
-      },
-      CallToolResultSchema,
-    );
-    assert.match(
-      JSON.parse(textResult(updatedRead)).markdown,
-      /更新経路も確認するため/,
-    );
   } finally {
     await client.close();
     await rm(root, { recursive: true, force: true });

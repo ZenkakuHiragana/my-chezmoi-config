@@ -24,7 +24,7 @@ type Fixture = {
 };
 
 async function makeFixture(): Promise<Fixture> {
-  const root = await mkdtemp(path.join(tmpdir(), "skill-kb-"));
+  const root = await mkdtemp(path.join(tmpdir(), "knowledge-finder-"));
   const home = path.join(root, "home");
   const workspace = path.join(root, "workspace");
   const globalDirectory = path.join(home, ".config", "opencode");
