@@ -11,7 +11,7 @@ description: プロンプトまたは作業手順の失敗を、証拠と最小�
 ## 目的
 
 現在のセッション、採掘済みまたは過去のセッション、ユーザー説明から、後で読める失敗記録を作る。
-会話が失われても、後で失敗の選別（`cmd-triage-failure`）を実行する主体が分析できる根拠を残す。
+会話が失われても、後で失敗を分析する主体が使える根拠を残す。
 
 ## 失敗の合図
 
@@ -54,8 +54,6 @@ description: プロンプトまたは作業手順の失敗を、証拠と最小�
 - 関連する現行プロンプト、スキル、エージェント、コマンド
 
 GitHub リポジトリが関係する場合は現行コミット SHA を記録する。取得できない場合は `unknown` とする。
-
-`cmd-extract-failure-patterns` から呼び出された場合は、渡された候補1件だけを正式な失敗記録へ変換する。採掘側の報告方針を根源課題分類、重大度、状態の代わりに使ってはならない。
 
 既存の失敗記録ディレクトリ、ひな形、慣例を先に探す。
 既存構造があれば再利用し、並列構造を作らない。
@@ -113,6 +111,28 @@ GitHub リポジトリが関係する場合は現行コミット SHA を記録�
 - 妥当な推論
 - 確約
 - `unknown`
+
+## パターンタグ
+
+- latent-user-repair
+- inefficient-investigation
+- wrong-routing
+- premature-implementation
+- premature-completion
+- missing-acceptance
+- missing-local-inspection
+- missing-public-research
+- generic-best-practice-misfit
+- duplicate-implementation
+- prompt-overfitting
+- compaction-state-loss
+- context-bloat
+- tool-loop-without-learning
+- false-blocker
+- unnecessary-clarification
+- insufficient-clarification
+- evidence-gap
+- safety-or-leakage-risk
 
 ## 根源課題分類
 
@@ -238,7 +258,7 @@ true にする条件:
 
 ## 失敗記録ひな形
 
-`pattern_tags` の値域は、失敗傾向抽出の手順（`cmd-extract-failure-patterns`）の「パターンタグ」節を正本とする。採掘レポートから渡された値があれば転記し、なければ観測に対応するタグだけを付ける。
+`pattern_tags` の値域は「パターンタグ」節とする。採掘レポートから渡された値があれば転記し、なければ観測に対応するタグだけを付ける。
 
 ```markdown
 ---
@@ -311,7 +331,6 @@ status: captured | historical_candidate | current_gap | covered_unvalidated | li
 - 正本を編集しない
 - スキルを編集しない
 - 新規規則を作らない
-- empirical-prompt-tuning を実行しない
 - 謝罪文にしない
 - 1 つの失敗記録から全体方針に過剰適合しない
 - 過去の失敗を現行プロンプトの不足と即断しない

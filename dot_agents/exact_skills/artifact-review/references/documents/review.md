@@ -23,7 +23,6 @@
 - 文法: `concerns/grammar.md`
 - 文体: `concerns/style.md`
 - 誤記: `concerns/typo.md`
-- 読解負荷: `concerns/reading-load.md`
 - 表示: `concerns/rendering.md`
 - 参照と記載例: `concerns/references-and-examples.md`
 
