@@ -1,11 +1,12 @@
-# ハーネス共通の MCP 定義。
+# ハーネス共通の MCP 接続定義。
 # 環境固有の追加は .chezmoidata/99-specific/mcp.yaml に置く。
+# timeout は共通設定ではミリ秒。必要なハーネスでは出力時に単位を変換する。
 mcpServers:
   exa:
     url: https://mcp.exa.ai/mcp
   knowledge-finder:
     command: node
     args:
-      - '{file:~/.config/opencode/knowledge-finder-entrypoint.txt}'
+      - '{file:knowledge-finder-entrypoint}'
     timeout: 10000
     enabled: true
