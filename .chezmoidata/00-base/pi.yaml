@@ -49,7 +49,6 @@ pi:
     hideThinkingBlock: true
     packages:
       - npm:pi-subagents-lite
-      - npm:pi-mcp-adapter
       - npm:pi-tool-display
       - npm:pi-omplike-advisor
       - git:github.com/ZenkakuHiragana/pi-compact-transcript@local/both-fixes
@@ -85,12 +84,3 @@ pi:
     registerToolOverrides:
       edit: false
       read: false
-    customToolOverrides:
-      mcp:
-        enabled: true
-        kind: generic
-        outputMode: hidden
-      mcpScript:
-        enabled: true
-        kind: generic
-        outputMode: hidden
