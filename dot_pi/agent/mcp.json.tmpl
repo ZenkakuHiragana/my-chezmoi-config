@@ -4,14 +4,14 @@
   {{- if ne (dig "enabled" true $source) false -}}
     {{- $server := deepCopy $source -}}
     {{- $_ := unset $server "enabled" -}}
-    {{- $_ := set $server "exposure" "codemode-deferred" -}}
+    {{- $_ := set $server "exposure" $.pi.mcp.exposure -}}
     {{- if hasKey $server "timeout" -}}
       {{- $_ := set $server "timeout" (div (get $server "timeout") 1000) -}}
     {{- end -}}
     {{- if hasKey $server "args" -}}
       {{- $args := list -}}
       {{- range $arg := get $server "args" -}}
-        {{- $args = append $args (replace "{file:~/.config/opencode/knowledge-finder-entrypoint.txt}" (joinPath $sourceDir "tools" "knowledge-finder" "dist" "src" "index.js") $arg) -}}
+        {{- $args = append $args (replace "{file:knowledge-finder-entrypoint}" (joinPath $sourceDir "tools" "knowledge-finder" "dist" "src" "index.js") $arg) -}}
       {{- end -}}
       {{- $_ := set $server "args" $args -}}
     {{- end -}}
