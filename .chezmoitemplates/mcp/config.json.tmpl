@@ -1,0 +1,31 @@
+{{- $root := .root -}}
+{{- $exposure := get . "exposure" | default "" -}}
+{{- $timeoutDivisor := get . "timeoutDivisor" | default 1 -}}
+{{- $sourceDir := $root.chezmoi.sourceDir -}}
+{{- $servers := dict -}}
+{{- range $name, $source := $root.mcpServers -}}
+  {{- if ne (dig "enabled" true $source) false -}}
+    {{- $server := deepCopy $source -}}
+    {{- $_ := unset $server "enabled" -}}
+    {{- if hasKey $server "command" -}}
+      {{- $_ := set $server "type" "stdio" -}}
+    {{- else if hasKey $server "url" -}}
+      {{- $_ := set $server "type" "http" -}}
+    {{- end -}}
+    {{- if ne $exposure "" -}}
+      {{- $_ := set $server "exposure" $exposure -}}
+    {{- end -}}
+    {{- if and (hasKey $server "timeout") (ne $timeoutDivisor 1) -}}
+      {{- $_ := set $server "timeout" (div (get $server "timeout") $timeoutDivisor) -}}
+    {{- end -}}
+    {{- if hasKey $server "args" -}}
+      {{- $args := list -}}
+      {{- range $arg := get $server "args" -}}
+        {{- $args = append $args (replace "{file:knowledge-finder-entrypoint}" (joinPath $sourceDir "tools" "knowledge-finder" "dist" "src" "index.js") $arg) -}}
+      {{- end -}}
+      {{- $_ := set $server "args" $args -}}
+    {{- end -}}
+    {{- $_ := set $servers $name $server -}}
+  {{- end -}}
+{{- end -}}
+{{- dict "mcpServers" $servers | toPrettyJson -}}
