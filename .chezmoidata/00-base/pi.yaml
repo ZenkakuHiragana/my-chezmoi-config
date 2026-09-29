@@ -1,5 +1,8 @@
 # Pi のグローバル設定。共通の MCP は mcp.yaml にある。
 pi:
+  # Pi 標準 MCP の tool 展開方針。接続定義は mcp.yaml を正本とする。
+  mcp:
+    exposure: codemode-deferred
   tool_filter:
     read:
       allow:
