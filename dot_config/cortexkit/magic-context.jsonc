@@ -4,42 +4,31 @@
     "enabled": true
   },
   "dreamer": {
-    "inject_docs": false,
-    "opencode": {
-      "model": "openai/gpt-5.6-luna"
-    },
-    "pi": {
-      "model": "openai/gpt-5.6-luna"
-    }
+    "disable": true,
+    "inject_docs": false
   },
   "embedding": {
-    "provider": "local",
-    "model": "Xenova/all-MiniLM-L6-v2"
-  },
-  "historian": {
-    "opencode": {
-      "model": "openai/gpt-5.6-luna"
-    },
-    "pi": {
-      "model": "openai/gpt-5.6-luna"
-    }
+    "provider": "off"
   },
   "memory": {
-    "enabled": true,
-    "auto_promote": true,
-    "injection_budget_tokens": 4000,
+    "enabled": false,
+    "auto_promote": false,
     "auto_search": {
-      "enabled": true,
-      "score_threshold": 0.6,
-      "min_prompt_chars": 20
+      "enabled": false
+    },
+    "git_commit_indexing": {
+      "enabled": false
     }
+  },
+  "commit_cluster_trigger": {
+    "enabled": true,
+    "min_clusters": 3
   },
   "prompt_surface": {
     "default": "light"
   },
   "temporal_awareness": true,
   "todowrite": {
-    "enabled": false,
-    "overlay": true
+    "enabled": false
   }
 }

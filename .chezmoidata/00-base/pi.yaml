@@ -49,10 +49,9 @@ pi:
     hideThinkingBlock: true
     packages:
       - npm:pi-subagents-lite
-      - npm:pi-mcp-adapter
-      - npm:pi-tool-display
-      - npm:pi-omplike-advisor
-      - git:github.com/ZenkakuHiragana/pi-compact-transcript@local/both-fixes
+      - git:github.com/ZenkakuHiragana/pi-compact-transcript@feature/passthroughTools
+      - npm:pi-context-view
+      - npm:@cortexkit/pi-magic-context
       - source: git:github.com/rytswd/pi-agent-extensions
         extensions:
           - "-direnv/index.ts"
@@ -62,9 +61,7 @@ pi:
           - "-slow-mode/index.ts"
           - "-statusline/index.ts"
           - "-inbox/index.ts"
-      - npm:@cortexkit/pi-magic-context
-      - npm:pi-context-view
-      - npm:@tian.zuo/pi-antigravity
+          - "-python/index.ts"
   modes:
     modes:
       advisor:
@@ -85,12 +82,3 @@ pi:
     registerToolOverrides:
       edit: false
       read: false
-    customToolOverrides:
-      mcp:
-        enabled: true
-        kind: generic
-        outputMode: hidden
-      mcpScript:
-        enabled: true
-        kind: generic
-        outputMode: hidden

@@ -1,0 +1,22 @@
+{{- $sourceDir := .root.chezmoi.sourceDir -}}
+{{- $format := .format -}}
+{{- $servers := dict -}}
+{{- range $name, $source := .root.mcpServers -}}
+  {{- if ne (dig "enabled" true $source) false -}}
+    {{- $server := deepCopy $source -}}
+    {{- $_ := unset $server "enabled" -}}
+    {{- if hasKey $server "command" -}}
+      {{- $_ := set $server "type" "stdio" -}}
+    {{- else if hasKey $server "url" -}}
+      {{- $_ := set $server "type" "http" -}}
+    {{- end -}}
+    {{- if and (eq $name "knowledge-finder") (not (hasKey $server "args")) -}}
+      {{- $_ := set $server "args" (list (joinPath $sourceDir "tools" "knowledge-finder" "dist" "src" "index.js")) -}}
+    {{- end -}}
+    {{- if and (eq $format "pi") (hasKey $server "timeout") -}}
+      {{- $_ := set $server "timeout" (divf (get $server "timeout") 1000) -}}
+    {{- end -}}
+    {{- $_ := set $servers $name $server -}}
+  {{- end -}}
+{{- end -}}
+{{- dict "mcpServers" $servers | toPrettyJson -}}

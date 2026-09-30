@@ -5,7 +5,5 @@ mcpServers:
     url: https://mcp.exa.ai/mcp
   knowledge-finder:
     command: node
-    args:
-      - '{file:~/.config/opencode/knowledge-finder-entrypoint.txt}'
     timeout: 10000
     enabled: true
