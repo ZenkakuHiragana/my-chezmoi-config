@@ -1,0 +1,18 @@
+{
+  "serverMode": "self-hosted",
+  "apiUrl": "http://localhost:8888",
+  "bankId": "dev",
+  "banks": {
+    "dev": {
+      "manageBankConfig": false
+    }
+  },
+  "reflectTimeoutMs": 60000,
+  "codebaseSurvey": false,
+  "retainTags": [
+    "project:{gitProject}"
+  ],
+  "retainMetadata": {
+    "repo": "{gitProject}"
+  }
+}
