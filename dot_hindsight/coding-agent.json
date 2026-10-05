@@ -14,5 +14,13 @@
   ],
   "retainMetadata": {
     "repo": "{gitProject}"
+  },
+  "autoInject": "recall",
+  "recallOptions": {
+    "types": [
+      "world",
+      "experience",
+      "observation"
+    ]
   }
 }
