@@ -67,14 +67,14 @@ agents:
           task: deny
 modelProfiles:
   fast:
-    default: openai-codex/gpt-6-luna
+    default: openai-codex/gpt-6.1-sol
     claude: sonnet
-    codex: gpt-6-luna
-    opencode: openai/gpt-6-luna
+    codex: gpt-6.1-sol
+    opencode: openai/gpt-6.1-sol
     agy: flash
   strong:
-    default: openai-codex/gpt-6-luna
+    default: openai-codex/gpt-6.1-sol
     claude: opus
-    codex: gpt-6-luna
-    opencode: openai/gpt-6-luna
+    codex: gpt-6.1-sol
+    opencode: openai/gpt-6.1-sol
     agy: flash
