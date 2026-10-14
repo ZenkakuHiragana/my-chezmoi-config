@@ -1,49 +1,10 @@
 ---
 name: minto-pyramid
 description: >-
-  Restructures writing into Barbara Minto's Pyramid Principle — conclusion first, then grouped reasons, then evidence — and audits an existing draft's logic against Minto's rules. Use when the user is writing, or has drafted, something that asks a reader to accept a judgment or make a decision: a recommendation, proposal, exec summary, memo, review with a verdict, or status update with an ask; or when a draft buries its point or narrates the process instead of the finding. Not for incident timelines, runbooks, tutorials, notes, or writing where chronology is the content.
+  Restructures writing into Barbara Minto's Pyramid Principle — conclusion first, then grouped reasons, then evidence — and audits a draft's logic against Minto's rules. Use when you are writing a reply in a conversation that asks the reader to accept a judgment or make a decision: an answer to a question, an assessment, a recommendation, a review with a verdict, or a status update with an ask; or when your draft buries its point or narrates the process instead of the finding. Not for incident timelines, runbooks, tutorials, notes, or writing where chronology is the content.
 ---
 
 # Minto Pyramid
-
-**Three rules that override everything below this line:**
-
-1. **If the user did not ask you to change the document, do not change it.** Say what you noticed in two sentences and ask.
-2. **If it is a timeline, runbook, tutorial, or note, do not impose this structure on it.** Formatting they explicitly asked for is fine; hoisting a conclusion above the sequence is not.
-3. **Never add a fact, figure, section or "lesson" the source does not contain** — including arithmetic you performed on the source's numbers.
-
-## Step 0 — Gate. Do this before anything else.
-
-**Question 1: Does this document ask its reader to accept a judgment or make a decision?**
-
-Yes for recommendations, proposals, verdicts, analyses with a conclusion, updates carrying an ask. No for timelines, runbooks, procedures, tutorials, notes, descriptions, thanks, apologies, and anything whose value is the sequence of events.
-
-**No → say so in one line and stop.** Do not restructure it.
-
-> "This isn't a pyramid case — it's an incident timeline, and time order is the right order here. Want me to tighten it as-is instead?"
-
-**Question 2: Did the user ask you to change it?**
-
-If they named the skill, asked for a restructure, or asked you to **write** the document — apply it now. No preamble, no asking.
-
-Otherwise — they shared **their own** draft to look at, or it came up sideways — your entire response is **two sentences**:
-
-1. One sentence naming the specific symptom: where the point actually lands, what's buried under what.
-2. One question offering the restructure.
-
-> "Your recommendation lands in paragraph six, after the investigation narrative. Want me to restructure it conclusion-first?"
-
-Then stop and wait for an answer.
-
-Ordinary review notes they actually asked for can sit alongside it — a wrong number, a weak subject line, a hedge that undersells the case. What must not appear is **the restructured version itself**: not as a preview, a sample, or "here's what it would look like." The rewrite is the thing being offered — if it's in your message, nothing was offered, and they've been handed a fait accompli on their own writing. This is the most common way to get this skill wrong, and it happens because producing the rewrite feels more helpful than asking. It isn't.
-
-Talk about their draft, not about this skill. Don't narrate the machinery — no "the gate this skill checks", no operation numbers. Name what you see in their words.
-
-If they decline, drop it and don't raise it again in that conversation.
-
-**Why offer rather than act:** the user knows what you don't — who the reader is, what's political, what was already settled on a call, whose voice this has to sound like. Restructuring someone's draft unasked is rewriting them. Offer once; act on yes.
-
-## Overview
 
 Minto's structure, built at McKinsey and published as *The Pyramid Principle*: **the answer first, then the grouped reasons that support it, then the evidence under each reason.**
 
@@ -87,7 +48,9 @@ Anything that won't sit under a reason is evidence, or it's cut — with one exc
 
 ## Operations
 
-Once past the gate: hand back a rewrite with operation 1, or run one by name. Every operation is bound by one rule: **invent nothing.** Every number, name, quote and claim must already exist in the source. Sharpening the language is the job; upgrading "pretty dated" into "a decade behind" is not.
+Don't narrate the machinery — no "the gate this skill checks", no operation numbers.
+
+Hand back a rewrite with operation 1, or run one by name. Sharpening the language is the job; upgrading "pretty dated" into "a decade behind" is not.
 
 | # | Operation | Use it when |
 |---|---|---|
@@ -99,7 +62,7 @@ Once past the gate: hand back a rewrite with operation 1, or run one by name. Ev
 
 ### 1. Restructure
 
-> Rewrite this using the Minto Pyramid. Open with only the context I need to raise the question, then my single main conclusion in one sentence. Then the supporting reasons — as many as the logic requires, not a fixed three. Then the evidence under each. Check two things and tell me if either fails: each reason answers the question my conclusion raises, and the reasons are the same kind of idea. Move risks, constraints and next steps to a short closing section. Cut anything else that doesn't sit under a reason, and list what you cut. Add no facts that aren't already in my draft.
+> Rewrite this using the Minto Pyramid. Open with only the context I need to raise the question, then my single main conclusion in one sentence. Then the supporting reasons — as many as the logic requires, not a fixed three. Then the evidence under each. Check two things and tell me if either fails: each reason answers the question my conclusion raises, and the reasons are the same kind of idea. Move risks, constraints and next steps to a short closing section. Cut anything else that doesn't sit under a reason. Add no facts that aren't already in my draft.
 
 ### 2. Buried-lede test
 
@@ -133,7 +96,6 @@ Nothing was added or removed. The decision moved to word four.
 
 | Mistake | Fix |
 |---|---|
-| Restructuring a draft the user only asked you to read | Gate question 2. Offer, wait |
 | Padding to exactly three reasons | Use the number the logic requires; merge or split honestly |
 | Reasons that are really evidence | If it supports another reason rather than the answer, demote it |
 | Hedging until the claim dissolves ("we may want to consider") | State the claim at the strength the evidence supports — "likely", "on current data" — rather than dissolving it into a maybe |
