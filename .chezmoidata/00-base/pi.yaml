@@ -50,6 +50,7 @@ pi:
     packages:
       - npm:pi-subagents-lite
       - git:github.com/ZenkakuHiragana/pi-compact-transcript@feature/passthroughTools
+      - git:github.com/jokerx0001/pi-model-system-prompt
       - npm:pi-context-view
       - npm:@cortexkit/pi-magic-context
       - source: git:github.com/rytswd/pi-agent-extensions
