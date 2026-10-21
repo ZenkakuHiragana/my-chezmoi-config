@@ -6,6 +6,7 @@ claude:
     effortLevel: high
     showThinkingSummaries: true
     promptSuggestionEnabled: false
+    cleanupPeriodDays: 3650
     enabledPlugins:
       lua-lsp@claude-plugins-official: true
     permissions:

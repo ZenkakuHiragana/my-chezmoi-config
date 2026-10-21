@@ -16,7 +16,7 @@ agents:
       目的により適合する専用のサブエージェントが他に利用可能な場合は使わない。
     modelProfile: strong
     effort:
-      default: high
+      default: xhigh
       claude: high
     settings:
       claude:
@@ -67,14 +67,14 @@ agents:
           task: deny
 modelProfiles:
   fast:
-    default: openai-codex/gpt-6.1-sol
+    default: anthropic/claude-haiku-5-5
     claude: sonnet
     codex: gpt-6.1-sol
-    opencode: openai/gpt-6.1-sol
+    opencode: opencode/deepseek-v4.1-flash
     agy: flash
   strong:
-    default: openai-codex/gpt-6.1-sol
+    default: anthropic/claude-haiku-5-5
     claude: opus
     codex: gpt-6.1-sol
-    opencode: openai/gpt-6.1-sol
+    opencode: opencode/deepseek-v4.1-flash
     agy: flash

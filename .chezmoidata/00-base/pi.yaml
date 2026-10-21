@@ -49,10 +49,13 @@ pi:
     hideThinkingBlock: true
     packages:
       - npm:pi-subagents-lite
+      - npm:pi-doppelclaude
+      - npm:pi-context-view
+      - npm:@valdo766hi/pi-fast
+      - npm:@cortexkit/pi-magic-context
       - git:github.com/ZenkakuHiragana/pi-compact-transcript@feature/passthroughTools
       - git:github.com/jokerx0001/pi-model-system-prompt
-      - npm:pi-context-view
-      - npm:@cortexkit/pi-magic-context
+      - git:github.com/johnnyshields/pi-keepalive
       - source: git:github.com/rytswd/pi-agent-extensions
         extensions:
           - "-direnv/index.ts"
@@ -63,12 +66,19 @@ pi:
           - "-statusline/index.ts"
           - "-inbox/index.ts"
           - "-python/index.ts"
-  modes:
-    modes:
-      advisor:
-        provider: openai-codex
-        modelId: gpt-5.6-luna
-        thinkingLevel: medium
+    doppelclaude:
+      provider:
+        systemPromptMode: pi
+        systemPromptReplacements:
+          identity: .
+          toolNameNote: .
+          documentation:
+            heading: .
+            instructions:
+              - .
+    keepalive:
+      cache_ttl: 1h
+      cache_upkeep: off
   compact_transcript:
     passthroughTools:
       - edit

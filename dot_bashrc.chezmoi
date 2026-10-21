@@ -1,8 +1,22 @@
 # Managed by chezmoi. Source this file from ~/.bashrc to enable the wrapper.
 claude() {
-    command claude --settings "$HOME/.claude/settings-chezmoi.json" --mcp-config "$HOME/.config/mcp/mcp.json" "$@"
+    command claude --settings "$HOME/.claude/settings-chezmoi.json" --mcp-config="$HOME/.config/mcp/mcp.json" "$@"
 }
 
+# codex は --profile を実行系コマンド以外（update、login など）に付けるとエラーで止まる。
+# それらのコマンドでは --profile を付けずに渡す。
 codex() {
+    case "${1-}" in
+        agents|login|logout|plugin|app-server|remote-control|app|completion|update|doctor|apply|a|cloud|exec-server|features|migrate-rollouts|help)
+            command codex "$@"
+            return
+            ;;
+        debug)
+            if [ "${2-}" != prompt-input ]; then
+                command codex "$@"
+                return
+            fi
+            ;;
+    esac
     command codex --profile chezmoi "$@"
 }

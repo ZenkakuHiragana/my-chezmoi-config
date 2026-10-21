@@ -78,7 +78,7 @@ name: {{ $name }}
 description: {{ $agent.description | quote }}
 model: {{ includeTemplate "prompt/agents/resolve.tmpl" (dict "values" $profile "harness" "pi") }}
 thinking: {{ includeTemplate "prompt/agents/resolve.tmpl" (dict "values" $agent.effort "harness" "pi") }}
-exclude_extensions: [pi-instruction-nudge]
+exclude_extensions: [pi-instruction-nudge, pi-keepalive]
 ---
 
 {{ includeTemplate $bodyTemplate $root }}

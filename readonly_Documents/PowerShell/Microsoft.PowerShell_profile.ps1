@@ -128,10 +128,20 @@ if (Test-InteractiveShell) {
 $env:OPENCODE_DISABLE_CLAUDE_CODE=1
 
 function claude {
-    & claude.exe --settings "$HOME/.claude/settings-chezmoi.json" --mcp-config "$HOME/.config/mcp/mcp.json" @args
+    & claude.exe --settings "$HOME/.claude/settings-chezmoi.json" --mcp-config="$HOME/.config/mcp/mcp.json" @args
 }
+
+# codex は --profile を実行系コマンド以外（update、login など）に付けるとエラーで止まる。
+# それらのコマンドでは --profile を付けずに渡す。
+$CodexNoProfileCommands = @('agents', 'login', 'logout', 'plugin', 'app-server', 'remote-control', 'app', 'completion', 'update', 'doctor', 'apply', 'a', 'cloud', 'exec-server', 'features', 'migrate-rollouts', 'help')
 
 function codex {
     $command = Get-Command codex -CommandType Application,ExternalScript -ErrorAction Stop | Select-Object -First 1
-    & $command.Source --profile chezmoi @args
+    $first = if ($args.Count -gt 0) { [string]$args[0] } else { '' }
+    $second = if ($args.Count -gt 1) { [string]$args[1] } else { '' }
+    if ($first -cin $CodexNoProfileCommands -or ($first -ceq 'debug' -and $second -cne 'prompt-input')) {
+        & $command.Source @args
+    } else {
+        & $command.Source --profile chezmoi @args
+    }
 }

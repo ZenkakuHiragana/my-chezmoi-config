@@ -9,7 +9,7 @@
       "model": "openai/gpt-5.6-luna"
     },
     "pi": {
-      "model": "openai/gpt-5.6-luna"
+      "model": "anthropic/claude-haiku-5-5"
     }
   },
   "embedding": {
@@ -21,7 +21,7 @@
       "model": "openai/gpt-5.6-luna"
     },
     "pi": {
-      "model": "openai/gpt-5.6-luna"
+      "model": "anthropic/claude-haiku-5-5"
     }
   },
   "memory": {
