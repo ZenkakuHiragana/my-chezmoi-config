@@ -56,6 +56,7 @@ pi:
       - git:github.com/ZenkakuHiragana/pi-compact-transcript@feature/passthroughTools
       - git:github.com/jokerx0001/pi-model-system-prompt
       - git:github.com/johnnyshields/pi-keepalive
+      - git:github.com/nicobailon/visual-explainer
       - source: git:github.com/rytswd/pi-agent-extensions
         extensions:
           - "-direnv/index.ts"
@@ -88,7 +89,7 @@ pi:
       disableDefaultAgents: true
       systemPromptMode: replace
     concurrency:
-      default: 32
+      default: 3
   tool_display:
     registerToolOverrides:
       edit: false
