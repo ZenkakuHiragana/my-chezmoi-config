@@ -1,5 +1,5 @@
 import { existsSync, realpathSync } from "node:fs";
-import { homedir } from "node:os";
+import { homedir, tmpdir } from "node:os";
 import { dirname, isAbsolute, relative, resolve } from "node:path";
 import type { ToolCallEventResult } from "@earendil-works/pi-coding-agent";
 import type { FilterConfig, PathRole, RuleConfig } from "./types.ts";
@@ -29,6 +29,27 @@ function normalizeInputPath(value: string): string {
   if (process.platform !== "win32") return expanded;
   const match = expanded.match(/^\/([A-Za-z])(?=\/|$)/);
   return match ? `${match[1].toUpperCase()}:${expanded.slice(2) || "/"}` : expanded;
+}
+
+// Bash のパスを、このプロセスのパスへ変換する。
+// Git Bash は `/tmp` を利用者の一時フォルダへマウントするため、Node.js の resolve が返す `C:\tmp` とは違う場所を指す。
+// Bash の `/tmp` は TEMP（os.tmpdir()）として判定する。TEMP を既定以外にして起動した環境では、
+// Git Bash の `/tmp` の実際の行き先と食い違うことがある。
+// Python、Node.js、PowerShell の本文が開く `/tmp` は `C:\tmp` を指すため、Bash のパス（引数、リダイレクト、cd の移動先）にだけ使う。
+export function gitBashTmpPath(pathValue: string): string {
+  if (process.platform === "win32" && (pathValue === "/tmp" || pathValue.startsWith("/tmp/"))) {
+    return `${normalizePath(tmpdir())}${pathValue.slice("/tmp".length)}`;
+  }
+  return pathValue;
+}
+
+export function gitBashTmpPathRoles(paths: readonly (readonly [string, PathRole])[]): Array<readonly [string, PathRole]> {
+  return paths.map(([value, role]) => [gitBashTmpPath(value), role] as const);
+}
+
+// Bash のパスを cwd 基準で解決する（`/tmp` は Git Bash の TEMP として扱う）。
+export function resolveShellPath(pathValue: string, cwd: string): string {
+  return resolveExistingPath(gitBashTmpPath(pathValue), cwd);
 }
 
 export function resolveExistingPath(pathValue: string, cwd: string): string {
@@ -91,6 +112,13 @@ function matchesPathGlob(patterns: readonly string[], candidates: readonly strin
   });
 }
 
+// 書き込みの allow 判定では、各候補 X を X/ としても照合する。
+// これにより X/** の形の許可ルートは、配下だけでなく X 自身の作成と削除も許可する。
+// 読み取りの allow と、すべての deny には適用しない。
+function matchesWriteAllowGlob(patterns: readonly string[], candidates: readonly string[]): boolean {
+  return matchesPathGlob(patterns, candidates.flatMap((candidate) => candidate.endsWith("/") ? [candidate] : [candidate, `${candidate}/`]));
+}
+
 export function matchesCommandGlob(patterns: readonly string[], values: readonly string[]): boolean {
   return patterns.some((pattern) => {
     const matcher = globToRegExp(pattern, true);
@@ -143,7 +171,7 @@ export function writePathDecision(pathValue: string, cwd: string, config: Filter
   if (matchesPathGlob(config.write.deny, candidates)) {
     return block("書き込みの拒否 Glob に一致したため拒否");
   }
-  if (matchesPathGlob(config.write.allow, candidates)) return undefined;
+  if (matchesWriteAllowGlob(config.write.allow, candidates)) return undefined;
   if (isInsideDirectory(pathValue, cwd, boundaryCwd)) return undefined;
   return config.outsideDefault === "allow"
     ? undefined
@@ -163,6 +191,8 @@ export function pathRoleDecisions(
   config: FilterConfig,
   boundaryCwd = cwd,
 ): ToolCallEventResult | undefined {
+  // ssh のリモートコマンドの検査では、パスはこのマシンのファイルではないため判定しない。
+  if (config.skipPathDecisions) return undefined;
   for (const [value, role] of paths) {
     if (role === "write" && isUnboundedWrite(value)) {
       return block("書き込み先を静的に閉じられないモード（tar -P / 7z -spf / unzip -: 等）のため拒否");

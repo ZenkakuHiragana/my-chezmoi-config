@@ -16,10 +16,13 @@
 // - `cd` / `Set-Location`後の相対パス、存在しないパス、Windowsパス、動的置換値の扱い
 // - PowerShellの固定cmdlet集合、前置きオプション付き`-c` / `-Command`、標準AST縮退経路
 // - 判定中に試験対象のファイルやディレクトリを作らないこと、試験用設定を最後に復元すること
+// - 誤って拒否していた形（`cp`の変数の宛先、許可ルート自身、Git Bashの`/tmp`、移動先が静的でない`cd`の後の相対の`cd`、
+//   引用符内の空白とコマンドGlob）と、sshのリモートコマンド、`--`・`env -u`・`>&`の読み方
 //
 // このため、実行前にchezmoiで対象拡張を展開し、Pi本体・解析依存・PowerShellを利用できる必要がある。
 // リポジトリ内だけで完結する単体テストではなく、Pi拡張の実行時接続を含む安全な統合テストである。
 import { registerDependencyTests } from "./tests/dependency.ts";
+import { registerFalseDenyTests } from "./tests/false-deny.ts";
 import { registerGlobTests } from "./tests/glob.ts";
 import { registerPathTests } from "./tests/path.ts";
 import { registerReasonTests } from "./tests/reason.ts";
@@ -34,3 +37,4 @@ registerSpecTests();
 registerReasonTests();
 registerWriteTests();
 registerGlobTests();
+registerFalseDenyTests();

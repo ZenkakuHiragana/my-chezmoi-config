@@ -2,13 +2,19 @@ import { spawnSync } from "node:child_process";
 import type { ToolCallEventResult } from "@earendil-works/pi-coding-agent";
 import type { CommandParts, FilterConfig, PathRole, PowerShellCommand } from "./types.ts";
 import {
+  SSH_NAMES,
   checkBashValues,
+  commandBasename,
   commandValues,
   simpleCommandCandidates,
+  sshRemoteCommand,
 } from "./command.ts";
 import { pathRoleDecisions, resolveExistingPath, isStaticPathValue } from "./path-policy.ts";
 
 export const POWER_SHELL_NAMES = new Set(["powershell", "powershell.exe", "pwsh", "pwsh.exe"]);
+
+// ssh のリモートコマンドを検査する関数。Bash の検査は inspector.ts が持つため、呼び出し元が渡す。
+export type RemoteCommandInspector = (remote: string) => Promise<ToolCallEventResult | undefined>;
 
 function isRecord(value: unknown): value is Record<string, unknown> {
   return typeof value === "object" && value !== null && !Array.isArray(value);
@@ -113,13 +119,20 @@ export function powershellWorkingDirectoryOption(parts: CommandParts): string | 
 }
 
 // pwsh の -Command / -EncodedCommand 本文を、-WorkingDirectory を反映した cwd で検査する。
-export function inspectPowerShellCommandText(commandText: string, parts: CommandParts, config: FilterConfig, cwd: string, boundaryCwd: string): ToolCallEventResult | undefined {
+export async function inspectPowerShellCommandText(
+  commandText: string,
+  parts: CommandParts,
+  config: FilterConfig,
+  cwd: string,
+  boundaryCwd: string,
+  inspectRemote: RemoteCommandInspector,
+): Promise<ToolCallEventResult | undefined> {
   const psWorkingDirectory = powershellWorkingDirectoryOption(parts);
   const psCwd = psWorkingDirectory ? resolveExistingPath(psWorkingDirectory, cwd) : cwd;
   const body = extractPowerShellBody(commandText);
-  if (body) return checkPowerShellBody(body, config, psCwd, boundaryCwd);
+  if (body) return checkPowerShellBody(body, config, psCwd, boundaryCwd, inspectRemote);
   const encoded = extractPowerShellEncodedBody(commandText);
-  if (encoded) return checkPowerShellBody(encoded, config, psCwd, boundaryCwd);
+  if (encoded) return checkPowerShellBody(encoded, config, psCwd, boundaryCwd, inspectRemote);
   return undefined;
 }
 
@@ -158,13 +171,25 @@ function runPowerShellParser(body: string): PowerShellCommand[] | null {
   return null;
 }
 
-export function checkPowerShellBody(body: string, config: FilterConfig, cwd: string, boundaryCwd = cwd) {
+export async function checkPowerShellBody(
+  body: string,
+  config: FilterConfig,
+  cwd: string,
+  boundaryCwd: string,
+  inspectRemote: RemoteCommandInspector,
+): Promise<ToolCallEventResult | undefined> {
   const parsed = runPowerShellParser(body);
   if (!parsed) return checkBashValues(simpleCommandCandidates(body).flatMap(commandValues), config);
   let currentCwd = cwd;
   for (const command of parsed) {
     const commandDecision = checkBashValues(commandValues(command.text), config);
     if (commandDecision) return commandDecision;
+    // ssh のリモートコマンドは、Bash の ssh と同じく入れ子のコマンドとして検査する。
+    if (SSH_NAMES.has(commandBasename(powerShellTokenText(command.elements[0] ?? "")))) {
+      const remote = sshRemoteCommand(command.elements.slice(1).map(powerShellTokenText));
+      const remoteDecision = remote ? await inspectRemote(remote) : undefined;
+      if (remoteDecision) return remoteDecision;
+    }
     const pathDecision = pathRoleDecisions(powerShellPathRoles(command), currentCwd, config, boundaryCwd);
     if (pathDecision) return pathDecision;
     currentCwd = powerShellWorkingDirectory(command, currentCwd);

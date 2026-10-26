@@ -12,6 +12,8 @@ import {
   BASH_SHELL_NAMES,
   BASH_WRAPPER_NAMES,
   HEREDOC_EXPANSION_CHARS,
+  SSH_NAMES,
+  argvCommandValues,
   bashWorkingDirectory,
   checkBashValues,
   commandBasename,
@@ -22,10 +24,14 @@ import {
   extractShellBody,
   findBashRedirects,
   findNestedCommands,
+  maskedCommandValues,
+  nestedCommandParts,
   simpleBashRedirectRoles,
   simpleCommandCandidates,
+  sshRemoteCommand,
   wrappedCommandArgs,
   xargsCommandArgs,
+  type BashCwdState,
 } from "./command.ts";
 import {
   POWER_SHELL_NAMES,
@@ -34,6 +40,7 @@ import {
   extractPowerShellEncodedBody,
   inspectPowerShellCommandText,
   powershellWorkingDirectoryOption,
+  type RemoteCommandInspector,
 } from "./power-shell.ts";
 import {
   NODE_FORK_NAME,
@@ -69,7 +76,7 @@ import {
   getParser,
   treeHasSyntaxError,
 } from "./parser.ts";
-import { isStaticPathValue, pathRoleDecisions, resolveExistingPath } from "./path-policy.ts";
+import { gitBashTmpPathRoles, isStaticPathValue, pathRoleDecisions, resolveExistingPath } from "./path-policy.ts";
 
 async function inspectPythonBody(body: string, config: FilterConfig, cwd: string, depth: number, boundaryCwd = cwd) {
   // コメント行は任意のインデントで書けるため、最初の非空・非コメント行を見る。
@@ -444,7 +451,8 @@ async function inspectHeredocBody(body: string, parts: CommandParts, config: Fil
     // -File の値が `-` の場合は stdin 本文を実行するため、後続の位置引数は
     // スクリプトの引数であり、PowerShell 本体のオプションとして扱わない
     const fileIsStdin = effective.args.some((value, index) => /^-+file$/i.test(value) && index + 1 < effective.args.length && effective.args[index + 1] === "-");
-    if (fileIsStdin) return checkPowerShellBody(body, config, cwd, boundaryCwd);
+    const inspectRemote = remoteCommandInspector(config, cwd, effectiveDepth, boundaryCwd);
+    if (fileIsStdin) return checkPowerShellBody(body, config, cwd, boundaryCwd, inspectRemote);
     const argsText = [effective.name, ...effective.args].join(" ");
     const inlineBody = extractPowerShellBody(argsText);
     // `-Command -` は標準入力を本文として実行する。
@@ -459,23 +467,30 @@ async function inspectHeredocBody(body: string, parts: CommandParts, config: Fil
     // -WorkingDirectory は値付きオプションとして追跡する。heredoc 本文はそのディレクトリ
     // を実行 cwd として検査され、値が非静的なら追跡しない（cd 追跡と同じ扱い）
     const psWorkingDirectory = powershellWorkingDirectoryOption(effective);
-    if (psWorkingDirectory) return checkPowerShellBody(body, config, resolveExistingPath(psWorkingDirectory, cwd), boundaryCwd);
+    if (psWorkingDirectory) return checkPowerShellBody(body, config, resolveExistingPath(psWorkingDirectory, cwd), boundaryCwd, inspectRemote);
     const stop = interpreterOptionStop(effective.args);
     if (stop < effective.args.length) return undefined;
-    return checkPowerShellBody(body, config, cwd, boundaryCwd);
+    return checkPowerShellBody(body, config, cwd, boundaryCwd, inspectRemote);
   }
   return undefined;
 }
 
 async function inspectCommandParts(parts: CommandParts, config: FilterConfig, cwd: string, depth: number, boundaryCwd = cwd): Promise<ToolCallEventResult | undefined> {
   const commandText = [parts.name, ...parts.args].join(" ");
-  const directDecision = checkBashValues(commandValues(commandText), config);
+  // 引数の内部の空白（引用符で囲んだ文字列の中の空白）は、コマンド Glob の区切りとして扱わない。
+  const directDecision = checkBashValues(argvCommandValues(parts), config, true);
   if (directDecision) return directDecision;
-  const pathDecision = pathRoleDecisions(commandPathRoles(parts, cwd), cwd, config, boundaryCwd);
+  const pathDecision = pathRoleDecisions(gitBashTmpPathRoles(commandPathRoles(parts, cwd)), cwd, config, boundaryCwd);
   if (pathDecision) return pathDecision;
-  const psDecision = inspectPowerShellCommandText(commandText, parts, config, cwd, boundaryCwd);
+  const psDecision = await inspectPowerShellCommandText(commandText, parts, config, cwd, boundaryCwd, remoteCommandInspector(config, cwd, depth, boundaryCwd));
   if (psDecision) return psDecision;
   if (depth >= 3) return undefined;
+  // 空白を含むコマンド名はそのままでは実行できず、watch や parallel のように文字列をシェルで実行するコマンドの内側に現れる。
+  // 引数の内部の空白を区切りとして扱わない代わりに、コマンドの並びとして検査する。
+  if (/\s/.test(parts.name)) {
+    const nestedDecision = await inspectBash(commandText, config, cwd, depth + 1, boundaryCwd);
+    if (nestedDecision) return nestedDecision;
+  }
   const shellBody = extractShellBody(parts);
   if (shellBody) {
     const nestedDecision = await inspectBash(shellBody, config, cwd, depth + 1, boundaryCwd);
@@ -502,44 +517,71 @@ async function inspectCommandParts(parts: CommandParts, config: FilterConfig, cw
     }
   }
   if (name === "find") {
-    for (const nested of findNestedCommands(parts)) {
-      const nestedDecision = await inspectCommandParts(nested, config, cwd, depth + 1, boundaryCwd);
+    const nestedCommands = findNestedCommands(parts);
+    const nestedWords = parts.argsWithExpansions ? findNestedCommands({ name: parts.name, args: parts.argsWithExpansions }) : [];
+    for (const [index, nested] of nestedCommands.entries()) {
+      // -exec の数が同じときだけ、同じ位置の -exec の語の並びを対応させる。
+      const words = nestedWords.length === nestedCommands.length ? nestedWords[index] : undefined;
+      const nestedParts = nestedCommandParts([nested.name, ...nested.args], words && [words.name, ...words.args]);
+      const nestedDecision = await inspectCommandParts(nestedParts, config, cwd, depth + 1, boundaryCwd);
       if (nestedDecision) return nestedDecision;
+    }
+  }
+  // ssh のリモートコマンドは、ローカルと同じ規則で入れ子のコマンドとして検査する（パスは判定しない）。
+  if (SSH_NAMES.has(name)) {
+    const remote = sshRemoteCommand(parts.argsWithExpansions ?? parts.args);
+    if (remote) {
+      const remoteDecision = await remoteCommandInspector(config, cwd, depth, boundaryCwd)(remote);
+      if (remoteDecision) return remoteDecision;
     }
   }
   if (name === "xargs") {
     const nestedArgs = xargsCommandArgs(parts.args);
     if (nestedArgs.length > 0) {
-      const nestedDecision = await inspectCommandParts({ name: nestedArgs[0], args: nestedArgs.slice(1) }, config, cwd, depth + 1, boundaryCwd);
+      const nestedWords = parts.argsWithExpansions && xargsCommandArgs(parts.argsWithExpansions);
+      const nestedDecision = await inspectCommandParts(nestedCommandParts(nestedArgs, nestedWords), config, cwd, depth + 1, boundaryCwd);
       if (nestedDecision) return nestedDecision;
     }
   }
   if (BASH_WRAPPER_NAMES.has(name)) {
     const nestedArgs = wrappedCommandArgs(name, parts.args);
     if (nestedArgs.length > 0) {
+      const nestedWords = parts.argsWithExpansions && wrappedCommandArgs(name, parts.argsWithExpansions);
       // env の -c / -C / --chdir は内側コマンドの実行 cwd を置き換える
       const nestedCwd = name === "env" ? envWorkingDirectory(parts, cwd) : cwd;
-      const nestedDecision = await inspectCommandParts({ name: nestedArgs[0], args: nestedArgs.slice(1) }, config, nestedCwd, depth + 1, boundaryCwd);
+      const nestedDecision = await inspectCommandParts(nestedCommandParts(nestedArgs, nestedWords), config, nestedCwd, depth + 1, boundaryCwd);
       if (nestedDecision) return nestedDecision;
     }
   }
   return undefined;
 }
 
-async function inspectBashWithoutParser(command: string, config: FilterConfig, cwd: string, boundaryCwd = cwd) {
+// パスを判定しない設定（ssh のリモートコマンドの検査に使う）。リモートのパスはこのマシンのファイルではないため、
+// パスの判定（pathRoleDecisions）を行わない。コマンドの拒否 Glob は残す。
+function pathlessConfig(config: FilterConfig): FilterConfig {
+  return { ...config, skipPathDecisions: true };
+}
+
+// ssh のリモートコマンドを、パスを判定しない設定で、一段深い Bash のコマンドとして検査する関数を作る。
+// PowerShell の本文の ssh にも使う（power-shell.ts へ渡す）。入れ子の深さの上限は、ほかの入れ子のコマンドと同じ 3 とする。
+function remoteCommandInspector(config: FilterConfig, cwd: string, depth: number, boundaryCwd: string): RemoteCommandInspector {
+  return async (remote) => depth >= 3 ? undefined : inspectBash(remote, pathlessConfig(config), cwd, depth + 1, boundaryCwd);
+}
+
+async function inspectBashWithoutParser(command: string, config: FilterConfig, cwd: string, depth: number, boundaryCwd = cwd) {
   for (const candidate of simpleCommandCandidates(command)) {
     const directDecision = checkBashValues(commandValues(candidate), config);
     if (directDecision) return directDecision;
-    const redirectDecision = pathRoleDecisions(simpleBashRedirectRoles(candidate), cwd, config, boundaryCwd);
+    const redirectDecision = pathRoleDecisions(gitBashTmpPathRoles(simpleBashRedirectRoles(candidate)), cwd, config, boundaryCwd);
     if (redirectDecision) return redirectDecision;
     const body = extractPowerShellBody(candidate);
     if (body) {
-      const powerShellDecision = checkPowerShellBody(body, config, cwd, boundaryCwd);
+      const powerShellDecision = await checkPowerShellBody(body, config, cwd, boundaryCwd, remoteCommandInspector(config, cwd, depth, boundaryCwd));
       if (powerShellDecision) return powerShellDecision;
     }
     const encoded = extractPowerShellEncodedBody(candidate);
     if (encoded) {
-      const powerShellDecision = checkPowerShellBody(encoded, config, cwd, boundaryCwd);
+      const powerShellDecision = await checkPowerShellBody(encoded, config, cwd, boundaryCwd, remoteCommandInspector(config, cwd, depth, boundaryCwd));
       if (powerShellDecision) return powerShellDecision;
     }
   }
@@ -548,12 +590,12 @@ async function inspectBashWithoutParser(command: string, config: FilterConfig, c
 
 export async function inspectBash(command: string, config: FilterConfig, cwd = process.cwd(), depth = 0, boundaryCwd = cwd): Promise<ToolCallEventResult | undefined> {
   const parser = await getBashParser();
-  if (!parser) return inspectBashWithoutParser(command, config, cwd, boundaryCwd);
+  if (!parser) return inspectBashWithoutParser(command, config, cwd, depth, boundaryCwd);
   let tree: BashTree | null = null;
   try {
     tree = parser.parse(command);
-    if (!tree || treeHasSyntaxError(tree.rootNode)) return inspectBashWithoutParser(command, config, cwd, boundaryCwd);
-    let currentCwd = cwd;
+    if (!tree || treeHasSyntaxError(tree.rootNode)) return inspectBashWithoutParser(command, config, cwd, depth, boundaryCwd);
+    let cwdState: BashCwdState = { cwd, frozen: false };
     const commandNodes = findCommandNodes(tree.rootNode).sort((left, right) => left.startIndex - right.startIndex);
     const redirects = findBashRedirects(tree.rootNode);
     const heredocs = findBashHeredocs(tree.rootNode, command);
@@ -565,35 +607,36 @@ export async function inspectBash(command: string, config: FilterConfig, cwd = p
     }
     const handledRedirects = new Set<BashRedirect>();
     for (const node of commandNodes) {
-      const directDecision = checkBashValues(commandValues(node.text), config);
+      // 引用符内の空白はコマンド Glob の区切りとして扱わない（照合値と Glob の両方へ同じ置き換えを適用する）。
+      const directDecision = checkBashValues(maskedCommandValues(node.text), config, true);
       if (directDecision) return directDecision;
       for (const redirect of redirects) {
         if (redirect.ownerStart !== node.startIndex) continue;
-        const redirectDecision = pathRoleDecisions(redirect.paths, currentCwd, config, boundaryCwd);
+        const redirectDecision = pathRoleDecisions(gitBashTmpPathRoles(redirect.paths), cwdState.cwd, config, boundaryCwd);
         if (redirectDecision) return redirectDecision;
         handledRedirects.add(redirect);
       }
       const parts = commandParts(node);
       if (parts) {
-        const nestedDecision = await inspectCommandParts(parts, config, currentCwd, depth, boundaryCwd);
+        const nestedDecision = await inspectCommandParts(parts, config, cwdState.cwd, depth, boundaryCwd);
         if (nestedDecision) return nestedDecision;
-        currentCwd = bashWorkingDirectory(parts, currentCwd);
+        cwdState = bashWorkingDirectory(parts, cwdState);
       }
       for (const heredoc of heredocsByOwner.get(node.startIndex) ?? []) {
         if (!heredoc.quoted && HEREDOC_EXPANSION_CHARS.test(heredoc.body)) continue;
         if (!parts || depth >= 3) continue;
-        const heredocDecision: ToolCallEventResult | undefined = await inspectHeredocBody(heredoc.body, parts, config, currentCwd, depth, boundaryCwd);
+        const heredocDecision: ToolCallEventResult | undefined = await inspectHeredocBody(heredoc.body, parts, config, cwdState.cwd, depth, boundaryCwd);
         if (heredocDecision) return heredocDecision;
       }
     }
     for (const redirect of redirects) {
       if (handledRedirects.has(redirect)) continue;
-      const redirectDecision = pathRoleDecisions(redirect.paths, currentCwd, config, boundaryCwd);
+      const redirectDecision = pathRoleDecisions(gitBashTmpPathRoles(redirect.paths), cwdState.cwd, config, boundaryCwd);
       if (redirectDecision) return redirectDecision;
     }
     return undefined;
   } catch {
-    return inspectBashWithoutParser(command, config, cwd, boundaryCwd);
+    return inspectBashWithoutParser(command, config, cwd, depth, boundaryCwd);
   } finally {
     tree?.delete();
   }
