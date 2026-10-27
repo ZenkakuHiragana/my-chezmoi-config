@@ -28,6 +28,7 @@ pi:
         - "~/.config/opencode/KNOWLEDGE.local.yml"
         - "~/.config/opencode/knowledge-instructions/**"
         - "~/AppData/Local/Temp/opencode/**"
+        - "~/research/**"
         - "/tmp/opencode/**"
         - "/dev/null"
       deny:
@@ -89,7 +90,7 @@ pi:
       disableDefaultAgents: true
       systemPromptMode: replace
     concurrency:
-      default: 3
+      default: 32
   tool_display:
     registerToolOverrides:
       edit: false

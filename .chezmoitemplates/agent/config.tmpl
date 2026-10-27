@@ -68,7 +68,7 @@ name: {{ $name }}
 description: {{ $agent.description | quote }}
 model: {{ includeTemplate "prompt/agents/resolve.tmpl" (dict "values" $profile "harness" "omp") }}
 thinking: {{ includeTemplate "prompt/agents/resolve.tmpl" (dict "values" $agent.effort "harness" "omp") }}
-exclude_extensions: [pi-instruction-nudge]
+exclude_extensions: [pi-instruction-nudge, pi-keep-alive]
 ---
 
 {{ includeTemplate $bodyTemplate $root }}
