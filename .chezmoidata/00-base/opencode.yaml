@@ -10,7 +10,8 @@ opencode:
         disable: true
     compaction:
       auto: false
-      prune: false
+    experimental:
+      todo: true
     formatter:
       prettier:
         command:
@@ -115,7 +116,7 @@ opencode:
       orchestrator:
         orch-local-investigator: deny
         orch-public-researcher: deny
-  tui:
-    "$schema": https://opencode.ai/tui.json
+  cli:
+    "$schema": https://opencode.ai/v2/cli.json
     keybinds:
-      input_newline: alt+n,shift+return,ctrl+return,alt+return,ctrl+j
+      input.newline: alt+n,shift+return,ctrl+return,alt+return,ctrl+j

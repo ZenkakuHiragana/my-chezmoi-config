@@ -12,6 +12,44 @@ function stringMap(value) {
   return isObject(value) && Object.values(value).every((item) => typeof item === "string");
 }
 
+const oauthFieldNames = {
+  clientId: "client_id",
+  clientSecret: "client_secret",
+  callbackPort: "callback_port",
+  redirectUri: "redirect_uri",
+};
+
+function convertOauth(oauth) {
+  if (!isObject(oauth)) return oauth;
+  return Object.fromEntries(
+    Object.entries(oauth).map(([key, value]) => [oauthFieldNames[key] ?? key, value]),
+  );
+}
+
+function convertTimeout(timeout) {
+  return { catalog: timeout, execution: timeout };
+}
+
+// OpenCode expands {env:NAME} only while loading config files, not in plugin-provided MCP servers.
+function substituteEnv(name, value) {
+  if (typeof value === "string") {
+    return value.replace(/\{env:([^}]+)\}/g, (_, variable) => {
+      const resolved = process.env[variable];
+      if (resolved === undefined) {
+        throw new Error(`${name}: environment variable ${variable} is not set`);
+      }
+      return resolved;
+    });
+  }
+  if (Array.isArray(value)) return value.map((item) => substituteEnv(name, item));
+  if (isObject(value)) {
+    return Object.fromEntries(
+      Object.entries(value).map(([key, item]) => [key, substituteEnv(name, item)]),
+    );
+  }
+  return value;
+}
+
 function convert(name, source) {
   if (!isObject(source)) throw new Error(`${name}: definition must be an object`);
   if (Object.hasOwn(source, "command")) {
@@ -41,8 +79,8 @@ function convert(name, source) {
     };
     if (source.env !== undefined) result.environment = source.env;
     if (source.cwd !== undefined) result.cwd = source.cwd;
-    if (source.timeout !== undefined) result.timeout = source.timeout;
-    if (source.enabled !== undefined) result.enabled = source.enabled;
+    if (source.timeout !== undefined) result.timeout = convertTimeout(source.timeout);
+    if (source.enabled !== undefined) result.disabled = !source.enabled;
     return result;
   }
 
@@ -52,9 +90,9 @@ function convert(name, source) {
     }
     const result = { type: "remote", url: source.url };
     if (source.headers !== undefined) result.headers = source.headers;
-    if (source.timeout !== undefined) result.timeout = source.timeout;
-    if (source.enabled !== undefined) result.enabled = source.enabled;
-    if (source.oauth !== undefined) result.oauth = source.oauth;
+    if (source.timeout !== undefined) result.timeout = convertTimeout(source.timeout);
+    if (source.enabled !== undefined) result.disabled = !source.enabled;
+    if (source.oauth !== undefined) result.oauth = convertOauth(source.oauth);
     return result;
   }
 
@@ -83,7 +121,7 @@ async function readServers(sourcePath, { required = false } = {}) {
   const servers = {};
   for (const [name, source] of Object.entries(document.mcpServers)) {
     try {
-      servers[name] = convert(name, source);
+      servers[name] = substituteEnv(name, convert(name, source));
     } catch (error) {
       console.error(`read-mcp: ${sourcePath}: ${error.message}`);
     }
@@ -91,20 +129,21 @@ async function readServers(sourcePath, { required = false } = {}) {
   return servers;
 }
 
-export default async function readGlobalMcp({ worktree } = {}) {
-  const projectSourcePath = worktree
-    ? path.join(worktree, ".mcp.json")
-    : undefined;
+export default {
+  id: "local.read-mcp",
+  async setup(ctx) {
+    const projectDirectory = ctx.location?.project?.directory;
+    const globalServers = await readServers(globalSourcePath, { required: true });
+    const projectServers = projectDirectory
+      ? await readServers(path.join(projectDirectory, ".mcp.json"))
+      : {};
+    const imported = { ...globalServers, ...projectServers };
 
-  return {
-    config: async (config) => {
-      const globalServers = await readServers(globalSourcePath, { required: true });
-      const projectServers = projectSourcePath
-        ? await readServers(projectSourcePath)
-        : {};
-      const imported = { ...globalServers, ...projectServers };
-      // OpenCode native configuration remains authoritative over imported files.
-      config.mcp = { ...imported, ...(config.mcp ?? {}) };
-    },
-  };
-}
+    await ctx.mcp.transform((editor) => {
+      for (const [name, server] of Object.entries(imported)) {
+        // OpenCode native configuration remains authoritative over imported files.
+        if (editor.get(name) === undefined) editor.set(name, server);
+      }
+    });
+  },
+};

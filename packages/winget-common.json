@@ -62,9 +62,6 @@
           "PackageIdentifier": "Rustlang.Rustup"
         },
         {
-          "PackageIdentifier": "SST.opencode"
-        },
-        {
           "PackageIdentifier": "ast-grep.ast-grep"
         },
         {

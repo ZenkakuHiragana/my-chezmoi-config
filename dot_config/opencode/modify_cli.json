@@ -1,0 +1,18 @@
+{{- /* chezmoi:modify-template */ -}}
+{{- $existing := dict -}}
+{{- if ne (.chezmoi.stdin | trim) "" -}}
+{{- $existing = fromJson .chezmoi.stdin -}}
+{{- end -}}
+{{- $managed := .opencode.cli -}}
+{{- range $key, $value := $managed -}}
+{{- if ne $key "keybinds" -}}
+{{- $_ := set $existing $key $value -}}
+{{- end -}}
+{{- end -}}
+{{- if not (hasKey $existing "keybinds") -}}
+{{- $_ := set $existing "keybinds" dict -}}
+{{- end -}}
+{{- range $key, $value := $managed.keybinds -}}
+{{- $_ := set (get $existing "keybinds") $key $value -}}
+{{- end -}}
+{{- $existing | toPrettyJson -}}
