@@ -6,7 +6,7 @@ import { Text } from "@earendil-works/pi-tui";
 import { Type } from "typebox";
 
 const PI_SKILLS_PROMPT_SECTION =
-  /\n\nThe following skills provide specialized instructions for specific tasks\.[\s\S]*?\n<\/available_skills>/g;
+  /<skills>\nThe following skills provide specialized instructions for specific tasks\.[\s\S]*?\n<\/available_skills>\n<\/skills>/g;
 
 const SKILL_DESCRIPTION_INTRO = [
   "スキルの全文を名前で読み込む。",
