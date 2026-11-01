@@ -50,11 +50,11 @@ pi:
     hideThinkingBlock: true
     packages:
       - npm:pi-subagents-lite
-      - npm:pi-doppelclaude
       - npm:pi-context-view
       - npm:@valdo766hi/pi-fast
       - npm:@cortexkit/pi-magic-context
-      - git:github.com/ZenkakuHiragana/pi-compact-transcript@feature/passthroughTools
+      # - npm:pi-tidy
+      - npm:pi-tool-display
       - git:github.com/jokerx0001/pi-model-system-prompt
       - git:github.com/johnnyshields/pi-keepalive
       - git:github.com/nicobailon/visual-explainer

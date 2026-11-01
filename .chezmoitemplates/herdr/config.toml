@@ -4,5 +4,29 @@ onboarding = false
 name = "tokyo-night"
 auto_switch = false
 
+# Pi の pipboy-bright テーマと同じ緑の配色。全 19 色を上書きするので tokyo-night の色は残らない。
+# 文字に使う色（accent、text、subtext0、overlay0、overlay1、mauve と状態の 6 色）は、端末の既定の背景
+# （不透明度 0.82）から白い壁紙が透けたときの色 #2e2e2e に対して、WCAG のコントラスト比が 4.5 以上になる値。
+[theme.custom]
+accent = "#1bff80"
+text = "#1bff80"
+subtext0 = "#14c862"
+overlay1 = "#14c862"
+overlay0 = "#3fbf74"
+mauve = "#8affc1"
+panel_bg = "#05180c"
+sidebar_bg = "reset"
+surface_dim = "#05180c"
+surface0 = "#0a2a15"
+surface1 = "#073d20"
+active_row_bg = "#0a2a15"
+selection_bg = "#0a5e30"
+green = "#1bff80"
+yellow = "#ffb642"
+red = "#ff6b50"
+peach = "#ffd27a"
+blue = "#8affc1"
+teal = "#8affc1"
+
 [experimental]
 kitty_graphics = true

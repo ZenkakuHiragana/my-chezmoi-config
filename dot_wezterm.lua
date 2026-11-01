@@ -26,6 +26,8 @@ config.window_decorations = "INTEGRATED_BUTTONS|RESIZE"
 config.integrated_title_button_style = "Windows"
 config.integrated_title_button_alignment = "Right"
 
+config.colors = { foreground = "#1bff80" }
+
 -- タブバーを1段の簡素な表示にする
 config.use_fancy_tab_bar = false
 config.hide_tab_bar_if_only_one_tab = false

@@ -93,6 +93,12 @@
         },
         {
           "PackageIdentifier": "Microsoft.WSL"
+        },
+        {
+          "PackageIdentifier": "yt-dlp.yt-dlp"
+        },
+        {
+          "PackageIdentifier": "DenoLand.Deno"
         }
       ],
       "SourceDetails": {
