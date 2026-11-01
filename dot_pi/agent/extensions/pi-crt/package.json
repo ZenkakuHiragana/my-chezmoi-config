@@ -4,10 +4,12 @@
   "type": "module",
   "dependencies": {
     "@distube/ytdl-core": "5.2.0",
+    "@kmamal/sdl": "0.11.13",
     "audify": "1.10.1",
     "prism-media": "1.3.5"
   },
   "allowScripts": {
+    "@kmamal/sdl@0.11.13": true,
     "audify@1.10.1": true
   },
   "pi": {

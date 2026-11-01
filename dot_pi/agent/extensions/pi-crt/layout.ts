@@ -33,7 +33,8 @@
  *
  * Panels: transcript, thinking, tools, toollog, vitals, context, usage, history, git,
  * gitfiles, gitdiff, gitlog, promptparts, prompttext, toollist, tooldetail,
- * skilllist, skilltext, quests, tree, location, stations, radiosearch, nowplaying, nosignal
+ * skilllist, skilltext, quests, tree, location, stations, radiosearch, radiooutput,
+ * nowplaying, nosignal
  *
  * Tabs that show "transcript" at the current width blink when the agent finishes
  * while none of them is shown. When the transcript is narrower than the
@@ -159,6 +160,15 @@ const tabs: TabDef[] = [
 					narrow: { column: [{ panel: "radiosearch", size: "50%" }, "nowplaying"] },
 				},
 				primary: "radiosearch",
+			},
+			{
+				label: "OUTPUT",
+				layout: {
+					minWidth: 100,
+					wide: { row: [{ panel: "radiooutput", size: "32%" }, "nowplaying"] },
+					narrow: { column: [{ panel: "radiooutput", size: "40%" }, "nowplaying"] },
+				},
+				primary: "radiooutput",
 			},
 		],
 	},

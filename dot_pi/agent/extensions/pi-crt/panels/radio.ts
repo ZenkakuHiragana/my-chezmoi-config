@@ -1,8 +1,9 @@
 /**
  * RADIO's panels: STATIONS (the stations in radio.json), SEARCH (a search box and
- * the songs it found) and NOW PLAYING. Enter on a station or a song plays it, or
- * stops it when it is playing; on every RADIO panel `n` skips to the next song and
- * `+` / `-` change the volume.
+ * the songs it found), OUTPUT (the output devices) and NOW PLAYING. Enter on a
+ * station or a song plays it, or stops it when it is playing; Enter on a device
+ * plays on it. On every RADIO panel `n` skips to the next song and `+` / `-`
+ * change the volume.
  *
  * The search box takes every key but ctrl+c while it is being typed into (see
  * ListControl.typing); Enter searches and Esc leaves it.
@@ -11,7 +12,10 @@ import { Input, matchesKey, truncateToWidth, visibleWidth, wrapTextWithAnsi } fr
 import {
 	changeVolume,
 	nextTrack,
+	type OutputDevice,
+	pickOutput,
 	playedSeconds,
+	playsOn,
 	playsSong,
 	playsStation,
 	type RadioData,
@@ -202,6 +206,71 @@ function searchLines(env: PanelEnv, selection: Selection, input: Input, typing: 
 	return lines;
 }
 
+/* ------------------------------------------------------------ OUTPUT */
+
+registerPanel("radiooutput", (env) => {
+	const selection = new RadioSelection(
+		() => radioData(env.state).outputs.devices.length,
+		(index) => {
+			const device = radioData(env.state).outputs.devices[index];
+			if (device) pickOutput(env.state, device);
+		},
+		(data) => radioKey(env, data),
+	);
+	selection.index = 0;
+	const panel = framed(
+		env.theme,
+		() => "OUTPUT",
+		new ListLines(
+			selection,
+			(width) => {
+				selection.reset();
+				return withCursor(env, selection, "radiooutput", outputLines(env, selection, width - 1));
+			},
+			// The tick only while the spinner turns.
+			() => {
+				const data = radioData(env.state);
+				return [data.version, data.outputs.loading && env.tick(), selection.index, env.focused("radiooutput"), themeStamp(env.theme())];
+			},
+		),
+		"top",
+		() => env.focused("radiooutput"),
+	);
+	selection.scroll = panel.scroll;
+	return { ...panel, list: selection };
+});
+
+/**
+ * A name like "Endpoint (Adapter)" (as WASAPI gives them) shows the adapter on the
+ * second line; SYSTEM DEFAULT says there what it is.
+ */
+function deviceName(device: OutputDevice): [string, string] {
+	if (device.name === null) return [device.label, "the device the system uses"];
+	const match = /^(.*\S) \((.+)\)$/.exec(device.label);
+	return match ? [match[1]!, match[2]!] : [device.label, ""];
+}
+
+function outputLines(env: PanelEnv, selection: Selection, width: number): string[] {
+	const t = env.theme();
+	const outputs = radioData(env.state).outputs;
+	const lines: string[] = [];
+	outputs.devices.forEach((device, index) => {
+		selection.place(index, lines.length, 2);
+		const [name, adapter] = deviceName(device);
+		const on = playsOn(device);
+		const title = on ? `${t.fg("accent", "♪")} ${t.fg("accent", t.bold(name))}` : `  ${t.fg("text", name)}`;
+		lines.push(truncateToWidth(title, width));
+		lines.push(truncateToWidth(`  ${t.fg("dim", adapter)}`, width));
+	});
+	if (outputs.loading && !outputs.devices.length) lines.push(` ${t.fg("warning", spinner(env.tick()))} ${t.fg("muted", "listing devices…")}`);
+	else if (!outputs.devices.length && !outputs.error) lines.push(t.fg("dim", " -- no output devices --"));
+	if (outputs.error) {
+		if (lines.length) lines.push("");
+		for (const line of wrapTextWithAnsi(outputs.error, Math.max(1, width - 2))) lines.push(` ${t.fg("error", line)}`);
+	}
+	return lines;
+}
+
 /* ------------------------------------------------------------ NOW PLAYING */
 
 registerPanel("nowplaying", (env) => {
@@ -243,36 +312,32 @@ const LEFT_DOTS = [0x01, 0x02, 0x04, 0x40];
 const RIGHT_DOTS = [0x08, 0x10, 0x20, 0x80];
 
 /**
- * Two rows of braille: the levels of the writes played last, newest at the right,
- * drawn above and below a middle line. Each cell holds two levels.
+ * `rows` rows of braille: the levels of the packets played last, newest at the
+ * right, drawn above and below a middle line. Each cell holds two levels.
  */
-function waveform(levels: readonly number[], cells: number): [string, string] {
+function waveform(levels: readonly number[], cells: number, rows: number): string[] {
 	const points = cells * 2;
 	const recent = levels.slice(-points);
 	const padded = [...Array.from({ length: points - recent.length }, () => 0), ...recent];
-	const top: string[] = [];
-	const bottom: string[] = [];
+	/** Dot rows above (and below) the middle line. */
+	const half = rows * 2;
+	const out = Array.from({ length: rows }, () => [] as string[]);
 	for (let cell = 0; cell < cells; cell++) {
-		let upper = 0;
-		let lower = 0;
+		const bits = Array.from({ length: rows }, () => 0);
 		for (const [side, dots] of [
 			[0, LEFT_DOTS],
 			[1, RIGHT_DOTS],
 		] as const) {
-			// Music sits around 0.05 to 0.3 RMS; the square root spreads it over the four rows.
-			const reach = Math.min(4, Math.round(Math.sqrt(padded[cell * 2 + side]!) * 4.5));
-			// Dot rows 0..7 across the two cells; the middle line is rows 3 and 4.
-			const from = 3 - Math.max(0, reach - 1);
-			const to = 4 + Math.max(0, reach - 1);
-			for (let row = from; row <= to; row++) {
-				if (row < 4) upper |= dots[row]!;
-				else lower |= dots[row - 4]!;
-			}
+			// Music sits around 0.05 to 0.3 RMS; the square root spreads it over the dot rows.
+			const reach = Math.min(half, Math.round(Math.sqrt(padded[cell * 2 + side]!) * 1.125 * half));
+			// The middle line is dot rows half - 1 and half.
+			const from = half - 1 - Math.max(0, reach - 1);
+			const to = half + Math.max(0, reach - 1);
+			for (let row = from; row <= to; row++) bits[Math.floor(row / 4)]! |= dots[row % 4]!;
 		}
-		top.push(String.fromCharCode(0x2800 + upper));
-		bottom.push(String.fromCharCode(0x2800 + lower));
+		bits.forEach((value, row) => out[row]!.push(String.fromCharCode(0x2800 + value)));
 	}
-	return [top.join(""), bottom.join("")];
+	return out.map((row) => row.join(""));
 }
 
 function nowPlayingLines(env: PanelEnv, width: number, height: number): string[] {
@@ -282,7 +347,7 @@ function nowPlayingLines(env: PanelEnv, width: number, height: number): string[]
 		const reason = data.track ? `${data.track.title}: ${data.error ?? ""}` : (data.error ?? "");
 		return noSignalLines(env.theme, "NO SIGNAL", width, height, reason);
 	}
-	const lines = playerLines(env, data, width);
+	const lines = playerLines(env, data, width, height);
 	// The RADIO keys on the bottom row, when there is a row to spare.
 	const hint = height >= lines.length + 2;
 	const room = hint ? height - 1 : height;
@@ -292,19 +357,28 @@ function nowPlayingLines(env: PanelEnv, width: number, height: number): string[]
 	return body.map((line) => truncateToWidth(line, width));
 }
 
-/** The keys every RADIO panel takes, as the bottom row of NOW PLAYING shows them. */
+/**
+ * The keys every RADIO panel takes, as the bottom row of NOW PLAYING shows them.
+ * Enter is left out: what it does depends on the page (play or stop, pick a device).
+ */
 function keyHints(env: PanelEnv): string {
 	const t = env.theme();
 	const key = (keys: string, what: string) => `${t.fg("accent", keys)} ${t.fg("dim", what)}`;
-	return `   ${[key("enter", "play/stop"), key("n", "next"), key("+/-", "volume")].join(t.fg("dim", " · "))}`;
+	return `   ${[key("n", "next"), key("+/-", "volume")].join(t.fg("dim", " · "))}`;
 }
 
-function playerLines(env: PanelEnv, data: Readonly<RadioData>, width: number): string[] {
+/** Rows NOW PLAYING has besides the waveform while a track plays, with the key row and the blank row above it. */
+const PLAYER_ROWS = 10;
+
+function playerLines(env: PanelEnv, data: Readonly<RadioData>, width: number, height: number): string[] {
 	const t = env.theme();
 	const indent = "   ";
 	const inner = Math.max(10, width - indent.length * 2);
-	const [upper, lower] = waveform(data.status === "playing" ? data.levels : [], inner - 2);
-	const wave = [`${indent}${t.fg("borderMuted", "┊")}${t.fg("accent", upper)}${t.fg("borderMuted", "┊")}`, `${indent}${t.fg("borderMuted", "┊")}${t.fg("accent", lower)}${t.fg("borderMuted", "┊")}`];
+	// About a third of the panel, as far as the other rows leave room; never under two rows.
+	const rows = Math.max(2, Math.min(Math.round(height / 3), height - PLAYER_ROWS));
+	const wave = waveform(data.status === "playing" ? data.levels : [], inner - 2, rows).map(
+		(row) => `${indent}${t.fg("borderMuted", "┊")}${t.fg("accent", row)}${t.fg("borderMuted", "┊")}`,
+	);
 	const track = data.track;
 	if (data.status === "idle" || !data.source) {
 		const hint = "ENTER TO TUNE IN";
