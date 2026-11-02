@@ -7,7 +7,7 @@ import { framed } from "../screen/frame.ts";
 import { Lines } from "../screen/lines.ts";
 import { toolData } from "../features/tools.ts";
 import { type LogItem, THINKING_TAIL, type ToolEntry, toggleLog } from "../state/tools.ts";
-import { Selection, spinner, themeStamp, withCursor } from "./common.ts";
+import { Selection, spinner, withCursor } from "./common.ts";
 import { type PanelEnv, registerPanel } from "./registry.ts";
 
 registerPanel("thinking", (env) =>
@@ -27,10 +27,7 @@ registerPanel("thinking", (env) =>
 				if (!text) return [t.fg("dim", " -- no thinking yet --")];
 				return wrapTextWithAnsi(text, Math.max(1, width - 2)).map((line) => ` ${t.fg("thinkingText", line)}`);
 			},
-			() => {
-				const data = toolData(env.state);
-				return [data.thinking, data.thinkingTrimmed, themeStamp(env.theme())];
-			},
+			() => [toolData(env.state).toolsVersion],
 		),
 		"end",
 		() => env.focused("thinking"),
@@ -51,7 +48,7 @@ registerPanel("tools", (env) =>
 				return tools.map((tool) => toolLine(env, tool));
 			},
 			// Spinners of running tools move only while the agent runs.
-			() => [toolData(env.state).toolsVersion, env.state.agentRunning ? env.tick() : -1, themeStamp(env.theme())],
+			() => [toolData(env.state).toolsVersion, env.state.agentRunning ? env.tick() : -1],
 		),
 		"end",
 		() => env.focused("tools"),

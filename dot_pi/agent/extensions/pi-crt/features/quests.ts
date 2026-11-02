@@ -97,8 +97,7 @@ export function refreshQuests(state: CrtState): void {
 		})
 		.finally(() => {
 			data.loading = false;
-			data.version++;
-			env.requestRender();
+			env.changed(data);
 		});
 }
 
@@ -117,8 +116,7 @@ export function setupQuests(pi: ExtensionAPI, env: FeatureEnv): void {
 
 	const markStale = (): void => {
 		data.stale = true;
-		data.version++;
-		env.requestRender();
+		env.changed(data);
 	};
 	pi.on("session_start", markStale);
 	pi.on("agent_end", markStale);

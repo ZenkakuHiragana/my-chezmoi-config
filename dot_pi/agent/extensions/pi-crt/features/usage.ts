@@ -1,10 +1,10 @@
 /** Response allowance collection for STAT, through Pi's HTTP and stream events. */
 import type { ExtensionAPI } from "@earendil-works/pi-coding-agent";
-import { type CrtState, sanitize } from "../state/core.ts";
+import { type CrtState, sanitize, type Versioned } from "../state/core.ts";
 import { codexEventWindows, codexHeaderWindows, type RateLimitWindow } from "../state/usage.ts";
 import type { FeatureEnv } from "./env.ts";
 
-export interface UsageData {
+export interface UsageData extends Versioned {
 	usageHeaders: Array<[string, string]>;
 	/** Codex windows from response headers or a codex.rate_limits stream event. */
 	usageWindows?: RateLimitWindow[];
@@ -17,7 +17,7 @@ export interface UsageData {
 const collected = new WeakMap<CrtState, UsageData>();
 
 /** Before setupUsage: nothing received. Never changed. */
-const NONE: Readonly<UsageData> = Object.freeze({ usageHeaders: [] });
+const NONE: Readonly<UsageData> = Object.freeze({ usageHeaders: [], version: 0 });
 
 /** The allowance the last response reported. */
 export function usageData(state: CrtState): Readonly<UsageData> {
@@ -25,7 +25,7 @@ export function usageData(state: CrtState): Readonly<UsageData> {
 }
 
 export function setupUsage(pi: ExtensionAPI, env: FeatureEnv): void {
-	const state: UsageData = { usageHeaders: [] };
+	const state: UsageData = { usageHeaders: [], version: 0 };
 	collected.set(env.state, state);
 	// HTTP headers belong to this request only; a later WebSocket request must
 	// not inherit them. A stream update within the same SSE response keeps them.
@@ -40,7 +40,7 @@ export function setupUsage(pi: ExtensionAPI, env: FeatureEnv): void {
 		state.usageWindows = codexHeaderWindows(state.usageHeaders);
 		state.usageAt = Date.now();
 		state.usageModel = ctx.model ? sanitize(`${ctx.model.provider}/${ctx.model.id}`) : undefined;
-		env.requestRender();
+		env.changed(state);
 	});
 
 	// Codex WebSocket does not fire after_provider_response. The raw stream
@@ -53,7 +53,7 @@ export function setupUsage(pi: ExtensionAPI, env: FeatureEnv): void {
 		state.usageWindows = windows;
 		state.usageAt = Date.now();
 		state.usageModel = sanitize(`${event.provider}/${event.model}`);
-		env.requestRender();
+		env.changed(state);
 	});
 
 	// Switching to a WebSocket provider must not leave the previous provider's
@@ -64,6 +64,6 @@ export function setupUsage(pi: ExtensionAPI, env: FeatureEnv): void {
 		state.usageWindows = undefined;
 		state.usageAt = undefined;
 		state.usageModel = undefined;
-		env.requestRender();
+		env.changed(state);
 	});
 }

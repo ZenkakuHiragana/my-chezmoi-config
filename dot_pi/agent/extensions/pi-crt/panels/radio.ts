@@ -27,7 +27,7 @@ import {
 import { framed, type SizedView } from "../screen/frame.ts";
 import { Lines } from "../screen/lines.ts";
 import { noSignalLines } from "../screen/nosignal.ts";
-import { bar, ListLines, Selection, spinner, themeStamp, withCursor } from "./common.ts";
+import { bar, ListLines, Selection, spinner, withCursor } from "./common.ts";
 import { type ListControl, type PanelEnv, registerPanel } from "./registry.ts";
 
 /** The keys every RADIO panel shares; returns whether the key was one. */
@@ -87,7 +87,7 @@ registerPanel("stations", (env) => {
 				selection.reset();
 				return withCursor(env, selection, "stations", stationLines(env, selection, width - 1));
 			},
-			() => [radioData(env.state).version, selection.index, env.focused("stations"), themeStamp(env.theme())],
+			() => [radioData(env.state).version, selection.index, env.focused("stations")],
 		),
 		"top",
 		() => env.focused("stations"),
@@ -163,7 +163,7 @@ registerPanel("radiosearch", (env) => {
 				selection.reset();
 				return withCursor(env, selection, "radiosearch", searchLines(env, selection, input, typing, width - 1));
 			},
-			() => [radioData(env.state).version, selection.index, env.focused("radiosearch"), typing, typed, themeStamp(env.theme())],
+			() => [radioData(env.state).version, selection.index, env.focused("radiosearch"), typing, typed],
 			// The search box's line carries the cursor marker, which clipping must not cut.
 			true,
 		),
@@ -230,7 +230,7 @@ registerPanel("radiooutput", (env) => {
 			// The tick only while the spinner turns.
 			() => {
 				const data = radioData(env.state);
-				return [data.version, data.outputs.loading && env.tick(), selection.index, env.focused("radiooutput"), themeStamp(env.theme())];
+				return [data.version, data.outputs.loading && env.tick(), selection.index, env.focused("radiooutput")];
 			},
 		),
 		"top",

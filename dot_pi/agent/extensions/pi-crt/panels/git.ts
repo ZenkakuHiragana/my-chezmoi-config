@@ -3,11 +3,11 @@
  */
 import { truncateToWidth } from "@earendil-works/pi-tui";
 import { framed } from "../screen/frame.ts";
-import { Lines, type ThemeRef } from "../screen/lines.ts";
+import { Lines } from "../screen/lines.ts";
 import { renderDiffSection } from "../split-diff.ts";
 import { gitData, pickGitFile } from "../features/git.ts";
 import type { GitDiffFile, GitFile } from "../state/git.ts";
-import { ListLines, Selection, themeStamp, withCursor } from "./common.ts";
+import { ListLines, Selection, withCursor } from "./common.ts";
 import { type PanelEnv, registerPanel } from "./registry.ts";
 
 /** Changed files listed in the git panels at most. */
@@ -20,7 +20,7 @@ registerPanel("git", (env) => {
 	const panel = framed(
 		env.theme,
 		() => gitTitle(env),
-		new ListLines(
+		new DiffListLines(
 			selection,
 			(width) => {
 				selection.reset();
@@ -66,7 +66,7 @@ registerPanel("gitdiff", (env) =>
 	framed(
 		env.theme,
 		() => `DIFF  ${gitData(env.state).gitPick ?? "ALL"}`,
-		new Lines(
+		new DiffLines(
 			(width) => {
 				const t = env.theme();
 				const git = gitData(env.state).git;
@@ -75,10 +75,7 @@ registerPanel("gitdiff", (env) =>
 				if (git.diffError) return [truncateToWidth(t.fg("error", ` diff unavailable: ${git.diffError}`), width)];
 				return gitDiffLines(env, width);
 			},
-			() => {
-				const data = gitData(env.state);
-				return [data.git, data.gitPickVersion, diffStamp(env.theme())];
-			},
+			() => [gitData(env.state).version],
 			true,
 		),
 		"top",
@@ -91,10 +88,7 @@ registerPanel("gitlog", (env) =>
 		() => "HISTORY",
 		new Lines(
 			() => gitLogLines(env),
-			() => {
-				const git = gitData(env.state).git;
-				return [git.log, git.logError, git.updatedAt !== undefined, themeStamp(env.theme())];
-			},
+			() => [gitData(env.state).version],
 		),
 		"top",
 		() => env.focused("gitlog"),
@@ -120,13 +114,7 @@ function gitTitle(env: PanelEnv): string {
 }
 
 function gitKey(env: PanelEnv, selection: Selection, id: string): unknown[] {
-	const data = gitData(env.state);
-	return [data.git, data.gitPickVersion, selection.index, env.focused(id), diffStamp(env.theme())];
-}
-
-/** themeStamp plus the backgrounds the split diff tints its rows with. */
-function diffStamp(theme: ReturnType<ThemeRef>): string {
-	return themeStamp(theme) + theme.getBgAnsi("toolSuccessBg") + theme.getBgAnsi("toolPendingBg");
+	return [gitData(env.state).version, selection.index, env.focused(id)];
 }
 
 function gitFileLines(env: PanelEnv, selection: Selection): string[] {
@@ -162,16 +150,31 @@ function gitFileLine(env: PanelEnv, file: GitFile): string {
 	return `${picked}${t.fg(color, code.replace(/ /g, "·"))} ${t.fg("text", file.path)}${counts}`;
 }
 
-/** Rendered diff of one file, kept while the file's diff, the width and the theme stay the same. */
-const rendered = new WeakMap<GitDiffFile, { width: number; stamp: string; lines: string[] }>();
+/**
+ * Rendered diff of one file, kept while the file's diff and the width stay the same.
+ * Invalidating a panel that draws diffs (Pi does on a theme change) drops them all.
+ */
+let rendered = new WeakMap<GitDiffFile, { width: number; lines: string[] }>();
+
+class DiffLines extends Lines {
+	override invalidate(): void {
+		super.invalidate();
+		rendered = new WeakMap();
+	}
+}
+
+class DiffListLines extends ListLines {
+	override invalidate(): void {
+		super.invalidate();
+		rendered = new WeakMap();
+	}
+}
 
 function fileDiffLines(env: PanelEnv, file: GitDiffFile, width: number): string[] {
-	const theme = env.theme();
-	const stamp = diffStamp(theme);
 	const cached = rendered.get(file);
-	if (cached && cached.width === width && cached.stamp === stamp) return cached.lines;
-	const lines = renderDiffSection(file, width, theme);
-	rendered.set(file, { width, stamp, lines });
+	if (cached && cached.width === width) return cached.lines;
+	const lines = renderDiffSection(file, width, env.theme());
+	rendered.set(file, { width, lines });
 	return lines;
 }
 

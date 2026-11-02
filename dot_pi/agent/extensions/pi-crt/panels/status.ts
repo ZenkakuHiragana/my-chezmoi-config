@@ -10,7 +10,7 @@ import { vitals } from "../features/vitals.ts";
 import { allowanceWindows, rateLimits, shortHeader } from "../state/usage.ts";
 import { framed } from "../screen/frame.ts";
 import { Lines } from "../screen/lines.ts";
-import { bar, compactNumber, elapsedText, themeStamp } from "./common.ts";
+import { bar, compactNumber, elapsedText } from "./common.ts";
 import { type Paint, PI_LOGO, type Rgb, pixelArtWidth, renderPixelArt, shadePalette } from "./pixel-art.ts";
 import { type CardInput, centerLine, gaugeRow, statCards } from "./status-parts.ts";
 import { type PanelEnv, registerPanel } from "./registry.ts";
@@ -22,15 +22,14 @@ registerPanel("vitals", (env) =>
 		new Lines(
 			(width) => vitalsLines(env, width),
 			() => [
-				contextUsage(env.state)?.percent,
-				env.state.agentRunning,
+				contextData(env.state).version,
+				env.state.version,
 				toolData(env.state).toolsVersion,
-				gitData(env.state).git.updatedAt,
-				usageData(env.state).usageAt,
-				vitals(env.state).responses,
+				gitData(env.state).version,
+				usageData(env.state).version,
+				vitals(env.state).version,
 				// The elapsed time only moves while the agent runs.
 				env.state.agentRunning ? env.tick() : 0,
-				themeStamp(env.theme()),
 			],
 		),
 		"top",
@@ -43,7 +42,7 @@ registerPanel("context", (env) =>
 		() => "CONTEXT",
 		new Lines(
 			(width) => contextLines(env, width),
-			() => [contextData(env.state).contextParts, contextUsage(env.state), themeStamp(env.theme())],
+			() => [contextData(env.state).version],
 		),
 		"top",
 		() => env.focused("context"),
@@ -210,17 +209,12 @@ function logoLines(env: PanelEnv, width: number): string[] {
 function cardsOf(env: PanelEnv): CardInput[] {
 	const v = vitals(env.state);
 	const tools = toolData(env.state);
-	let added = 0;
-	let removed = 0;
-	for (const file of gitData(env.state).git.files) {
-		added += file.added ?? 0;
-		removed += file.removed ?? 0;
-	}
-	const speed = v.decodeTokensPerSecond;
+	const lines = gitData(env.state).lines;
+	const speed = v.outputTokensPerSecond;
 	return [
 		{ label: "TOOLS", value: compactNumber(tools.ok + tools.failed) },
 		{ label: "FAIL", value: compactNumber(tools.failed) },
-		{ label: "DIFF", value: `+${compactNumber(added)}-${compactNumber(removed)}` },
+		{ label: "DIFF", value: lines ? `+${compactNumber(lines.added)}-${compactNumber(lines.removed)}` : "--" },
 		{ label: "COST", value: v.cost > 0 ? `$${v.cost.toFixed(2)}` : "--" },
 		{ label: "SPEED", value: speed === undefined ? "--" : `${Math.round(speed)} t/s` },
 	];

@@ -366,11 +366,6 @@ export function setupRadio(pi: ExtensionAPI, env: FeatureEnv): void {
 		return { client, loaded };
 	};
 
-	const changed = () => {
-		data.version++;
-		env.requestRender();
-	};
-
 	/* ------------------------------------------------------------ playback */
 
 	/** Aborts the current source's track downloads and queue refills; a new one per source. */
@@ -426,7 +421,7 @@ export function setupRadio(pi: ExtensionAPI, env: FeatureEnv): void {
 		data.position = undefined;
 		data.playedFrames = 0;
 		data.levels = [];
-		changed();
+		env.changed(data);
 	};
 
 	const fail = (error: unknown, track?: Track) => halt(messageOf(error), track);
@@ -455,7 +450,7 @@ export function setupRadio(pi: ExtensionAPI, env: FeatureEnv): void {
 			.then((tracks) => {
 				if (signal.aborted) return;
 				data.queue.push(...tracks);
-				changed();
+				env.changed(data);
 			})
 			.finally(() => {
 				if (!signal.aborted) refilling = undefined;
@@ -468,7 +463,7 @@ export function setupRadio(pi: ExtensionAPI, env: FeatureEnv): void {
 		const signal = session.signal;
 		// Tuning until the next track's first write played: `n` waits for it.
 		data.status = "tuning";
-		changed();
+		env.changed(data);
 		try {
 			if (!data.queue.length) await fill(signal);
 			if (signal.aborted) return;
@@ -497,7 +492,7 @@ export function setupRadio(pi: ExtensionAPI, env: FeatureEnv): void {
 		data.status = "tuning";
 		data.error = undefined;
 		data.playedFrames = 0;
-		changed();
+		env.changed(data);
 		startDrawing();
 		const { client, loaded } = await ytdl();
 		if (signal.aborted) return;
@@ -528,7 +523,7 @@ export function setupRadio(pi: ExtensionAPI, env: FeatureEnv): void {
 			}
 			if (data.status === "tuning" && unplayed < waitingBytes) {
 				data.status = "playing";
-				changed();
+				env.changed(data);
 			}
 			if (demuxer.isPaused() && unplayed <= QUEUE_LOW * SAMPLE_RATE * FRAME_BYTES) demuxer.resume();
 			if (ended && unplayed === 0) skip();
@@ -590,7 +585,7 @@ export function setupRadio(pi: ExtensionAPI, env: FeatureEnv): void {
 		data.status = "tuning";
 		played = new Set();
 		pass = [];
-		changed();
+		env.changed(data);
 		startDrawing();
 		const signal = session.signal;
 		void (async () => {
@@ -646,7 +641,7 @@ export function setupRadio(pi: ExtensionAPI, env: FeatureEnv): void {
 		if (next === data.volume) return;
 		data.volume = next;
 		requeue(false);
-		changed();
+		env.changed(data);
 	};
 
 	/* ------------------------------------------------------------ search */
@@ -656,7 +651,7 @@ export function setupRadio(pi: ExtensionAPI, env: FeatureEnv): void {
 		const text = query.trim();
 		searchAbort?.abort();
 		data.search = { query: text, results: [], loading: text !== "" };
-		changed();
+		env.changed(data);
 		if (!text) return;
 		const abort = new AbortController();
 		searchAbort = abort;
@@ -670,7 +665,7 @@ export function setupRadio(pi: ExtensionAPI, env: FeatureEnv): void {
 				if (abort.signal.aborted) return;
 				data.search = { query: text, results: [], loading: false, error: messageOf(error) };
 			}
-			changed();
+			env.changed(data);
 		})();
 	};
 
@@ -691,14 +686,14 @@ export function setupRadio(pi: ExtensionAPI, env: FeatureEnv): void {
 	/** List the output devices again; the OUTPUT page does so whenever it comes on screen. */
 	const listOutputs = () => {
 		data.outputs = { ...data.outputs, loading: true, error: undefined };
-		changed();
+		env.changed(data);
 		void (async () => {
 			try {
 				data.outputs = { devices: outputDevices((await loadPackages()).audio), loading: false };
 			} catch (error) {
 				data.outputs = { devices: data.outputs.devices, loading: false, error: messageOf(error) };
 			}
-			changed();
+			env.changed(data);
 		})();
 	};
 
@@ -717,7 +712,7 @@ export function setupRadio(pi: ExtensionAPI, env: FeatureEnv): void {
 			text = readFileSync(STATIONS_FILE, "utf8");
 		} catch (error) {
 			data.stationsError = `radio.json: ${messageOf(error)}`;
-			changed();
+			env.changed(data);
 			return;
 		}
 		try {
@@ -727,7 +722,7 @@ export function setupRadio(pi: ExtensionAPI, env: FeatureEnv): void {
 			// Keep the last list that could be used, so that saving a half-edited file
 			// does not stop the music.
 			data.stationsError = `radio.json: ${messageOf(error)}`;
-			changed();
+			env.changed(data);
 			return;
 		}
 		const source = data.source;
@@ -740,13 +735,13 @@ export function setupRadio(pi: ExtensionAPI, env: FeatureEnv): void {
 			// A renamed station keeps playing under its new name.
 			source.station = station;
 		}
-		changed();
+		env.changed(data);
 	};
 
 	let watching = false;
 	const onFileChange = () => readStations();
 
-	const control: RadioControl = { data, playStation, playSong, stop: () => halt(), next, setVolume, search, moveOutput, refresh: changed };
+	const control: RadioControl = { data, playStation, playSong, stop: () => halt(), next, setVolume, search, moveOutput, refresh: () => env.changed(data) };
 	radios.set(env.state, control);
 
 	pi.on("session_start", (_event, ctx) => {

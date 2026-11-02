@@ -4,7 +4,15 @@
  * features/env.ts).
  */
 
-export interface CrtState {
+/**
+ * Data that panels draw. Its version changes whenever the data changes, and panels
+ * key their cached lines on it (see features/env.ts).
+ */
+export interface Versioned {
+	version: number;
+}
+
+export interface CrtState extends Versioned {
 	agentRunning: boolean;
 	agentStartedAt?: number;
 	/** The agent finished while no page with the transcript was shown. */
@@ -12,7 +20,7 @@ export interface CrtState {
 }
 
 export function createState(): CrtState {
-	return { agentRunning: false, termAttention: false };
+	return { agentRunning: false, termAttention: false, version: 0 };
 }
 
 /**

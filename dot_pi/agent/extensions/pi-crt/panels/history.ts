@@ -20,7 +20,7 @@ import { truncateToWidth, visibleWidth } from "@earendil-works/pi-tui";
 import { type ResponseUsage, vitals } from "../features/vitals.ts";
 import { framed, type SizedView } from "../screen/frame.ts";
 import type { ThemeRef } from "../screen/lines.ts";
-import { compactNumber, themeStamp } from "./common.ts";
+import { compactNumber } from "./common.ts";
 import { type PanelEnv, registerPanel } from "./registry.ts";
 
 /** Parts of a column, bottom to top. */
@@ -81,7 +81,7 @@ class HistoryView implements Component {
 		const height = this.sized && this.sized.viewportHeight > 0 ? this.sized.viewportHeight : FALLBACK_HEIGHT;
 		if (this.sized) this.sized.drawnFor = this.sized.viewportHeight;
 		const v = vitals(this.env.state);
-		const key = [v.history, v.cost, v.cacheRatio, v.decodeTokensPerSecond, width, height, themeStamp(this.env.theme())];
+		const key = [v.version, width, height];
 		if (this.cache && this.cache.key.every((value, index) => value === key[index])) return this.cache.lines;
 		const lines = chartLines(this.env.theme, v.history, width, height, summary(this.env));
 		this.cache = { key, lines };
@@ -95,7 +95,7 @@ function summary(env: PanelEnv): string {
 	const parts = [
 		v.cost > 0 ? `$${v.cost.toFixed(2)}` : undefined,
 		v.cacheRatio === undefined ? undefined : `hit ${Math.round(v.cacheRatio * 100)}%`,
-		v.decodeTokensPerSecond === undefined ? undefined : `${Math.round(v.decodeTokensPerSecond)} t/s`,
+		v.outputTokensPerSecond === undefined ? undefined : `${Math.round(v.outputTokensPerSecond)} t/s`,
 	];
 	return parts.filter((part) => part !== undefined).join(" · ");
 }

@@ -102,14 +102,12 @@ interface Inventory {
 	skillsKnown: boolean;
 	tools: ToolItem[];
 	toolsKey: string;
-	/** Changes whenever the prompt, the skills or the tools change. */
+	/** Changes whenever the prompt, the skills, the tools or a pick change. */
 	version: number;
 	/** -1 is the whole prompt. */
 	part: number;
 	tool?: string;
 	skill?: string;
-	/** Changes whenever a pick changes. */
-	pickVersion: number;
 }
 
 /** Each pi-crt instance's inventory, by its CrtState (see FeatureEnv). */
@@ -154,14 +152,14 @@ export function tools(state: CrtState): readonly ToolItem[] {
 	return inv.tools;
 }
 
-/** Changes whenever the prompt, the skills or the tools change. */
+/** Changes whenever the prompt, the skills, the tools or a pick change. */
 export function version(state: CrtState): number {
 	return inventories.get(state)?.version ?? 0;
 }
 
-export function picks(state: CrtState): { part: number; tool?: string; skill?: string; version: number } {
+export function picks(state: CrtState): { part: number; tool?: string; skill?: string } {
 	const inv = inventories.get(state);
-	return inv ? { part: inv.part, tool: inv.tool, skill: inv.skill, version: inv.pickVersion } : { part: -1, version: 0 };
+	return inv ? { part: inv.part, tool: inv.tool, skill: inv.skill } : { part: -1 };
 }
 
 /** Show one part of the prompt, or the whole prompt (-1). */
@@ -169,25 +167,25 @@ export function pickPart(state: CrtState, index: number): void {
 	const inv = inventories.get(state);
 	if (!inv || inv.part === index) return;
 	inv.part = index;
-	inv.pickVersion++;
+	inv.env.changed(inv);
 }
 
 export function pickTool(state: CrtState, name: string | undefined): void {
 	const inv = inventories.get(state);
 	if (!inv || inv.tool === name) return;
 	inv.tool = name;
-	inv.pickVersion++;
+	inv.env.changed(inv);
 }
 
 export function pickSkill(state: CrtState, name: string | undefined): void {
 	const inv = inventories.get(state);
 	if (!inv || inv.skill === name) return;
 	inv.skill = name;
-	inv.pickVersion++;
+	inv.env.changed(inv);
 }
 
 export function setupInventory(pi: ExtensionAPI, env: FeatureEnv): void {
-	const inv: Inventory = { pi, env, skills: [], skillsKnown: false, tools: [], toolsKey: "", version: 0, part: -1, pickVersion: 0 };
+	const inv: Inventory = { pi, env, skills: [], skillsKnown: false, tools: [], toolsKey: "", version: 0, part: -1 };
 	inventories.set(env.state, inv);
 	/** The options of the request being started, read once the other extensions are done with them. */
 	let pending: PromptOptions | undefined;
@@ -197,9 +195,7 @@ export function setupInventory(pi: ExtensionAPI, env: FeatureEnv): void {
 		const label = inv.part >= 0 ? inv.prompt?.parts[inv.part]?.label : undefined;
 		inv.prompt = measurePrompt(ctx);
 		inv.part = label === undefined ? -1 : inv.prompt.parts.findIndex((part) => part.label === label);
-		inv.pickVersion++;
-		inv.version++;
-		env.requestRender();
+		env.changed(inv);
 	};
 
 	pi.on("session_start", (_event, ctx) => {
@@ -274,25 +270,22 @@ function setSkills(inv: Inventory, skillList: readonly GivenSkill[], fromRequest
 	const key = given.map((skill) => `${skill.name}\n${skill.filePath}`).join("\n");
 	inv.skillsKnown = true;
 	if (key === inv.skills.map((skill) => `${skill.name}\n${skill.filePath}`).join("\n")) {
-		if (!fromRequest) return;
-		given.forEach((skill, index) => setListed(inv.skills[index]!, !skill.disableModelInvocation));
-		inv.version++;
-		inv.env.requestRender();
-		return;
+		if (fromRequest) given.forEach((skill, index) => setListed(inv.skills[index]!, !skill.disableModelInvocation));
+	} else {
+		inv.skills = given.map((skill) => {
+			const item: SkillItem = {
+				name: sanitize(skill.name),
+				description: sanitize(skill.description),
+				filePath: skill.filePath,
+				tokens: 0,
+			};
+			if (fromRequest) setListed(item, !skill.disableModelInvocation);
+			return item;
+		});
+		if (inv.skill !== undefined && !inv.skills.some((item) => item.name === inv.skill)) inv.skill = undefined;
+		void readBodies(inv, inv.skills);
 	}
-	const items: SkillItem[] = given.map((skill) => {
-		const item: SkillItem = {
-			name: sanitize(skill.name),
-			description: sanitize(skill.description),
-			filePath: skill.filePath,
-			tokens: 0,
-		};
-		if (fromRequest) setListed(item, !skill.disableModelInvocation);
-		return item;
-	});
-	inv.skills = items;
-	if (inv.skill !== undefined && !items.some((item) => item.name === inv.skill)) inv.skill = undefined;
-	void readBodies(inv, items);
+	inv.env.changed(inv);
 }
 
 /** Whether a skill is in the system prompt's list, and what its entry costs there. */
@@ -320,7 +313,6 @@ async function readBodies(inv: Inventory, items: SkillItem[]): Promise<void> {
 		} catch (error) {
 			item.bodyError = sanitize(String((error as Error)?.message ?? error));
 		}
-		inv.version++;
-		inv.env.requestRender();
+		inv.env.changed(inv);
 	}
 }

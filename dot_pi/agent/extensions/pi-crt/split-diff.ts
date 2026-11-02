@@ -23,7 +23,7 @@
  */
 
 import { getLanguageFromPath, highlightCode, type Theme } from "@earendil-works/pi-coding-agent";
-import { truncateToWidth, visibleWidth } from "@earendil-works/pi-tui";
+import { backgroundAnsi, type Color, colorToRgb, rgbColor, truncateToWidth, visibleWidth } from "@earendil-works/pi-tui";
 
 /** Blank cells on each side of the panes. */
 const PAD = 1;
@@ -65,10 +65,10 @@ interface Palette {
 	addedFg: string;
 	removedFg: string;
 	contextFg: string;
-	addedBg: string | undefined;
-	removedBg: string | undefined;
-	addedEmphasis: string | undefined;
-	removedEmphasis: string | undefined;
+	addedBg: string;
+	removedBg: string;
+	addedEmphasis: string;
+	removedEmphasis: string;
 }
 
 // ── parsing ─────────────────────────────────────────────────────────────────
@@ -142,78 +142,16 @@ function parseSection(lines: readonly string[]): { rows: Row[]; notes: string[] 
 
 // ── colour ──────────────────────────────────────────────────────────────────
 
-const XTERM_16: Rgb[] = [
-	{ r: 0, g: 0, b: 0 },
-	{ r: 205, g: 49, b: 49 },
-	{ r: 13, g: 188, b: 121 },
-	{ r: 229, g: 229, b: 16 },
-	{ r: 36, g: 114, b: 200 },
-	{ r: 188, g: 63, b: 188 },
-	{ r: 17, g: 168, b: 205 },
-	{ r: 229, g: 229, b: 229 },
-	{ r: 102, g: 102, b: 102 },
-	{ r: 241, g: 76, b: 76 },
-	{ r: 35, g: 209, b: 139 },
-	{ r: 245, g: 245, b: 67 },
-	{ r: 59, g: 142, b: 234 },
-	{ r: 214, g: 112, b: 214 },
-	{ r: 41, g: 184, b: 219 },
-	{ r: 255, g: 255, b: 255 },
-];
-
-function xterm256(index: number): Rgb {
-	if (index < 16) return XTERM_16[index] ?? XTERM_16[0]!;
-	if (index < 232) {
-		const steps = [0, 95, 135, 175, 215, 255];
-		const value = index - 16;
-		return {
-			r: steps[Math.floor(value / 36)]!,
-			g: steps[Math.floor((value % 36) / 6)]!,
-			b: steps[value % 6]!,
-		};
-	}
-	const grey = 8 + (index - 232) * 10;
-	return { r: grey, g: grey, b: grey };
-}
-
-/** Read a colour out of an SGR sequence (truecolour, 256, or the basic 16). */
-function sgrRgb(sequence: string | undefined): Rgb | null {
-	if (!sequence) return null;
-	const params = sequence
-		.slice(2, -1)
-		.split(";")
-		.map((part) => Number.parseInt(part, 10));
-	const at = params.indexOf(38) >= 0 ? params.indexOf(38) : params.indexOf(48);
-	if (at >= 0) {
-		if (params[at + 1] === 2) {
-			const [r, g, b] = [params[at + 2], params[at + 3], params[at + 4]];
-			if (r === undefined || g === undefined || b === undefined) return null;
-			return { r, g, b };
-		}
-		if (params[at + 1] === 5 && params[at + 2] !== undefined) return xterm256(params[at + 2]!);
-		return null;
-	}
-	const code = params[0];
-	if (code === undefined || !Number.isFinite(code)) return null;
-	if (code >= 30 && code <= 37) return XTERM_16[code - 30] ?? null;
-	if (code >= 90 && code <= 97) return XTERM_16[code - 90 + 8] ?? null;
-	return null;
-}
-
 /**
  * An absolute background for a diff row: a fixed slice of the diff hue over a
  * dimmed box background. Hue carries the meaning, luminance has to stay low.
  */
-function tintBackground(base: Rgb, color: Rgb, hue: number): Rgb {
-	return {
-		r: Math.round(color.r * hue + base.r * 0.35),
-		g: Math.round(color.g * hue + base.g * 0.35),
-		b: Math.round(color.b * hue + base.b * 0.35),
-	};
-}
-
-function bgAnsi(color: Rgb): string {
-	return `\x1b[48;2;${color.r};${color.g};${color.b}m`;
+function tintBackground(base: Rgb, color: Rgb, hue: number): Color {
+	return rgbColor(
+		Math.round(color.r * hue + base.r * 0.35),
+		Math.round(color.g * hue + base.g * 0.35),
+		Math.round(color.b * hue + base.b * 0.35),
+	);
 }
 
 /**
@@ -234,23 +172,23 @@ function paint(text: string, fill: string): string {
 }
 
 function buildPalette(theme: Theme): Palette {
-	const addedFg = theme.getFgAnsi("toolDiffAdded");
-	const removedFg = theme.getFgAnsi("toolDiffRemoved");
-	const contextFg = theme.getFgAnsi("toolDiffContext");
 	// The row tint has no theme slot, so the diff colour is mixed into the tool
-	// box background: 16% for the row, 32% for the word.
-	const base = sgrRgb(theme.getBgAnsi("toolSuccessBg")) ?? sgrRgb(theme.getBgAnsi("toolPendingBg"));
-	const added = sgrRgb(addedFg);
-	const removed = sgrRgb(removedFg);
-	const tint = (color: Rgb | null, hue: number): string | undefined => (base && color ? bgAnsi(tintBackground(base, color, hue)) : undefined);
+	// box background: 16% for the row, 32% for the word. Theme.colors has a colour
+	// for every token (for one the theme leaves to the terminal, the colour the
+	// terminal reported, or Pi's guess), and the tint is written in the terminal's
+	// colour mode.
+	const colors = theme.colors;
+	const base = colorToRgb(colors.toolSuccessBg);
+	const mode = theme.getColorMode();
+	const tint = (color: Color, hue: number) => backgroundAnsi(tintBackground(base, colorToRgb(color), hue), mode);
 	return {
-		addedFg,
-		removedFg,
-		contextFg,
-		addedBg: tint(added, 0.16),
-		removedBg: tint(removed, 0.16),
-		addedEmphasis: tint(added, 0.32),
-		removedEmphasis: tint(removed, 0.32),
+		addedFg: theme.getFgAnsi("toolDiffAdded"),
+		removedFg: theme.getFgAnsi("toolDiffRemoved"),
+		contextFg: theme.getFgAnsi("toolDiffContext"),
+		addedBg: tint(colors.toolDiffAdded, 0.16),
+		removedBg: tint(colors.toolDiffRemoved, 0.16),
+		addedEmphasis: tint(colors.toolDiffAdded, 0.32),
+		removedEmphasis: tint(colors.toolDiffRemoved, 0.32),
 	};
 }
 
@@ -391,7 +329,7 @@ function renderCell(
 	const bar = changed ? fg : palette.contextFg;
 
 	let body = highlighted.get(cell) ?? cell.text;
-	if (changed && emphasis && emphFill) body = emphasize(body, emphasis.start, emphasis.end, emphFill, fill);
+	if (changed && emphasis) body = emphasize(body, emphasis.start, emphasis.end, emphFill, fill);
 	// Colours do not change the width, so the plain text tells whether the line fits;
 	// measuring the coloured line costs more than the rest of the cell.
 	const plainWidth = visibleWidth(cell.text);

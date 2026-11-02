@@ -1,34 +1,36 @@
 /**
- * The usage numbers STAT shows that pi does not keep for us: cache hits, cost, decode
+ * The usage numbers STAT shows that pi does not keep for us: cache hits, cost, output
  * speed, and the usage of each response on the branch (DETAIL's HISTORY). The panels
  * read them through `vitals()`.
  *
- * Cost and cache hits are read from the session, as Pi's session format defines them
+ * They are read from the session, as Pi's session format defines them
  * (docs/session-format.md, docs/message-types.md): the session's cost is the usage of
  * its assistant messages, tool results with nested model work, usage entries, branch
  * summaries and compactions; usage splits the prompt into input, cacheRead and
- * cacheWrite. They are read again when a session starts (opened, resumed, switched to,
- * or reloaded) and whenever the session gets one of those entries, so they are right
- * before the first response too.
+ * cacheWrite. The output speed is the output tokens of the latest response on the
+ * branch that has a duration, over that duration (`durationMs`, which Pi records from
+ * the request to the end of the response, so the wait for the first token is in it).
  *
- * Decode speed is measured live: it needs the time of the first chunk, which the
- * session does not keep. So pi-crt keeps it: when a run measured one, the last speed
- * is appended to the session as a custom entry (pi.appendEntry, not sent to the
- * model), and a session that starts, or a move in the tree, takes the speed from the
- * latest such entry on the branch.
+ * They are read again when a panel draws them and the session or its leaf changed
+ * since the last read, or the leaf moved in the tree: every entry Pi adds to a session
+ * becomes its leaf, and a move in the tree may come back to a leaf read before, with
+ * entries added on another branch meanwhile. Reading walks the whole session, so it
+ * runs off the render path, as CONTEXT's measuring does. Pi's events are not used for
+ * reading, since Pi tells the extensions of a message before it adds the message to
+ * the session (agent-session.js).
  */
 
 import type { ExtensionAPI, ExtensionContext } from "@earendil-works/pi-coding-agent";
-import type { CrtState } from "../state/core.ts";
+import type { CrtState, Versioned } from "../state/core.ts";
 import type { FeatureEnv } from "./env.ts";
 
-export interface Vitals {
+export interface Vitals extends Versioned {
 	/** Cached share of the prompt of the latest response on the branch; undefined without one. */
 	cacheRatio?: number;
 	/** Cost of the session so far, in the provider's currency as pi reports it. */
 	cost: number;
-	/** Output tokens per second of the last response. */
-	decodeTokensPerSecond?: number;
+	/** Output tokens per second of the latest response on the branch that has a duration. */
+	outputTokensPerSecond?: number;
 	/** Assistant responses in the session. */
 	responses: number;
 	/** The latest responses on the branch, oldest first (at most MAX_HISTORY). A new array whenever it is read again. */
@@ -48,24 +50,42 @@ export interface ResponseUsage {
 /** Responses kept for HISTORY; more than any terminal is wide. */
 const MAX_HISTORY = 400;
 
-/** Each pi-crt instance's numbers, by its CrtState (see FeatureEnv). */
-const collected = new WeakMap<CrtState, Vitals>();
-
-/** Before setupVitals: nothing counted. Never changed. */
-const NONE: Readonly<Vitals> = Object.freeze({ cost: 0, responses: 0, history: [] });
-
-/** The numbers collected so far. */
-export function vitals(state: CrtState): Readonly<Vitals> {
-	return collected.get(state) ?? NONE;
+interface VitalsFeature {
+	env: FeatureEnv;
+	data: Vitals;
+	/** The session and its leaf when `data` was read; empty after a move in the tree. */
+	sessionKey: string;
+	/** A read is waiting to run. */
+	scheduled: boolean;
 }
 
-/** customType of the entries that keep the decode speed. */
-const SPEED_ENTRY = "pi-crt.speed";
+/** Each pi-crt instance's numbers, by its CrtState (see FeatureEnv). */
+const features = new WeakMap<CrtState, VitalsFeature>();
 
-/** What a speed entry holds. */
-interface SpeedRecord {
-	/** Output tokens per second of the last response of a run. */
-	tokensPerSecond: number;
+/** Before setupVitals: nothing counted. Never changed. */
+const NONE: Readonly<Vitals> = Object.freeze({ cost: 0, responses: 0, history: [], version: 0 });
+
+/** The numbers read so far; drawing them reads the session again when it changed. */
+export function vitals(state: CrtState): Readonly<Vitals> {
+	const feature = features.get(state);
+	if (!feature) return NONE;
+	const ctx = feature.env.context();
+	if (ctx && !feature.scheduled && sessionKey(ctx) !== feature.sessionKey) {
+		feature.scheduled = true;
+		setTimeout(() => {
+			feature.scheduled = false;
+			const now = feature.env.context();
+			if (!now) return;
+			feature.sessionKey = sessionKey(now);
+			readSession(feature.data, now.sessionManager.getEntries(), now.sessionManager.getBranch());
+			feature.env.changed(feature.data);
+		}, 0).unref?.();
+	}
+	return feature.data;
+}
+
+function sessionKey(ctx: ExtensionContext): string {
+	return `${ctx.sessionManager.getSessionId()}\n${ctx.sessionManager.getLeafId() ?? ""}`;
 }
 
 /** The fields of a usage that are read here. */
@@ -78,84 +98,18 @@ interface Usage {
 }
 
 export function setupVitals(pi: ExtensionAPI, env: FeatureEnv): void {
-	const state: Vitals = { cost: 0, responses: 0, history: [] };
-	collected.set(env.state, state);
-	/** When the provider sent the first piece of the current response. */
-	let firstChunkAt: number | undefined;
-	/** The running agent measured a speed that is not in the session yet. */
-	let unsaved = false;
-
-	const read = (ctx: ExtensionContext) => {
-		readSession(state, ctx);
-		env.requestRender();
-	};
-
-	/** Read the session, and take the decode speed from the branch's latest speed entry. */
-	const restore = (ctx: ExtensionContext) => {
-		firstChunkAt = undefined;
-		unsaved = false;
-		state.decodeTokensPerSecond = savedSpeed(ctx);
-		read(ctx);
-	};
-
-	pi.on("session_start", (_event, ctx) => restore(ctx));
-	// Moving in the tree changes the branch; a compaction or a branch summary adds usage.
-	pi.on("session_tree", (_event, ctx) => restore(ctx));
-	pi.on("session_compact", (_event, ctx) => read(ctx));
-
-	pi.on("turn_start", () => {
-		firstChunkAt = undefined;
-	});
-
-	pi.on("provider_stream_event", () => {
-		firstChunkAt ??= Date.now();
-	});
-
-	pi.on("message_end", (event, ctx) => {
-		const message = event.message as { role?: unknown; usage?: unknown };
-		const usage = usageOf(message.usage);
-		if (message.role === "assistant" && usage) {
-			// Decoding starts at the first chunk, so the wait before it is left out.
-			const elapsed = firstChunkAt === undefined ? 0 : Date.now() - firstChunkAt;
-			if (elapsed > 0 && usage.output > 0) {
-				state.decodeTokensPerSecond = usage.output / (elapsed / 1000);
-				unsaved = true;
-			}
-			firstChunkAt = undefined;
-		}
-		if (usage) read(ctx);
-	});
-
-	pi.on("agent_end", (_event, ctx) => {
-		// One entry per run, after its last message, so a resumed session or a move in
-		// the tree finds the speed of the latest run on its branch.
-		if (unsaved && state.decodeTokensPerSecond !== undefined) {
-			const record: SpeedRecord = { tokensPerSecond: state.decodeTokensPerSecond };
-			pi.appendEntry(SPEED_ENTRY, record);
-		}
-		unsaved = false;
-		// Usage entries (cache warming, for one) are appended outside a turn; read them when the run ends.
-		read(ctx);
+	const feature: VitalsFeature = { env, data: { cost: 0, responses: 0, history: [], version: 0 }, sessionKey: "", scheduled: false };
+	features.set(env.state, feature);
+	pi.on("session_tree", () => {
+		feature.sessionKey = "";
 	});
 }
 
-/** The speed kept by the latest speed entry on the branch, if any. */
-function savedSpeed(ctx: ExtensionContext): number | undefined {
-	const branch = ctx.sessionManager.getBranch();
-	for (let index = branch.length - 1; index >= 0; index--) {
-		const entry = branch[index]!;
-		if (entry.type !== "custom" || entry.customType !== SPEED_ENTRY) continue;
-		const speed = (entry.data as Partial<SpeedRecord> | undefined)?.tokensPerSecond;
-		return typeof speed === "number" && Number.isFinite(speed) && speed > 0 ? speed : undefined;
-	}
-	return undefined;
-}
-
-/** Cost and responses from every entry of the session; cache hits and the history from the branch. */
-function readSession(state: Vitals, ctx: ExtensionContext): void {
+/** Cost and responses from every entry of the session; cache hits, the output speed and the history from the branch. */
+function readSession(state: Vitals, entries: readonly SessionEntry[], branch: readonly SessionEntry[]): void {
 	let cost = 0;
 	let responses = 0;
-	for (const entry of ctx.sessionManager.getEntries()) {
+	for (const entry of entries) {
 		const usage = usageOf(entryUsage(entry));
 		if (!usage) continue;
 		cost += usage.cost.total;
@@ -167,11 +121,15 @@ function readSession(state: Vitals, ctx: ExtensionContext): void {
 	let compacted = false;
 	/** The latest assistant message on the branch, with or without usage. */
 	let latest: Usage | undefined;
-	for (const entry of ctx.sessionManager.getBranch()) {
+	let speed: number | undefined;
+	for (const entry of branch) {
 		if (entry.type === "compaction") compacted = true;
 		if (entry.type !== "message" || entry.message.role !== "assistant") continue;
 		latest = usageOf(entry.message.usage);
 		if (!latest) continue;
+		// Pi leaves the duration out of old messages and of results fetched later.
+		const duration = entry.message.durationMs;
+		if (duration !== undefined && duration > 0 && latest.output > 0) speed = latest.output / (duration / 1000);
 		const { input, cacheRead, cacheWrite, output } = latest;
 		history.push({ input, cacheRead, cacheWrite, output, afterCompaction: compacted });
 		compacted = false;
@@ -179,6 +137,7 @@ function readSession(state: Vitals, ctx: ExtensionContext): void {
 	state.history = history.length > MAX_HISTORY ? history.slice(-MAX_HISTORY) : history;
 	const prompt = latest ? latest.input + latest.cacheRead + latest.cacheWrite : 0;
 	state.cacheRatio = latest && prompt > 0 ? latest.cacheRead / prompt : undefined;
+	state.outputTokensPerSecond = speed;
 }
 
 type SessionEntry = ReturnType<ExtensionContext["sessionManager"]["getEntries"]>[number];

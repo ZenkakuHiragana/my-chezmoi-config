@@ -23,7 +23,7 @@
  * The tree is flattened into rows when it or the filter changes. Drawing writes only
  * the rows on screen, so it costs the same however long the session is.
  */
-import type { SessionTreeNode, Theme, ThemeColor } from "@earendil-works/pi-coding-agent";
+import type { AppKeybinding, SessionTreeNode, Theme, ThemeColor } from "@earendil-works/pi-coding-agent";
 import {
 	type Component,
 	getKeybindings,
@@ -39,11 +39,10 @@ import { initialFilter, jumpTo, sessionTree, type TreeFilterMode } from "../feat
 import { framed, type SizedView } from "../screen/frame.ts";
 import { Lines } from "../screen/lines.ts";
 import { type CrtState, sanitize } from "../state/core.ts";
-import { bar, compactNumber, themeStamp } from "./common.ts";
+import { bar, compactNumber } from "./common.ts";
 import { type ListControl, type PanelEnv, registerPanel } from "./registry.ts";
 
 type Entry = SessionTreeNode["entry"];
-type Keybinding = Parameters<ReturnType<typeof getKeybindings>["matches"]>[1];
 
 /** Rows drawn before the panel has been laid out once. */
 const FALLBACK_HEIGHT = 20;
@@ -70,14 +69,14 @@ const FILTERS: ReadonlyArray<readonly [TreeFilterMode, string]> = [
 /** Filters whose rows are turns rather than single entries. */
 const TURN_FILTERS = new Set<TreeFilterMode>(["default", "no-tools"]);
 /** /tree's filter keys, by the filter each one switches to (or toggles with the default). */
-const FILTER_KEYS: ReadonlyArray<readonly [Keybinding, TreeFilterMode | "next" | "previous"]> = [
-	["app.tree.filter.default" as Keybinding, "default"],
-	["app.tree.filter.noTools" as Keybinding, "no-tools"],
-	["app.tree.filter.userOnly" as Keybinding, "user-only"],
-	["app.tree.filter.labeledOnly" as Keybinding, "labeled-only"],
-	["app.tree.filter.all" as Keybinding, "all"],
-	["app.tree.filter.cycleForward" as Keybinding, "next"],
-	["app.tree.filter.cycleBackward" as Keybinding, "previous"],
+const FILTER_KEYS: ReadonlyArray<readonly [AppKeybinding, TreeFilterMode | "next" | "previous"]> = [
+	["app.tree.filter.default", "default"],
+	["app.tree.filter.noTools", "no-tools"],
+	["app.tree.filter.userOnly", "user-only"],
+	["app.tree.filter.labeledOnly", "labeled-only"],
+	["app.tree.filter.all", "all"],
+	["app.tree.filter.cycleForward", "next"],
+	["app.tree.filter.cycleBackward", "previous"],
 ];
 
 /** One row: a chain of entries, and the tree lines drawn before it. */
@@ -146,7 +145,7 @@ registerPanel("location", (env) =>
 				// Bring the rows up to date first, so a change shows on this frame.
 				const view = views.get(env.state);
 				view?.selection();
-				return [view?.version, themeStamp(env.theme())];
+				return [view?.version];
 			},
 		),
 		"top",

@@ -44,7 +44,7 @@ import { framed } from "../screen/frame.ts";
 import { buildArrangement, type BuiltArrangement, type Guide, type PageDef, type ScreenHost, type TabDef } from "../screen/layout.ts";
 import { noSignal } from "../screen/nosignal.ts";
 import { TabBar } from "../screen/tabbar.ts";
-import { type CrtState, createState } from "../state/core.ts";
+import { type CrtState, createState, type Versioned } from "../state/core.ts";
 import { crtEditor } from "./editor.ts";
 
 const BASE = Symbol.for("pi-crt.base-root");
@@ -195,6 +195,10 @@ export function createShell(pi: ExtensionAPI): Shell {
 	const currentKey = () => pageKey(activeTab, activePage[activeTab]!);
 	const currentPage = () => pages[activeTab]![activePage[activeTab]!];
 	const requestRender = () => tui?.requestRender();
+	const changed = (data: Versioned) => {
+		data.version++;
+		requestRender();
+	};
 	const notifyShown = () => {
 		for (const listener of shownListeners) listener();
 	};
@@ -378,7 +382,11 @@ export function createShell(pi: ExtensionAPI): Shell {
 	const mount = () => {
 		if (!tui || !isViewportTUI(tui) || !baseRoot) return;
 		setTabsShown(true);
-		tui.setLayoutRoot(rootFor());
+		const root = rootFor();
+		// Pi invalidates only the components it shows (on a theme change, for one), so
+		// a page coming on screen draws from scratch.
+		root.invalidate();
+		tui.setLayoutRoot(root);
 		tui.requestRender(true);
 	};
 
@@ -398,7 +406,10 @@ export function createShell(pi: ExtensionAPI): Shell {
 	};
 
 	const onPageChange = () => {
-		if (visiblePanels().includes("transcript")) state.termAttention = false;
+		if (visiblePanels().includes("transcript") && state.termAttention) {
+			state.termAttention = false;
+			changed(state);
+		}
 		mount();
 		updateTimer();
 		notifyShown();
@@ -454,6 +465,7 @@ export function createShell(pi: ExtensionAPI): Shell {
 			state,
 			context: () => ctxRef,
 			requestRender,
+			changed,
 			shows: (panel) => tabsShown && visiblePanels().includes(panel),
 			onShownChange: (listener) => {
 				shownListeners.push(listener);
@@ -536,6 +548,7 @@ export function createShell(pi: ExtensionAPI): Shell {
 	pi.on("agent_start", () => {
 		state.agentRunning = true;
 		state.agentStartedAt = Date.now();
+		changed(state);
 		updateTimer();
 	});
 
@@ -543,6 +556,7 @@ export function createShell(pi: ExtensionAPI): Shell {
 		state.agentRunning = false;
 		const somewhere = pages.some((list, t) => list.some((_page, p) => showsTranscript(t, p)));
 		if (somewhere && !visiblePanels().includes("transcript")) state.termAttention = true;
+		changed(state);
 		updateTimer();
 	});
 

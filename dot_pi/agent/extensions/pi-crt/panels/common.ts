@@ -12,32 +12,10 @@ export function spinner(tick: number): string {
 	return SPINNER[tick % SPINNER.length] ?? "⠋";
 }
 
-// Pi's `theme` is one proxy object whose colours change in place, so cache keys
-// use the escape codes of the colours a panel draws with.
-const STAMP_TOKENS = [
-	"text",
-	"muted",
-	"dim",
-	"accent",
-	"success",
-	"error",
-	"warning",
-	"borderMuted",
-	"toolTitle",
-	"thinkingText",
-	"toolDiffAdded",
-	"toolDiffRemoved",
-	"toolDiffContext",
-] as const;
-
 /** Time since `startedAt`, as `MM:SS`. */
 export function elapsedText(startedAt: number | undefined): string {
 	const seconds = Math.floor((Date.now() - (startedAt ?? Date.now())) / 1000);
 	return `${String(Math.floor(seconds / 60)).padStart(2, "0")}:${String(seconds % 60).padStart(2, "0")}`;
-}
-
-export function themeStamp(theme: ReturnType<ThemeRef>): string {
-	return STAMP_TOKENS.map((token) => theme.getFgAnsi(token)).join("");
 }
 
 export function bar(theme: ReturnType<ThemeRef>, ratio: number, width: number, color: "accent" | "warning" | "error" = "accent"): string {
@@ -117,7 +95,7 @@ export class Selection implements ListControl {
 		if (this.index < 0) this.index = delta > 0 ? this.itemAt("top") : this.itemAt("bottom");
 		else this.index = Math.max(0, Math.min(n - 1, this.index + delta));
 		this.reveal();
-		if (this.pickOnMove && this.index >= 0) this.onActivate(this.index);
+		this.moved();
 	}
 
 	page(delta: number): void {
@@ -125,12 +103,14 @@ export class Selection implements ListControl {
 		const view = this.scroll;
 		view?.scrollBy(delta * Math.max(1, (view?.viewportHeight ?? 2) - 1));
 		this.index = this.itemAt("top");
+		this.moved();
 	}
 
 	toStart(): void {
 		if (!this.count()) return;
 		this.index = 0;
 		this.scroll?.scrollToStart();
+		this.moved();
 	}
 
 	toEnd(): void {
@@ -138,10 +118,16 @@ export class Selection implements ListControl {
 		if (!n) return;
 		this.index = n - 1;
 		this.scroll?.scrollToEnd();
+		this.moved();
 	}
 
 	activate(): void {
 		if (this.index >= 0 && this.index < this.count()) this.onActivate(this.index);
+	}
+
+	/** After a key moved the selection: with `pickOnMove`, act on the item. */
+	private moved(): void {
+		if (this.pickOnMove) this.activate();
 	}
 
 	/** The item at the top or bottom edge of the view. */

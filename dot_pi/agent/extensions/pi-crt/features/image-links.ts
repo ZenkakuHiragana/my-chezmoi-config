@@ -12,6 +12,7 @@
  */
 
 import { isAbsolute, resolve } from "node:path";
+import { fileURLToPath } from "node:url";
 
 /**
  * MIME type by extension, for the formats pi-tui's Image draws (PNG, JPEG, GIF, WebP).
@@ -90,12 +91,11 @@ export function localImageTarget(target: string, cwd: string): string | undefine
 	return isAbsolute(path) ? path : resolve(cwd, path);
 }
 
-/** A file:// URL as a local path, including the windows `/C:/dir` form. */
+/** A file:// URL as a local path. A file on another host is not read: the URL parser makes `localhost` no host. */
 function fileUrlToPath(text: string): string {
 	const url = new URL(text);
-	if (url.hostname !== "" && url.hostname !== "localhost") throw new Error("remote file url");
-	const pathname = decodePercent(url.pathname);
-	return /^\/[a-zA-Z]:/.test(pathname) ? pathname.slice(1) : pathname;
+	if (url.hostname !== "") throw new Error("remote file url");
+	return fileURLToPath(url);
 }
 
 /** Percent-decoded text, or the text itself when it does not decode. */

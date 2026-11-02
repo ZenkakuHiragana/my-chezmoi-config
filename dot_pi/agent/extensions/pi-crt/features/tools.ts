@@ -52,6 +52,7 @@ export function setupTools(pi: ExtensionAPI, env: FeatureEnv): void {
 		if ((event.message as { role?: string }).role !== "assistant") return;
 		data.thinking = "";
 		data.thinkingTrimmed = false;
+		data.toolsVersion++;
 		thinkingBlock = -1;
 	});
 
@@ -70,6 +71,7 @@ export function setupTools(pi: ExtensionAPI, env: FeatureEnv): void {
 		if (!thinking.text) return;
 		data.thinking = thinking.text;
 		data.thinkingTrimmed = thinking.trimmed;
+		data.toolsVersion++;
 	});
 
 	pi.on("tool_execution_start", (event) => {

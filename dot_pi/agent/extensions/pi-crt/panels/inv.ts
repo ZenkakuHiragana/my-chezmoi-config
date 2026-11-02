@@ -6,7 +6,7 @@ import { truncateToWidth, visibleWidth, wrapTextWithAnsi } from "@earendil-works
 import { pickPart, pickSkill, pickTool, picks, prompt, skills, type ToolItem, tools, version } from "../features/inv.ts";
 import { framed } from "../screen/frame.ts";
 import { Lines, type ThemeRef } from "../screen/lines.ts";
-import { compactNumber, ListLines, Selection, themeStamp, withCursor } from "./common.ts";
+import { compactNumber, ListLines, Selection, withCursor } from "./common.ts";
 import { type PanelEnv, type PanelHandle, registerPanel } from "./registry.ts";
 
 type Theme = ReturnType<ThemeRef>;
@@ -29,7 +29,7 @@ function listPanel(
 				selection.reset();
 				return withCursor(env, selection, id, produce(Math.max(1, width - 1)));
 			},
-			() => [...key(), selection.index, env.focused(id), themeStamp(env.theme())],
+			() => [...key(), selection.index, env.focused(id)],
 		),
 		"top",
 		() => env.focused(id),
@@ -40,7 +40,7 @@ function listPanel(
 
 /** A panel of wrapped text. */
 function textPanel(env: PanelEnv, id: string, title: () => string, produce: (width: number) => string[], key: () => unknown[]): PanelHandle {
-	return framed(env.theme, title, new Lines(produce, () => [...key(), themeStamp(env.theme())]), "top", () => env.focused(id));
+	return framed(env.theme, title, new Lines(produce, key), "top", () => env.focused(id));
 }
 
 /** `left` cut to leave room for `right` at the right edge. */
@@ -98,7 +98,7 @@ registerPanel("promptparts", (env) => {
 			else lines.push(row(t.fg("dim", " rest: not in the recorded parts"), tokens(t, p.rest, "dim"), width));
 			return lines;
 		},
-		() => [prompt(env.state), picks(env.state).version],
+		() => [version(env.state)],
 	);
 });
 
@@ -119,7 +119,7 @@ registerPanel("prompttext", (env) =>
 			const text = part >= 0 ? (p.parts[part]?.text ?? "") : p.text;
 			return wrap(text.replace(/\t/g, "    "), width, (line) => t.fg("text", line));
 		},
-		() => [prompt(env.state), picks(env.state).version],
+		() => [version(env.state)],
 	),
 );
 
@@ -168,7 +168,11 @@ registerPanel("toollist", (env) => {
 				return row(left, item.active ? tokens(t, item.tokens) : t.fg("dim", "—"), width);
 			});
 		},
-		() => [sortedTools(env), picks(env.state).version],
+		() => {
+			// tools() reads Pi's tool lists again, and gives a new version when they changed.
+			tools(env.state);
+			return [version(env.state)];
+		},
 	);
 });
 
@@ -200,7 +204,11 @@ registerPanel("tooldetail", (env) =>
 			}
 			return lines;
 		},
-		() => [sortedTools(env), picks(env.state).version],
+		() => {
+			// tools() reads Pi's tool lists again, and gives a new version when they changed.
+			tools(env.state);
+			return [version(env.state)];
+		},
 	),
 );
 
@@ -247,7 +255,7 @@ registerPanel("skilllist", (env) => {
 			});
 			return lines;
 		},
-		() => [skills(env.state).items, version(env.state), picks(env.state).version],
+		() => [version(env.state)],
 	);
 });
 
@@ -270,6 +278,6 @@ registerPanel("skilltext", (env) =>
 			}
 			return lines;
 		},
-		() => [skills(env.state).items, version(env.state), picks(env.state).version],
+		() => [version(env.state)],
 	),
 );

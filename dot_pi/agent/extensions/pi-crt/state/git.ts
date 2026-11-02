@@ -5,11 +5,13 @@
  * keeps the first MAX_FILE_DIFF_LINES lines of each file. It runs while a git
  * panel is shown, every few seconds and after edits. Untracked files are read up
  * to UNTRACKED_BYTES each, and only when their size or time changed.
+ *
+ * readLineCounts reads only the line counts, for STATUS's DIFF card.
  */
 import { open, stat } from "node:fs/promises";
 import { join } from "node:path";
 import type { ExtensionAPI } from "@earendil-works/pi-coding-agent";
-import { sanitize } from "./core.ts";
+import { sanitize, type Versioned } from "./core.ts";
 
 export interface GitFile {
 	/** Two-letter porcelain status, e.g. " M", "A ", "??". */
@@ -61,13 +63,19 @@ const UNTRACKED_BYTES = 64 * 1024;
 const LOG_COMMITS = 40;
 const GIT_TIMEOUT_MS = 5000;
 
-/** What the git panels show: the last snapshot and the file picked in the list. */
-export interface GitData {
+/** Lines added and removed. */
+export interface GitLines {
+	added: number;
+	removed: number;
+}
+
+/** What the git panels show: the last snapshot and the file picked in the list; and STATUS's line counts. */
+export interface GitData extends Versioned {
 	git: GitSnapshot;
 	/** The file whose diff the git panels show; none shows every file. */
 	gitPick?: string;
-	/** Changes whenever `gitPick` changes. */
-	gitPickVersion: number;
+	/** The last readLineCounts; none before it, or when git could not tell. */
+	lines?: GitLines;
 }
 
 /**
@@ -85,7 +93,7 @@ export function setGit(data: GitData, snapshot: GitSnapshot): void {
 export function pickGitFile(data: GitData, path: string | undefined): void {
 	if (data.gitPick === path) return;
 	data.gitPick = path;
-	data.gitPickVersion++;
+	data.version++;
 }
 
 type ExecResult = Awaited<ReturnType<ExtensionAPI["exec"]>>;
@@ -117,8 +125,7 @@ export async function readGit(
 	previous?: GitSnapshot,
 	freshLog = false,
 ): Promise<GitSnapshot> {
-	const git = (args: string[]) =>
-		pi.exec("git", ["--no-optional-locks", "-c", "core.quotePath=false", ...args], { cwd, timeout: GIT_TIMEOUT_MS, signal });
+	const git = gitIn(pi, cwd, signal);
 	// -z gives paths without C-style quoting (a path with a space is quoted otherwise).
 	const status = await git(["status", "--porcelain=v1", "-b", "-z"]);
 	if (failed(status)) return { files: [], diff: [], error: failure(status, "git status"), updatedAt: Date.now() };
@@ -142,24 +149,13 @@ export async function readGit(
 	}
 	const snapshot: GitSnapshot = { branch, files, diff: [], updatedAt: Date.now() };
 
-	// A repository without commits has no HEAD; compare with the empty tree so that
-	// staged files show (pi.exec gives git an empty stdin to hash).
-	let base = "HEAD";
-	const head = await git(["rev-parse", "--verify", "--quiet", "HEAD"]);
-	if (head.killed) {
-		snapshot.diffError = failure(head, "git rev-parse");
+	const found = await diffBase(git);
+	if ("error" in found) {
+		snapshot.diffError = found.error;
 		return snapshot;
 	}
-	if (head.code === 0) {
-		snapshot.head = head.stdout.trim();
-	} else {
-		const empty = await git(["hash-object", "-t", "tree", "--stdin"]);
-		if (failed(empty)) {
-			snapshot.diffError = failure(empty, "git hash-object");
-			return snapshot;
-		}
-		base = empty.stdout.trim();
-	}
+	const { base } = found;
+	if (found.head) snapshot.head = found.head;
 	await readLog(snapshot, git, previous, freshLog);
 
 	const numstat = await git(["diff", "--numstat", "-z", base]);
@@ -189,6 +185,45 @@ export async function readGit(
 }
 
 type Git = (args: string[]) => Promise<ExecResult>;
+
+function gitIn(pi: ExtensionAPI, cwd: string, signal: AbortSignal): Git {
+	return (args) => pi.exec("git", ["--no-optional-locks", "-c", "core.quotePath=false", ...args], { cwd, timeout: GIT_TIMEOUT_MS, signal });
+}
+
+/**
+ * What to diff against: HEAD, with its commit. A repository without commits has no
+ * HEAD; the empty tree is used then, so that staged files show (pi.exec gives git an
+ * empty stdin to hash).
+ */
+async function diffBase(git: Git): Promise<{ base: string; head?: string } | { error: string }> {
+	const head = await git(["rev-parse", "--verify", "--quiet", "HEAD"]);
+	if (head.killed) return { error: failure(head, "git rev-parse") };
+	if (head.code === 0) return { base: "HEAD", head: head.stdout.trim() };
+	const empty = await git(["hash-object", "-t", "tree", "--stdin"]);
+	if (failed(empty)) return { error: failure(empty, "git hash-object") };
+	return { base: empty.stdout.trim() };
+}
+
+/**
+ * The lines added and removed against what readGit diffs against, as `git diff
+ * --numstat` counts them: untracked files are not in them, and a binary file adds
+ * none. Undefined when git could not tell.
+ */
+export async function readLineCounts(pi: ExtensionAPI, cwd: string, signal: AbortSignal): Promise<GitLines | undefined> {
+	const git = gitIn(pi, cwd, signal);
+	const found = await diffBase(git);
+	if ("error" in found) return undefined;
+	const numstat = await git(["diff", "--numstat", found.base]);
+	if (failed(numstat)) return undefined;
+	const lines: GitLines = { added: 0, removed: 0 };
+	// One line per file: "added<TAB>removed<TAB>path", "-" for a binary file.
+	for (const line of numstat.stdout.split("\n")) {
+		const [added = "", removed = ""] = line.split("\t");
+		lines.added += toCount(added) ?? 0;
+		lines.removed += toCount(removed) ?? 0;
+	}
+	return lines;
+}
 
 function sameLines(a: readonly string[], b: readonly string[]): boolean {
 	return a.length === b.length && a.every((line, index) => line === b[index]);

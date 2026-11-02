@@ -5,7 +5,7 @@
 import { truncateToWidth } from "@earendil-works/pi-tui";
 import { openQuest, type Quest, quests, refreshQuests } from "../features/quests.ts";
 import { framed } from "../screen/frame.ts";
-import { ListLines, Selection, themeStamp, withCursor } from "./common.ts";
+import { ListLines, Selection, withCursor } from "./common.ts";
 import { type PanelEnv, registerPanel } from "./registry.ts";
 
 registerPanel("quests", (env) => {
@@ -25,7 +25,7 @@ registerPanel("quests", (env) => {
 				selection.reset();
 				return withCursor(env, selection, "quests", questLines(env, selection, width - 1));
 			},
-			() => [quests(env.state).version, selection.index, env.focused("quests"), themeStamp(env.theme())],
+			() => [quests(env.state).version, selection.index, env.focused("quests")],
 		),
 		"top",
 		() => env.focused("quests"),

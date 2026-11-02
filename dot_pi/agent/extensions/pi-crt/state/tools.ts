@@ -57,7 +57,7 @@ export interface ToolData {
 	/** The start of the latest thinking was dropped to keep only its tail. */
 	thinkingTrimmed: boolean;
 	tools: ToolEntry[];
-	/** Changes whenever `tools` or a tool's status changes. */
+	/** Changes whenever `tools`, a tool's status or the thinking text changes. */
 	toolsVersion: number;
 	/** Older calls exist than `tools` holds. */
 	toolsTrimmed: boolean;
@@ -114,6 +114,7 @@ export function appendThinking(data: ToolData, text: string): void {
 		data.thinking = data.thinking.slice(-THINKING_TAIL);
 		data.thinkingTrimmed = true;
 	}
+	data.toolsVersion++;
 }
 
 /**
