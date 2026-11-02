@@ -7,6 +7,7 @@
 - 作業の記録には `./.opencode/work/(task-name)/` 以下を使う。
 - インターネット検索を行う方法は以下の通り。
   - Exa MCP
+  - RustXNG: `curl --fail --get 'http://127.0.0.1:29483/search' --data-urlencode 'q=search keywords' --data 'format=json' --data 'max_results=5'`
   - `claude -p --no-session-persistence --tools WebSearch --allowedTools WebSearch --permission-mode dontAsk --model haiku --max-turns 8 --system-prompt "Use WebSearch. Report results as a list of title, URL and a short snippet." "検索クエリ"`
   - `codex --search exec --ephemeral --sandbox read-only "検索クエリ"`
 
