@@ -6,7 +6,12 @@ import type { ListControl, PanelHandle } from "../panels/registry.ts";
 import type { ThemeRef } from "../screen/lines.ts";
 import type { Shell } from "./controller.ts";
 
-const PASS_THROUGH: KeyId[] = ["escape", "ctrl+c", "alt+o", "alt+h", "alt+j", "alt+k", "alt+l", ...Array.from({ length: 9 }, (_, i): KeyId => `alt+${i + 1}` as KeyId)];
+/**
+ * Pi's keys that a panel never takes, even one whose `key` would use them: Esc
+ * interrupts the agent, and ctrl+c clears or quits. Other keys a panel has no use
+ * for, pi-crt's shortcuts among them, reach Pi anyway (onInput).
+ */
+const PASS_THROUGH: KeyId[] = ["escape", "ctrl+c"];
 
 /** The panel-mode keys, as the editor border shows them. */
 export function panelHints(theme: ThemeRef): string {
