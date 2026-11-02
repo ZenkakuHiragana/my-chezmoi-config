@@ -4,6 +4,7 @@
 import { colorToRgb, foregroundAnsi, backgroundAnsi, visibleWidth } from "@earendil-works/pi-tui";
 import { contextData, contextUsage } from "../features/context.ts";
 import { gitData } from "../features/git.ts";
+import { logoArt, logoData } from "../features/logo.ts";
 import { toolData } from "../features/tools.ts";
 import { usageData } from "../features/usage.ts";
 import { vitals } from "../features/vitals.ts";
@@ -11,7 +12,7 @@ import { allowanceWindows, rateLimits, shortHeader } from "../state/usage.ts";
 import { framed, type SizedView } from "../screen/frame.ts";
 import { Lines } from "../screen/lines.ts";
 import { bar, compactNumber, elapsedText } from "./common.ts";
-import { type Paint, PI_LOGO, type Rgb, pixelArtWidth, renderPixelArt, shadePalette } from "./pixel-art.ts";
+import { type Paint, PI_LOGO, type Rgb, pixelArtWidth, renderPixelArt, shade, shadePalette } from "./pixel-art.ts";
 import { type CardInput, centerLine, gaugeRow, statCards } from "./status-parts.ts";
 import { type PanelEnv, registerPanel } from "./registry.ts";
 
@@ -35,6 +36,7 @@ registerPanel("vitals", (env) => {
 				gitData(env.state).version,
 				usageData(env.state).version,
 				vitals(env.state).version,
+				logoData(env.state).version,
 				// The elapsed time only moves while the agent runs.
 				env.state.agentRunning ? env.tick() : 0,
 				view?.viewportHeight,
@@ -170,6 +172,7 @@ function vitalsLines(env: PanelEnv, width: number): string[] {
 	));
 	body.push("");
 	body.push(...logoLines(env, inner));
+	if (logoData(env.state).error) body.push(centerLine(logoData(env.state).error!, inner));
 	body.push("");
 	body.push(centerLine(stateText(env), inner));
 	body.push("");
@@ -203,7 +206,21 @@ function logoLines(env: PanelEnv, width: number): string[] {
 	const theme = env.theme();
 	const mode = theme.getColorMode();
 	const rgb = colorToRgb(theme.colors.accent);
-	const palette = shadePalette([rgb.r, rgb.g, rgb.b] as Rgb);
+	const base: Rgb = [rgb.r, rgb.g, rgb.b];
+	// logo.*, when there is one: the cells carry brightness, coloured here so that a
+	// change of theme recolours them without reading the picture again.
+	const image = logoArt(env.state, width);
+	if (image) {
+		const pad = " ".repeat(Math.max(0, Math.floor((width - image[0]!.length) / 2)));
+		return image.map((row) => pad + row.map(({ glyph, fg, bg }) => {
+			if (fg === undefined && bg === undefined) return glyph;
+			const f = shade(base, fg ?? 0);
+			const b = shade(base, bg ?? 0);
+			return (fg !== undefined ? foregroundAnsi({ kind: "rgb", r: f[0], g: f[1], b: f[2] }, mode) : "") +
+				(bg !== undefined ? backgroundAnsi({ kind: "rgb", r: b[0], g: b[1], b: b[2] }, mode) : "") + glyph + "\x1b[0m";
+		}).join(""));
+	}
+	const palette = shadePalette(base);
 	const paint: Paint = (glyph, colors) => {
 		const fg = colors.fg ? palette[colors.fg] : undefined;
 		const bg = colors.bg ? palette[colors.bg] : undefined;

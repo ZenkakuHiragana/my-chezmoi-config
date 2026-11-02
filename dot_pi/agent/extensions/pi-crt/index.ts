@@ -21,6 +21,7 @@ import { setupContext } from "./features/context.ts";
 import { setupGit } from "./features/git.ts";
 import { setupImages } from "./features/image.ts";
 import { setupInventory } from "./features/inv.ts";
+import { setupLogo } from "./features/logo.ts";
 import { setupQuests } from "./features/quests.ts";
 import { setupRadio } from "./features/radio.ts";
 import { setupTools } from "./features/tools.ts";
@@ -40,6 +41,7 @@ export default function (pi: ExtensionAPI) {
 	setupContext(pi, env);
 	setupUsage(pi, env);
 	setupVitals(pi, env);
+	setupLogo(pi, env);
 	setupImages(pi, env);
 	setupQuests(pi, env);
 	setupTree(pi, env);
