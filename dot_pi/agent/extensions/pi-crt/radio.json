@@ -1,4 +1,14 @@
 [
-  { "name": "DIAMOND CITY RADIO", "playlist": "PLxprHD0XC6ct27PHzErvjgfExoHXaTr0s" },
-  { "name": "CLASSIC RADIO", "playlist": "PLoFLC-ZjkrXqnkKKL1HXmMaxnn3I83emj" }
+  {
+    "name": "DIAMOND CITY RADIO",
+    "playlist": "PLxprHD0XC6ct27PHzErvjgfExoHXaTr0s"
+  },
+  {
+    "name": "CLASSIC RADIO",
+    "playlist": "PLoFLC-ZjkrXqnkKKL1HXmMaxnn3I83emj"
+  },
+  {
+    "name": "うた",
+    "playlist": "PLQsZF8L5LyXPwxaVSoHvDO_4478D3y-Oh"
+  }
 ]
