@@ -29,7 +29,7 @@ function listPanel(
 				selection.reset();
 				return withCursor(env, selection, id, produce(Math.max(1, width - 1)));
 			},
-			() => [...key(), selection.index, env.focused(id)],
+			() => [...key(), selection.selectedKey, env.focused(id)],
 		),
 		"top",
 		() => env.focused(id),
@@ -70,9 +70,10 @@ function firstLine(text: string): string {
 
 registerPanel("promptparts", (env) => {
 	const selection = new Selection(
-		() => 1 + (prompt(env.state)?.parts.length ?? 0),
-		(index) => pickPart(env.state, index - 1),
-		true,
+		// The whole prompt, then the parts by label.
+		() => [undefined, ...(prompt(env.state)?.parts ?? []).map((part) => part.label)],
+		(index) => pickPart(env.state, index === 0 ? undefined : prompt(env.state)?.parts[index - 1]?.label),
+		() => picks(env.state).part,
 	);
 	return listPanel(
 		env,
@@ -89,10 +90,10 @@ registerPanel("promptparts", (env) => {
 			const { part } = picks(env.state);
 			const lines: string[] = [];
 			selection.place(0, lines.length, 1);
-			lines.push(row(`${picked(t, part === -1)}${t.fg("text", t.bold("WHOLE PROMPT"))}`, tokens(t, p.tokens), width));
+			lines.push(row(`${picked(t, part === undefined)}${t.fg("text", t.bold("WHOLE PROMPT"))}`, tokens(t, p.tokens), width));
 			p.parts.forEach((item, index) => {
 				selection.place(index + 1, lines.length, 1);
-				lines.push(row(`${picked(t, part === index)}${t.fg("text", item.label)}`, tokens(t, item.tokens), width));
+				lines.push(row(`${picked(t, part === item.label)}${t.fg("text", item.label)}`, tokens(t, item.tokens), width));
 			});
 			if (!p.parts.length) lines.push(t.fg("dim", " -- parts after the first request --"));
 			else lines.push(row(t.fg("dim", " rest: not in the recorded parts"), tokens(t, p.rest, "dim"), width));
@@ -107,16 +108,14 @@ registerPanel("prompttext", (env) =>
 		env,
 		"prompttext",
 		() => {
-			const p = prompt(env.state);
-			const { part } = picks(env.state);
-			return `TEXT  ${part >= 0 ? (p?.parts[part]?.label ?? "") : "WHOLE PROMPT"}`;
+			return `TEXT  ${picks(env.state).part ?? "WHOLE PROMPT"}`;
 		},
 		(width) => {
 			const t = env.theme();
 			const p = prompt(env.state);
 			if (!p) return [t.fg("dim", " -- no prompt yet --")];
 			const { part } = picks(env.state);
-			const text = part >= 0 ? (p.parts[part]?.text ?? "") : p.text;
+			const text = part === undefined ? p.text : (p.parts.find((item) => item.label === part)?.text ?? "");
 			return wrap(text.replace(/\t/g, "    "), width, (line) => t.fg("text", line));
 		},
 		() => [version(env.state)],
@@ -141,9 +140,9 @@ function sortedTools(env: PanelEnv): ToolItem[] {
 
 registerPanel("toollist", (env) => {
 	const selection = new Selection(
-		() => sortedTools(env).length,
+		() => sortedTools(env).map((tool) => tool.name),
 		(index) => pickTool(env.state, sortedTools(env)[index]?.name),
-		true,
+		() => picks(env.state).tool,
 	);
 	return listPanel(
 		env,
@@ -216,9 +215,9 @@ registerPanel("tooldetail", (env) =>
 
 registerPanel("skilllist", (env) => {
 	const selection = new Selection(
-		() => skills(env.state).items.length,
+		() => skills(env.state).items.map((skill) => skill.name),
 		(index) => pickSkill(env.state, skills(env.state).items[index]?.name),
-		true,
+		() => picks(env.state).skill,
 	);
 	return listPanel(
 		env,

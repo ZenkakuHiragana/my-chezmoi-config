@@ -95,15 +95,16 @@ registerPanel("gitlog", (env) =>
 	));
 
 /**
- * Selection over the file list: ALL, then the changed files. Enter shows the
- * diff of the selected file, or of every file on ALL; `pickOnMove` shows it as the
- * selection moves (the file list beside the diff panel).
+ * Selection over the file list: ALL, then the changed files, keyed as the diff panel
+ * picks them (a file by its path, ALL by undefined). Enter shows the diff of the
+ * selected file, or of every file on ALL. `besideDiff`: the file list beside the diff
+ * panel, whose selection is the file the diff panel shows.
  */
-function gitSelection(env: PanelEnv, pickOnMove = false): Selection {
+function gitSelection(env: PanelEnv, besideDiff = false): Selection {
 	return new Selection(
-		() => 1 + Math.min(gitData(env.state).git.files.length, MAX_FILE_LINES),
+		() => [undefined, ...gitData(env.state).git.files.slice(0, MAX_FILE_LINES).map((file) => file.path)],
 		(index) => pickGitFile(env.state, index === 0 ? undefined : gitData(env.state).git.files[index - 1]?.path),
-		pickOnMove,
+		besideDiff ? () => gitData(env.state).gitPick : undefined,
 	);
 }
 
@@ -114,7 +115,7 @@ function gitTitle(env: PanelEnv): string {
 }
 
 function gitKey(env: PanelEnv, selection: Selection, id: string): unknown[] {
-	return [gitData(env.state).version, selection.index, env.focused(id)];
+	return [gitData(env.state).version, selection.selectedKey, env.focused(id)];
 }
 
 function gitFileLines(env: PanelEnv, selection: Selection): string[] {

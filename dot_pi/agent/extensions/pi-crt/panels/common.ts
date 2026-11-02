@@ -31,24 +31,65 @@ export function compactNumber(value: number): string {
 	return String(Math.round(value));
 }
 
+/** The key before an item was selected. */
+const NONE = Symbol("none");
+/** The key once the selected item left the list: nothing is selected. */
+const GONE = Symbol("gone");
+
 /**
  * The selected item of a list panel (a logged call, a changed file). The arrow keys
  * or j/k move it one item and scroll to show it; PageUp/PageDown scroll a page and select
  * the item at the top, so a long expanded item can be read page by page; Enter acts
- * on the item. With `pickOnMove`, moving also acts on the item: for a list whose
- * item is shown in a panel beside it, where acting only picks what that panel shows.
+ * on the item.
+ *
+ * The selection is an item, not a row: `keys` gives the key of each item of the list
+ * as it is now, in its order (items with the same key are one item to the selection:
+ * the first of them). When the list changes under it, the selection stays on its item
+ * wherever that item goes. Once the list, as it is drawn or used, no longer has the
+ * item, nothing is selected, also if the item comes back; a list that is not drawn
+ * keeps its selection.
+ *
+ * A list whose item is shown in a panel beside it passes `picked`, the key of the
+ * item that panel shows, as the feature that owns the pick keeps it. The selection
+ * is then that item, so the selected row and the shown item are always the same
+ * item, and selecting an item acts on it (`onActivate` picks it).
  */
 export class Selection implements ListControl {
-	index = -1;
 	offsets: number[] = [];
 	heights: number[] = [];
 	scroll?: ScrollView;
+	/** The key of the selected item, without `picked`. */
+	private selected: unknown = NONE;
 
 	constructor(
-		private readonly count: () => number,
+		/** The key of each item, in the list's order. */
+		protected readonly keys: () => readonly unknown[],
 		private readonly onActivate: (index: number) => void,
-		private readonly pickOnMove = false,
+		private readonly picked?: () => unknown,
 	) {}
+
+	/** The key of the selected item. Cache keys use it: finding its row walks the list. */
+	get selectedKey(): unknown {
+		return this.picked ? this.picked() : this.selected;
+	}
+
+	/**
+	 * Where the selected item is in the list now. Reading it (drawing the list, a key)
+	 * finds out when the item left the list: from then on nothing is selected.
+	 */
+	get index(): number {
+		const key = this.selectedKey;
+		if (key === NONE) return this.unselected();
+		if (key === GONE) return -1;
+		const index = this.keys().indexOf(key);
+		if (index < 0 && !this.picked) this.selected = GONE;
+		return index;
+	}
+
+	/** The index before an item was selected: none. A list may select an item here. */
+	protected unselected(): number {
+		return -1;
+	}
 
 	/** Record where an item starts; call while producing the content. */
 	place(index: number, offset: number, height: number): void {
@@ -62,12 +103,6 @@ export class Selection implements ListControl {
 		this.heights = [];
 	}
 
-	/** Keep the selection on an existing item after the list shrank. */
-	done(): void {
-		const n = this.count();
-		if (this.index >= n) this.index = n - 1;
-	}
-
 	/** The item drawn at a content line, or -1 (mouse clicks). */
 	itemAtLine(line: number): number {
 		for (let index = 0; index < this.offsets.length; index++) {
@@ -79,55 +114,57 @@ export class Selection implements ListControl {
 
 	/** Select an item (mouse clicks). */
 	pick(index: number): void {
-		this.index = index;
+		this.select(index);
 	}
 
 	/** Content lines of the selected item, as [first, end). */
 	get span(): [number, number] | undefined {
-		const top = this.offsets[this.index];
-		return top === undefined ? undefined : [top, top + (this.heights[this.index] ?? 0)];
+		const index = this.index;
+		const top = this.offsets[index];
+		return top === undefined ? undefined : [top, top + (this.heights[index] ?? 0)];
 	}
 
 	move(delta: number): void {
-		const n = this.count();
+		const n = this.keys().length;
 		if (!n) return;
+		const index = this.index;
 		// The first move starts from what is on screen.
-		if (this.index < 0) this.index = delta > 0 ? this.itemAt("top") : this.itemAt("bottom");
-		else this.index = Math.max(0, Math.min(n - 1, this.index + delta));
+		if (index < 0) this.select(delta > 0 ? this.itemAt("top") : this.itemAt("bottom"));
+		else this.select(Math.max(0, Math.min(n - 1, index + delta)));
 		this.reveal();
-		this.moved();
 	}
 
 	page(delta: number): void {
-		if (!this.count()) return;
+		if (!this.keys().length) return;
 		const view = this.scroll;
 		view?.scrollBy(delta * Math.max(1, (view?.viewportHeight ?? 2) - 1));
-		this.index = this.itemAt("top");
-		this.moved();
+		this.select(this.itemAt("top"));
 	}
 
 	toStart(): void {
-		if (!this.count()) return;
-		this.index = 0;
+		if (!this.keys().length) return;
+		this.select(0);
 		this.scroll?.scrollToStart();
-		this.moved();
 	}
 
 	toEnd(): void {
-		const n = this.count();
+		const n = this.keys().length;
 		if (!n) return;
-		this.index = n - 1;
+		this.select(n - 1);
 		this.scroll?.scrollToEnd();
-		this.moved();
 	}
 
 	activate(): void {
-		if (this.index >= 0 && this.index < this.count()) this.onActivate(this.index);
+		const index = this.index;
+		if (index >= 0 && index < this.keys().length) this.onActivate(index);
 	}
 
-	/** After a key moved the selection: with `pickOnMove`, act on the item. */
-	private moved(): void {
-		if (this.pickOnMove) this.activate();
+	/** Select the item at an index of the list as it is now; with `picked`, pick it. */
+	protected select(index: number): void {
+		const keys = this.keys();
+		if (index < 0 || index >= keys.length) return;
+		if (this.picked) this.onActivate(index);
+		else this.selected = keys[index];
 	}
 
 	/** The item at the top or bottom edge of the view. */
@@ -135,7 +172,7 @@ export class Selection implements ListControl {
 		const view = this.scroll;
 		const top = view?.scrollTop ?? 0;
 		const line = edge === "top" ? top : top + Math.max(1, view?.viewportHeight ?? 1) - 1;
-		let found = edge === "top" ? this.count() - 1 : 0;
+		let found = edge === "top" ? this.keys().length - 1 : 0;
 		for (let index = 0; index < this.offsets.length; index++) {
 			const start = this.offsets[index];
 			if (start === undefined) continue;
@@ -180,8 +217,9 @@ export class ListLines extends Lines {
 
 /** Add a one-column gutter to a list panel's lines, marking the selected item while the panel has the keys. */
 export function withCursor(env: PanelEnv, selection: Selection, id: string, lines: string[]): string[] {
-	selection.done();
-	const [from, to] = (env.focused(id) && selection.span) || [-1, -1];
+	// Read the selection also without the keys, so that a drawn list drops an item it lost.
+	const span = selection.span;
+	const [from, to] = (env.focused(id) && span) || [-1, -1];
 	const mark = env.theme().fg("accent", "▌");
 	return lines.map((line, index) => (index >= from && index < to ? mark : " ") + line);
 }

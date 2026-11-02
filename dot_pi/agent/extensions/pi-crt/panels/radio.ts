@@ -21,6 +21,7 @@ import {
 	type RadioData,
 	radioData,
 	searchSongs,
+	stationKey,
 	toggleSong,
 	toggleStation,
 } from "../features/radio.ts";
@@ -42,11 +43,18 @@ function radioKey(env: PanelEnv, data: string): boolean {
 /** A list selection that also takes the RADIO keys. */
 class RadioSelection extends Selection {
 	constructor(
-		count: () => number,
+		keys: () => readonly unknown[],
 		onActivate: (index: number) => void,
 		private readonly onKey: (data: string) => boolean,
 	) {
-		super(count, onActivate);
+		super(keys, onActivate);
+	}
+
+	/** Before an item was selected, select the first, so that Enter works on it before an arrow key or j/k. */
+	protected override unselected(): number {
+		if (!this.keys().length) return -1;
+		this.select(0);
+		return 0;
 	}
 
 	key(data: string): boolean {
@@ -72,12 +80,11 @@ function spread(left: string, right: string, width: number): string {
 
 registerPanel("stations", (env) => {
 	const selection = new RadioSelection(
-		() => radioData(env.state).stations.length,
+		// A station is its source; its name may change, and two stations may share one.
+		() => radioData(env.state).stations.map(stationKey),
 		(index) => toggleStation(env.state, index),
 		(data) => radioKey(env, data),
 	);
-	// Enter works on the first station before an arrow key or j/k was pressed.
-	selection.index = 0;
 	const panel = framed(
 		env.theme,
 		() => "STATIONS",
@@ -87,7 +94,7 @@ registerPanel("stations", (env) => {
 				selection.reset();
 				return withCursor(env, selection, "stations", stationLines(env, selection, width - 1));
 			},
-			() => [radioData(env.state).version, selection.index, env.focused("stations")],
+			() => [radioData(env.state).version, selection.selectedKey, env.focused("stations")],
 		),
 		"top",
 		() => env.focused("stations"),
@@ -135,7 +142,8 @@ registerPanel("radiosearch", (env) => {
 	input.onEscape = leave;
 
 	const selection = new RadioSelection(
-		() => 1 + radioData(env.state).search.results.length,
+		// The search box, then the tracks.
+		() => [undefined, ...radioData(env.state).search.results.map((track) => track.id)],
 		(index) => {
 			if (index === 0) {
 				typing = true;
@@ -152,7 +160,6 @@ registerPanel("radiosearch", (env) => {
 			return true;
 		},
 	);
-	selection.index = 0;
 	const list: ListControl = Object.assign(selection, { typing: () => typing });
 	const panel = framed(
 		env.theme,
@@ -163,7 +170,7 @@ registerPanel("radiosearch", (env) => {
 				selection.reset();
 				return withCursor(env, selection, "radiosearch", searchLines(env, selection, input, typing, width - 1));
 			},
-			() => [radioData(env.state).version, selection.index, env.focused("radiosearch"), typing, typed],
+			() => [radioData(env.state).version, selection.selectedKey, env.focused("radiosearch"), typing, typed],
 			// The search box's line carries the cursor marker, which clipping must not cut.
 			true,
 		),
@@ -210,14 +217,13 @@ function searchLines(env: PanelEnv, selection: Selection, input: Input, typing: 
 
 registerPanel("radiooutput", (env) => {
 	const selection = new RadioSelection(
-		() => radioData(env.state).outputs.devices.length,
+		() => radioData(env.state).outputs.devices.map((device) => device.name),
 		(index) => {
 			const device = radioData(env.state).outputs.devices[index];
 			if (device) pickOutput(env.state, device);
 		},
 		(data) => radioKey(env, data),
 	);
-	selection.index = 0;
 	const panel = framed(
 		env.theme,
 		() => "OUTPUT",
@@ -230,7 +236,7 @@ registerPanel("radiooutput", (env) => {
 			// The tick only while the spinner turns.
 			() => {
 				const data = radioData(env.state);
-				return [data.version, data.outputs.loading && env.tick(), selection.index, env.focused("radiooutput")];
+				return [data.version, data.outputs.loading && env.tick(), selection.selectedKey, env.focused("radiooutput")];
 			},
 		),
 		"top",

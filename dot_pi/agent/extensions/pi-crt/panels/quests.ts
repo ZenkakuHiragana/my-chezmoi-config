@@ -10,7 +10,7 @@ import { type PanelEnv, registerPanel } from "./registry.ts";
 
 registerPanel("quests", (env) => {
 	const selection = new Selection(
-		() => quests(env.state).quests.length,
+		() => quests(env.state).quests.map((quest) => quest.path),
 		(index) => {
 			const quest = quests(env.state).quests[index];
 			if (quest) openQuest(env.state, quest);
@@ -25,7 +25,7 @@ registerPanel("quests", (env) => {
 				selection.reset();
 				return withCursor(env, selection, "quests", questLines(env, selection, width - 1));
 			},
-			() => [quests(env.state).version, selection.index, env.focused("quests")],
+			() => [quests(env.state).version, selection.selectedKey, env.focused("quests")],
 		),
 		"top",
 		() => env.focused("quests"),

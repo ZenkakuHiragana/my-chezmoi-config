@@ -104,8 +104,8 @@ interface Inventory {
 	toolsKey: string;
 	/** Changes whenever the prompt, the skills, the tools or a pick change. */
 	version: number;
-	/** -1 is the whole prompt. */
-	part: number;
+	/** The label of the picked part; none: the whole prompt. */
+	part?: string;
 	tool?: string;
 	skill?: string;
 }
@@ -148,6 +148,7 @@ export function tools(state: CrtState): readonly ToolItem[] {
 		guidelines: (tool.promptGuidelines ?? []).map(sanitize),
 		source: sanitize(tool.sourceInfo?.path ?? ""),
 	}));
+	if (inv.tool !== undefined && !inv.tools.some((tool) => tool.name === inv.tool)) inv.tool = undefined;
 	inv.version++;
 	return inv.tools;
 }
@@ -157,16 +158,16 @@ export function version(state: CrtState): number {
 	return inventories.get(state)?.version ?? 0;
 }
 
-export function picks(state: CrtState): { part: number; tool?: string; skill?: string } {
+export function picks(state: CrtState): { part?: string; tool?: string; skill?: string } {
 	const inv = inventories.get(state);
-	return inv ? { part: inv.part, tool: inv.tool, skill: inv.skill } : { part: -1 };
+	return inv ? { part: inv.part, tool: inv.tool, skill: inv.skill } : {};
 }
 
-/** Show one part of the prompt, or the whole prompt (-1). */
-export function pickPart(state: CrtState, index: number): void {
+/** Show one part of the prompt by its label, or the whole prompt (none). */
+export function pickPart(state: CrtState, label: string | undefined): void {
 	const inv = inventories.get(state);
-	if (!inv || inv.part === index) return;
-	inv.part = index;
+	if (!inv || inv.part === label) return;
+	inv.part = label;
 	inv.env.changed(inv);
 }
 
@@ -185,16 +186,15 @@ export function pickSkill(state: CrtState, name: string | undefined): void {
 }
 
 export function setupInventory(pi: ExtensionAPI, env: FeatureEnv): void {
-	const inv: Inventory = { pi, env, skills: [], skillsKnown: false, tools: [], toolsKey: "", version: 0, part: -1 };
+	const inv: Inventory = { pi, env, skills: [], skillsKnown: false, tools: [], toolsKey: "", version: 0 };
 	inventories.set(env.state, inv);
 	/** The options of the request being started, read once the other extensions are done with them. */
 	let pending: PromptOptions | undefined;
 
 	/** Measure the prompt Pi sends now, keeping the picked part when it is still there. */
 	const readPrompt = (ctx: ExtensionContext) => {
-		const label = inv.part >= 0 ? inv.prompt?.parts[inv.part]?.label : undefined;
 		inv.prompt = measurePrompt(ctx);
-		inv.part = label === undefined ? -1 : inv.prompt.parts.findIndex((part) => part.label === label);
+		if (!inv.prompt.parts.some((part) => part.label === inv.part)) inv.part = undefined;
 		env.changed(inv);
 	};
 

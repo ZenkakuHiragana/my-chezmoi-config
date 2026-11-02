@@ -56,7 +56,8 @@ registerPanel("tools", (env) =>
 
 registerPanel("toollog", (env) => {
 	const selection = new Selection(
-		() => toolData(env.state).log.length,
+		// A call keeps its id when the log is built again (a move in the tree).
+		() => toolData(env.state).log.map((item) => item.id),
 		(index) => {
 			const item = toolData(env.state).log[index];
 			if (item) toggleLog(item);
@@ -106,10 +107,7 @@ class ToolLogView implements Component {
 		const t = env.theme();
 		const items = toolData(env.state).log;
 		selection.reset();
-		if (!items.length) {
-			selection.done();
-			return [t.fg("dim", " -- no tool calls yet --")];
-		}
+		if (!items.length) return withCursor(env, selection, "toollog", [t.fg("dim", " -- no tool calls yet --")]);
 		const lines: string[] = [];
 		const inner = Math.max(1, width - 1);
 		items.forEach((item, index) => {
