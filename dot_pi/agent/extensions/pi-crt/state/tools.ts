@@ -284,7 +284,7 @@ export function clipValue(value: unknown, budget: ClipBudget = clipBudget(), dep
  * clipped as one text, so the whole result keeps its first and last lines (when
  * there are more than 2 × CLIP_ITEMS blocks, only the first and last CLIP_ITEMS
  * are read, and the text says how many were left out between them); image blocks without their data, since the log
- * does not draw images (Pi draws them in the transcript); other blocks and the
+ * does not draw images; other blocks and the
  * details clipped with clipValue. `cut` tells whether clipValue left anything out.
  */
 export function clipResult(result: { content?: unknown; details?: unknown }, isError: boolean, durationMs?: number): ToolResult {

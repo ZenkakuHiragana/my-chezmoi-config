@@ -21,6 +21,15 @@
  * (closed unanswered). When either does not match, the extension leaves Pi's
  * screen alone, including the tool calls in the transcript.
  *
+ * Hiding a tool call does not hide the images of its result: Pi's
+ * ToolExecutionComponent draws them itself, and a renderer cannot turn them off.
+ * The component's public setShowImages(false) can, but Pi hands extensions no
+ * block, so they are looked up through a third internal: the private `child`
+ * field of the transcript ScrollView, whose last child holds the chat blocks
+ * (read only in `piChat`). When that does not match, the images stay. A zero-row
+ * component at the top of each page stops them before the page is drawn; this
+ * also depends on pi-tui drawing a vertical stack from the top (`imageGuard`).
+ *
  * Cost: each redraw of the screen also redraws the panels shown, so the screen
  * is redrawn on a timer only while something moves (the agent works, a tab
  * blinks, a NO SIGNAL page is shown) and otherwise once a minute for the clock.
@@ -36,7 +45,14 @@ import {
 	type ViewportTUI,
 	VStack,
 } from "@earendil-works/pi-tui";
-import type { CustomEditor, ExtensionAPI, ExtensionContext, Theme, ToolRenderers } from "@earendil-works/pi-coding-agent";
+import {
+	type CustomEditor,
+	type ExtensionAPI,
+	type ExtensionContext,
+	type Theme,
+	ToolExecutionComponent,
+	type ToolRenderers,
+} from "@earendil-works/pi-coding-agent";
 import tabs from "../layout.ts";
 import type { FeatureEnv } from "../features/env.ts";
 import { PANELS, type PanelEnv, type PanelHandle } from "../panels/registry.ts";
@@ -68,7 +84,8 @@ const FRAME_MS = 120;
 /**
  * Renderers that draw nothing. With an empty "self" shell, Pi's
  * ToolExecutionComponent renders no lines, so the call leaves the transcript.
- * Images in a tool result are drawn by the component itself and stay.
+ * Images in a tool result are drawn by the component itself; the shell's
+ * hideToolImages turns them off.
  */
 const HIDDEN: ToolRenderers = {
 	renderShell: "self",
@@ -81,6 +98,20 @@ type RootWithBase = Component & { [BASE]?: Component };
 /** The root the fullscreen TUI shows now: its private `layoutRoot` field, the one place pi-crt reads it. */
 function piRoot(tui: ViewportTUI): RootWithBase | undefined {
 	return (tui as unknown as { layoutRoot?: RootWithBase }).layoutRoot;
+}
+
+/**
+ * The chat blocks of the transcript: the last child of the document in the
+ * transcript ScrollView's private `child` field, the one place pi-crt reads it
+ * (interactive-mode.js puts the header, the loaded resources and the chat there,
+ * in that order). Undefined when the shape does not match.
+ */
+function piChat(transcript: Component): readonly Component[] | undefined {
+	const document = (transcript as unknown as { child?: { children?: unknown } }).child;
+	const parts = document?.children;
+	if (!Array.isArray(parts)) return undefined;
+	const chat = (parts.at(-1) as { children?: unknown } | undefined)?.children;
+	return Array.isArray(chat) ? (chat as Component[]) : undefined;
 }
 
 const pagesOf = (tab: TabDef): PageDef[] =>
@@ -330,6 +361,7 @@ export function createShell(pi: ExtensionAPI): Shell {
 		if (!root) {
 			const body = max ? handleFor(max).component : arrangementFor(key, currentPage()!).component;
 			root = new VStack([
+				{ component: imageGuard, basis: 0, grow: 0, shrink: 0, minSize: 0 },
 				{ component: tabBar, basis: 1, grow: 0, shrink: 0, minSize: 1 },
 				{ component: pageBar, basis: 1, grow: 0, shrink: 0, minSize: 1 },
 				{ component: body, basis: 0, grow: 1, shrink: 1, minSize: 1 },
@@ -346,6 +378,46 @@ export function createShell(pi: ExtensionAPI): Shell {
 		tabsShown = shown;
 		updateTimer();
 		notifyShown();
+	};
+
+	/** Chat blocks already checked for tool result images. */
+	let imagesChecked = new WeakSet<Component>();
+	let showImages: boolean | undefined;
+	/**
+	 * Turn off the result images of the tool blocks added to the transcript since the
+	 * last pass. Pi appends blocks to the end of the chat, so the pass walks back from
+	 * the end and stops at the first block already checked; after Pi rebuilds the chat
+	 * (/tree, or the first pass of an instance) it walks the whole chat once.
+	 */
+	const hideToolImages = () => {
+		if (!tabsShown || !transcript) return;
+		const chat = piChat(transcript);
+		if (!chat) return;
+		const setting = pi.getSettings().terminal?.showImages ?? true;
+		if (setting !== showImages) {
+			showImages = setting;
+			imagesChecked = new WeakSet();
+		}
+		for (let i = chat.length - 1; i >= 0; i--) {
+			const block = chat[i];
+			if (imagesChecked.has(block)) break;
+			imagesChecked.add(block);
+			if (block instanceof ToolExecutionComponent) block.setShowImages(false);
+		}
+	};
+	/**
+	 * A zero-row component at the top of every page, so it is drawn on every frame
+	 * before the page's panels: pi-tui lays a vertical stack out from the top, and only
+	 * measures the entries whose size is "auto" first (the dock, which holds no chat).
+	 * Drawn on every frame, whether the page shows the transcript or not, it reads Pi's
+	 * Show images setting on each frame.
+	 */
+	const imageGuard: Component = {
+		render: () => {
+			hideToolImages();
+			return [];
+		},
+		invalidate: () => {},
 	};
 
 	/** Capture Pi's fullscreen root (unwrapping ours after /reload) and mount the shown page. */

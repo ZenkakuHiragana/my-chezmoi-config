@@ -90,8 +90,9 @@ registerPanel("toollog", (env) => {
  * The execution log: each top-level tool call drawn by Pi's own
  * ToolExecutionComponent with the renderers the transcript would have used, so
  * the log looks like Pi's transcript. The calls hold clipped arguments and
- * results (state/tools.ts), and images are left to Pi's transcript. Enter, or a click,
- * expands a call.
+ * results (state/tools.ts) and draw no images; while the tabs are shown,
+ * shell/controller.ts turns them off in the transcript too, unless it cannot find
+ * the transcript's tool blocks. Enter, or a click, expands a call.
  */
 class ToolLogView implements Component {
 	/** Keyed by the log item, so a component goes away with its item. */
