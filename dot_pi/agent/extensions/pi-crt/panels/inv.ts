@@ -1,9 +1,27 @@
 /**
- * INV's panels: the system prompt by part, the tools and the skills, each as a
- * list beside the text of the picked item. Enter or a click picks an item.
+ * INV's panels: the system prompt by part, the tools (those of one namespace, such
+ * as one MCP server's, under its heading) and the skills, each as a list beside the
+ * text of the picked item. Enter or a click picks an item; on a namespace's heading,
+ * it also lists the namespace's tools under it, or stops listing them.
  */
 import { truncateToWidth, visibleWidth, wrapTextWithAnsi } from "@earendil-works/pi-tui";
-import { pickPart, pickSkill, pickTool, picks, prompt, skills, type ToolItem, tools, version } from "../features/inv.ts";
+import {
+	folds,
+	pickPart,
+	pickSkill,
+	pickTool,
+	pickToolGroup,
+	picks,
+	prompt,
+	skills,
+	type ToolGroup,
+	type ToolItem,
+	toggleToolGroup,
+	tools,
+	toolListed,
+	toolsVersion,
+	version,
+} from "../features/inv.ts";
 import { framed } from "../screen/frame.ts";
 import { Lines, type ThemeRef } from "../screen/lines.ts";
 import { compactNumber, ListLines, Selection, withCursor } from "./common.ts";
@@ -124,66 +142,188 @@ registerPanel("prompttext", (env) =>
 
 /* ---------------------------------------------------------------- TOOLS */
 
-/** Sorted copies of the tool lists features/inv.ts returns; a new list when the tools change. */
-const sortedLists = new WeakMap<readonly ToolItem[], ToolItem[]>();
+/** A namespace's tools, under one heading. */
+interface Heading {
+	group: ToolGroup;
+	tools: ToolItem[];
+}
+
+/** The tools outside namespaces, and the namespaces with their tools. */
+interface ToolTree {
+	loose: ToolItem[];
+	headings: Heading[];
+}
+
+/** A row of the tool list: a namespace's heading, or a tool (`nested` under its heading). */
+type ToolRow = { heading: Heading; tool?: undefined } | { tool: ToolItem; nested: boolean; heading?: undefined };
+
+/** Trees of the tool lists features/inv.ts returns; a new tree when the tools change. */
+const trees = new WeakMap<readonly ToolItem[], ToolTree>();
 
 /** Active tools first, each group in Pi's order. */
-function sortedTools(env: PanelEnv): ToolItem[] {
+function activeFirst(list: readonly ToolItem[]): ToolItem[] {
+	return [...list.filter((tool) => tool.active), ...list.filter((tool) => !tool.active)];
+}
+
+/** The tools outside namespaces, then each namespace (in the order its first tool comes) with its tools. */
+function toolTree(env: PanelEnv): ToolTree {
 	const all = tools(env.state);
-	let sorted = sortedLists.get(all);
-	if (!sorted) {
-		sorted = [...all.filter((tool) => tool.active), ...all.filter((tool) => !tool.active)];
-		sortedLists.set(all, sorted);
+	let tree = trees.get(all);
+	if (!tree) {
+		const groups = new Map<ToolGroup, ToolItem[]>();
+		for (const tool of all) if (tool.namespace) groups.set(tool.namespace, [...(groups.get(tool.namespace) ?? []), tool]);
+		tree = {
+			loose: activeFirst(all.filter((tool) => !tool.namespace)),
+			headings: [...groups].map(([group, members]) => ({ group, tools: activeFirst(members) })),
+		};
+		trees.set(all, tree);
 	}
-	return sorted;
+	return tree;
+}
+
+/** Rows of each tree, with the expanded namespaces they were made for. */
+const rowLists = new WeakMap<ToolTree, { expanded: ReadonlySet<string>; rows: ToolRow[] }>();
+
+/** The rows of the tool list: the tools it lists (toolListed), a namespace's under its heading. */
+function toolRows(env: PanelEnv): ToolRow[] {
+	const tree = toolTree(env);
+	const shown = folds(env.state);
+	const { expanded } = shown;
+	const made = rowLists.get(tree);
+	if (made?.expanded === expanded) return made.rows;
+	const listed = (tool: ToolItem) => toolListed(shown, tool);
+	const rows: ToolRow[] = tree.loose.filter(listed).map((tool) => ({ tool, nested: false }));
+	for (const heading of tree.headings) {
+		rows.push({ heading });
+		rows.push(...heading.tools.filter(listed).map((tool) => ({ tool, nested: true })));
+	}
+	rowLists.set(tree, { expanded, rows });
+	return rows;
+}
+
+/** How many tools have each exposure, as `codemode 12 · hidden 2`. */
+function exposureCounts(list: readonly ToolItem[]): string {
+	const counts = new Map<string, number>();
+	for (const tool of list) counts.set(tool.exposure, (counts.get(tool.exposure) ?? 0) + 1);
+	return [...counts].map(([exposure, n]) => `${exposure} ${n}`).join(" · ");
+}
+
+function activeTokens(list: readonly ToolItem[]): number {
+	return list.reduce((total, tool) => total + (tool.active ? tool.tokens : 0), 0);
+}
+
+/**
+ * The tool list's selection. A tool's row is known by the tool's name, and a
+ * heading by its ToolGroup, which stays the same object while the tools do. Enter,
+ * or a click, on a heading also expands or collapses it.
+ */
+class ToolSelection extends Selection {
+	constructor(private readonly env: PanelEnv) {
+		super(
+			() => toolRows(env).map((item) => item.heading?.group ?? item.tool?.name),
+			(index) => {
+				const item = toolRows(env)[index];
+				if (item?.heading) pickToolGroup(env.state, item.heading.group.name);
+				else pickTool(env.state, item?.tool.name);
+			},
+			() => {
+				const { tool, toolGroup } = picks(env.state);
+				return toolGroup === undefined ? tool : toolTree(env).headings.find((item) => item.group.name === toolGroup)?.group;
+			},
+		);
+	}
+
+	override activate(): void {
+		const item = toolRows(this.env)[this.index];
+		super.activate();
+		if (item?.heading) toggleToolGroup(this.env.state, item.heading.group.name);
+	}
 }
 
 registerPanel("toollist", (env) => {
-	const selection = new Selection(
-		() => sortedTools(env).map((tool) => tool.name),
-		(index) => pickTool(env.state, sortedTools(env)[index]?.name),
-		() => picks(env.state).tool,
-	);
+	const selection = new ToolSelection(env);
 	return listPanel(
 		env,
 		"toollist",
 		() => {
-			const all = sortedTools(env);
-			const active = all.filter((tool) => tool.active);
-			const sum = active.reduce((total, tool) => total + tool.tokens, 0);
-			return `TOOLS  ${active.length}/${all.length} active  ≈${compactNumber(sum)} tok/req`;
+			const all = tools(env.state);
+			const active = all.filter((tool) => tool.active).length;
+			return `TOOLS  ${active}/${all.length} active  ≈${compactNumber(activeTokens(all))} tok/req`;
 		},
 		selection,
 		(width) => {
 			const t = env.theme();
-			const all = sortedTools(env);
-			if (!all.length) return [t.fg("dim", " -- no tools --")];
-			const { tool } = picks(env.state);
-			return all.map((item, index) => {
+			const rows = toolRows(env);
+			if (!rows.length) return [t.fg("dim", " -- no tools --")];
+			const { tool, toolGroup } = picks(env.state);
+			const { expanded } = folds(env.state);
+			return rows.map((item, index) => {
 				selection.place(index, index, 1);
-				const dot = item.active ? t.fg("success", "●") : t.fg("dim", "○");
-				const name = item.active ? t.fg("toolTitle", item.name) : t.fg("dim", item.name);
-				const left = `${picked(t, tool === item.name)}${dot} ${name}  ${t.fg("dim", firstLine(item.description))}`;
-				return row(left, item.active ? tokens(t, item.tokens) : t.fg("dim", "—"), width);
+				if (item.heading) {
+					const { group, tools: members } = item.heading;
+					const exposures = new Set(members.map((member) => member.exposure));
+					const summary = exposures.size === 1 ? `${members[0]!.exposure} · ${members.length} tools` : exposureCounts(members);
+					const mark = t.fg("muted", expanded.has(group.name) ? "▾" : "▸");
+					const left = `${picked(t, toolGroup === group.name)}${mark} ${t.fg("text", t.bold(group.label))}  ${t.fg("dim", summary)}`;
+					const sum = activeTokens(members);
+					return row(left, sum ? tokens(t, sum) : t.fg("dim", "—"), width);
+				}
+				const member = item.tool;
+				const indent = item.nested ? "  " : "";
+				const dot = member.active ? t.fg("success", "●") : t.fg("dim", "○");
+				const name = member.active ? t.fg("toolTitle", member.name) : t.fg("dim", member.name);
+				const left = `${picked(t, tool === member.name)}${indent}${dot} ${name}  ${t.fg("dim", firstLine(member.description))}`;
+				return row(left, member.active ? tokens(t, member.tokens) : t.fg("dim", "—"), width);
 			});
 		},
 		() => {
 			// tools() reads Pi's tool lists again, and gives a new version when they changed.
 			tools(env.state);
-			return [version(env.state)];
+			return [toolsVersion(env.state), folds(env.state).version];
 		},
 	);
 });
+
+/** The picked namespace: its name, description, source, exposures and instructions. */
+function groupDetail(env: PanelEnv, heading: Heading, width: number): string[] {
+	const t = env.theme();
+	const { group, tools: members } = heading;
+	const sum = activeTokens(members);
+	const lines = [
+		` ${t.fg("text", t.bold(group.label))}`,
+		` ${t.fg("muted", `${group.name}  ·  ${members.length} tools  ·  ${sum ? `≈${compactNumber(sum)} tok per request` : "none active"}`)}`,
+		...[...new Set(members.map((member) => member.source).filter(Boolean))].map((source) => ` ${t.fg("dim", source)}`),
+		"",
+		...(group.description ? [...wrap(group.description, width, (line) => t.fg("text", line)), ""] : []),
+		` ${t.fg("muted", "EXPOSURE")}`,
+		` ${t.fg("text", exposureCounts(members))}`,
+		"",
+		` ${t.fg("muted", "INSTRUCTIONS")}`,
+	];
+	// Not push(...): the instructions can wrap to more lines than a call takes arguments.
+	if (group.instructions) return lines.concat(wrap(group.instructions.replace(/\t/g, "    "), width, (line) => t.fg("text", line)));
+	lines.push(t.fg("dim", " -- none --"));
+	return lines;
+}
 
 registerPanel("tooldetail", (env) =>
 	textPanel(
 		env,
 		"tooldetail",
-		() => `TOOL  ${picks(env.state).tool ?? ""}`,
+		() => {
+			const { tool, toolGroup } = picks(env.state);
+			if (toolGroup === undefined) return `TOOL  ${tool ?? ""}`;
+			const group = toolTree(env).headings.find((item) => item.group.name === toolGroup)?.group;
+			return `NAMESPACE  ${group?.label ?? toolGroup}`;
+		},
 		(width) => {
 			const t = env.theme();
-			const name = picks(env.state).tool;
-			const item = sortedTools(env).find((tool) => tool.name === name);
+			const { tool: name, toolGroup } = picks(env.state);
+			if (toolGroup !== undefined) {
+				const heading = toolTree(env).headings.find((item) => item.group.name === toolGroup);
+				if (heading) return groupDetail(env, heading, width);
+			}
+			const item = tools(env.state).find((tool) => tool.name === name);
 			if (!item) return [t.fg("dim", " -- pick a tool: Enter or a click --")];
 			const state = item.active ? t.fg("success", "active") : t.fg("dim", "not active");
 			const cost = item.active ? `≈${compactNumber(item.tokens)} tok per request` : `≈${compactNumber(item.tokens)} tok when active`;
@@ -206,7 +346,7 @@ registerPanel("tooldetail", (env) =>
 		() => {
 			// tools() reads Pi's tool lists again, and gives a new version when they changed.
 			tools(env.state);
-			return [version(env.state)];
+			return [toolsVersion(env.state)];
 		},
 	),
 );

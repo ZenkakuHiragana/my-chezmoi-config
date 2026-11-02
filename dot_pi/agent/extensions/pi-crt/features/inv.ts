@@ -22,9 +22,9 @@
  */
 import { open } from "node:fs/promises";
 import { getCurrentSystemMessage } from "@earendil-works/pi-ai";
-import type { ExtensionAPI, ExtensionContext } from "@earendil-works/pi-coding-agent";
+import type { ExtensionAPI, ExtensionContext, ToolNamespace } from "@earendil-works/pi-coding-agent";
 import { textTokens } from "../state/context.ts";
-import { type CrtState, sanitize } from "../state/core.ts";
+import { type CrtState, sanitize, type Versioned } from "../state/core.ts";
 import type { FeatureEnv } from "./env.ts";
 
 /** A part of the system prompt: its instruction text, or one of its named sections. */
@@ -54,6 +54,20 @@ export interface ToolItem {
 	parameters: unknown;
 	guidelines: readonly string[];
 	source: string;
+	/**
+	 * The heading the tool is listed under: its namespace (such as one MCP server),
+	 * shared by the namespace's tools. None when all of them are hidden (see toolGroups).
+	 */
+	namespace?: ToolGroup;
+}
+
+/** A namespace that groups tools (Pi's ToolNamespace). */
+export interface ToolGroup {
+	name: string;
+	/** What the list calls the namespace: its aliases as Pi gives them, or its name (see NamespaceFields). */
+	label: string;
+	description: string;
+	instructions: string;
 }
 
 export interface SkillItem {
@@ -100,14 +114,31 @@ interface Inventory {
 	skills: SkillItem[];
 	/** Whether the skills have been given yet. */
 	skillsKnown: boolean;
-	tools: ToolItem[];
-	toolsKey: string;
-	/** Changes whenever the prompt, the skills, the tools or a pick change. */
+	toolList: ToolList;
+	/** Changes whenever the prompt, the skills or the picked part or skill change. */
 	version: number;
 	/** The label of the picked part; none: the whole prompt. */
 	part?: string;
-	tool?: string;
+	folds: Folds;
 	skill?: string;
+}
+
+/** The tools and the pick among them, which the tool list and the detail beside it show. */
+interface ToolList extends Versioned {
+	items: ToolItem[];
+	key: string;
+	/** The fields read of each tool's namespace when the items were built. */
+	namespaces: readonly (NamespaceFields | undefined)[];
+	/** The picked tool, one that the tool list shows. */
+	tool?: string;
+	/** The picked namespace's name; a tool and a namespace are not picked at once. */
+	toolGroup?: string;
+}
+
+/** Which namespaces list their tools under their heading. Only the tool list reads it. */
+export interface Folds extends Versioned {
+	/** The names of the namespaces whose tools are listed; none at first. */
+	expanded: ReadonlySet<string>;
 }
 
 /** Each pi-crt instance's inventory, by its CrtState (see FeatureEnv). */
@@ -126,19 +157,32 @@ export function skills(state: CrtState): { known: boolean; items: readonly Skill
 }
 
 /**
- * The tools, rebuilt when the set of tools or of active tools changes. Panels
- * call this while drawing; reading the two lists is cheap next to drawing.
+ * The tools, rebuilt when the set of tools, of active tools, the exposures or the
+ * namespaces change. Panels call this while drawing; reading the two lists is cheap
+ * next to drawing.
+ *
+ * Pi's MCP extension registers the tools of a disabled server again as hidden, and
+ * the tools of a reconnected server again with a new namespace (whose instructions
+ * may differ), so the exposures and the namespaces' fields are compared. The fields
+ * are compared, not the objects: Pi does not say whether a namespace object is ever
+ * changed or replaced by an equal one. Comparing a string with itself takes no
+ * time whatever its length, so long instructions cost nothing while Pi hands the
+ * same ones.
  */
 export function tools(state: CrtState): readonly ToolItem[] {
 	const inv = inventories.get(state);
 	if (!inv) return NO_TOOLS;
+	const list = inv.toolList;
 	const active = inv.pi.getActiveTools();
 	const all = inv.pi.getAllTools();
-	const key = `${all.map((tool) => tool.name).join("\n")}\n\n${active.join("\n")}`;
-	if (key === inv.toolsKey) return inv.tools;
+	const key = `${all.map((tool) => `${tool.name}\t${tool.exposure}`).join("\n")}\n\n${active.join("\n")}`;
+	const namespaces = all.map((tool) => namespaceFields(tool.namespace));
+	if (key === list.key && namespaces.every((fields, index) => sameFields(fields, list.namespaces[index]))) return list.items;
 	const activeSet = new Set(active);
-	inv.toolsKey = key;
-	inv.tools = all.map((tool) => ({
+	const groups = toolGroups(all, namespaces);
+	list.key = key;
+	list.namespaces = namespaces;
+	list.items = all.map((tool) => ({
 		name: sanitize(tool.name),
 		description: sanitize(tool.description ?? ""),
 		active: activeSet.has(tool.name),
@@ -147,20 +191,97 @@ export function tools(state: CrtState): readonly ToolItem[] {
 		parameters: tool.parameters,
 		guidelines: (tool.promptGuidelines ?? []).map(sanitize),
 		source: sanitize(tool.sourceInfo?.path ?? ""),
+		namespace: tool.namespace && groups.get(tool.namespace.name),
 	}));
-	if (inv.tool !== undefined && !inv.tools.some((tool) => tool.name === inv.tool)) inv.tool = undefined;
-	inv.version++;
-	return inv.tools;
+	// A pick whose row the tool list no longer shows goes: the tool went, or moved under
+	// a folded heading; the heading went.
+	const listed = (tool: ToolItem) => toolListed(inv.folds, tool);
+	if (list.tool !== undefined && !list.items.some((tool) => tool.name === list.tool && listed(tool))) list.tool = undefined;
+	if (list.toolGroup !== undefined && !groups.has(list.toolGroup)) list.toolGroup = undefined;
+	list.version++;
+	return list.items;
 }
 
-/** Changes whenever the prompt, the skills, the tools or a pick change. */
+/** What a ToolGroup is built from: the fields read of a namespace. */
+interface NamespaceFields {
+	name: string;
+	/**
+	 * The namespace's aliases as Pi gives them, joined; its name when it has none. An
+	 * alias is another name scripts may look the namespace up by; Pi's MCP extension
+	 * gives the server's name as one (`knowledge-finder` for `mcp__knowledge_finder`).
+	 * No API hands extensions the names of the configured MCP servers.
+	 */
+	label: string;
+	description?: string;
+	instructions?: string;
+}
+
+function namespaceFields(namespace: ToolNamespace | undefined): NamespaceFields | undefined {
+	if (!namespace) return undefined;
+	const { name, aliases, description, instructions } = namespace;
+	return { name, label: aliases?.length ? aliases.join(", ") : name, description, instructions };
+}
+
+function sameFields(a: NamespaceFields | undefined, b: NamespaceFields | undefined): boolean {
+	if (!a || !b) return a === b;
+	return (Object.keys(a) as (keyof NamespaceFields)[]).every((field) => a[field] === b[field]);
+}
+
+/**
+ * One ToolGroup per namespace name, shared by its tools, for the namespaces with a
+ * tool that is not hidden.
+ *
+ * A namespace whose tools are all hidden gets no group, since the agent cannot reach
+ * any of them: Pi's MCP extension registers the tools of a server disabled in /mcp
+ * again as hidden, and the tools do not tell that server from a connected one whose
+ * tools are all configured hidden. Tools a server stopped offering stay registered
+ * as hidden with the namespace of the connection that offered them, so a name can
+ * come with several namespace objects; the group is built from one that a tool which
+ * is not hidden carries. `fields` are the namespaces' fields, by tool.
+ */
+function toolGroups(all: readonly { exposure: string }[], fields: readonly (NamespaceFields | undefined)[]): Map<string, ToolGroup> {
+	const chosen = new Map<string, NamespaceFields>();
+	all.forEach((tool, index) => {
+		const namespace = fields[index];
+		if (namespace && tool.exposure !== "hidden") chosen.set(namespace.name, namespace);
+	});
+	const groups = new Map<string, ToolGroup>();
+	for (const [name, namespace] of chosen) {
+		groups.set(name, {
+			name: sanitize(name),
+			label: sanitize(namespace.label),
+			description: sanitize(namespace.description ?? ""),
+			instructions: sanitize(namespace.instructions ?? ""),
+		});
+	}
+	return groups;
+}
+
+/** Changes whenever the prompt, the skills or the picked part or skill change. */
 export function version(state: CrtState): number {
 	return inventories.get(state)?.version ?? 0;
 }
 
-export function picks(state: CrtState): { part?: string; tool?: string; skill?: string } {
+/** Changes whenever the tools or the picked tool or namespace change; read it after tools(). */
+export function toolsVersion(state: CrtState): number {
+	return inventories.get(state)?.toolList.version ?? 0;
+}
+
+export function picks(state: CrtState): { part?: string; tool?: string; toolGroup?: string; skill?: string } {
 	const inv = inventories.get(state);
-	return inv ? { part: inv.part, tool: inv.tool, skill: inv.skill } : {};
+	return inv ? { part: inv.part, tool: inv.toolList.tool, toolGroup: inv.toolList.toolGroup, skill: inv.skill } : {};
+}
+
+/** No namespace expanded, before setupInventory. Never changed. */
+const NO_FOLDS: Readonly<Folds> = Object.freeze({ expanded: new Set<string>(), version: 0 });
+
+export function folds(state: CrtState): Readonly<Folds> {
+	return inventories.get(state)?.folds ?? NO_FOLDS;
+}
+
+/** Whether the tool list has a row for the tool: it is outside namespaces, or its namespace is expanded. */
+export function toolListed(folds: Readonly<Folds>, tool: ToolItem): boolean {
+	return !tool.namespace || folds.expanded.has(tool.namespace.name);
 }
 
 /** Show one part of the prompt by its label, or the whole prompt (none). */
@@ -173,9 +294,29 @@ export function pickPart(state: CrtState, label: string | undefined): void {
 
 export function pickTool(state: CrtState, name: string | undefined): void {
 	const inv = inventories.get(state);
-	if (!inv || inv.tool === name) return;
-	inv.tool = name;
-	inv.env.changed(inv);
+	if (!inv || (inv.toolList.tool === name && inv.toolList.toolGroup === undefined)) return;
+	inv.toolList.tool = name;
+	inv.toolList.toolGroup = undefined;
+	inv.env.changed(inv.toolList);
+}
+
+/** Pick a namespace of tools by its name. */
+export function pickToolGroup(state: CrtState, name: string | undefined): void {
+	const inv = inventories.get(state);
+	if (!inv || (inv.toolList.toolGroup === name && inv.toolList.tool === undefined)) return;
+	inv.toolList.toolGroup = name;
+	inv.toolList.tool = undefined;
+	inv.env.changed(inv.toolList);
+}
+
+/** List a namespace's tools under its heading, or stop listing them. */
+export function toggleToolGroup(state: CrtState, name: string): void {
+	const inv = inventories.get(state);
+	if (!inv) return;
+	const expanded = new Set(inv.folds.expanded);
+	if (!expanded.delete(name)) expanded.add(name);
+	inv.folds.expanded = expanded;
+	inv.env.changed(inv.folds);
 }
 
 export function pickSkill(state: CrtState, name: string | undefined): void {
@@ -186,7 +327,15 @@ export function pickSkill(state: CrtState, name: string | undefined): void {
 }
 
 export function setupInventory(pi: ExtensionAPI, env: FeatureEnv): void {
-	const inv: Inventory = { pi, env, skills: [], skillsKnown: false, tools: [], toolsKey: "", version: 0 };
+	const inv: Inventory = {
+		pi,
+		env,
+		skills: [],
+		skillsKnown: false,
+		toolList: { items: [], key: "", namespaces: [], version: 0 },
+		version: 0,
+		folds: { expanded: new Set(), version: 0 },
+	};
 	inventories.set(env.state, inv);
 	/** The options of the request being started, read once the other extensions are done with them. */
 	let pending: PromptOptions | undefined;
