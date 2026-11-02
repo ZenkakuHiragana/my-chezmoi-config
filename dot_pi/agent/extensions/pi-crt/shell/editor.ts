@@ -40,7 +40,10 @@ function borderLabel(shell: Shell, width: number): string {
 		const text = left >= 14 ? " ALT+O TO TYPE" : truncateToWidth("ALT+O TO TYPE", left, "");
 		label += t.fg(shell.tick() % 8 < 4 ? "warning" : "accent", t.bold(text));
 	} else {
-		const name = t.fg("accent", t.bold(` ${(shell.focusedId() ?? "").toUpperCase()}`));
+		// The panel's name, as its title rule shows it (without what the title adds after two spaces).
+		const id = shell.focusedId();
+		const title = id ? (shell.handleFor(id).title?.() ?? "") : "";
+		const name = t.fg("accent", t.bold(` ${title.split("  ")[0]}`));
 		if (visibleWidth(label) + visibleWidth(name) > width) return label;
 		label += name;
 	}

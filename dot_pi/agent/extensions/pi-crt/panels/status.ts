@@ -8,19 +8,26 @@ import { toolData } from "../features/tools.ts";
 import { usageData } from "../features/usage.ts";
 import { vitals } from "../features/vitals.ts";
 import { allowanceWindows, rateLimits, shortHeader } from "../state/usage.ts";
-import { framed } from "../screen/frame.ts";
+import { framed, type SizedView } from "../screen/frame.ts";
 import { Lines } from "../screen/lines.ts";
 import { bar, compactNumber, elapsedText } from "./common.ts";
 import { type Paint, PI_LOGO, type Rgb, pixelArtWidth, renderPixelArt, shadePalette } from "./pixel-art.ts";
 import { type CardInput, centerLine, gaugeRow, statCards } from "./status-parts.ts";
 import { type PanelEnv, registerPanel } from "./registry.ts";
 
-registerPanel("vitals", (env) =>
-	framed(
+registerPanel("vitals", (env) => {
+	let view: SizedView | undefined;
+	const panel = framed(
 		env.theme,
 		() => "STATUS",
 		new Lines(
-			(width) => vitalsLines(env, width),
+			(width) => {
+				const height = Math.max(1, view?.viewportHeight ?? 1);
+				if (view) view.drawnFor = height;
+				// Centred up and down; a panel too short for it all scrolls from the top.
+				const lines = vitalsLines(env, width);
+				return [...Array.from({ length: Math.max(0, Math.floor((height - lines.length) / 2)) }, () => ""), ...lines];
+			},
 			() => [
 				contextData(env.state).version,
 				env.state.version,
@@ -30,11 +37,15 @@ registerPanel("vitals", (env) =>
 				vitals(env.state).version,
 				// The elapsed time only moves while the agent runs.
 				env.state.agentRunning ? env.tick() : 0,
+				view?.viewportHeight,
 			],
 		),
-		"top",
+		"sized",
 		() => env.focused("vitals"),
-	));
+	);
+	view = panel.scroll as SizedView;
+	return panel;
+});
 
 registerPanel("context", (env) =>
 	framed(

@@ -14,12 +14,15 @@ import type { ThemeRef } from "./lines.ts";
 export interface Framed {
 	component: Component;
 	scroll?: ScrollView;
+	/** The title the rule shows: the panel's name, then two spaces before what it shows now. */
+	title?: () => string;
 }
 
 /**
  * A panel: one title rule above its body. Scrollable bodies get a ScrollView.
- * A "sized" body draws itself to the height it is given and never scrolls: it
- * reads the height from the returned SizedView and records it in `drawnFor`.
+ * A "sized" body draws itself for the height it is given: it reads the height from
+ * the returned SizedView and records it in `drawnFor`. A sized body taller than
+ * that height scrolls, with the scrollbar shown while it moves.
  * The focused panel's rule is drawn in the accent colour.
  */
 export function framed(
@@ -49,14 +52,14 @@ export function framed(
 		scroll === "none"
 			? undefined
 			: scroll === "sized"
-				? new SizedView(body, { primary: false, overscroll: "contain", scrollbar: "hidden" })
+				? new SizedView(body, options)
 				: new ScrollView(body, options);
 	const component = new VStack([
 		{ component: titleLine, basis: 1, grow: 0, shrink: 0, minSize: 1 },
 		{ component: scrollView ?? body, basis: 0, grow: 1, shrink: 1, minSize: 0 },
 	]);
 	setTopTitle(component, titleLine);
-	return { component, scroll: scrollView };
+	return { component, scroll: scrollView, title };
 }
 
 /**

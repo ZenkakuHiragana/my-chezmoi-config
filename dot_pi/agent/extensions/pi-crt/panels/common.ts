@@ -224,4 +224,4 @@ export function withCursor(env: PanelEnv, selection: Selection, id: string, line
 	return lines.map((line, index) => (index >= from && index < to ? mark : " ") + line);
 }
 
-registerPanel("nosignal", (env) => ({ component: noSignal(env.theme, () => "NO SIGNAL") }));
+registerPanel("nosignal", (env) => ({ component: noSignal(env.theme, () => "NO SIGNAL"), title: () => "NO SIGNAL" }));
