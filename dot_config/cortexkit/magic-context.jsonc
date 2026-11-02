@@ -1,5 +1,10 @@
 {
   "$schema": "https://raw.githubusercontent.com/cortexkit/magic-context/master/assets/magic-context.schema.json",
+  "cache_ttl": {
+    "default": "5m",
+    "claude": "1h",
+    "gpt": "30m"
+  },
   "compaction": {
     "enabled": true
   },
