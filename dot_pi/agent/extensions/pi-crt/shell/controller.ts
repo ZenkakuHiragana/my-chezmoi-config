@@ -80,6 +80,8 @@ const BASE = Symbol.for("pi-crt.base-root");
 const CARRY_TABS_SHOWN = Symbol.for("pi-crt.carry-tabs-shown");
 const carried = globalThis as { [CARRY_TABS_SHOWN]?: boolean };
 const FRAME_MS = 120;
+/** How long the editor border says how to type after typed text was ignored. */
+const IGNORED_MS = 1000;
 
 /**
  * Renderers that draw nothing. With an empty "self" shell, Pi's
@@ -133,6 +135,10 @@ export interface Shell {
 	/** The panels have the keys. */
 	panelMode(): boolean;
 	setPanelMode(on: boolean): void;
+	/** Typed text was ignored because the panels have the keys (shell/input.ts). */
+	ignoreTyping(): void;
+	/** Typed text was ignored within the last IGNORED_MS. */
+	typingIgnored(): boolean;
 	/** Panels of the shown page, in layout order. */
 	visiblePanels(): string[];
 	/** The selected panel of the shown page. */
@@ -163,7 +169,9 @@ export function createShell(pi: ExtensionAPI): Shell {
 	let dock: Component | undefined;
 	let activeTab = 0;
 	const activePage = tabs.map(() => 0);
-	let panelMode = false;
+	let panelChoice: boolean | undefined;
+	let ignoredAt: number | undefined;
+	const typingIgnored = () => ignoredAt !== undefined && Date.now() - ignoredAt < IGNORED_MS;
 	/** Selected panel and maximized panel, per page. */
 	const focus = new Map<string, string>();
 	const maximized = new Map<string, string>();
@@ -238,7 +246,11 @@ export function createShell(pi: ExtensionAPI): Shell {
 		theme,
 		state,
 		tick,
-		focused: (id) => panelMode && focusedId() === id,
+		focused: (id) => panelMode() && focusedId() === id,
+		focusPanel: (id) => {
+			focus.set(currentKey(), id);
+			panelChoice = true;
+		},
 		tui: () => tui,
 		renderersFor: (name) => nextRenderers.get(name)?.(),
 		cwd: () => ctxRef?.cwd ?? process.cwd(),
@@ -292,6 +304,7 @@ export function createShell(pi: ExtensionAPI): Shell {
 
 	/** Panels of the shown page. */
 	const visiblePanels = (): string[] => panelsOf(activeTab, activePage[activeTab]!);
+	const panelMode = () => panelChoice ?? !visiblePanels().includes("transcript");
 
 	/** Pages that would show the conversation now; the agent finishing elsewhere makes them blink. */
 	const showsTranscript = (tab: number, page: number) => panelsOf(tab, page).includes("transcript");
@@ -489,6 +502,7 @@ export function createShell(pi: ExtensionAPI): Shell {
 
 	const selectTab = (index: number) => {
 		if (index < 0 || index >= tabs.length) return;
+		if (index !== activeTab) panelChoice = undefined;
 		activeTab = index;
 		onPageChange();
 	};
@@ -496,6 +510,7 @@ export function createShell(pi: ExtensionAPI): Shell {
 	const selectPage = (index: number) => {
 		const count = pages[activeTab]!.length;
 		if (index < 0 || index >= count) return;
+		if (index !== activePage[activeTab]) panelChoice = undefined;
 		activePage[activeTab] = index;
 		onPageChange();
 	};
@@ -506,10 +521,12 @@ export function createShell(pi: ExtensionAPI): Shell {
 	 * Redraw every FRAME_MS while something moves; otherwise only when the minute
 	 * on the clock changes. Animation frames come from the clock (`tick`), so they
 	 * stay right whichever redraw shows them. Without the tabs on screen, only the
-	 * editor border moves (WORKING), and only while the agent runs.
+	 * editor border moves (WORKING), and only while the agent runs. After typed text
+	 * was ignored, the editor border says how to type until IGNORED_MS has passed.
 	 */
 	const updateTimer = () => {
-		const moving = state.agentRunning || (tabsShown && (state.termAttention || visiblePanels().includes("nosignal")));
+		const moving =
+			state.agentRunning || (tabsShown && (state.termAttention || typingIgnored() || visiblePanels().includes("nosignal")));
 		if (!tabsShown && !moving) {
 			stopTimer();
 			return;
@@ -548,10 +565,16 @@ export function createShell(pi: ExtensionAPI): Shell {
 		requestRender,
 		tabsShown: () => tabsShown,
 		editorFocused,
-		panelMode: () => panelMode,
+		panelMode,
 		setPanelMode: (on) => {
-			panelMode = on;
+			panelChoice = on;
 		},
+		ignoreTyping: () => {
+			ignoredAt = Date.now();
+			requestRender();
+			updateTimer();
+		},
+		typingIgnored,
 		visiblePanels,
 		focusedId,
 		primaryPanel,
@@ -560,6 +583,7 @@ export function createShell(pi: ExtensionAPI): Shell {
 			focus.set(currentKey(), id);
 		},
 		toggleMaximized: () => {
+			panelChoice = panelMode();
 			const key = currentKey();
 			const id = focusedId();
 			if (maximized.has(key)) maximized.delete(key);

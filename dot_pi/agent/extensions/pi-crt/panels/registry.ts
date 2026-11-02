@@ -16,6 +16,8 @@ export interface PanelEnv {
 	tick: () => number;
 	/** Whether the panel has the keys (panel mode, and this panel is selected). */
 	focused: (id: string) => boolean;
+	/** Select a panel and give it the keys. */
+	focusPanel: (id: string) => void;
 	tui: () => TUI | undefined;
 	/** Renderers Pi would use for a tool if pi-crt did not hide it from the transcript. */
 	renderersFor: (toolName: string) => ToolRenderers | undefined;
@@ -32,8 +34,10 @@ export interface ListControl {
 	/** A key panel mode has no use for; returns whether the panel used it. */
 	key?(data: string): boolean;
 	/**
-	 * Whether a text field of the panel is being typed into. Every key but ctrl+c
-	 * then goes to `key`, and the field draws the terminal cursor instead of the editor.
+	 * Whether a text field of the panel is being typed into. Its keys go to `key`
+	 * except ctrl+c, which goes to Pi, and alt+o, for which `key` gets Esc (the field
+	 * closes) before the editor takes the keys. The field draws the terminal cursor
+	 * instead of the editor.
 	 */
 	typing?(): boolean;
 }

@@ -6,7 +6,8 @@
  * change the volume.
  *
  * The search box takes every key but ctrl+c while it is being typed into (see
- * ListControl.typing); Enter searches and Esc leaves it.
+ * ListControl.typing); Enter searches, Esc or Tab leaves it, and Alt+O leaves it
+ * and gives the keys to the editor (shell/input.ts).
  */
 import { Input, matchesKey, truncateToWidth, visibleWidth, wrapTextWithAnsi } from "@earendil-works/pi-tui";
 import {
@@ -146,6 +147,7 @@ registerPanel("radiosearch", (env) => {
 		() => [undefined, ...radioData(env.state).search.results.map((track) => track.id)],
 		(index) => {
 			if (index === 0) {
+				env.focusPanel("radiosearch");
 				typing = true;
 				input.focused = true;
 				return;
@@ -156,7 +158,8 @@ registerPanel("radiosearch", (env) => {
 		(data) => {
 			if (!typing) return radioKey(env, data);
 			typed++;
-			input.handleInput(data);
+			if (matchesKey(data, "escape") || matchesKey(data, "tab")) leave();
+			else input.handleInput(data);
 			return true;
 		},
 	);

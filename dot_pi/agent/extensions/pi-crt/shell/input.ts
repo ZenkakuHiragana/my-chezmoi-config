@@ -1,16 +1,12 @@
-/**
- * The keys of the tabbed screen: the tab shortcuts, and panel mode, in which the
- * panels have the keys (alt+o to enter, esc to leave).
- */
-import { isKeyRelease, type KeyId, matchesKey } from "@earendil-works/pi-tui";
+/** The tab shortcuts and the keys routed to the selected panel. */
+import { decodeKittyPrintable, isKeyRelease, type KeyId, matchesKey } from "@earendil-works/pi-tui";
 import { type ExtensionAPI, rawKeyHint } from "@earendil-works/pi-coding-agent";
 import tabs from "../layout.ts";
 import type { ListControl, PanelHandle } from "../panels/registry.ts";
 import type { ThemeRef } from "../screen/lines.ts";
 import type { Shell } from "./controller.ts";
 
-/** Keys that keep their usual meaning while the panels have the keys. */
-const PASS_THROUGH: KeyId[] = ["ctrl+c", "alt+h", "alt+j", "alt+k", "alt+l", ...Array.from({ length: 9 }, (_, i): KeyId => `alt+${i + 1}` as KeyId)];
+const PASS_THROUGH: KeyId[] = ["escape", "ctrl+c", "alt+o", "alt+h", "alt+j", "alt+k", "alt+l", ...Array.from({ length: 9 }, (_, i): KeyId => `alt+${i + 1}` as KeyId)];
 
 /** The panel-mode keys, as the editor border shows them. */
 export function panelHints(theme: ThemeRef): string {
@@ -19,8 +15,34 @@ export function panelHints(theme: ThemeRef): string {
 		rawKeyHint("tab", "panel"),
 		rawKeyHint("enter", "open"),
 		rawKeyHint("z", "max"),
-		rawKeyHint("esc", "back"),
+		rawKeyHint("alt+o", "editor"),
 	].join(theme().fg("dim", " · "));
+}
+
+/**
+ * The text a key types, when it types any: a character, IME-committed text, or a
+ * paste. Keys with Ctrl or Alt type nothing; they are Pi's shortcuts. A character
+ * comes as itself, or in the form of the keyboard protocol Pi turned on: Kitty's
+ * (CSI u), or xterm's modifyOtherKeys (`CSI 27 ; modifier ; code ~`), which Pi uses
+ * when the terminal has no Kitty protocol.
+ */
+function typedText(data: string): string | undefined {
+	const kitty = decodeKittyPrintable(data);
+	if (kitty !== undefined) return kitty;
+	const other = /^\x1b\[27;(\d+);(\d+)~$/.exec(data);
+	if (other) {
+		// The modifier is 1 + a bit mask: shift 1, alt 2, ctrl 4, …, caps lock 64, num lock 128.
+		const modifiers = (Number(other[1]) - 1) & ~(64 | 128);
+		const code = Number(other[2]);
+		return (modifiers & ~1) === 0 && code >= 32 && code <= 0x10ffff ? String.fromCodePoint(code) : undefined;
+	}
+	if (data.startsWith("\x1b[200~")) return data;
+	return [...data].every((ch) => {
+		const code = ch.charCodeAt(0);
+		return code >= 32 && code !== 0x7f && (code < 0x80 || code > 0x9f);
+	})
+		? data
+		: undefined;
 }
 
 /** The focused panel's list while one of its text fields is typed into (see ListControl.typing). */
@@ -43,8 +65,7 @@ export function setupInput(pi: ExtensionAPI, shell: Shell): void {
 
 	const panelAction = (data: string): boolean => {
 		const handle = focusedHandle();
-		if (matchesKey(data, "escape") || matchesKey(data, "alt+o")) shell.setPanelMode(false);
-		else if (matchesKey(data, "down") || matchesKey(data, "j")) handle?.list ? handle.list.move(1) : handle?.scroll?.scrollBy(1);
+		if (matchesKey(data, "down") || matchesKey(data, "j")) handle?.list ? handle.list.move(1) : handle?.scroll?.scrollBy(1);
 		else if (matchesKey(data, "up") || matchesKey(data, "k")) handle?.list ? handle.list.move(-1) : handle?.scroll?.scrollBy(-1);
 		else if (matchesKey(data, "home")) handle?.list ? handle.list.toStart() : handle?.scroll?.scrollToStart();
 		else if (matchesKey(data, "end")) handle?.list ? handle.list.toEnd() : handle?.scroll?.scrollToEnd();
@@ -81,30 +102,28 @@ export function setupInput(pi: ExtensionAPI, shell: Shell): void {
 	};
 
 	/**
-	 * Raw input, ahead of the editor and Pi's keys. While the panels have the keys,
-	 * every key is taken (so nothing is typed into the editor) except the tab
-	 * shortcuts, ctrl+c, and PageUp / PageDown on the transcript; while a panel's
-	 * text field is typed into, every key but ctrl+c goes to that field (see
-	 * ListControl.typing). While the editor has them, only PageUp / PageDown are
-	 * taken (see pagePrimary).
+	 * Raw input ahead of Pi. Takes PageUp / PageDown for the page's primary panel
+	 * (pagePrimary); every key but ctrl+c while a panel's text field is typed into;
+	 * and, while the panels have the keys, the keys the selected panel uses and the
+	 * text it has no use for (but `/` and `!` in an empty editor). The rest goes on to
+	 * Pi. `editorEmpty` tells whether Pi's editor holds no text.
 	 */
-	const onInput = (data: string): { consume?: boolean } | undefined => {
+	const onInput = (data: string, editorEmpty: () => boolean): { consume?: boolean } | undefined => {
 		// Keys belong to Pi when the tabs are not on screen or something other than the
 		// editor (a selector, a dialog) has the focus.
-		if (!shell.tabsShown() || !shell.editorFocused()) {
-			if (shell.panelMode()) {
-				shell.setPanelMode(false);
-				shell.requestRender();
-			}
-			return undefined;
-		}
+		if (!shell.tabsShown() || !shell.editorFocused()) return undefined;
 		// Pi asks the terminal to report key releases (Kitty keyboard protocol), and raw
 		// listeners get them too; acting on them would run every key twice.
-		if (isKeyRelease(data)) return shell.panelMode() ? { consume: true } : undefined;
+		if (isKeyRelease(data)) return undefined;
 		const typing = typingList(shell);
 		if (typing) {
 			if (matchesKey(data, "ctrl+c")) return undefined;
-			typing.key?.(data);
+			// Alt+O gives the keys to the editor wherever it is pressed; closing the
+			// field first, as a click on the editor does.
+			if (matchesKey(data, "alt+o")) {
+				typing.key?.("\x1b");
+				shell.setPanelMode(false);
+			} else typing.key?.(data);
 			shell.requestRender();
 			return { consume: true };
 		}
@@ -112,7 +131,20 @@ export function setupInput(pi: ExtensionAPI, shell: Shell): void {
 		if (!shell.panelMode()) return undefined;
 		if (matchesKey(data, "pageUp") || matchesKey(data, "pageDown")) return undefined;
 		if (PASS_THROUGH.some((key) => matchesKey(data, key))) return undefined;
-		panelAction(data);
+		if (!panelAction(data)) {
+			// Text a panel has no use for is not typed into the editor, so that a stray
+			// key and Enter cannot send a prompt. In an empty editor, `/` (a command) and
+			// `!` (a shell command) start one and give the editor the keys; after other
+			// text they start nothing. Other keys (Pi's shortcuts) go on to Pi.
+			const text = typedText(data);
+			if (text === undefined) return undefined;
+			if ((text === "/" || text === "!") && editorEmpty()) {
+				shell.setPanelMode(false);
+				shell.requestRender();
+				return undefined;
+			}
+			shell.ignoreTyping();
+		}
 		shell.requestRender();
 		return { consume: true };
 	};
@@ -120,7 +152,8 @@ export function setupInput(pi: ExtensionAPI, shell: Shell): void {
 	pi.on("session_start", (_event, ctx) => {
 		if (ctx.mode !== "tui" || !ctx.hasUI) return;
 		unsubscribe?.();
-		unsubscribe = ctx.ui.onTerminalInput(onInput);
+		const ui = ctx.ui;
+		unsubscribe = ui.onTerminalInput((data) => onInput(data, () => ui.getEditorText() === ""));
 	});
 
 	pi.on("session_shutdown", () => {
@@ -151,10 +184,10 @@ export function setupInput(pi: ExtensionAPI, shell: Shell): void {
 		handler: () => shell.stepPage(1),
 	});
 	pi.registerShortcut("alt+o", {
-		description: "pi-crt: move the keys to the panels (esc returns them to the editor)",
+		description: "pi-crt: switch the keys between editor and panels",
 		handler: () => {
 			if (!shell.tabsShown()) return;
-			shell.setPanelMode(true);
+			shell.setPanelMode(!shell.panelMode());
 			shell.requestRender();
 		},
 	});
