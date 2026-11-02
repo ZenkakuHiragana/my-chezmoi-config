@@ -1,14 +1,11 @@
 /**
  * Drawing parts for the STATUS panel: gauges and stat cards.
  *
- * These return plain text lines; the panel colours them. Widths are measured, cut and
- * padded with pi-tui's visibleWidth and truncateToWidth.
+ * These return text lines the panel colours, but for a gauge's bar, which the panel
+ * draws (`GaugeInput.bar`). Widths are measured, cut and padded with pi-tui's
+ * visibleWidth and truncateToWidth.
  */
 import { truncateToWidth, visibleWidth } from "@earendil-works/pi-tui";
-
-/** Filled and empty parts of a gauge bar. */
-const GAUGE_FULL = "▓";
-const GAUGE_EMPTY = "░";
 /** A bar shorter than this is not worth drawing. */
 const MIN_BAR = 4;
 
@@ -43,6 +40,8 @@ export interface GaugeInput {
 	labelWidth?: number;
 	/** Value column shared by a group of gauges. */
 	valueWidth?: number;
+	/** Draws the bar for a ratio, `width` cells wide. */
+	bar: (ratio: number, width: number) => string;
 }
 
 /** The value a gauge shows: the given one, or the ratio as a percentage. */
@@ -51,7 +50,7 @@ function gaugeValue(input: GaugeInput): string {
 }
 
 /**
- * One gauge: `CTX   ▓▓▓▓▓▓░░░░░░  42%`. Falls back to name and value alone when the
+ * One gauge: `CTX   █████▍        45%`. Falls back to name and value alone when the
  * width leaves no room for a bar.
  */
 export function gauge(input: GaugeInput, width: number): string {
@@ -66,8 +65,7 @@ export function gauge(input: GaugeInput, width: number): string {
 		const plain = `${label} ${tail}`;
 		return visibleWidth(plain) <= width ? plain : `${input.label} ${value}`;
 	}
-	const filled = Math.round(clampRatio(input.ratio) * barWidth);
-	return `${label} ${GAUGE_FULL.repeat(filled)}${GAUGE_EMPTY.repeat(barWidth - filled)} ${tail}`;
+	return `${label} ${input.bar(input.ratio, barWidth)} ${tail}`;
 }
 
 /** Ratio clamped to 0..1; anything that is not a number counts as 0. */

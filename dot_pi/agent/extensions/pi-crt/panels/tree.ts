@@ -322,7 +322,7 @@ class TreeView implements Component, ListControl {
 		return selected ? t.bg("selectedBg", truncateToWidth(line, width, "", true)) : line;
 	}
 
-	/** `▓▓░░░  62k`: the context after the row, or blank cells when no reply in it says. */
+	/** `██▍    62k`: the context after the row, or blank cells when no reply in it says. */
 	private contextCell(row: Row, t: Theme): string {
 		const tokens = row.turn.tokens;
 		if (tokens === undefined) return " ".repeat(CONTEXT_CELLS + 5);

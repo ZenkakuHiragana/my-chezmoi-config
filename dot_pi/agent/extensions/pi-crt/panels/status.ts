@@ -150,7 +150,12 @@ function vitalsLines(env: PanelEnv, width: number): string[] {
 	const GAUGE_COLUMN = 30;
 	// The four gauges share their name and value columns, so their bars are the same
 	// length. The value column fits "100%", so a bar does not move as its value grows.
-	const columns = { labelWidth: visibleWidth("CACHE"), valueWidth: visibleWidth("100%") };
+	// The line is drawn in "text"; after its bar, the colour is set again for the value.
+	const columns = {
+		labelWidth: visibleWidth("CACHE"),
+		valueWidth: visibleWidth("100%"),
+		bar: (ratio: number, width: number) => bar(t, ratio, width, "text") + t.getFgAnsi("text"),
+	};
 	const v = vitals(env.state);
 	const usage = contextUsage(env.state);
 	const allowance = usageData(env.state);

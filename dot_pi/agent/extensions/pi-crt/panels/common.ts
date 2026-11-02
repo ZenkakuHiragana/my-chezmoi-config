@@ -1,7 +1,7 @@
 /**
  * Pieces the panels share, and the NO SIGNAL panel.
  */
-import type { ScrollView, TuiMouseEvent, TuiMouseEventResult } from "@earendil-works/pi-tui";
+import { backgroundAnsi, colorToRgb, type ScrollView, type TuiMouseEvent, type TuiMouseEventResult } from "@earendil-works/pi-tui";
 import { Lines, type ThemeRef } from "../screen/lines.ts";
 import { noSignal } from "../screen/nosignal.ts";
 import { type ListControl, type PanelEnv, registerPanel } from "./registry.ts";
@@ -18,10 +18,24 @@ export function elapsedText(startedAt: number | undefined): string {
 	return `${String(Math.floor(seconds / 60)).padStart(2, "0")}:${String(seconds % 60).padStart(2, "0")}`;
 }
 
-export function bar(theme: ReturnType<ThemeRef>, ratio: number, width: number, color: "accent" | "warning" | "error" = "accent"): string {
-	const clamped = Math.max(0, Math.min(1, ratio));
-	const filled = Math.round(clamped * width);
-	return theme.fg(color, "▓".repeat(filled)) + theme.fg("borderMuted", "░".repeat(Math.max(0, width - filled)));
+/**
+ * A horizontal bar to one eighth of a cell: whole cells `█`, then a cell filled from
+ * the left `▏▎▍▌▋▊▉`, then empty cells. The empty part is a background colour, so the
+ * part cell's right side, drawn in the background, joins it.
+ */
+function barParts(ratio: number, width: number): { filled: string; part: string; empty: number } {
+	const clamped = Number.isFinite(ratio) ? Math.max(0, Math.min(1, ratio)) : 0;
+	const eighths = Math.round(clamped * width * 8);
+	const full = Math.floor(eighths / 8);
+	const part = eighths % 8 ? "▏▎▍▌▋▊▉"[(eighths % 8) - 1]! : "";
+	return { filled: "█".repeat(full), part, empty: width - full - (part ? 1 : 0) };
+}
+
+export function bar(theme: ReturnType<ThemeRef>, ratio: number, width: number, color: "accent" | "warning" | "error" | "text" = "accent"): string {
+	const { filled, part, empty } = barParts(ratio, width);
+	const rgb = colorToRgb(theme.colors.borderMuted);
+	const track = backgroundAnsi({ kind: "rgb", r: rgb.r, g: rgb.g, b: rgb.b }, theme.getColorMode());
+	return `${theme.fg(color, filled)}${track}${theme.fg(color, part)}${" ".repeat(empty)}[49m`;
 }
 
 export function compactNumber(value: number): string {
