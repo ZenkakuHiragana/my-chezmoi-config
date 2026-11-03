@@ -472,7 +472,11 @@ export function createShell(pi: ExtensionAPI): Shell {
 		// a page coming on screen draws from scratch.
 		root.invalidate();
 		tui.setLayoutRoot(root);
-		tui.requestRender(true);
+		// Not a forced render: that clears the screen (ESC[2J), and terminals built on
+		// libghostty-vt (herdr, Ghostty) then free every Kitty image without a placement,
+		// while pi-tui still counts it as sent and only places it again; the image of a
+		// page left and come back to would stay blank. The changed rows are drawn anyway.
+		tui.requestRender();
 	};
 
 	/** Called on every frame from the editor: keep the tabs mounted across mode switches. */

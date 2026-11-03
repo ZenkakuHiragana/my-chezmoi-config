@@ -22,7 +22,14 @@ const MAX_HEIGHT_CELLS = 24;
 const MAX_CACHED = 16;
 
 export function setupImages(pi: ExtensionAPI, env: FeatureEnv): void {
-	const cache = new Map<string, string[]>();
+	/**
+	 * The lines of each file, for the last width it was drawn at only. Lines kept for
+	 * an earlier width would place an image pi-tui counts as sent, and terminals on
+	 * libghostty-vt (herdr, Ghostty) free unplaced images when pi-tui clears the screen
+	 * for a new size: back at that width the image would stay blank. A new Image is
+	 * sent with its data.
+	 */
+	const cache = new Map<string, { width: number; lines: string[] }>();
 
 	const renderImage = (path: string, width: number): string[] | undefined => {
 		if (width <= 0) return undefined;
@@ -36,9 +43,9 @@ export function setupImages(pi: ExtensionAPI, env: FeatureEnv): void {
 		} catch {
 			return undefined;
 		}
-		const key = `${path}\u0000${modified}\u0000${size}\u0000${width}`;
+		const key = `${path}\u0000${modified}\u0000${size}`;
 		const cached = cache.get(key);
-		if (cached) return cached;
+		if (cached?.width === width) return cached.lines;
 		const mimeType = imageType(path);
 		if (!mimeType) return undefined;
 		const theme = env.context()?.ui.theme;
@@ -56,11 +63,12 @@ export function setupImages(pi: ExtensionAPI, env: FeatureEnv): void {
 			return undefined;
 		}
 		if (lines.length === 0) return undefined;
+		cache.delete(key);
 		if (cache.size >= MAX_CACHED) {
 			const oldest = cache.keys().next();
 			if (!oldest.done) cache.delete(oldest.value);
 		}
-		cache.set(key, lines);
+		cache.set(key, { width, lines });
 		return lines;
 	};
 
