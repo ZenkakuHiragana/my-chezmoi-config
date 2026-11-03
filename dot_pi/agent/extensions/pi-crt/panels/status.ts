@@ -4,7 +4,7 @@
 import { colorToRgb, foregroundAnsi, backgroundAnsi, visibleWidth } from "@earendil-works/pi-tui";
 import { contextData, contextUsage } from "../features/context.ts";
 import { gitData } from "../features/git.ts";
-import { logoArt, logoData } from "../features/logo.ts";
+import { logoArt, logoData, logoPicture } from "../features/logo.ts";
 import { toolData } from "../features/tools.ts";
 import { usageData } from "../features/usage.ts";
 import { vitals } from "../features/vitals.ts";
@@ -207,8 +207,14 @@ function logoLines(env: PanelEnv, width: number): string[] {
 	const mode = theme.getColorMode();
 	const rgb = colorToRgb(theme.colors.accent);
 	const base: Rgb = [rgb.r, rgb.g, rgb.b];
-	// logo.*, when there is one: the cells carry brightness, coloured here so that a
-	// change of theme recolours them without reading the picture again.
+	// logo.*, when there is one: as a Kitty image where the terminal shows them, else
+	// as cells carrying brightness, coloured here so that a change of theme recolours
+	// them without reading the picture again.
+	const picture = logoPicture(env.state, width, base);
+	if (picture) {
+		const pad = " ".repeat(Math.max(0, Math.floor((width - picture.columns) / 2)));
+		return [pad + picture.lines[0], ...picture.lines.slice(1)];
+	}
 	const image = logoArt(env.state, width);
 	if (image) {
 		const pad = " ".repeat(Math.max(0, Math.floor((width - image[0]!.length) / 2)));

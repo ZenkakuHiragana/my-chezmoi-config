@@ -2,6 +2,7 @@ import { readdirSync, readFileSync, watch, type FSWatcher } from "node:fs";
 import { join } from "node:path";
 import { fileURLToPath } from "node:url";
 import type { ExtensionAPI } from "@earendil-works/pi-coding-agent";
+import { allocateImageId, getCapabilities, renderImage } from "@earendil-works/pi-tui";
 import { type CrtState, sanitize, type Versioned } from "../state/core.ts";
 import type { FeatureEnv } from "./env.ts";
 
@@ -28,6 +29,19 @@ export interface LogoData extends Versioned {
 	photon?: Photon;
 	/** The cells of the logo, by the width they were made for. */
 	art: Map<number, LogoCell[][]>;
+	/**
+	 * The Kitty image of the logo, for the last width and colour only: lines kept for
+	 * an earlier width would place an image pi-tui counts as sent, which terminals on
+	 * libghostty-vt (herdr, Ghostty) free when pi-tui clears the screen for a new size
+	 * (as features/image.ts keeps its images). A new image is sent with its data.
+	 */
+	kitty?: { key: string; picture: LogoPicture };
+}
+
+/** The logo as a Kitty image: its lines (the image, then the rows it covers) and width in cells. */
+export interface LogoPicture {
+	lines: string[];
+	columns: number;
 }
 
 /** The largest logo, in cells. */
@@ -81,6 +95,7 @@ export function setupLogo(pi: ExtensionAPI, env: FeatureEnv): void {
 			data.error = `logo: cannot read image (${reason(error)})`;
 		}
 		data.art.clear();
+		data.kitty = undefined;
 		env.changed(data);
 	}
 
@@ -98,6 +113,7 @@ export function setupLogo(pi: ExtensionAPI, env: FeatureEnv): void {
 		data.image?.free();
 		data.image = undefined;
 		data.art.clear();
+		data.kitty = undefined;
 	});
 }
 
@@ -123,13 +139,75 @@ export function logoArt(state: CrtState, width: number): LogoCell[][] | undefine
 		data.art.set(columns, rows);
 		return rows;
 	} catch (error) {
-		data.image.free();
-		data.image = undefined;
-		data.error = `logo: cannot draw image (${reason(error)})`;
-		data.art.clear();
-		env.changed(data);
+		dropImage(data, env, error);
 		return undefined;
 	}
+}
+
+/**
+ * The logo as a Kitty image for a panel `width` cells wide, in the colour `accent`, at
+ * most COLUMNS x ROWS cells. None when the terminal does not show Kitty images (the
+ * panel draws logoArt then), when there is no logo.*, or when it cannot be made.
+ */
+export function logoPicture(state: CrtState, width: number, accent: readonly [number, number, number]): LogoPicture | undefined {
+	if (getCapabilities().images !== "kitty") return undefined;
+	const feature = features.get(state);
+	if (!feature) return undefined;
+	const { data, env } = feature;
+	if (!data.image || !data.photon) return undefined;
+	const columns = Math.max(1, Math.min(COLUMNS, width));
+	// The panel's width, not the logo's: a new size of the screen is a new image even
+	// where the logo keeps its COLUMNS.
+	const key = `${width} ${accent.join(",")}`;
+	if (data.kitty?.key === key) return data.kitty.picture;
+	try {
+		const picture = kittyPicture(data.photon, data.image, columns, accent);
+		data.kitty = picture ? { key, picture } : undefined;
+		return picture;
+	} catch (error) {
+		dropImage(data, env, error);
+		return undefined;
+	}
+}
+
+/** logo.* cannot be drawn: Pi's logo is shown, with the reason. */
+function dropImage(data: LogoData, env: FeatureEnv, error: unknown): void {
+	data.image?.free();
+	data.image = undefined;
+	data.error = `logo: cannot draw image (${reason(error)})`;
+	data.art.clear();
+	data.kitty = undefined;
+	env.changed(data);
+}
+
+/**
+ * The picture as a Kitty image fitted into `columns` x ROWS cells: each pixel keeps
+ * its brightness and its transparency, in the colour `accent`. The picture is sent
+ * at its own size; the terminal scales it to the cells.
+ */
+function kittyPicture(photon: Photon, image: Image, columns: number, accent: readonly [number, number, number]): LogoPicture | undefined {
+	const w = image.get_width();
+	const h = image.get_height();
+	const pixels = image.get_raw_pixels();
+	for (let i = 0; i < pixels.length; i += 4) {
+		const brightness = (pixels[i]! * 0.299 + pixels[i + 1]! * 0.587 + pixels[i + 2]! * 0.114) / 255;
+		for (let c = 0; c < 3; c++) pixels[i + c] = Math.round(accent[c]! * brightness);
+	}
+	const tinted = new photon.PhotonImage(pixels, w, h);
+	let png: Uint8Array;
+	try {
+		png = tinted.get_bytes();
+	} finally {
+		tinted.free();
+	}
+	const result = renderImage(Buffer.from(png).toString("base64"), { widthPx: w, heightPx: h }, {
+		maxWidthCells: columns,
+		maxHeightCells: ROWS,
+		imageId: allocateImageId(),
+		moveCursor: false,
+	});
+	if (!result) return undefined;
+	return { lines: [result.sequence, ...Array.from({ length: result.rows - 1 }, () => "")], columns: result.columns };
 }
 
 /**
