@@ -14,10 +14,26 @@ if (!dependencyManifest || !dependencyLock) {
 
 const extensionDir = join(homedir(), ".pi", "agent", "extensions", "pi-tool-filter");
 const npm = process.platform === "win32" ? "npm.cmd" : "npm";
-const npmArgs = ["ci", "--omit=dev", "--no-audit", "--no-fund"];
-const command = process.platform === "win32" ? process.env.ComSpec ?? "cmd.exe" : npm;
-const commandArgs = process.platform === "win32" ? ["/d", "/s", "/c", npm, ...npmArgs] : npmArgs;
-execFileSync(command, commandArgs, {
-  cwd: extensionDir,
-  stdio: "inherit",
-});
+function runNpm(npmArgs) {
+  const command = process.platform === "win32" ? process.env.ComSpec ?? "cmd.exe" : npm;
+  const commandArgs = process.platform === "win32" ? ["/d", "/s", "/c", npm, ...npmArgs] : npmArgs;
+  execFileSync(command, commandArgs, {
+    cwd: extensionDir,
+    stdio: "inherit",
+  });
+}
+
+// Not npm ci: it removes node_modules first, which breaks a running Pi that uses
+// the extension, and on Windows stops halfway at the native modules Pi has loaded.
+// npm ci --dry-run only checks that package.json and the lock file agree; npm install
+// then replaces only the packages that differ from the lock file, moving the old
+// folder aside first (Windows lets a folder with a loaded native module be renamed,
+// not deleted, so a left-over .<name>-xxxx folder can remain). --no-save keeps the
+// lock file chezmoi wrote.
+runNpm(["ci", "--dry-run", "--no-audit", "--no-fund"]);
+try {
+  runNpm(["install", "--no-save", "--omit=dev", "--no-audit", "--no-fund"]);
+} catch (error) {
+  console.error("pi-tool-filter: could not update the dependencies. If Pi is running with this extension, close it and run chezmoi apply again.");
+  throw error;
+}
