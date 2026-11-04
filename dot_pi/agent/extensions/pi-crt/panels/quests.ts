@@ -1,6 +1,6 @@
 /**
- * DATA's QUESTS panel: the project's sessions, the one in progress first.
- * The arrow keys or j/k select a quest and Enter switches to its session.
+ * MAP's SESSIONS panel: the project's sessions, the one in progress first.
+ * The arrow keys or j/k select a session and Enter switches to it.
  */
 import { truncateToWidth } from "@earendil-works/pi-tui";
 import { openQuest, type Quest, quests, refreshQuests } from "../features/quests.ts";
@@ -36,7 +36,7 @@ registerPanel("quests", (env) => {
 
 function questTitle(env: PanelEnv): string {
 	const list = quests(env.state).quests;
-	return list.length ? `QUESTS  ${list.length}` : "QUESTS";
+	return list.length ? `SESSIONS  ${list.length}` : "SESSIONS";
 }
 
 /** Two lines per quest: its title, then when it was last touched and how long it is. */

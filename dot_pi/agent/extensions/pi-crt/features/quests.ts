@@ -1,14 +1,14 @@
 /**
- * QUESTS: the sessions of this project, one quest per session.
+ * MAP › SESSIONS: the sessions of this project, one quest per session.
  *
  * The list comes from SessionManager.list(), which reads every session file of the
- * project. That is too slow to do on every render, so it is read only while the QUESTS
+ * project. That is too slow to do on every render, so it is read only while the SESSIONS
  * panel is drawn and the list is stale: once when first shown, and again after the
  * session changes or the agent finishes a run.
  *
  * Opening a quest switches pi to that session. switchSession() is only on the context a
  * command receives, not on the one a panel or shortcut gets, so the panel sends the
- * command `/crt-quest <path>` through sendUserMessage(); pi runs an extension command
+ * command `/crt-session <path>` through sendUserMessage(); pi runs an extension command
  * before anything reaches the model.
  */
 
@@ -30,7 +30,7 @@ export interface Quest {
 }
 
 /** Name of the command that switches to a quest. */
-const COMMAND = "crt-quest";
+const COMMAND = "crt-session";
 /** Quests listed at most. */
 const MAX_QUESTS = 200;
 
@@ -122,17 +122,17 @@ export function setupQuests(pi: ExtensionAPI, env: FeatureEnv): void {
 	pi.on("agent_end", markStale);
 
 	pi.registerCommand(COMMAND, {
-		description: "Switch to a session listed in DATA › QUESTS",
+		description: "Switch to a session listed in MAP › SESSIONS",
 		handler: async (args, ctx) => {
 			const path = args.trim();
 			if (!path) return;
 			if (!ctx.isIdle()) {
-				ctx.ui.notify("Wait for the agent to finish before switching quests.", "warning");
+				ctx.ui.notify("Wait for the agent to finish before switching sessions.", "warning");
 				return;
 			}
 			// Only sessions the list showed can be opened this way.
 			if (!data.quests.some((quest) => quest.path === path)) {
-				ctx.ui.notify("That session is not in the quest list.", "warning");
+				ctx.ui.notify("That session is not in the session list.", "warning");
 				return;
 			}
 			await ctx.switchSession(path);

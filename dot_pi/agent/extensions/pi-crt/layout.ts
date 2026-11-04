@@ -114,7 +114,6 @@ const tabs: TabDef[] = [
 	{
 		label: "DATA",
 		pages: [
-			{ label: "QUESTS", layout: "quests" },
 			{
 				label: "GIT",
 				layout: {
@@ -148,6 +147,7 @@ const tabs: TabDef[] = [
 				},
 				primary: "tree",
 			},
+			{ label: "SESSIONS", layout: "quests" },
 		],
 	},
 	{
