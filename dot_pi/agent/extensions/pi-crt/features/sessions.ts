@@ -1,12 +1,12 @@
 /**
- * MAP › SESSIONS: the sessions of this project, one quest per session.
+ * MAP › SESSIONS: the sessions of this project.
  *
  * The list comes from SessionManager.list(), which reads every session file of the
  * project. That is too slow to do on every render, so it is read only while the SESSIONS
  * panel is drawn and the list is stale: once when first shown, and again after the
  * session changes or the agent finishes a run.
  *
- * Opening a quest switches pi to that session. switchSession() is only on the context a
+ * Opening a session switches pi to it. switchSession() is only on the context a
  * command receives, not on the one a panel or shortcut gets, so the panel sends the
  * command `/crt-session <path>` through sendUserMessage(); pi runs an extension command
  * before anything reaches the model.
@@ -16,8 +16,8 @@ import { type ExtensionAPI, SessionManager } from "@earendil-works/pi-coding-age
 import type { CrtState } from "../state/core.ts";
 import type { FeatureEnv } from "./env.ts";
 
-/** One quest as the panel shows it. */
-export interface Quest {
+/** One session as the panel shows it. */
+export interface SessionItem {
 	path: string;
 	/** The name given with /name, else the start of the first message. */
 	title: string;
@@ -29,14 +29,14 @@ export interface Quest {
 	active: boolean;
 }
 
-/** Name of the command that switches to a quest. */
+/** Name of the command that switches to a session. */
 const COMMAND = "crt-session";
-/** Quests listed at most. */
-const MAX_QUESTS = 200;
+/** Sessions listed at most. */
+const MAX_SESSIONS = 200;
 
-interface QuestState {
-	quests: Quest[];
-	/** Changes whenever `quests`, `loading` or `error` changes. */
+interface SessionList {
+	sessions: SessionItem[];
+	/** Changes whenever `sessions`, `loading` or `error` changes. */
 	version: number;
 	loading: boolean;
 	/** The list no longer matches the sessions on disk. */
@@ -44,20 +44,20 @@ interface QuestState {
 	error?: string;
 }
 
-interface QuestFeature {
+interface SessionFeature {
 	pi: ExtensionAPI;
 	env: FeatureEnv;
-	data: QuestState;
+	data: SessionList;
 }
 
-/** Each pi-crt instance's quests, by its CrtState (see FeatureEnv). */
-const features = new WeakMap<CrtState, QuestFeature>();
+/** Each pi-crt instance's sessions, by its CrtState (see FeatureEnv). */
+const features = new WeakMap<CrtState, SessionFeature>();
 
-/** Before setupQuests: nothing read. Never changed. */
-const NONE: Readonly<QuestState> = Object.freeze({ quests: [], version: 0, loading: false, stale: false });
+/** Before setupSessions: nothing read. Never changed. */
+const NONE: Readonly<SessionList> = Object.freeze({ sessions: [], version: 0, loading: false, stale: false });
 
-/** The quests read so far. */
-export function quests(state: CrtState): Readonly<QuestState> {
+/** The sessions read so far. */
+export function sessions(state: CrtState): Readonly<SessionList> {
 	return features.get(state)?.data ?? NONE;
 }
 
@@ -65,7 +65,7 @@ export function quests(state: CrtState): Readonly<QuestState> {
  * Read the list again when it is stale. Called while the panel is drawn, so the sessions
  * are only read while someone looks at them.
  */
-export function refreshQuests(state: CrtState): void {
+export function refreshSessions(state: CrtState): void {
 	const feature = features.get(state);
 	if (!feature) return;
 	const { data, env } = feature;
@@ -79,7 +79,7 @@ export function refreshQuests(state: CrtState): void {
 	const current = ctx.sessionManager.getSessionFile();
 	SessionManager.list(ctx.cwd)
 		.then((infos) => {
-			const list = infos.map<Quest>((info) => ({
+			const list = infos.map<SessionItem>((info) => ({
 				path: info.path,
 				title: titleOf(info.name, info.firstMessage),
 				modified: info.modified,
@@ -87,9 +87,9 @@ export function refreshQuests(state: CrtState): void {
 				forked: Boolean(info.parentSessionPath),
 				active: info.path === current,
 			}));
-			// The quest in progress first, then the most recently touched.
+			// The session in progress first, then the most recently touched.
 			list.sort((a, b) => Number(b.active) - Number(a.active) || b.modified.getTime() - a.modified.getTime());
-			data.quests = list.slice(0, MAX_QUESTS);
+			data.sessions = list.slice(0, MAX_SESSIONS);
 			data.error = undefined;
 		})
 		.catch((error: unknown) => {
@@ -101,17 +101,17 @@ export function refreshQuests(state: CrtState): void {
 		});
 }
 
-/** Switch to a quest's session. Does nothing for the quest already in progress. */
-export function openQuest(state: CrtState, quest: Quest): void {
+/** Switch to a session. Does nothing for the session already in progress. */
+export function openSession(state: CrtState, session: SessionItem): void {
 	const pi = features.get(state)?.pi;
-	if (!pi || quest.active) return;
+	if (!pi || session.active) return;
 	// Without the command, the text would go to the model as a message.
 	if (!pi.getCommands().some((command) => command.name === COMMAND)) return;
-	void pi.sendUserMessage(`/${COMMAND} ${quest.path}`, { expandPromptTemplates: true });
+	void pi.sendUserMessage(`/${COMMAND} ${session.path}`, { expandPromptTemplates: true });
 }
 
-export function setupQuests(pi: ExtensionAPI, env: FeatureEnv): void {
-	const data: QuestState = { quests: [], version: 0, loading: false, stale: true };
+export function setupSessions(pi: ExtensionAPI, env: FeatureEnv): void {
+	const data: SessionList = { sessions: [], version: 0, loading: false, stale: true };
 	features.set(env.state, { pi, env, data });
 
 	const markStale = (): void => {
@@ -131,7 +131,7 @@ export function setupQuests(pi: ExtensionAPI, env: FeatureEnv): void {
 				return;
 			}
 			// Only sessions the list showed can be opened this way.
-			if (!data.quests.some((quest) => quest.path === path)) {
+			if (!data.sessions.some((session) => session.path === path)) {
 				ctx.ui.notify("That session is not in the session list.", "warning");
 				return;
 			}

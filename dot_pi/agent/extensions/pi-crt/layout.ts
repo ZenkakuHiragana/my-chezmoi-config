@@ -33,7 +33,7 @@
  *
  * Panels: transcript, thinking, tools, toollog, vitals, context, usage, history, git,
  * gitfiles, gitdiff, gitlog, promptparts, prompttext, toollist, tooldetail,
- * skilllist, skilltext, quests, modellist, modeldetail, extensions, tree, location,
+ * skilllist, skilltext, modellist, modeldetail, extensions, tree, location, sessions,
  * stations, radiosearch, radiooutput, nowplaying, nosignal
  *
  * Tabs that show "transcript" at the current width blink when the agent finishes
@@ -147,7 +147,7 @@ const tabs: TabDef[] = [
 				},
 				primary: "tree",
 			},
-			{ label: "SESSIONS", layout: "quests" },
+			{ label: "SESSIONS", layout: "sessions" },
 		],
 	},
 	{

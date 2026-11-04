@@ -7,7 +7,7 @@ import "./git.ts";
 import "./status.ts";
 import "./history.ts";
 import "./inv.ts";
-import "./quests.ts";
+import "./sessions.ts";
 import "./models.ts";
 import "./extensions.ts";
 import "./tree.ts";
