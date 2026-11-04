@@ -4,7 +4,7 @@
 import { colorToRgb, foregroundAnsi, backgroundAnsi, visibleWidth } from "@earendil-works/pi-tui";
 import { contextData, contextUsage } from "../features/context.ts";
 import { gitData } from "../features/git.ts";
-import { logoArt, logoData, logoPicture } from "../features/logo.ts";
+import { logoArt, logoData, logoError, logoPicture, type LogoScene } from "../features/logo.ts";
 import { toolData } from "../features/tools.ts";
 import { usageData } from "../features/usage.ts";
 import { vitals } from "../features/vitals.ts";
@@ -12,7 +12,7 @@ import { allowanceWindows, rateLimits, shortHeader } from "../state/usage.ts";
 import { framed, type SizedView } from "../screen/frame.ts";
 import { Lines } from "../screen/lines.ts";
 import { bar, compactNumber, elapsedText } from "./common.ts";
-import { type Paint, PI_LOGO, type Rgb, pixelArtWidth, renderPixelArt, shade, shadePalette } from "./pixel-art.ts";
+import { type Paint, PI_LOGO, PI_LOGO_SHADES, type Rgb, pixelArtWidth, renderPixelArt, shade, shadePalette } from "./pixel-art.ts";
 import { type CardInput, centerLine, gaugeRow, statCards } from "./status-parts.ts";
 import { type PanelEnv, registerPanel } from "./registry.ts";
 
@@ -37,8 +37,8 @@ registerPanel("vitals", (env) => {
 				usageData(env.state).version,
 				vitals(env.state).version,
 				logoData(env.state).version,
-				// The elapsed time only moves while the agent runs.
-				env.state.agentRunning ? env.tick() : 0,
+				// The STATUS logo also moves while the agent is idle.
+				env.tick(),
 				view?.viewportHeight,
 			],
 		),
@@ -172,7 +172,8 @@ function vitalsLines(env: PanelEnv, width: number): string[] {
 	));
 	body.push("");
 	body.push(...logoLines(env, inner));
-	if (logoData(env.state).error) body.push(centerLine(logoData(env.state).error!, inner));
+	const error = logoError(env.state, logoScene(env));
+	if (error) body.push(centerLine(error, inner));
 	body.push("");
 	body.push(centerLine(stateText(env), inner));
 	body.push("");
@@ -201,6 +202,16 @@ function stateText(env: PanelEnv): string {
 	return `WORKING  ${elapsedText(env.state.agentStartedAt)}`;
 }
 
+/** Scene priority follows the live agent and tool state. */
+function logoScene(env: PanelEnv): LogoScene {
+	if (env.state.agentRunning) {
+		const tools = toolData(env.state);
+		if (tools.lastErrorAt !== undefined && Date.now() - tools.lastErrorAt < 3000) return "error";
+		return tools.active.size ? "tool" : "thinking";
+	}
+	return env.state.termAttention ? "done" : "standby";
+}
+
 /** The logo in the theme's accent colour, as large as the panel allows. */
 function logoLines(env: PanelEnv, width: number): string[] {
 	const theme = env.theme();
@@ -210,12 +221,14 @@ function logoLines(env: PanelEnv, width: number): string[] {
 	// logo.*, when there is one: as a Kitty image where the terminal shows them, else
 	// as cells carrying brightness, coloured here so that a change of theme recolours
 	// them without reading the picture again.
-	const picture = logoPicture(env.state, width, base);
+	const scene = logoScene(env);
+	const tick = env.tick();
+	const picture = logoPicture(env.state, width, base, scene, tick);
 	if (picture) {
 		const pad = " ".repeat(Math.max(0, Math.floor((width - picture.columns) / 2)));
 		return [pad + picture.lines[0], ...picture.lines.slice(1)];
 	}
-	const image = logoArt(env.state, width);
+	const image = logoArt(env.state, width, scene, tick);
 	if (image) {
 		const pad = " ".repeat(Math.max(0, Math.floor((width - image[0]!.length) / 2)));
 		return image.map((row) => pad + row.map(({ glyph, fg, bg }) => {
@@ -226,7 +239,35 @@ function logoLines(env: PanelEnv, width: number): string[] {
 				(bg !== undefined ? backgroundAnsi({ kind: "rgb", r: b[0], g: b[1], b: b[2] }, mode) : "") + glyph + "\x1b[0m";
 		}).join(""));
 	}
-	const palette = shadePalette(base);
+	// Cells are about twice as tall as they are wide, so both scales stay equal.
+	let scale = 4;
+	while (scale > 1 && pixelArtWidth(PI_LOGO, scale) > width) scale--;
+	// The effects work on the drawn pixels (half a row tall), not on the logo's four
+	// rows, so that the scan line is one pixel thin and the noise moves by one pixel.
+	const pixels = PI_LOGO.flatMap((row) => Array.from({ length: scale }, () => [...row].map((pixel) => pixel.repeat(scale)).join("")));
+	const tools = toolData(env.state);
+	const errorAge = tools.lastErrorAt === undefined ? Infinity : Date.now() - tools.lastErrorAt;
+	const working = env.state.agentRunning;
+	const done = !working && env.state.termAttention;
+	const scan = working ? tick % pixels.length : tick % 42 < pixels.length ? tick % 42 : -1;
+	const rows = pixels.map((row, index) => {
+		let next = row;
+		if (working && errorAge < 1000) {
+			const shift = (tick + index) % 3 - 1;
+			next = shift < 0 ? row.slice(1) + "." : shift > 0 ? "." + row.slice(0, -1) : row;
+		} else if (index === scan) {
+			next = row.replace(/[bcy]/g, "h");
+		} else if (working) {
+			const shades = "byc";
+			next = row.replace(/[bcy]/g, (color) => shades[(shades.indexOf(color) + Math.floor(tick / 4)) % shades.length]!);
+		}
+		return next;
+	});
+	// The scan line is the accent halfway to white, so that it shows on the brightest shade too.
+	// Done (finished on another page, not yet seen) breathes: the brightness eases down to
+	// 80% and back every 2.4 s (20 ticks), without the logo going away.
+	const breath = done ? 0.9 + 0.1 * Math.cos((2 * Math.PI * tick) / 20) : 1;
+	const palette: Record<string, Rgb> = { ...shadePalette(base, Object.fromEntries(Object.entries(PI_LOGO_SHADES).map(([key, factor]) => [key, factor * breath]))), h: base.map((value) => Math.round(value + (255 - value) / 2)) as Rgb };
 	const paint: Paint = (glyph, colors) => {
 		const fg = colors.fg ? palette[colors.fg] : undefined;
 		const bg = colors.bg ? palette[colors.bg] : undefined;
@@ -236,10 +277,7 @@ function logoLines(env: PanelEnv, width: number): string[] {
 		const reset = "\x1b[0m";
 		return prefix === "" ? glyph : `${prefix}${glyph}${reset}`;
 	};
-	// Cells are about twice as tall as they are wide, so both scales stay equal.
-	let scale = 4;
-	while (scale > 1 && pixelArtWidth(PI_LOGO, scale) > width) scale--;
-	const art = renderPixelArt(PI_LOGO, { scaleX: scale, scaleY: scale, paint });
+	const art = renderPixelArt(rows, { scaleX: 1, scaleY: 1, paint });
 	const pad = " ".repeat(Math.max(0, Math.floor((width - pixelArtWidth(PI_LOGO, scale)) / 2)));
 	return art.map((line) => pad + line);
 }

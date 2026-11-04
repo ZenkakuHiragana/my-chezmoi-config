@@ -74,7 +74,15 @@ export function setupTools(pi: ExtensionAPI, env: FeatureEnv): void {
 		data.toolsVersion++;
 	});
 
+	pi.on("agent_end", () => {
+		if (data.active.size) {
+			data.active.clear();
+			data.toolsVersion++;
+		}
+	});
+
 	pi.on("tool_execution_start", (event) => {
+		data.active.add(event.toolCallId);
 		pushTool(data, {
 			id: event.toolCallId,
 			name: sanitize(event.toolName),
@@ -91,6 +99,8 @@ export function setupTools(pi: ExtensionAPI, env: FeatureEnv): void {
 	});
 
 	pi.on("tool_execution_end", (event) => {
+		if (data.active.delete(event.toolCallId)) data.toolsVersion++;
+		if (event.isError) data.lastErrorAt = Date.now();
 		finishTool(data, event.toolCallId, event.isError, event.durationMs);
 		if (!event.parentToolCallId) {
 			updateLog(data, event.toolCallId, clipResult(event.result, event.isError, event.durationMs), false);

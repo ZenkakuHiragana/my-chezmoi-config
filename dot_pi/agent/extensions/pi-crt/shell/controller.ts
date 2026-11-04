@@ -31,8 +31,8 @@
  * also depends on pi-tui drawing a vertical stack from the top (`imageGuard`).
  *
  * Cost: each redraw of the screen also redraws the panels shown, so the screen
- * is redrawn on a timer only while something moves (the agent works, a tab
- * blinks, a NO SIGNAL page is shown) and otherwise once a minute for the clock.
+ * is redrawn on a timer while something moves (including the STATUS logo), and
+ * otherwise once a minute for the clock.
  */
 import {
 	type Component,
@@ -530,7 +530,7 @@ export function createShell(pi: ExtensionAPI): Shell {
 	 */
 	const updateTimer = () => {
 		const moving =
-			state.agentRunning || (tabsShown && (state.termAttention || typingIgnored() || visiblePanels().includes("nosignal")));
+			state.agentRunning || (tabsShown && (state.termAttention || typingIgnored() || visiblePanels().includes("nosignal") || visiblePanels().includes("vitals")));
 		if (!tabsShown && !moving) {
 			stopTimer();
 			return;

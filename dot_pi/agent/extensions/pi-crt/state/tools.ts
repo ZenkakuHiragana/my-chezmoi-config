@@ -57,6 +57,8 @@ export interface ToolData {
 	/** The start of the latest thinking was dropped to keep only its tail. */
 	thinkingTrimmed: boolean;
 	tools: ToolEntry[];
+	/** Calls started in this session that have not finished. */
+	active: Set<string>;
 	/** Changes whenever `tools`, a tool's status or the thinking text changes. */
 	toolsVersion: number;
 	/** Older calls exist than `tools` holds. */
@@ -68,10 +70,12 @@ export interface ToolData {
 	/** Successful and failed tool calls among `tools`. */
 	ok: number;
 	failed: number;
+	/** Time of the most recent live tool failure, for the STATUS logo. */
+	lastErrorAt?: number;
 }
 
 export function createToolData(): ToolData {
-	return { thinking: "", thinkingTrimmed: false, tools: [], toolsVersion: 0, toolsTrimmed: false, log: [], logTrimmed: false, ok: 0, failed: 0 };
+	return { thinking: "", thinkingTrimmed: false, tools: [], active: new Set(), toolsVersion: 0, toolsTrimmed: false, log: [], logTrimmed: false, ok: 0, failed: 0 };
 }
 
 export const THINKING_TAIL = 4000;
@@ -417,6 +421,8 @@ type BranchMessage = {
  * Arguments and results are clipped like those of new calls.
  */
 export function rebuildFromBranch(data: ToolData, session: BranchReader): void {
+	data.lastErrorAt = undefined;
+	data.active.clear();
 	const results = new Map<string, BranchMessage>();
 	const calls: ToolEntry[] = [];
 	const log: LogItem[] = [];
