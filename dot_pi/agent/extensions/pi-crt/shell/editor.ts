@@ -25,8 +25,10 @@ type EditorArgs = ConstructorParameters<typeof CustomEditor>;
 function borderLabel(shell: Shell, width: number): string {
 	const t = shell.theme();
 	const state = shell.state;
+	const now = shell.now();
+	if (state.agentRunning && state.agentStartedAt !== undefined) shell.redrawAt(state.agentStartedAt + (Math.floor((now - state.agentStartedAt) / 1000) + 1) * 1000);
 	const status = state.agentRunning
-		? `${t.fg("warning", SPINNER[shell.tick() % SPINNER.length]!)} ${t.fg("warning", t.bold("WORKING"))} ${t.fg("muted", elapsedText(state.agentStartedAt))}  ${keyHint("app.interrupt", "to interrupt")}`
+		? `${t.fg("warning", SPINNER[shell.every(120) % SPINNER.length]!)} ${t.fg("warning", t.bold("WORKING"))} ${t.fg("muted", elapsedText(state.agentStartedAt, now))}  ${keyHint("app.interrupt", "to interrupt")}`
 		: t.fg("accent", t.bold("■ STANDBY"));
 	if (!(shell.panelMode() && shell.tabsShown())) return truncateToWidth(status, width);
 	// What fits, in this order: the status, the panel-mode mark, the panel name,
@@ -38,7 +40,7 @@ function borderLabel(shell: Shell, width: number): string {
 	if (shell.typingIgnored()) {
 		const left = width - visibleWidth(label);
 		const text = left >= 14 ? " ALT+O TO TYPE" : truncateToWidth("ALT+O TO TYPE", left, "");
-		label += t.fg(shell.tick() % 8 < 4 ? "warning" : "accent", t.bold(text));
+		label += t.fg(shell.every(480) % 2 === 0 ? "warning" : "accent", t.bold(text));
 	} else {
 		// The panel's name, as its title rule shows it (without what the title adds after two spaces).
 		const id = shell.focusedId();

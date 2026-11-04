@@ -173,7 +173,7 @@ registerPanel("radiosearch", (env) => {
 				selection.reset();
 				return withCursor(env, selection, "radiosearch", searchLines(env, selection, input, typing, width - 1));
 			},
-			() => [radioData(env.state).version, selection.selectedKey, env.focused("radiosearch"), typing, typed],
+			() => [radioData(env.state).version, selection.selectedKey, env.focused("radiosearch"), typing, typed, radioData(env.state).search.loading && env.every(120)],
 			// The search box's line carries the cursor marker, which clipping must not cut.
 			true,
 		),
@@ -203,7 +203,7 @@ function searchLines(env: PanelEnv, selection: Selection, input: Input, typing: 
 		lines.push(truncateToWidth(` ${t.fg("accent", "›")} ${text}`, width));
 	}
 	lines.push(t.fg("borderMuted", ` ${"─".repeat(Math.max(0, width - 2))}`));
-	if (search.loading) lines.push(` ${t.fg("warning", spinner(env.tick()))} ${t.fg("muted", "searching…")}`);
+	if (search.loading) lines.push(` ${t.fg("warning", spinner(env.every(120)))} ${t.fg("muted", "searching…")}`);
 	else if (search.error) for (const line of wrapTextWithAnsi(search.error, Math.max(1, width - 2))) lines.push(` ${t.fg("error", line)}`);
 	else if (search.query && !search.results.length) lines.push(t.fg("dim", " -- no songs --"));
 	search.results.forEach((track, index) => {
@@ -239,7 +239,7 @@ registerPanel("radiooutput", (env) => {
 			// The tick only while the spinner turns.
 			() => {
 				const data = radioData(env.state);
-				return [data.version, data.outputs.loading && env.tick(), selection.selectedKey, env.focused("radiooutput")];
+				return [data.version, data.outputs.loading && !data.outputs.devices.length && env.every(120), selection.selectedKey, env.focused("radiooutput")];
 			},
 		),
 		"top",
@@ -271,7 +271,7 @@ function outputLines(env: PanelEnv, selection: Selection, width: number): string
 		lines.push(truncateToWidth(title, width));
 		lines.push(truncateToWidth(`  ${t.fg("dim", adapter)}`, width));
 	});
-	if (outputs.loading && !outputs.devices.length) lines.push(` ${t.fg("warning", spinner(env.tick()))} ${t.fg("muted", "listing devices…")}`);
+	if (outputs.loading && !outputs.devices.length) lines.push(` ${t.fg("warning", spinner(env.every(120)))} ${t.fg("muted", "listing devices…")}`);
 	else if (!outputs.devices.length && !outputs.error) lines.push(t.fg("dim", " -- no output devices --"));
 	if (outputs.error) {
 		if (lines.length) lines.push("");
@@ -354,6 +354,7 @@ function nowPlayingLines(env: PanelEnv, width: number, height: number): string[]
 	if (data.status === "error") {
 		// Which track failed, when one did: the reason alone often does not say.
 		const reason = data.track ? `${data.track.title}: ${data.error ?? ""}` : (data.error ?? "");
+		env.every(120);
 		return noSignalLines(env.theme, "NO SIGNAL", width, height, reason);
 	}
 	const lines = playerLines(env, data, width, height);
@@ -395,7 +396,7 @@ function playerLines(env: PanelEnv, data: Readonly<RadioData>, width: number, he
 	}
 	const lines: string[] = [];
 	if (data.status === "tuning" || !track) {
-		lines.push(`${indent}${t.fg("warning", spinner(env.tick()))} ${t.fg("warning", t.bold("TUNING…"))}`);
+		lines.push(`${indent}${t.fg("warning", spinner(env.every(120)))} ${t.fg("warning", t.bold("TUNING…"))}`);
 		lines.push(`${indent}${t.fg("muted", track ? `${track.title} — ${track.artist}` : sourceLabel(data))}`);
 		lines.push("", ...wave);
 		return lines;

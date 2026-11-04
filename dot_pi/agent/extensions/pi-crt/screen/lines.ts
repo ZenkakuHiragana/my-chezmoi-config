@@ -20,11 +20,11 @@ export class Lines implements Component {
 	private cache?: { width: number; key: unknown[]; lines: string[] };
 	constructor(
 		private readonly produce: (width: number) => string[],
-		private readonly key?: () => unknown[],
+		private readonly key?: (width: number) => unknown[],
 		private readonly fitted = false,
 	) {}
 	render(width: number): string[] {
-		const key = this.key?.();
+		const key = this.key?.(width);
 		const cache = this.cache;
 		if (key && cache && cache.width === width && cache.key.length === key.length && cache.key.every((v, i) => v === key[i])) {
 			return cache.lines;

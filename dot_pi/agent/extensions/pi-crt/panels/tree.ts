@@ -296,7 +296,7 @@ class TreeView implements Component, ListControl {
 		const onPath = this.path.has(head.entry.id);
 		const here = index === this.hereRow;
 		const selected = index === this.selected;
-		const hereLit = !(this.env.state.agentRunning && this.env.tick() % 8 >= 4);
+		const hereLit = !(here && this.env.state.agentRunning && this.env.every(480) % 2 === 1);
 		const right = [
 			row.branches > 1 ? t.fg(onPath ? "warning" : "dim", `◆${row.branches}`) : "",
 			row.branchSize !== undefined ? t.fg("dim", `╴${compactNumber(row.branchSize)}`) : "",

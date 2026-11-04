@@ -54,9 +54,10 @@ export function noSignalLines(theme: ThemeRef, message: string, width: number, h
 }
 
 /** Static noise with a centred message, for tabs that have nothing to show yet. */
-export function noSignal(theme: ThemeRef, message: () => string): Component {
+export function noSignal(theme: ThemeRef, message: () => string, every: (ms: number) => number): Component {
 	// Random static, redrawn on every frame, around a box in the middle of the panel.
 	const field = new Lines((width) => {
+		every(120);
 		const height = view.viewportHeight;
 		view.drawnFor = height;
 		return noSignalLines(theme, message(), width, height);

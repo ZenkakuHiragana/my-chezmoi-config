@@ -13,8 +13,8 @@ export function spinner(tick: number): string {
 }
 
 /** Time since `startedAt`, as `MM:SS`. */
-export function elapsedText(startedAt: number | undefined): string {
-	const seconds = Math.floor((Date.now() - (startedAt ?? Date.now())) / 1000);
+export function elapsedText(startedAt: number | undefined, now = Date.now()): string {
+	const seconds = Math.floor((now - (startedAt ?? now)) / 1000);
 	return `${String(Math.floor(seconds / 60)).padStart(2, "0")}:${String(seconds % 60).padStart(2, "0")}`;
 }
 
@@ -238,4 +238,4 @@ export function withCursor(env: PanelEnv, selection: Selection, id: string, line
 	return lines.map((line, index) => (index >= from && index < to ? mark : " ") + line);
 }
 
-registerPanel("nosignal", (env) => ({ component: noSignal(env.theme, () => "NO SIGNAL"), title: () => "NO SIGNAL" }));
+registerPanel("nosignal", (env) => ({ component: noSignal(env.theme, () => "NO SIGNAL", env.every), title: () => "NO SIGNAL" }));

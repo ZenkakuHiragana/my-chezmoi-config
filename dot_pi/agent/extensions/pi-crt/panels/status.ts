@@ -4,7 +4,7 @@
 import { colorToRgb, foregroundAnsi, backgroundAnsi, visibleWidth } from "@earendil-works/pi-tui";
 import { contextData, contextUsage } from "../features/context.ts";
 import { gitData } from "../features/git.ts";
-import { logoArt, logoData, logoError, logoPicture, type LogoScene } from "../features/logo.ts";
+import { logoArt, logoData, logoError, logoFrameTime, logoPicture, type LogoScene } from "../features/logo.ts";
 import { toolData } from "../features/tools.ts";
 import { usageData } from "../features/usage.ts";
 import { vitals } from "../features/vitals.ts";
@@ -29,7 +29,7 @@ registerPanel("vitals", (env) => {
 				const lines = vitalsLines(env, width);
 				return [...Array.from({ length: Math.max(0, Math.floor((height - lines.length) / 2)) }, () => ""), ...lines];
 			},
-			() => [
+			(width) => [
 				contextData(env.state).version,
 				env.state.version,
 				toolData(env.state).toolsVersion,
@@ -37,8 +37,8 @@ registerPanel("vitals", (env) => {
 				usageData(env.state).version,
 				vitals(env.state).version,
 				logoData(env.state).version,
-				// The STATUS logo also moves while the agent is idle.
-				env.tick(),
+				...logoKey(env, Math.max(10, width - 2)),
+				stateText(env),
 				view?.viewportHeight,
 			],
 		),
@@ -114,8 +114,12 @@ function usageLines(env: PanelEnv, width: number): string[] {
 	}
 	const lines: string[] = [];
 	const labelWidth = Math.max(4, ...windows.map((window) => visibleWidth(window.label)));
-	const now = Date.now();
+	const now = env.now();
 	for (const window of windows) {
+		if (window.resetAt !== undefined && window.resetAt > now) {
+			const minutes = Math.ceil((window.resetAt - now) / 60_000);
+			env.redrawAt(window.resetAt - (minutes - 1) * 60_000);
+		}
 		const reset = window.resetAt === undefined ? "" : `resets in ${untilText(window.resetAt - now)}`;
 		// Name, bar, "100%", then the reset time when it fits.
 		const barWidth = Math.max(4, Math.min(24, width - labelWidth - 9 - (reset ? reset.length + 2 : 0)));
@@ -199,17 +203,46 @@ function vitalsLines(env: PanelEnv, width: number): string[] {
 /** `WORKING 02:14` while the agent runs, `STANDBY` otherwise. */
 function stateText(env: PanelEnv): string {
 	if (!env.state.agentRunning) return "STANDBY";
-	return `WORKING  ${elapsedText(env.state.agentStartedAt)}`;
+	const now = env.now();
+	const startedAt = env.state.agentStartedAt;
+	if (startedAt !== undefined) env.redrawAt(startedAt + (Math.floor((now - startedAt) / 1000) + 1) * 1000);
+	return `WORKING  ${elapsedText(startedAt, now)}`;
 }
 
 /** Scene priority follows the live agent and tool state. */
 function logoScene(env: PanelEnv): LogoScene {
 	if (env.state.agentRunning) {
 		const tools = toolData(env.state);
-		if (tools.lastErrorAt !== undefined && Date.now() - tools.lastErrorAt < 3000) return "error";
+		if (tools.lastErrorAt !== undefined && env.now() - tools.lastErrorAt < 3000) {
+			env.redrawAt(tools.lastErrorAt + 3000);
+			return "error";
+		}
 		return tools.active.size ? "tool" : "thinking";
 	}
 	return env.state.termAttention ? "done" : "standby";
+}
+
+/** The visible animation values also schedule their next change, even on a cache hit. */
+function logoKey(env: PanelEnv, width: number): unknown[] {
+	const now = env.now();
+	const scene = logoScene(env);
+	const frame = logoFrameTime(env.state, scene, now);
+	if (frame.next !== undefined) env.redrawAt(frame.next);
+	if (frame.key !== undefined) return [scene, frame.key];
+	let scale = 4;
+	while (scale > 1 && pixelArtWidth(PI_LOGO, scale) > width) scale--;
+	const length = PI_LOGO.length * scale;
+	const tick = Math.floor(now / 120);
+	let stage = -1;
+	if (env.state.agentRunning || tick % 42 < length) stage = env.every(120);
+	else env.redrawAt((Math.floor(tick / 42) + 1) * 42 * 120);
+	const errorAt = toolData(env.state).lastErrorAt;
+	const noisy = env.state.agentRunning && errorAt !== undefined && now < errorAt + 1000;
+	if (noisy) env.redrawAt(errorAt + 1000);
+	const done = !env.state.agentRunning && env.state.termAttention;
+	const breath = done ? 0.9 + 0.1 * Math.cos((2 * Math.PI * now) / 2400) : 1;
+	if (done) env.redrawAt(now + 1000 / 60);
+	return [scene, frame.key, stage, noisy, breath];
 }
 
 /** The logo in the theme's accent colour, as large as the panel allows. */
@@ -222,13 +255,14 @@ function logoLines(env: PanelEnv, width: number): string[] {
 	// as cells carrying brightness, coloured here so that a change of theme recolours
 	// them without reading the picture again.
 	const scene = logoScene(env);
-	const tick = env.tick();
-	const picture = logoPicture(env.state, width, base, scene, tick);
+	const now = env.now();
+	const tick = Math.floor(now / 120);
+	const picture = logoPicture(env.state, width, base, scene, now);
 	if (picture) {
 		const pad = " ".repeat(Math.max(0, Math.floor((width - picture.columns) / 2)));
 		return [pad + picture.lines[0], ...picture.lines.slice(1)];
 	}
-	const image = logoArt(env.state, width, scene, tick);
+	const image = logoArt(env.state, width, scene, now);
 	if (image) {
 		const pad = " ".repeat(Math.max(0, Math.floor((width - image[0]!.length) / 2)));
 		return image.map((row) => pad + row.map(({ glyph, fg, bg }) => {
@@ -246,7 +280,7 @@ function logoLines(env: PanelEnv, width: number): string[] {
 	// rows, so that the scan line is one pixel thin and the noise moves by one pixel.
 	const pixels = PI_LOGO.flatMap((row) => Array.from({ length: scale }, () => [...row].map((pixel) => pixel.repeat(scale)).join("")));
 	const tools = toolData(env.state);
-	const errorAge = tools.lastErrorAt === undefined ? Infinity : Date.now() - tools.lastErrorAt;
+	const errorAge = tools.lastErrorAt === undefined ? Infinity : now - tools.lastErrorAt;
 	const working = env.state.agentRunning;
 	const done = !working && env.state.termAttention;
 	const scan = working ? tick % pixels.length : tick % 42 < pixels.length ? tick % 42 : -1;
@@ -266,7 +300,7 @@ function logoLines(env: PanelEnv, width: number): string[] {
 	// The scan line is the accent halfway to white, so that it shows on the brightest shade too.
 	// Done (finished on another page, not yet seen) breathes: the brightness eases down to
 	// 80% and back every 2.4 s (20 ticks), without the logo going away.
-	const breath = done ? 0.9 + 0.1 * Math.cos((2 * Math.PI * tick) / 20) : 1;
+	const breath = done ? 0.9 + 0.1 * Math.cos((2 * Math.PI * now) / 2400) : 1;
 	const palette: Record<string, Rgb> = { ...shadePalette(base, Object.fromEntries(Object.entries(PI_LOGO_SHADES).map(([key, factor]) => [key, factor * breath]))), h: base.map((value) => Math.round(value + (255 - value) / 2)) as Rgb };
 	const paint: Paint = (glyph, colors) => {
 		const fg = colors.fg ? palette[colors.fg] : undefined;

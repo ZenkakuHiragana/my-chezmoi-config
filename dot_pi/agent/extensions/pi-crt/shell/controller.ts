@@ -79,7 +79,6 @@ const BASE = Symbol.for("pi-crt.base-root");
  */
 const CARRY_TABS_SHOWN = Symbol.for("pi-crt.carry-tabs-shown");
 const carried = globalThis as { [CARRY_TABS_SHOWN]?: boolean };
-const FRAME_MS = 120;
 /** How long the editor border says how to type after typed text was ignored. */
 const IGNORED_MS = 1000;
 
@@ -125,8 +124,9 @@ export interface Shell {
 	/** What the features in features/ get. */
 	readonly features: FeatureEnv;
 	theme(): Theme;
-	/** Animation frame number derived from the clock. */
-	tick(): number;
+	now(): number;
+	every(ms: number): number;
+	redrawAt(at: number): void;
 	requestRender(): void;
 	/** The tabs are on screen (fullscreen, root mounted). */
 	tabsShown(): boolean;
@@ -171,7 +171,11 @@ export function createShell(pi: ExtensionAPI): Shell {
 	const activePage = tabs.map(() => 0);
 	let panelChoice: boolean | undefined;
 	let ignoredAt: number | undefined;
-	const typingIgnored = () => ignoredAt !== undefined && Date.now() - ignoredAt < IGNORED_MS;
+	const typingIgnored = () => {
+		if (ignoredAt === undefined || now() >= ignoredAt + IGNORED_MS) return false;
+		redrawAt(ignoredAt + IGNORED_MS);
+		return true;
+	};
 	/** Selected panel and maximized panel, per page. */
 	const focus = new Map<string, string>();
 	const maximized = new Map<string, string>();
@@ -191,7 +195,9 @@ export function createShell(pi: ExtensionAPI): Shell {
 		delete carried[CARRY_TABS_SHOWN];
 	};
 	let timer: ReturnType<typeof setTimeout> | undefined;
-	let animating = false;
+	let wakeAt: number | undefined;
+	let lastWake = -Infinity;
+	let renderTime: number | undefined;
 	let warnedShape = false;
 	const roots = new Map<string, Component>();
 	const arrangements = new Map<string, BuiltArrangement>();
@@ -229,7 +235,30 @@ export function createShell(pi: ExtensionAPI): Shell {
 	const nextRenderers = new Map<string, () => ToolRenderers | undefined>();
 
 	const theme = () => ctxRef!.ui.theme;
-	const tick = () => Math.floor(Date.now() / FRAME_MS);
+	const now = () => {
+		if (renderTime === undefined) {
+			renderTime = Date.now();
+			setImmediate(() => { renderTime = undefined; });
+		}
+		return renderTime;
+	};
+	const redrawAt = (at: number) => {
+		if (wakeAt !== undefined && wakeAt <= at) return;
+		if (timer) clearTimeout(timer);
+		wakeAt = at;
+		timer = setTimeout(() => {
+			timer = undefined;
+			wakeAt = undefined;
+			lastWake = Date.now();
+			requestRender();
+		}, Math.max(0, Math.ceil(Math.max(at, lastWake + 1000 / 60) - Date.now())));
+		timer.unref?.();
+	};
+	const every = (ms: number) => {
+		const value = Math.floor(now() / ms);
+		redrawAt((value + 1) * ms);
+		return value;
+	};
 	const pageKey = (tab: number, page: number) => `${tab}:${page}`;
 	const currentKey = () => pageKey(activeTab, activePage[activeTab]!);
 	const currentPage = () => pages[activeTab]![activePage[activeTab]!];
@@ -245,7 +274,7 @@ export function createShell(pi: ExtensionAPI): Shell {
 	const env: PanelEnv = {
 		theme,
 		state,
-		tick,
+		now, every, redrawAt,
 		focused: (id) => panelMode() && focusedId() === id,
 		focusPanel: (id) => {
 			focus.set(currentKey(), id);
@@ -285,7 +314,7 @@ export function createShell(pi: ExtensionAPI): Shell {
 				built = buildArrangement(page.layout, (id) => handleFor(id).component, theme, screenHost);
 			} catch (error) {
 				const message = error instanceof Error ? error.message : String(error);
-				built = { component: noSignal(theme, () => `LAYOUT ERROR: ${message}`), panelsAt: () => [] };
+				built = { component: noSignal(theme, () => `LAYOUT ERROR: ${message}`, every), panelsAt: () => [] };
 			}
 			arrangements.set(key, built);
 		}
@@ -337,12 +366,14 @@ export function createShell(pi: ExtensionAPI): Shell {
 		return ids.find((id) => id !== "transcript" && handleFor(id).list) ?? primaryPanel();
 	};
 
-	const blinkOn = () => state.termAttention && tick() % 8 < 4;
+	const blinkOn = () => state.termAttention && every(480) % 2 === 0;
 
 	const clock = () => {
 		const t = theme();
-		const time = new Date().toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" });
-		const rad = state.agentRunning ? t.fg(tick() % 6 < 3 ? "warning" : "muted", "☢") : t.fg("dim", "☢");
+		const timeNow = now();
+		redrawAt((Math.floor(timeNow / 60000) + 1) * 60000);
+		const time = new Date(timeNow).toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" });
+		const rad = state.agentRunning ? t.fg(every(360) % 2 === 0 ? "warning" : "muted", "☢") : t.fg("dim", "☢");
 		return `${rad} ${t.fg("muted", time)}`;
 	};
 
@@ -389,7 +420,6 @@ export function createShell(pi: ExtensionAPI): Shell {
 	const setTabsShown = (shown: boolean) => {
 		if (shown === tabsShown) return;
 		tabsShown = shown;
-		updateTimer();
 		notifyShown();
 	};
 
@@ -500,7 +530,6 @@ export function createShell(pi: ExtensionAPI): Shell {
 			changed(state);
 		}
 		mount();
-		updateTimer();
 		notifyShown();
 	};
 
@@ -521,35 +550,10 @@ export function createShell(pi: ExtensionAPI): Shell {
 
 	/* ------------------------------------------------------------ timer */
 
-	/**
-	 * Redraw every FRAME_MS while something moves; otherwise only when the minute
-	 * on the clock changes. Animation frames come from the clock (`tick`), so they
-	 * stay right whichever redraw shows them. Without the tabs on screen, only the
-	 * editor border moves (WORKING), and only while the agent runs. After typed text
-	 * was ignored, the editor border says how to type until IGNORED_MS has passed.
-	 */
-	const updateTimer = () => {
-		const moving =
-			state.agentRunning || (tabsShown && (state.termAttention || typingIgnored() || visiblePanels().includes("nosignal") || visiblePanels().includes("vitals")));
-		if (!tabsShown && !moving) {
-			stopTimer();
-			return;
-		}
-		if (timer && moving === animating) return;
-		stopTimer();
-		animating = moving;
-		const delay = moving ? FRAME_MS : 60_000 - (Date.now() % 60_000) + 50;
-		timer = setTimeout(() => {
-			timer = undefined;
-			requestRender();
-			updateTimer();
-		}, delay);
-		timer.unref?.();
-	};
-
 	const stopTimer = () => {
 		if (timer) clearTimeout(timer);
 		timer = undefined;
+		wakeAt = undefined;
 	};
 
 	const shell: Shell = {
@@ -565,7 +569,7 @@ export function createShell(pi: ExtensionAPI): Shell {
 			},
 		},
 		theme,
-		tick,
+		now, every, redrawAt,
 		requestRender,
 		tabsShown: () => tabsShown,
 		editorFocused,
@@ -576,7 +580,6 @@ export function createShell(pi: ExtensionAPI): Shell {
 		ignoreTyping: () => {
 			ignoredAt = Date.now();
 			requestRender();
-			updateTimer();
 		},
 		typingIgnored,
 		visiblePanels,
@@ -624,7 +627,6 @@ export function createShell(pi: ExtensionAPI): Shell {
 			attach();
 			return editor;
 		});
-		updateTimer();
 	});
 
 	pi.on("session_shutdown", (event) => {
@@ -649,7 +651,6 @@ export function createShell(pi: ExtensionAPI): Shell {
 		state.agentRunning = true;
 		state.agentStartedAt = Date.now();
 		changed(state);
-		updateTimer();
 	});
 
 	pi.on("agent_end", () => {
@@ -657,7 +658,6 @@ export function createShell(pi: ExtensionAPI): Shell {
 		const somewhere = pages.some((list, t) => list.some((_page, p) => showsTranscript(t, p)));
 		if (somewhere && !visiblePanels().includes("transcript")) state.termAttention = true;
 		changed(state);
-		updateTimer();
 	});
 
 	return shell;

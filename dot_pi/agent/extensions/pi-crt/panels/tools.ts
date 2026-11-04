@@ -18,7 +18,7 @@ registerPanel("thinking", (env) =>
 			const data = toolData(env.state);
 			const trimmed = data.thinkingTrimmed || data.thinking.length > THINKING_TAIL;
 			const title = trimmed ? `THINKING  …last ${THINKING_TAIL} chars` : "THINKING";
-			return env.state.agentRunning ? `${title} ${spinner(env.tick())}` : title;
+			return env.state.agentRunning ? `${title} ${spinner(env.every(120))}` : title;
 		},
 		new Lines(
 			(width) => {
@@ -48,7 +48,7 @@ registerPanel("tools", (env) =>
 				return tools.map((tool) => toolLine(env, tool));
 			},
 			// Spinners of running tools move only while the agent runs.
-			() => [toolData(env.state).toolsVersion, env.state.agentRunning ? env.tick() : -1],
+			() => [toolData(env.state).toolsVersion, env.state.agentRunning ? env.every(120) : -1],
 		),
 		"end",
 		() => env.focused("tools"),
@@ -169,7 +169,7 @@ function toolLine(env: PanelEnv, tool: ToolEntry): string {
 	const t = env.theme();
 	const mark =
 		tool.status === "running"
-			? t.fg("warning", spinner(env.tick()))
+			? t.fg("warning", spinner(env.every(120)))
 			: tool.status === "ok"
 				? t.fg("success", "✓")
 				: t.fg("error", "✗");

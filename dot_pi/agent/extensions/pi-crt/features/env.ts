@@ -15,7 +15,9 @@
  * the version right there, with the redraw (`changed` does both); a panel keys its cached lines on the versions of the data it reads and on its own
  * view (selection, focus, a clock while it moves), never on single fields. A theme
  * change needs no key: Pi invalidates the components it shows, and the shell
- * invalidates a page when it comes on screen.
+ * invalidates a page when it comes on screen. A panel using every in its draw
+ * function puts the same value in its key. At each redrawAt time, a value in the
+ * key must change; do not key on now itself.
  */
 import type { ExtensionContext } from "@earendil-works/pi-coding-agent";
 import type { CrtState, Versioned } from "../state/core.ts";

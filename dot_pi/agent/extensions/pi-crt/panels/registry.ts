@@ -12,8 +12,9 @@ import type { CrtState } from "../state/core.ts";
 export interface PanelEnv {
 	theme: ThemeRef;
 	state: CrtState;
-	/** Animation frame number derived from the clock; panels use it to pick animation frames. */
-	tick: () => number;
+	now: () => number;
+	every: (ms: number) => number;
+	redrawAt: (at: number) => void;
 	/** Whether the panel has the keys (panel mode, and this panel is selected). */
 	focused: (id: string) => boolean;
 	/** Select a panel and give it the keys. */
