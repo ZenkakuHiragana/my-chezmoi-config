@@ -176,7 +176,7 @@ function vitalsLines(env: PanelEnv, width: number): string[] {
 	));
 	body.push("");
 	body.push(...logoLines(env, inner));
-	const error = logoError(env.state, logoScene(env));
+	const error = logoError(env.state, sceneTime(env).scene);
 	if (error) body.push(centerLine(error, inner));
 	body.push("");
 	body.push(centerLine(stateText(env), inner));
@@ -225,13 +225,19 @@ function logoScene(env: PanelEnv): LogoScene {
 	return env.state.termAttention ? "done" : "standby";
 }
 
+/** How long a scene drawn from an image stays at least, so that quick tool calls do not flicker it. */
+const MIN_SCENE_MS = 600;
+
 /** The scene each pi-crt instance shows, and when it started (see sceneTime). */
-const sceneStarts = new WeakMap<object, { key: string; since: number }>();
+const sceneStarts = new WeakMap<object, { key: string; scene: LogoScene; since: number }>();
 
 /**
  * The scene and the time into it: a scene's animation plays from its first frame
  * when the scene starts. The error scene starts with the error (again with each new
  * one); another scene starts when it is first shown in place of the one before.
+ * A scene drawn from an image is shown for MIN_SCENE_MS at least before another
+ * replaces it, except the error scene. Pi's logo does not use the scene's frames, so
+ * a scene without an image is replaced at once.
  */
 function sceneTime(env: PanelEnv): { scene: LogoScene; at: number; since: number } {
 	const scene = logoScene(env);
@@ -240,7 +246,11 @@ function sceneTime(env: PanelEnv): { scene: LogoScene; at: number; since: number
 	const key = scene === "error" ? `error ${errorAt}` : scene;
 	let start = sceneStarts.get(env.state);
 	if (start?.key !== key) {
-		start = { key, since: scene === "error" && errorAt !== undefined ? errorAt : now };
+		if (start && scene !== "error" && now - start.since < MIN_SCENE_MS && logoFrameTime(env.state, start.scene, 0).key !== undefined) {
+			env.redrawAt(start.since + MIN_SCENE_MS);
+			return { scene: start.scene, at: now - start.since, since: start.since };
+		}
+		start = { key, scene, since: scene === "error" && errorAt !== undefined ? errorAt : now };
 		sceneStarts.set(env.state, start);
 	}
 	return { scene, at: now - start.since, since: start.since };
