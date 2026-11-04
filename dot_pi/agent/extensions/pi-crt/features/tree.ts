@@ -12,7 +12,7 @@
  * runs an extension command before anything reaches the model.
  */
 
-import type { ExtensionAPI, SessionTreeNode } from "@earendil-works/pi-coding-agent";
+import { copyToClipboard, type ExtensionAPI, type SessionTreeNode } from "@earendil-works/pi-coding-agent";
 import type { CrtState } from "../state/core.ts";
 import type { FeatureEnv } from "./env.ts";
 
@@ -34,6 +34,14 @@ interface TreeState {
 	version: number;
 	/** The copy no longer matches the session. */
 	stale: boolean;
+	/**
+	 * The user or custom message pi-crt jumped to, until pi moves otherwise: the jump put
+	 * pi before it, at its parent, which is also where any other child of the parent
+	 * starts. Pi does not record which child was picked; TREE shows HERE on it.
+	 */
+	before?: { entryId: string; leafId: string | null };
+	/** pi-crt's own jump is under way: the session_tree it causes keeps `before`. */
+	jumping: boolean;
 }
 
 interface TreeFeature {
@@ -45,10 +53,24 @@ interface TreeFeature {
 /** Each pi-crt instance's tree, by its CrtState (see FeatureEnv). */
 const features = new WeakMap<CrtState, TreeFeature>();
 
+/**
+ * Whether a jump to an entry puts pi before it rather than after it: Pi's navigateTree
+ * moves to the parent of a user or custom message and puts its text in the editor.
+ */
+export function jumpsBefore(entry: SessionTreeNode["entry"]): boolean {
+	return entry.type === "custom_message" || (entry.type === "message" && entry.message.role === "user");
+}
+
+/** The user or custom message pi is before after jumping to it, if pi has not moved since. */
+export function jumpedBefore(state: CrtState): string | undefined {
+	const data = features.get(state)?.data;
+	return data?.before && data.before.leafId === data.leafId ? data.before.entryId : undefined;
+}
+
 /** The tree, read again first when it is stale. Called while the panel is drawn. */
 export function sessionTree(state: CrtState): Readonly<TreeState> {
 	const feature = features.get(state);
-	if (!feature) return { tree: [], leafId: null, version: 0, stale: true };
+	if (!feature) return { tree: [], leafId: null, version: 0, stale: true, jumping: false };
 	const { data } = feature;
 	if (data.stale) {
 		const ctx = feature.env.context();
@@ -67,6 +89,47 @@ export function initialFilter(state: CrtState): TreeFilterMode {
 	return features.get(state)?.pi.getSettings().treeFilterMode ?? "default";
 }
 
+/**
+ * Whether an entry's label can be changed now. Pi appends the change as an entry
+ * after the one it is at, so not while the agent is adding its own; says why not.
+ */
+export function canLabel(state: CrtState): boolean {
+	const feature = features.get(state);
+	if (!feature) return false;
+	if (!feature.env.state.agentRunning) return true;
+	feature.env.context()?.ui.notify("Wait for the agent to finish before changing a label.", "warning");
+	return false;
+}
+
+/** Set an entry's label, or remove it when `label` is empty, as /tree's label key does. */
+export function setEntryLabel(state: CrtState, entryId: string, label: string): void {
+	const feature = features.get(state);
+	if (!feature || !canLabel(state)) return;
+	const { data } = feature;
+	const leafId = feature.env.context()?.sessionManager.getLeafId() ?? null;
+	feature.pi.setLabel(entryId, label.trim() || undefined);
+	// Pi adds the change as an entry after the one it is at and moves there; pi is still
+	// before the message it jumped to.
+	if (data.before?.leafId === leafId) data.before.leafId = feature.env.context()?.sessionManager.getLeafId() ?? null;
+	// Pi gives no event for a label change.
+	data.stale = true;
+	feature.env.requestRender();
+}
+
+/** Put an entry's text on the clipboard, as /tree's copy key does; says how it went. */
+export function copyEntry(state: CrtState, text: string | undefined): void {
+	const ui = features.get(state)?.env.context()?.ui;
+	if (!ui) return;
+	if (!text?.trim()) {
+		ui.notify("Selected entry has no text to copy", "warning");
+		return;
+	}
+	copyToClipboard(text).then(
+		() => ui.notify("Copied selected message to clipboard", "info"),
+		(error: unknown) => ui.notify(error instanceof Error ? error.message : String(error), "error"),
+	);
+}
+
 /** Jump to an entry, as choosing it in /tree does. */
 export function jumpTo(state: CrtState, entryId: string): void {
 	const pi = features.get(state)?.pi;
@@ -77,16 +140,21 @@ export function jumpTo(state: CrtState, entryId: string): void {
 }
 
 export function setupTree(pi: ExtensionAPI, env: FeatureEnv): void {
-	const data: TreeState = { tree: [], leafId: null, version: 0, stale: true };
+	const data: TreeState = { tree: [], leafId: null, version: 0, stale: true, jumping: false };
 	features.set(env.state, { pi, env, data });
 
 	const markStale = (): void => {
 		data.stale = true;
 		if (env.shows("tree")) env.requestRender();
 	};
-	pi.on("session_start", markStale);
-	pi.on("session_tree", markStale);
-	pi.on("message_end", markStale);
+	// Any move but pi-crt's own jump ends what that jump recorded.
+	const moved = (): void => {
+		if (!data.jumping) data.before = undefined;
+		markStale();
+	};
+	pi.on("session_start", moved);
+	pi.on("session_tree", moved);
+	pi.on("message_end", moved);
 
 	pi.registerCommand(COMMAND, {
 		description: "Jump to a point picked in MAP › TREE",
@@ -101,12 +169,30 @@ export function setupTree(pi: ExtensionAPI, env: FeatureEnv): void {
 				ctx.ui.notify("That point is not in this session.", "warning");
 				return;
 			}
-			if (entryId === ctx.sessionManager.getLeafId()) {
+			if (entryId === ctx.sessionManager.getLeafId() || (entryId === data.before?.entryId && data.before.leafId === ctx.sessionManager.getLeafId())) {
 				ctx.ui.notify("Already at this point", "info");
 				return;
 			}
+			const target = ctx.sessionManager.getEntry(entryId)!;
+			const go = async (options: { summarize: boolean; customInstructions?: string }): Promise<void> => {
+				// Jumping to a user or custom message puts pi at its parent, with the message
+				// in the editor. Recorded before the jump, so that the tree read while Pi moves
+				// has it; with a summary pi ends up elsewhere, and jumpedBefore no longer
+				// applies. A jump that does not happen leaves what was there.
+				const previous = data.before;
+				data.before = jumpsBefore(target) ? { entryId, leafId: target.parentId } : undefined;
+				data.jumping = true;
+				let cancelled = true;
+				try {
+					cancelled = (await ctx.navigateTree(entryId, options)).cancelled;
+				} finally {
+					data.jumping = false;
+					if (cancelled) data.before = previous;
+					markStale();
+				}
+			};
 			if (pi.getSettings().branchSummary?.skipPrompt) {
-				await ctx.navigateTree(entryId, { summarize: false });
+				await go({ summarize: false });
 				return;
 			}
 			const choice = await ctx.ui.select("Summarize branch?", [NO_SUMMARY, SUMMARIZE, SUMMARIZE_CUSTOM]);
@@ -116,7 +202,7 @@ export function setupTree(pi: ExtensionAPI, env: FeatureEnv): void {
 				customInstructions = await ctx.ui.editor("Custom summarization instructions");
 				if (customInstructions === undefined) return;
 			}
-			await ctx.navigateTree(entryId, { summarize: choice !== NO_SUMMARY, customInstructions });
+			await go({ summarize: choice !== NO_SUMMARY, customInstructions });
 		},
 	});
 }

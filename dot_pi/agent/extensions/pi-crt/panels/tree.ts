@@ -1,46 +1,64 @@
 /**
  * MAP's TREE and LOCATION panels: the session tree, drawn by pi-crt from
- * sessionManager.getTree(), and the selected row of it in full.
+ * sessionManager.getTree(), and a preview of the selected row.
  *
- * In the ALL TALK and NO TOOLS filters, a user message and the replies, tool calls
- * and results after it make one row, a turn. A fork ends the row; a label, a
- * compaction or a summary gets a row of its own. The other filters show one entry per
- * row. A chain of rows stays in one column; a fork indents its branches under ├─ and
- * └─, and its row shows ◆ and the number of branches. The last row of a branch shows
- * ╴ and the number of entries the branch holds. Each row ends with how full the context
- * was after it, and when it was. The path from the root to where pi is now is drawn
- * bright and everything off it dim; the row pi is in says HERE, which blinks while the
+ * A row stands for its first entry: Enter jumps there, the label key labels it and
+ * the copy key copies its text, each as /tree does for that entry. In the ALL TALK
+ * filter, a user message and the replies, tool calls and results after it make one
+ * row, a turn. A turn that ends a branch is followed by a row (╴ END) for the point to
+ * continue the branch from: after the turn's last entry that a jump can put pi after
+ * (a jump to a user or custom message puts pi before it, see jumpsBefore), with what
+ * follows that entry. There is none when that entry is the turn's first one, where
+ * Enter on the turn goes already, or when no entry of the turn is one. A fork ends the row; a
+ * compaction or a summary gets a row of its own. LABELED and EVERYTHING show one
+ * entry per row. A chain of rows stays in one column; a fork indents its branches
+ * under ├─ and └─, and its row shows ◆ and the number of branches. The last row of a
+ * branch shows ╴ and the number of entries the branch holds. Each row ends with how
+ * full the context was after it, and when it was. The path from the root to where pi is now is drawn
+ * bright and everything off it dim; the row pi is in says HERE (after a jump to a user
+ * message, that message's row, as pi is before it), which blinks while the
  * agent runs. The line at the top sums up the tree; the line at the bottom has the
  * selection's position, the filter and the keys.
  *
- * Keys in panel mode: the arrow keys or j/k move, PageUp/PageDown page, Home/End go to
- * the ends, Enter jumps to the last entry of the selected row. [ and ] go to the
- * previous and next fork, . back to HERE. /tree's filter keys (ctrl+t hides tool
- * results, ctrl+u shows user messages only, and the rest, as the user has them bound)
- * switch the filter, which starts from /tree's treeFilterMode setting. Mouse: the wheel
- * scrolls, a click selects, a double click jumps.
+ * LOCATION previews the selected row: when and where it is, its labels, then the
+ * first entry's text and the last reply in full as Markdown, and each reply between
+ * them as one line with the tools it called and what failed.
+ *
+ * Keys in panel mode: the arrow keys or j/k move, Pi's viewport keys (PageUp/PageDown
+ * and the rest, shell/input.ts) scroll, Home/End go to the ends, Enter jumps. [ and ]
+ * go to the previous and next fork, . back to HERE.
+ * /tree's keys, as the user has them bound: its filter keys switch among ALL TALK,
+ * LABELED and EVERYTHING (the filter starts from /tree's treeFilterMode setting, ALL
+ * TALK for a filter pi-crt does not have), its label key (shift+l) sets or removes the
+ * label in a field on the bottom line, and its copy key (ctrl+x) copies. ? shows these
+ * keys under the rows, in the panel, until it is pressed again, so they can be tried
+ * with the tree in view.
+ * Mouse: the wheel scrolls, a click selects, a double click jumps.
  *
  * The tree is flattened into rows when it or the filter changes. Drawing writes only
  * the rows on screen, so it costs the same however long the session is.
  */
 import type { AppKeybinding, SessionTreeNode, Theme, ThemeColor } from "@earendil-works/pi-coding-agent";
+import { getMarkdownTheme, keyText } from "@earendil-works/pi-coding-agent";
 import {
 	type Component,
 	getKeybindings,
+	Input,
+	type Keybinding,
+	Markdown,
 	matchesKey,
 	truncateToWidth,
 	type TuiMouseEvent,
 	type TuiMouseEventResult,
 	visibleWidth,
-	wrapTextWithAnsi,
 } from "@earendil-works/pi-tui";
 import { contextUsage } from "../features/context.ts";
-import { initialFilter, jumpTo, sessionTree, type TreeFilterMode } from "../features/tree.ts";
+import { canLabel, copyEntry, initialFilter, jumpedBefore, jumpsBefore, jumpTo, sessionTree, setEntryLabel, type TreeFilterMode } from "../features/tree.ts";
 import { framed, type SizedView } from "../screen/frame.ts";
 import { Lines } from "../screen/lines.ts";
 import { type CrtState, sanitize } from "../state/core.ts";
 import { bar, compactNumber } from "./common.ts";
-import { type ListControl, type PanelEnv, registerPanel } from "./registry.ts";
+import { type ListControl, type PanelEnv, registerPanel, VIEWPORT_KEYS } from "./registry.ts";
 
 type Entry = SessionTreeNode["entry"];
 
@@ -54,35 +72,53 @@ const MARGIN = 2;
 const CONTEXT_CELLS = 5;
 /** Narrowest panel that still shows the context bar on its rows. */
 const CONTEXT_MIN_WIDTH = 70;
-/** Lines of a message LOCATION shows before cutting it short. */
-const TEXT_LINES = 10;
 /** Entries that record settings and bookkeeping rather than the conversation. */
 const BOOKKEEPING = new Set<Entry["type"]>(["label", "context_edit", "custom", "model_change", "thinking_level_change", "session_info", "usage"]);
 /** The filters in /tree's cycling order, with the names shown in the footer. */
 const FILTERS: ReadonlyArray<readonly [TreeFilterMode, string]> = [
 	["default", "ALL TALK"],
-	["no-tools", "NO TOOLS"],
-	["user-only", "USER ONLY"],
 	["labeled-only", "LABELED"],
 	["all", "EVERYTHING"],
 ];
-/** Filters whose rows are turns rather than single entries. */
-const TURN_FILTERS = new Set<TreeFilterMode>(["default", "no-tools"]);
-/** /tree's filter keys, by the filter each one switches to (or toggles with the default). */
-const FILTER_KEYS: ReadonlyArray<readonly [AppKeybinding, TreeFilterMode | "next" | "previous"]> = [
-	["app.tree.filter.default", "default"],
-	["app.tree.filter.noTools", "no-tools"],
-	["app.tree.filter.userOnly", "user-only"],
-	["app.tree.filter.labeledOnly", "labeled-only"],
-	["app.tree.filter.all", "all"],
-	["app.tree.filter.cycleForward", "next"],
-	["app.tree.filter.cycleBackward", "previous"],
+/**
+ * /tree's filter keys for the filters above: the filter each one switches to (or toggles
+ * with the default), and what ? says it does.
+ */
+const FILTER_KEYS: ReadonlyArray<readonly [AppKeybinding, TreeFilterMode | "next" | "previous", string]> = [
+	["app.tree.filter.cycleForward", "next", "next filter"],
+	["app.tree.filter.cycleBackward", "previous", "previous filter"],
+	["app.tree.filter.default", "default", "ALL TALK"],
+	["app.tree.filter.labeledOnly", "labeled-only", "LABELED (again: ALL TALK)"],
+	["app.tree.filter.all", "all", "EVERYTHING (again: ALL TALK)"],
 ];
+/** What ? lists: the keys TREE adds to those the editor's border shows, as the user has them bound. */
+const KEYS: ReadonlyArray<readonly [() => string, string]> = [
+	...VIEWPORT_KEYS.map(({ keys, what }) => [() => keyPair(...keys), what] as const),
+	[() => "home/end", "first / last row"],
+	[() => "[ ]", "previous / next fork"],
+	[() => ".", "back to HERE"],
+	...FILTER_KEYS.map(([id, , what]) => [() => keyText(id), what] as const),
+	[() => keyText("app.tree.editLabel"), "set or remove the label"],
+	[() => keyText("app.message.copy"), "copy the text"],
+];
+
+/** `up/down` as the user has the two bound; empty when neither is. */
+function keyPair(up: Keybinding, down: Keybinding): string {
+	const keys = [keyText(up), keyText(down)];
+	return keys.some(Boolean) ? keys.map((key) => key || "-").join("/") : "";
+}
 
 /** One row: a chain of entries, and the tree lines drawn before it. */
 interface Row {
 	/** The entries of the row: the first, then each one that follows the one before. */
 	nodes: SessionTreeNode[];
+	/**
+	 * The row for where a branch that ends in a turn goes on from (╴ END): the turn's last
+	 * entry that Pi can be after, then what follows it in the turn.
+	 */
+	tip?: boolean;
+	/** On a turn row whose end has a tip row: the index of the first entry the tip row holds. */
+	tipFrom?: number;
 	/** One column per fork above: "│ " where that fork goes on below this row, "  " where it has ended. */
 	gutter: string;
 	/** The branch this row starts, or "" when it continues the row above. */
@@ -117,8 +153,6 @@ interface Look {
 interface Selected {
 	row: Row;
 	here: boolean;
-	/** Entries below the row's last entry, hidden ones too. */
-	below: number;
 	/** Tokens a full context bar stands for. */
 	scale: number;
 	contextWindow?: number;
@@ -154,9 +188,13 @@ registerPanel("location", (env) =>
 
 class TreeView implements Component, ListControl {
 	sized?: SizedView;
-	/** Changes whenever the selection or what it shows changes. */
+	/** Changes whenever what LOCATION shows changes: the selection, the rows. */
 	version = 0;
+	/** ? shows TREE's keys under the rows until it is pressed again. */
+	private help = false;
 	private rows: Row[] = [];
+	/** The label being typed on the bottom line; on submit it goes on the entry openLabel picked. */
+	private label?: Input;
 	/** Row index of each shown entry. */
 	private rowOf = new Map<string, number>();
 	/** Every entry by id, shown or not, to find the nearest shown ancestor. */
@@ -189,7 +227,10 @@ class TreeView implements Component, ListControl {
 		const height = this.sized && this.sized.viewportHeight > 0 ? this.sized.viewportHeight : FALLBACK_HEIGHT;
 		if (this.sized) this.sized.drawnFor = this.sized.viewportHeight;
 		const t = this.env.theme();
-		const listRows = Math.max(1, height - CHROME_LINES);
+		const keys = this.help ? keyLines(t, width) : [];
+		// The keys and the rule above them take what the rows leave, at least one row.
+		const shown = keys.slice(0, Math.max(0, height - CHROME_LINES - 2));
+		const listRows = Math.max(1, height - CHROME_LINES - (shown.length ? shown.length + 1 : 0));
 		const resized = listRows !== this.listRows;
 		this.listRows = listRows;
 		this.rebuild();
@@ -202,7 +243,8 @@ class TreeView implements Component, ListControl {
 			lines.push(this.rowLine(this.rows[index]!, index, width, t));
 		}
 		while (lines.length < listRows + 1) lines.push("");
-		lines.push(this.footer(width, t));
+		if (shown.length) lines.push(t.fg("borderMuted", "─".repeat(width)), ...shown);
+		lines.push(this.label ? this.labelLine(this.label, width, t) : this.footer(width, t));
 		return lines;
 	}
 
@@ -211,11 +253,9 @@ class TreeView implements Component, ListControl {
 		this.rebuild();
 		const row = this.rows[this.selected];
 		if (!row) return undefined;
-		const last = row.nodes[row.nodes.length - 1]!.entry.id;
 		return {
 			row,
 			here: this.selected === this.hereRow,
-			below: (this.sizes.get(last) ?? 1) - 1,
 			scale: this.scale,
 			contextWindow: this.contextWindow,
 		};
@@ -226,7 +266,10 @@ class TreeView implements Component, ListControl {
 	/** Flatten the tree again when it or the filter changed, keeping the selection where it can. */
 	private rebuild(): void {
 		const data = sessionTree(this.env.state);
-		this.filter ??= initialFilter(this.env.state);
+		if (this.filter === undefined) {
+			const initial = initialFilter(this.env.state);
+			this.filter = FILTERS.some(([mode]) => mode === initial) ? initial : "default";
+		}
 		if (data.version === this.builtVersion && this.filter === this.builtFilter && this.rows.length + this.byId.size > 0) return;
 		const leafMoved = data.leafId !== this.leafId || this.builtVersion < 0;
 		const previous = this.rows[this.selected]?.nodes[0]!.entry.id;
@@ -261,7 +304,7 @@ class TreeView implements Component, ListControl {
 		}
 		this.summary = { name, branches, depth };
 		const sizeOf = (node: SessionTreeNode) => this.sizes.get(node.entry.id) ?? 1;
-		this.rows = flatten(data.tree, filterTest(this.filter), TURN_FILTERS.has(this.filter), sizeOf);
+		this.rows = flatten(data.tree, filterTest(this.filter), this.filter === "default", sizeOf);
 		this.rowOf = new Map();
 		this.rows.forEach((row, index) => {
 			for (const node of row.nodes) this.rowOf.set(node.entry.id, index);
@@ -272,9 +315,12 @@ class TreeView implements Component, ListControl {
 		this.scale = Math.max(1, this.contextWindow ?? 0, most);
 		this.builtVersion = data.version;
 		this.builtFilter = this.filter;
-		this.hereRow = this.rows.length > 0 ? this.nearestRow(data.leafId) : -1;
+		// Right after a jump to a user message, pi is before it: HERE goes on its row.
+		const before = jumpedBefore(this.env.state);
+		const beforeRow = before === undefined ? undefined : this.rowOf.get(before);
+		this.hereRow = this.rows.length === 0 ? -1 : (beforeRow ?? this.nearestRow(data.leafId));
 		// After pi moves, the selection starts where pi is now, as in /tree.
-		this.selected = this.nearestRow(leafMoved ? data.leafId : (previous ?? data.leafId));
+		this.selected = leafMoved ? Math.max(0, this.hereRow) : this.nearestRow(previous ?? data.leafId);
 		this.top = this.selected - Math.floor(this.listRows / 2);
 		this.keepInView(0);
 		this.version++;
@@ -300,7 +346,7 @@ class TreeView implements Component, ListControl {
 		const right = [
 			row.branches > 1 ? t.fg(onPath ? "warning" : "dim", `◆${row.branches}`) : "",
 			row.branchSize !== undefined ? t.fg("dim", `╴${compactNumber(row.branchSize)}`) : "",
-			...row.nodes.filter((node) => node.label).map((node) => t.fg("warning", `#${sanitize(node.label!)}`)),
+			...rowLabels(row).map((node) => t.fg("warning", `#${sanitize(node.label!)}`)),
 			here ? t.fg(hereLit ? "accent" : "dim", t.bold("HERE")) : "",
 			width >= CONTEXT_MIN_WIDTH ? this.contextCell(row, t) : "",
 			t.fg("dim", ago(last.entry.timestamp).padStart(3)),
@@ -344,11 +390,17 @@ class TreeView implements Component, ListControl {
 		const name = FILTERS.find(([mode]) => mode === this.filter)?.[1] ?? "";
 		const position = this.rows.length > 0 ? `${this.selected + 1}/${this.rows.length}` : "0/0";
 		const head = `${t.fg("borderMuted", "──")} ${t.fg("accent", position)} ${t.fg("borderMuted", "·")} ${t.fg("accent", t.bold(name))} `;
-		const keys = t.fg("dim", " enter jump · [ ] fork · . here ");
+		// The hints that do not fit go first from the left: the filter key and ? stay longest.
+		const hints = this.help ? ["? back"] : ["[ ] fork", ". here", `${keyText("app.tree.filter.cycleForward")} filter`, "? keys"];
+		let keys = "";
+		while (hints.length) {
+			keys = t.fg("dim", ` ${hints.join(" · ")} `);
+			if (width - visibleWidth(head) - visibleWidth(keys) >= 2) break;
+			hints.shift();
+			keys = "";
+		}
 		const fill = Math.max(0, width - visibleWidth(head) - visibleWidth(keys));
-		return fill >= 2
-			? `${head}${t.fg("borderMuted", "─".repeat(fill))}${keys}`
-			: truncateToWidth(`${head}${t.fg("borderMuted", "─".repeat(Math.max(0, width - visibleWidth(head))))}`, width);
+		return truncateToWidth(`${head}${t.fg("borderMuted", "─".repeat(fill))}${keys}`, width);
 	}
 
 	/* ------------------------------------------------------------ moving */
@@ -359,6 +411,16 @@ class TreeView implements Component, ListControl {
 		if (this.selected < this.top + room) this.top = this.selected - room;
 		if (this.selected > this.top + this.listRows - 1 - room) this.top = this.selected - this.listRows + 1 + room;
 		this.top = Math.max(0, Math.min(this.top, this.rows.length - this.listRows));
+	}
+
+	/** The bottom line while a label is typed: the field, as /tree's label input asks for it. */
+	private labelLine(input: Input, width: number, t: Theme): string {
+		const head = `${t.fg("borderMuted", "──")} ${t.fg("accent", t.bold("LABEL"))} ${t.fg("dim", "(empty to remove)")} `;
+		const room = width - visibleWidth(head);
+		// Too narrow for the words: the field alone.
+		if (room < 10) return input.render(Math.max(1, width))[0] ?? "";
+		const field = input.render(room)[0] ?? "";
+		return head + field;
 	}
 
 	private select(index: number): void {
@@ -372,8 +434,16 @@ class TreeView implements Component, ListControl {
 		this.select(this.selected + delta);
 	}
 
-	page(delta: number): void {
-		this.select(this.selected + delta * Math.max(1, this.listRows - 1));
+	/** Scroll the rows shown (fewer while ? shows the keys) and select the row then at the top, as ListControl does. */
+	scroll(by: (height: number) => number): void {
+		if (this.rows.length === 0) return;
+		const lines = by(this.listRows);
+		const top = Math.max(0, Math.min(this.top + lines, this.rows.length - this.listRows));
+		// At the end already, the rows do not move: the key goes on to the row at that end.
+		if (top === this.top) return lines > 0 ? this.toEnd() : this.toStart();
+		this.top = top;
+		this.selected = top;
+		this.version++;
 	}
 
 	toStart(): void {
@@ -384,14 +454,36 @@ class TreeView implements Component, ListControl {
 		this.select(this.rows.length - 1);
 	}
 
-	/** Jump to the row's last entry: the end of its turn. */
+	/**
+	 * Jump to the row's first entry, as /tree does to that entry. On the tip row that says
+	 * HERE, pi is at the branch's end already, maybe past entries the filter hides: it stays.
+	 */
 	activate(): void {
 		const row = this.rows[this.selected];
-		if (row) jumpTo(this.env.state, row.nodes[row.nodes.length - 1]!.entry.id);
+		if (!row) return;
+		const here = row.tip && this.selected === this.hereRow && this.leafId !== null;
+		jumpTo(this.env.state, here ? this.leafId! : row.nodes[0]!.entry.id);
 	}
 
-	/** [ and ] for the previous and next fork, . for HERE, and /tree's filter keys. */
+	typing(): boolean {
+		return this.label !== undefined;
+	}
+
+	/**
+	 * The label field's keys while it is open; else [ and ] for the previous and next
+	 * fork, . for HERE, ? for the keys, and /tree's filter, label and copy keys.
+	 */
 	key(data: string): boolean {
+		if (this.label) {
+			// Esc (also what alt+o sends first) and Tab close the field; Enter saves.
+			if (matchesKey(data, "escape") || matchesKey(data, "tab")) this.closeLabel();
+			else this.label.handleInput(data);
+			return true;
+		}
+		if (matchesKey(data, "?")) {
+			this.help = !this.help;
+			return true;
+		}
 		if (matchesKey(data, "[") || matchesKey(data, "]")) {
 			const step = matchesKey(data, "]") ? 1 : -1;
 			for (let index = this.selected + step; index >= 0 && index < this.rows.length; index += step) {
@@ -407,14 +499,47 @@ class TreeView implements Component, ListControl {
 			return true;
 		}
 		const keybindings = getKeybindings();
+		if (keybindings.matches(data, "app.tree.editLabel")) {
+			this.openLabel();
+			return true;
+		}
+		if (keybindings.matches(data, "app.message.copy")) {
+			const row = this.rows[this.selected];
+			if (row) copyEntry(this.env.state, copyText(row.nodes[0]!.entry));
+			return true;
+		}
 		const found = FILTER_KEYS.find(([id]) => keybindings.matches(data, id));
 		if (!found) return false;
 		this.filter = nextFilter(this.filter ?? "default", found[1]);
 		return true;
 	}
 
+	/** Open the label field for the selected row's first entry. */
+	private openLabel(): void {
+		const row = this.rows[this.selected];
+		if (!row || !canLabel(this.env.state)) return;
+		const node = row.nodes[0]!;
+		const input = new Input({ prompt: "› " });
+		input.setValue(node.label ?? "");
+		input.focused = true;
+		const entryId = node.entry.id;
+		input.onSubmit = (value) => {
+			this.closeLabel();
+			setEntryLabel(this.env.state, entryId, value);
+		};
+		input.onEscape = () => this.closeLabel();
+		this.label = input;
+	}
+
+	private closeLabel(): void {
+		if (this.label) this.label.focused = false;
+		this.label = undefined;
+	}
+
 	/** The wheel scrolls; a click selects the row under it, a double click jumps there. */
 	handleMouse(event: TuiMouseEvent): TuiMouseEventResult | undefined {
+		// While a label is typed the row it goes on stays selected, as /tree hides its list then.
+		if (this.label) return event.type === "wheel" ? undefined : { handled: true };
 		if (event.type === "wheel") {
 			const delta = Math.trunc(event.wheelDelta ?? 0);
 			this.top = Math.max(0, Math.min(this.top + delta, this.rows.length - this.listRows));
@@ -441,48 +566,109 @@ class TreeView implements Component, ListControl {
 
 function locationLines(env: PanelEnv, width: number): string[] {
 	const t = env.theme();
-	const info = views.get(env.state)?.selection();
+	const view = views.get(env.state);
+	const info = view?.selection();
 	if (!info) return [t.fg("dim", " -- nothing selected --")];
 	const { row } = info;
 	const head = row.nodes[0]!;
 	const last = row.nodes[row.nodes.length - 1]!;
 	const look = rowLook(row);
 	const inner = Math.max(1, width - 2);
-	const wrap = (text: string, color: ThemeColor) => {
-		const lines = wrapTextWithAnsi(text, inner);
-		const shown = lines.slice(0, TEXT_LINES).map((line) => ` ${t.fg(color, line)}`);
-		if (lines.length > TEXT_LINES) shown.push(t.fg("dim", ` … ${lines.length - TEXT_LINES} more lines`));
-		return shown;
-	};
 	const lines: string[] = [];
-	const labels = row.nodes.filter((node) => node.label).map((node) => t.fg("warning", ` #${sanitize(node.label!)}`));
 	const here = info.here ? ` ${t.fg("accent", t.bold("HERE"))}` : "";
 	const span = row.nodes.length > 1 ? `–${localTime(last.entry.timestamp).slice(-5)}` : "";
 	const entries = row.nodes.length > 1 ? ` · ${row.nodes.length} entries` : "";
 	const when = `${localTime(head.entry.timestamp)}${span} (${ago(last.entry.timestamp)})${entries}`;
-	lines.push(` ${t.fg(look.color, t.bold(look.tag))} ${t.fg("dim", when)}${labels.join("")}${here}`);
+	lines.push(` ${t.fg(look.color, t.bold(look.tag))} ${t.fg("dim", when)}${here}`);
+	for (const node of rowLabels(row)) {
+		const set = node.labelTimestamp ? t.fg("dim", `  labeled ${localTime(node.labelTimestamp)} (${ago(node.labelTimestamp)})`) : "";
+		lines.push(` ${t.fg("warning", `#${sanitize(node.label!)}`)}${set}`);
+	}
 	if (row.turn.tokens !== undefined) {
 		const of = info.contextWindow ? t.fg("dim", ` / ${compactNumber(info.contextWindow)}`) : "";
 		const cells = Math.max(6, Math.min(24, inner - 20));
 		lines.push(` ${t.fg("dim", "CONTEXT")} ${bar(t, row.turn.tokens / info.scale, cells)} ${t.fg("text", compactNumber(row.turn.tokens))}${of}`);
 	}
-	const headText = fullText(head.entry);
-	lines.push("", ...wrap(headText || look.text, "text"));
-	if (row.nodes.length > 1) {
-		const { calls, errors, reply } = row.turn;
-		if (calls.length) {
-			const failed = errors ? t.fg("error", `  ✗${errors} failed`) : "";
-			lines.push("", ` ${t.fg("dim", "TOOLS")} ${t.fg("muted", `${calls.length} ${calls.length === 1 ? "call" : "calls"}`)}${failed}`);
-			lines.push(...wrap(toolNames(calls), "muted"));
-		}
-		if (reply && reply !== headText) lines.push("", ` ${t.fg("dim", "REPLY")}`, ...wrap(reply, "text"));
-	}
-	lines.push("");
-	if (row.branches > 1) lines.push(` ${t.fg("warning", `◆ ${row.branches} branches`)} ${t.fg("dim", `· ${info.below} entries below`)}`);
+	if (row.branches > 1) lines.push(` ${t.fg("warning", `◆ ${row.branches} branches`)}`);
 	else if (row.branchSize !== undefined) lines.push(t.fg("dim", ` ╴ end of branch · ${row.branchSize} entries in this branch`));
-	else lines.push(t.fg("dim", ` ${info.below} entries below`));
-	lines.push(t.fg("dim", row.nodes.length > 1 ? " enter jumps to the end of this row" : " enter jumps here"));
-	return lines.map((line) => truncateToWidth(line, width, "…"));
+	// The first entry's text and the last reply in full; each reply between them in a line.
+	const final = [...row.nodes].reverse().find((node) => node !== head && isReply(node.entry));
+	const markdown = (text: string) => new Markdown(text, 1, 0, getMarkdownTheme()).render(width);
+	const headText = fullText(head.entry);
+	lines.push("");
+	// Not push(...): a long text renders to more lines than a call takes arguments.
+	let shown = lines.concat(headText ? markdown(headText) : [` ${t.fg("muted", describe(head.entry).text)}`]);
+	for (const node of row.nodes.slice(1)) {
+		if (node === final) shown = shown.concat("", ` ${t.fg("dim", "REPLY")}`, markdown(fullText(node.entry)));
+		else shown.push(...stepLine(node.entry, t));
+	}
+	return shown.map((line) => truncateToWidth(line, width, "…"));
+}
+
+/** A reply with text: the last one of a row is shown in full. */
+function isReply(entry: Entry): boolean {
+	return entry.type === "message" && entry.message.role === "assistant" && entry.message.stopReason !== "error" && fullText(entry) !== "";
+}
+
+/** One line for an entry between a row's first one and its last reply: what it said or did. */
+function stepLine(entry: Entry, t: Theme): string[] {
+	if (entry.type === "custom_message") return [` ${t.fg("muted", `· NOTE ${sanitize(entry.customType)}: ${firstLine(contentText(entry.content))}`)}`];
+	if (entry.type !== "message") return [];
+	const message = entry.message;
+	switch (message.role) {
+		case "assistant": {
+			if (message.stopReason === "error") return [` ${t.fg("error", `✗ ${firstLine(message.errorMessage ?? "error")}`)}`];
+			// The line shown is the first one of the first text that has one; the rest is not read.
+			const first = message.content.find((block) => block.type === "text" && /\S/.test(block.text));
+			const text = first?.type === "text" ? firstLine(first.text) : "";
+			const calls = toolNames(message.content.flatMap((block) => (block.type === "toolCall" ? [block.name] : [])));
+			const said = text ? t.fg("text", `· ${text}`) : "";
+			const did = calls ? t.fg("muted", `${text ? " " : ""}→ ${calls}`) : "";
+			return said || did ? [` ${said}${did}`] : [];
+		}
+		case "toolResult":
+			return message.isError ? [` ${t.fg("error", `✗ ${sanitize(message.toolName)} failed`)}`] : [];
+		case "bashExecution":
+			return [` ${t.fg(message.exitCode ? "error" : "muted", `$ ${firstLine(message.command)}${message.exitCode ? `  ✗ exit ${message.exitCode}` : ""}`)}`];
+		case "custom":
+			return [` ${t.fg("muted", `· NOTE ${sanitize(message.customType)}: ${firstLine(contentText(message.content))}`)}`];
+		default:
+			return [];
+	}
+}
+
+/** An entry's text as /tree's copy key copies it. */
+function copyText(entry: Entry): string | undefined {
+	if (entry.type === "message") {
+		const message = entry.message;
+		if (message.role === "bashExecution") return message.command;
+		if ("content" in message) {
+			const text = typeof message.content === "string" ? message.content : message.content.map((block) => (block.type === "text" ? block.text : "")).join("");
+			return text || (message.role === "assistant" ? message.errorMessage : undefined);
+		}
+		return undefined;
+	}
+	if (entry.type === "custom_message") return typeof entry.content === "string" ? entry.content : entry.content.map((block) => (block.type === "text" ? block.text : "")).join("");
+	if (entry.type === "compaction" || entry.type === "branch_summary") return entry.summary;
+	return undefined;
+}
+
+/**
+ * What ? shows under the rows: TREE's keys as the user has them bound (unbound ones
+ * left out), in as many columns as the width takes, row by row.
+ */
+function keyLines(t: Theme, width: number): string[] {
+	const keys = KEYS.map(([key, what]) => [key(), what] as const).filter(([key]) => key);
+	const keyWidth = Math.max(...keys.map(([key]) => visibleWidth(key))) + 2;
+	const cell = keyWidth + Math.max(...keys.map(([, what]) => visibleWidth(what)));
+	const gap = 3;
+	const columns = Math.max(1, Math.floor((width - 1 + gap) / (cell + gap)));
+	const lines: string[] = [];
+	for (let at = 0; at < keys.length; at += columns) {
+		const cells = keys.slice(at, at + columns).map(([key, what]) => `${t.fg("accent", key)}${" ".repeat(keyWidth - visibleWidth(key))}${t.fg("text", what)}${" ".repeat(cell - keyWidth - visibleWidth(what))}`);
+		lines.push(truncateToWidth(` ${cells.join(" ".repeat(gap))}`, width, "…"));
+	}
+	return lines;
 }
 
 /** The whole text of an entry that has one, without control characters other than line breaks. */
@@ -494,11 +680,14 @@ function fullText(entry: Entry): string {
 		else if (message.role === "assistant") text = message.content.map((block) => (block.type === "text" ? block.text : "")).join("\n");
 	} else if (entry.type === "custom_message") text = contentText(entry.content);
 	else if (entry.type === "compaction" || entry.type === "branch_summary") text = entry.summary;
+	// Blank lines around the text go, but not the first line's indent: in Markdown an
+	// indented line is code.
 	return text
 		.split("\n")
 		.map((line) => sanitize(line))
 		.join("\n")
-		.trim();
+		.replace(/^(?:[ \t]*\n)+/, "")
+		.trimEnd();
 }
 
 /* ------------------------------------------------------------ the tree as rows */
@@ -532,7 +721,7 @@ function flatten(
 		// An item with no connector is the only child of the last row's last entry.
 		const above = rows[rows.length - 1];
 		let row: Row;
-		if (turns && connector === "" && above && joins(above, node)) {
+		if (turns && connector === "" && above && !above.tip && joins(above, node)) {
 			row = above;
 			row.nodes.push(node);
 		} else {
@@ -542,7 +731,17 @@ function flatten(
 		addToTurn(row.turn, node.entry);
 		row.branches = children.length;
 		row.branchSize = children.length === 0 ? sizeOf(branch) : undefined;
-		push(children, gutter + (connector === "├─" ? "│ " : connector === "└─" ? "  " : ""), branch);
+		const below = gutter + (connector === "├─" ? "│ " : connector === "└─" ? "  " : "");
+		// A turn that ends a branch gets a row for where the branch goes on from: after its
+		// last entry that Pi can be after (a jump to a user or custom message goes before it).
+		// None when that is the turn's first entry, where Enter on the turn already goes.
+		const from = turns && children.length === 0 ? row.nodes.findLastIndex((item) => !jumpsBefore(item.entry)) : -1;
+		if (from > 0) {
+			rows.push({ nodes: row.nodes.slice(from), tip: true, gutter: below, connector: "", branches: 0, branchSize: row.branchSize, turn: { calls: [], errors: 0, reply: "", tokens: row.turn.tokens } });
+			row.tipFrom = from;
+			row.branchSize = undefined;
+		}
+		push(children, below, branch);
 	}
 	return rows;
 }
@@ -550,7 +749,7 @@ function flatten(
 /** Whether an entry goes on the row above: a reply, tool result, command or note after a user message. */
 function joins(row: Row, node: SessionTreeNode): boolean {
 	const head = row.nodes[0]!;
-	if (node.label !== undefined || head.label !== undefined || !inTurn(node.entry)) return false;
+	if (!inTurn(node.entry)) return false;
 	return inTurn(head.entry) || (head.entry.type === "message" && head.entry.message.role === "user");
 }
 
@@ -587,6 +786,7 @@ function usageTokens(
 
 /** How a row is shown: its first entry, then what the rest of the turn did (`tail`). */
 function rowLook(row: Row): Look & { tail: string } {
+	if (row.tip) return { tag: "╴END", color: "muted", text: "", tail: "" };
 	const head = row.nodes[0]!.entry;
 	const look = describe(head);
 	if (row.nodes.length === 1) return { ...look, tail: "" };
@@ -595,6 +795,12 @@ function rowLook(row: Row): Look & { tail: string } {
 	// A row that starts with a reply (after a fork) sums up the whole row instead.
 	if (head.type === "message" && head.message.role === "assistant") return { tag: "ASST", color: "text", text: "", tail: did };
 	return { ...look, tail: did };
+}
+
+/** The labels a row shows: its entries', but those its tip row (tipFrom on) shows. */
+function rowLabels(row: Row): SessionTreeNode[] {
+	const nodes = row.tipFrom === undefined ? row.nodes : row.nodes.slice(0, row.tipFrom);
+	return nodes.filter((node) => node.label !== undefined);
 }
 
 /** The nearest shown entries below: shown children, and in place of a hidden one, its own. */
@@ -618,10 +824,6 @@ function filterTest(filter: TreeFilterMode): (node: SessionTreeNode) => boolean 
 			return () => true;
 		case "labeled-only":
 			return (node) => node.label !== undefined;
-		case "user-only":
-			return (node) => role(node.entry) === "user";
-		case "no-tools":
-			return (node) => talk(node.entry) && role(node.entry) !== "toolResult";
 		default:
 			return (node) => talk(node.entry);
 	}
@@ -715,7 +917,9 @@ function contentText(content: string | ReadonlyArray<{ type: string; text?: stri
 
 /** The first line that has text, without control characters. */
 function firstLine(text: string): string {
-	const line = text.split("\n").find((part) => part.trim()) ?? "";
+	// Reads up to the first line that is not blank, however long the text. Lines end at
+	// \n only, as in split("\n"); a \r in a line stays in it until sanitize.
+	const line = text.match(/^[^\n]*\S[^\n]*/m)?.[0] ?? "";
 	return sanitize(line.trim());
 }
 

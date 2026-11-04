@@ -17,7 +17,7 @@ import { renderFakeCursor, truncateToWidth, visibleWidth, type TuiMouseEvent, ty
 import { CustomEditor, keyHint } from "@earendil-works/pi-coding-agent";
 import { elapsedText, SPINNER } from "../panels/common.ts";
 import type { Shell } from "./controller.ts";
-import { panelHints, typingList } from "./input.ts";
+import { panelHints, scrollTarget, typingList } from "./input.ts";
 
 type EditorArgs = ConstructorParameters<typeof CustomEditor>;
 
@@ -83,6 +83,18 @@ function emptyLine(paddingX: number, width: number): string {
  */
 export function crtEditor(shell: Shell, onRender: () => void, ...args: EditorArgs): CustomEditor {
 	class CrtEditor extends CustomEditor {
+		/**
+		 * Pi's full screen takes its viewport keys (PageUp / PageDown and the rest) ahead
+		 * of extensions, for the first scrolling panel it finds, unless the focused
+		 * component captures them. They are left to pi-crt (shell/input.ts) whenever it
+		 * scrolls a panel other than the transcript; Pi's keys to the previous and next
+		 * prompt then do nothing. Editor captures them itself while its autocomplete
+		 * menu is open.
+		 */
+		override get capturesViewportInput(): boolean {
+			return super.capturesViewportInput || (shell.tabsShown() && scrollTarget(shell) !== undefined);
+		}
+
 		override handleInput(data: string): void {
 			const before = this.getText();
 			super.handleInput(data);

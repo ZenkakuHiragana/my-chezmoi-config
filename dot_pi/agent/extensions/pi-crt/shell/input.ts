@@ -1,8 +1,8 @@
 /** The tab shortcuts and the keys routed to the selected panel. */
-import { decodeKittyPrintable, isKeyRelease, type KeyId, matchesKey } from "@earendil-works/pi-tui";
+import { decodeKittyPrintable, getKeybindings, isKeyRelease, type KeyId, matchesKey } from "@earendil-works/pi-tui";
 import { type ExtensionAPI, rawKeyHint } from "@earendil-works/pi-coding-agent";
 import tabs from "../layout.ts";
-import type { ListControl, PanelHandle } from "../panels/registry.ts";
+import { type ListControl, VIEWPORT_KEYS } from "../panels/registry.ts";
 import type { ThemeRef } from "../screen/lines.ts";
 import type { Shell } from "./controller.ts";
 
@@ -58,6 +58,17 @@ export function typingList(shell: Shell): ListControl | undefined {
 	return list?.typing?.() ? list : undefined;
 }
 
+/**
+ * The panel Pi's viewport keys scroll: in panel mode the selected panel, while the
+ * editor has the keys the page's primary one, unless its autocomplete menu is open
+ * (PageUp and PageDown page the menu then). None for the transcript, which Pi
+ * scrolls itself.
+ */
+export function scrollTarget(shell: Shell): string | undefined {
+	const id = shell.panelMode() ? shell.focusedId() : shell.editorMenuOpen() ? undefined : shell.primaryPanel();
+	return id === "transcript" ? undefined : id;
+}
+
 export function setupInput(pi: ExtensionAPI, shell: Shell): void {
 	let unsubscribe: (() => void) | undefined;
 
@@ -65,8 +76,6 @@ export function setupInput(pi: ExtensionAPI, shell: Shell): void {
 		const id = shell.focusedId();
 		return id ? shell.handleFor(id) : undefined;
 	};
-
-	const pageSize = (handle: PanelHandle) => Math.max(1, (handle.scroll?.viewportHeight ?? 2) - 1);
 
 	const panelAction = (data: string): boolean => {
 		const handle = focusedHandle();
@@ -88,27 +97,37 @@ export function setupInput(pi: ExtensionAPI, shell: Shell): void {
 	};
 
 	/**
-	 * PageUp / PageDown page the page's primary panel, whether the editor or the
-	 * panels have the keys. A list goes on to select the item at the top, so that the
-	 * arrow keys continue from what is on screen. Returns false when the keys are left
-	 * to Pi: the transcript, which Pi itself scrolls, or nothing to page.
+	 * Pi's viewport keys scroll the panel scrollTarget names, as they scroll the
+	 * transcript. A list goes on to select the item at the top (to the ends: the first or
+	 * the last item), so that the arrow keys continue from what is on screen. Returns false when the keys are left to Pi: the
+	 * transcript, or nothing to scroll.
 	 */
-	const pagePrimary = (data: string): boolean => {
-		const up = matchesKey(data, "pageUp");
-		if (!up && !matchesKey(data, "pageDown")) return false;
-		const id = shell.primaryPanel();
-		if (!id || id === "transcript") return false;
+	const scrollPanel = (data: string): boolean => {
+		const keybindings = getKeybindings();
+		const pair = VIEWPORT_KEYS.find(({ keys }) => keys.some((key) => keybindings.matches(data, key)));
+		if (!pair) return false;
+		const id = scrollTarget(shell);
+		if (!id) return false;
 		const handle = shell.handleFor(id);
-		if (handle.list) handle.list.page(up ? -1 : 1);
-		else if (handle.scroll) handle.scroll.scrollBy((up ? -1 : 1) * pageSize(handle));
-		else return false;
+		// Up before down, in the order Pi's full screen checks them.
+		const down = !keybindings.matches(data, pair.keys[0]);
+		const { step } = pair;
+		// Each view scrolls by its own height: a list by the lines it shows.
+		const by = (height: number) => (down ? 1 : -1) * step!(height);
+		if (handle.list) {
+			if (!step) down ? handle.list.toEnd() : handle.list.toStart();
+			else handle.list.scroll(by);
+		} else if (handle.scroll) {
+			if (!step) down ? handle.scroll.scrollToEnd() : handle.scroll.scrollToStart();
+			else handle.scroll.scrollBy(by(Math.max(1, handle.scroll.viewportHeight)));
+		} else return false;
 		shell.requestRender();
 		return true;
 	};
 
 	/**
-	 * Raw input ahead of Pi. Takes PageUp / PageDown for the page's primary panel
-	 * (pagePrimary); every key but ctrl+c while a panel's text field is typed into;
+	 * Raw input ahead of Pi. Takes Pi's viewport keys for the panel they scroll
+	 * (scrollPanel); every key but ctrl+c while a panel's text field is typed into;
 	 * and, while the panels have the keys, the keys the selected panel uses and the
 	 * text it has no use for (but `/` and `!` in an empty editor). The rest goes on to
 	 * Pi. `editorEmpty` tells whether Pi's editor holds no text.
@@ -132,9 +151,10 @@ export function setupInput(pi: ExtensionAPI, shell: Shell): void {
 			shell.requestRender();
 			return { consume: true };
 		}
-		if (pagePrimary(data)) return { consume: true };
+		if (scrollPanel(data)) return { consume: true };
 		if (!shell.panelMode()) return undefined;
-		if (matchesKey(data, "pageUp") || matchesKey(data, "pageDown")) return undefined;
+		const keybindings = getKeybindings();
+		if (VIEWPORT_KEYS.some(({ keys }) => keys.some((key) => keybindings.matches(data, key)))) return undefined;
 		if (PASS_THROUGH.some((key) => matchesKey(data, key))) return undefined;
 		if (!panelAction(data)) {
 			// Text a panel has no use for is not typed into the editor, so that a stray

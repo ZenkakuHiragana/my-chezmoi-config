@@ -132,6 +132,8 @@ export interface Shell {
 	tabsShown(): boolean;
 	/** Pi's editor has the keys (not a selector or a dialog). */
 	editorFocused(): boolean;
+	/** Pi's editor shows its autocomplete menu. */
+	editorMenuOpen(): boolean;
 	/** The panels have the keys. */
 	panelMode(): boolean;
 	setPanelMode(on: boolean): void;
@@ -143,7 +145,7 @@ export interface Shell {
 	visiblePanels(): string[];
 	/** The selected panel of the shown page. */
 	focusedId(): string | undefined;
-	/** The panel PageUp / PageDown scroll while the editor has the keys. */
+	/** The panel Pi's viewport keys (PageUp / PageDown and the rest) scroll while the editor has the keys. */
 	primaryPanel(): string | undefined;
 	handleFor(id: string): PanelHandle;
 	/** Select a panel of the shown page. */
@@ -356,8 +358,7 @@ export function createShell(pi: ExtensionAPI): Shell {
 
 	/**
 	 * The panel the panel-mode keys act on: the one picked with tab, else the first
-	 * list (the arrow keys select in it while PageUp / PageDown page the primary
-	 * panel), else the primary panel.
+	 * list, else the primary panel.
 	 */
 	const focusedId = (): string | undefined => {
 		const ids = visiblePanels();
@@ -573,6 +574,7 @@ export function createShell(pi: ExtensionAPI): Shell {
 		requestRender,
 		tabsShown: () => tabsShown,
 		editorFocused,
+		editorMenuOpen: () => editor?.isShowingAutocomplete() ?? false,
 		panelMode,
 		setPanelMode: (on) => {
 			panelChoice = on;

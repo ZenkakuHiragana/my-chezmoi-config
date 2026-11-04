@@ -82,7 +82,7 @@ registerPanel("toollog", (env) => {
 		"end",
 		() => env.focused("toollog"),
 	);
-	selection.scroll = panel.scroll;
+	selection.view = panel.scroll;
 	return { ...panel, list: selection };
 });
 

@@ -24,8 +24,9 @@
  * Each panel can appear at most once per layout node tree (`wide` and `narrow`
  * may both use it).
  *
- * `primary` names the panel that PageUp / PageDown scroll, while you type and in
- * panel mode; with a list, the first one present in the current layout is used.
+ * `primary` names the panel that Pi's viewport keys (PageUp / PageDown and the rest)
+ * scroll while you type (in panel mode they scroll the selected panel); with a list,
+ * the first one present in the current layout is used.
  * It defaults to the transcript, then to the first panel that scrolls, then to
  * the first panel. Panel mode on a page starts on the panel last selected there
  * while that panel is still on screen, else on the first panel that lists things

@@ -52,9 +52,10 @@ const GONE = Symbol("gone");
 
 /**
  * The selected item of a list panel (a logged call, a changed file). The arrow keys
- * or j/k move it one item and scroll to show it; PageUp/PageDown scroll a page and select
- * the item at the top, so a long expanded item can be read page by page; Enter acts
- * on the item.
+ * or j/k move it one item and scroll to show it; Pi's viewport keys (PageUp/PageDown and
+ * the rest, shell/input.ts) scroll and select the item at the top (those to the ends,
+ * and any once the list cannot scroll further that way, the first or the last item),
+ * so a long expanded item can be read page by page; Enter acts on the item.
  *
  * The selection is an item, not a row: `keys` gives the key of each item of the list
  * as it is now, in its order (items with the same key are one item to the selection:
@@ -71,7 +72,8 @@ const GONE = Symbol("gone");
 export class Selection implements ListControl {
 	offsets: number[] = [];
 	heights: number[] = [];
-	scroll?: ScrollView;
+	/** The view the list scrolls in. */
+	view?: ScrollView;
 	/** The key of the selected item, without `picked`. */
 	private selected: unknown = NONE;
 
@@ -148,24 +150,27 @@ export class Selection implements ListControl {
 		this.reveal();
 	}
 
-	page(delta: number): void {
+	scroll(by: (height: number) => number): void {
 		if (!this.keys().length) return;
-		const view = this.scroll;
-		view?.scrollBy(delta * Math.max(1, (view?.viewportHeight ?? 2) - 1));
-		this.select(this.itemAt("top"));
+		const view = this.view;
+		const lines = by(Math.max(1, view?.viewportHeight ?? 1));
+		// At the end already, the view does not move (scrollBy returns the lines it could not
+		// scroll): the key goes on to the item at that end.
+		if ((view?.scrollBy(lines) ?? lines) === lines) lines > 0 ? this.toEnd() : this.toStart();
+		else this.select(this.itemAt("top"));
 	}
 
 	toStart(): void {
 		if (!this.keys().length) return;
 		this.select(0);
-		this.scroll?.scrollToStart();
+		this.view?.scrollToStart();
 	}
 
 	toEnd(): void {
 		const n = this.keys().length;
 		if (!n) return;
 		this.select(n - 1);
-		this.scroll?.scrollToEnd();
+		this.view?.scrollToEnd();
 	}
 
 	activate(): void {
@@ -183,7 +188,7 @@ export class Selection implements ListControl {
 
 	/** The item at the top or bottom edge of the view. */
 	private itemAt(edge: "top" | "bottom"): number {
-		const view = this.scroll;
+		const view = this.view;
 		const top = view?.scrollTop ?? 0;
 		const line = edge === "top" ? top : top + Math.max(1, view?.viewportHeight ?? 1) - 1;
 		let found = edge === "top" ? this.keys().length - 1 : 0;
@@ -198,7 +203,7 @@ export class Selection implements ListControl {
 
 	/** Scroll so the selected item is in view; an item taller than the view shows its top. */
 	private reveal(): void {
-		const view = this.scroll;
+		const view = this.view;
 		const span = this.span;
 		if (!view || !span) return;
 		const [top, end] = span;

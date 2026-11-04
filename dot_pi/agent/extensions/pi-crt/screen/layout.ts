@@ -35,10 +35,10 @@ export interface PageDef {
 	label: string;
 	layout: Arrangement;
 	/**
-	 * Panel that PageUp / PageDown scroll, while the editor has the keys and in
-	 * panel mode. With a
-	 * list, the first one in the current layout is used. Defaults to the
-	 * transcript, then to the first panel that scrolls, then to the first panel.
+	 * Panel that Pi's viewport keys (PageUp / PageDown and the rest) scroll while the
+	 * editor has the keys (in panel mode they scroll the selected panel). With a list,
+	 * the first one in the current layout is used. Defaults to the transcript, then to
+	 * the first panel that scrolls, then to the first panel.
 	 */
 	primary?: string | string[];
 }

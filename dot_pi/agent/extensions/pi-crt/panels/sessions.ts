@@ -30,7 +30,7 @@ registerPanel("sessions", (env) => {
 		"top",
 		() => env.focused("sessions"),
 	);
-	selection.scroll = panel.scroll;
+	selection.view = panel.scroll;
 	return { ...panel, list: selection };
 });
 

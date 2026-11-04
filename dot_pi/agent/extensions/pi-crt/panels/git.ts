@@ -38,7 +38,7 @@ registerPanel("git", (env) => {
 		"top",
 		() => env.focused("git"),
 	);
-	selection.scroll = panel.scroll;
+	selection.view = panel.scroll;
 	return { ...panel, list: selection };
 });
 
@@ -58,7 +58,7 @@ registerPanel("gitfiles", (env) => {
 		"top",
 		() => env.focused("gitfiles"),
 	);
-	selection.scroll = panel.scroll;
+	selection.view = panel.scroll;
 	return { ...panel, list: selection };
 });
 

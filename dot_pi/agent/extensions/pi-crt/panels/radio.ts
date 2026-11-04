@@ -100,7 +100,7 @@ registerPanel("stations", (env) => {
 		"top",
 		() => env.focused("stations"),
 	);
-	selection.scroll = panel.scroll;
+	selection.view = panel.scroll;
 	return { ...panel, list: selection };
 });
 
@@ -180,7 +180,7 @@ registerPanel("radiosearch", (env) => {
 		"top",
 		() => env.focused("radiosearch"),
 	);
-	selection.scroll = panel.scroll;
+	selection.view = panel.scroll;
 	return { ...panel, list };
 });
 
@@ -245,7 +245,7 @@ registerPanel("radiooutput", (env) => {
 		"top",
 		() => env.focused("radiooutput"),
 	);
-	selection.scroll = panel.scroll;
+	selection.view = panel.scroll;
 	return { ...panel, list: selection };
 });
 
@@ -299,7 +299,7 @@ registerPanel("nowplaying", (env) => {
 	// Nothing to select or scroll: the panel is drawn to its height. It takes the RADIO keys.
 	const list: ListControl = {
 		move: () => {},
-		page: () => {},
+		scroll: () => {},
 		toStart: () => {},
 		toEnd: () => {},
 		activate: () => {},
