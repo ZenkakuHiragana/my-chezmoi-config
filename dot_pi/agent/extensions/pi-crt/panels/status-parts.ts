@@ -13,6 +13,8 @@ const MIN_BAR = 4;
 const CARD_EDGES = { topLeft: "╭", topRight: "╮", bottomLeft: "╰", bottomRight: "╯", horizontal: "─", vertical: "│" };
 /** Columns a card holds besides its frame and inner padding. */
 const MIN_CARD_CONTENT = 7;
+/** Columns of a card's frame and inner padding: `│ ` and ` │`. */
+const CARD_FRAME = 4;
 
 /** Text cut or padded to exactly `width` cells. */
 function fit(text: string, width: number): string {
@@ -82,12 +84,13 @@ export function gaugeRow(
 	left: GaugeInput,
 	right: GaugeInput | undefined,
 	width: number,
-	options: { gap?: number; maxColumn?: number } = {},
+	options: { gap?: number; maxColumn?: number; centers?: readonly [number, number] } = {},
 ): string {
 	const gap = options.gap ?? 4;
 	const half = Math.floor((width - gap) / 2);
-	// Each gauge keeps to its own column, so the two sit at the edges with the
-	// middle free. A column wider than maxColumn only makes the bar longer.
+	// Each gauge keeps to its own half of the line, so the two never meet. They sit at
+	// the edges, or with `centers` as near as their halves allow to having their middles
+	// on those cell boundaries. A column wider than maxColumn only makes the bar longer.
 	// Without a second gauge there is nothing to leave room for, so one gauge keeps the
 	// whole line unless maxColumn asks for a narrower one.
 	if (!right) return gauge(left, Math.max(1, Math.min(width, options.maxColumn ?? width)));
@@ -98,7 +101,10 @@ export function gaugeRow(
 	const valueWidth = Math.max(left.valueWidth ?? 0, right.valueWidth ?? 0, visibleWidth(gaugeValue(left)), visibleWidth(gaugeValue(right)));
 	const leftText = gauge({ ...left, labelWidth, valueWidth }, column);
 	const rightText = gauge({ ...right, labelWidth, valueWidth }, column);
-	return fit(leftText, width - column) + rightText;
+	const place = (center: number, low: number, high: number) => Math.max(low, Math.min(high, Math.round(center - column / 2)));
+	const leftStart = options.centers ? place(options.centers[0], 0, half - column) : 0;
+	const rightStart = options.centers ? place(options.centers[1], width - half, width - column) : width - column;
+	return " ".repeat(leftStart) + fit(leftText, rightStart - leftStart) + rightText;
 }
 
 export interface CardInput {
@@ -109,6 +115,17 @@ export interface CardInput {
 }
 
 /**
+ * The width statCards needs to draw the cards in one row with every name and value
+ * whole: the longest of them, at least MIN_CARD_CONTENT, in each card.
+ */
+export function cardsWidth(cards: readonly CardInput[], options: { gap?: number } = {}): number {
+	const gap = options.gap ?? 1;
+	if (cards.length === 0) return 0;
+	const content = Math.max(MIN_CARD_CONTENT, ...cards.map((card) => Math.max(visibleWidth(card.label), visibleWidth(card.value))));
+	return cards.length * (content + CARD_FRAME + gap) - gap;
+}
+
+/**
  * Rounded cards in a row, wrapping onto further rows when they do not fit. Each row is
  * four lines: top frame, name, value, bottom frame. Card width is shared by every row, so
  * a short last row leaves space rather than growing its cards.
@@ -116,11 +133,11 @@ export interface CardInput {
 export function statCards(cards: readonly CardInput[], width: number, options: { gap?: number } = {}): string[] {
 	const gap = options.gap ?? 1;
 	if (cards.length === 0) return [];
-	const minCard = MIN_CARD_CONTENT + 4; // Frame and inner padding.
+	const minCard = MIN_CARD_CONTENT + CARD_FRAME;
 	if (width < minCard) return [];
 	const perRow = Math.max(1, Math.min(cards.length, Math.floor((width + gap) / (minCard + gap))));
 	const cardWidth = Math.floor((width - gap * (perRow - 1)) / perRow);
-	const content = cardWidth - 4;
+	const content = cardWidth - CARD_FRAME;
 	const bar = CARD_EDGES.horizontal.repeat(cardWidth - 2);
 	const cardLine = (text: string) => `${CARD_EDGES.vertical} ${fit(text, content)} ${CARD_EDGES.vertical}`;
 	const joiner = " ".repeat(gap);

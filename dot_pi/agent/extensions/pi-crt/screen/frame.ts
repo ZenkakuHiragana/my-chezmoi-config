@@ -24,6 +24,8 @@ export interface Framed {
  * the returned SizedView and records it in `drawnFor`. A sized body taller than
  * that height scrolls, with the scrollbar shown while it moves.
  * The focused panel's rule is drawn in the accent colour.
+ * A `footer` stays on the panel's last rows, under the body and outside its scrolling,
+ * as tall as the lines it draws.
  */
 export function framed(
 	theme: ThemeRef,
@@ -31,6 +33,7 @@ export function framed(
 	body: Component,
 	scroll: "none" | "top" | "end" | "sized",
 	focused: () => boolean,
+	footer?: Component,
 ): Framed {
 	const titleLine = new TitleLine((width) => {
 		const t = theme();
@@ -57,6 +60,7 @@ export function framed(
 	const component = new VStack([
 		{ component: titleLine, basis: 1, grow: 0, shrink: 0, minSize: 1 },
 		{ component: scrollView ?? body, basis: 0, grow: 1, shrink: 1, minSize: 0 },
+		...(footer ? [{ component: footer, basis: "auto" as const, grow: 0, shrink: 0 }] : []),
 	]);
 	setTopTitle(component, titleLine);
 	return { component, scroll: scrollView, title };

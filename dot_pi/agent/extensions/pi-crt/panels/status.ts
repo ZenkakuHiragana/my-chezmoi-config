@@ -13,7 +13,7 @@ import { framed, type SizedView } from "../screen/frame.ts";
 import { Lines } from "../screen/lines.ts";
 import { bar, compactNumber, elapsedText } from "./common.ts";
 import { type Paint, PI_LOGO, PI_LOGO_SHADES, type Rgb, pixelArtWidth, renderPixelArt, shade, shadePalette } from "./pixel-art.ts";
-import { type CardInput, centerLine, gaugeRow, statCards } from "./status-parts.ts";
+import { type CardInput, cardsWidth, centerLine, gaugeRow, statCards } from "./status-parts.ts";
 import { type PanelEnv, registerPanel } from "./registry.ts";
 
 registerPanel("vitals", (env) => {
@@ -39,11 +39,17 @@ registerPanel("vitals", (env) => {
 				logoData(env.state).version,
 				...logoKey(env, Math.max(10, width - 2)),
 				stateText(env),
+				env.cwd(),
 				view?.viewportHeight,
 			],
 		),
 		"sized",
 		() => env.focused("vitals"),
+		// Why logo.* could not be shown, on the panel's last row whether or not the rest scrolls.
+		new Lines((width) => {
+			const error = logoError(env.state, sceneTime(env).scene);
+			return error ? [` ${env.theme().fg("text", centerLine(error, Math.max(10, width - 2)))}`] : [];
+		}),
 	);
 	view = panel.scroll as SizedView;
 	return panel;
@@ -148,12 +154,14 @@ function untilText(ms: number): string {
 	return `${Math.floor(hours / 24)}d ${String(hours % 24).padStart(2, "0")}h`;
 }
 
-/** STATUS: the logo, four gauges around it, the stat cards, and the model. */
+/** STATUS: the logo, four gauges around it, the stat cards, the model and the working folder. */
 function vitalsLines(env: PanelEnv, width: number): string[] {
 	const t = env.theme();
 	const inner = Math.max(10, width - 2);
-	// Gauges sit at the edges of the panel rather than filling it, leaving the logo room.
-	const GAUGE_COLUMN = 30;
+	const logo = logoLines(env, inner);
+	// Each gauge (name, bar and value) has its middle on an edge of the logo, as far as
+	// the panel allows, rather than filling the panel.
+	const gauges = { gap: 4, maxColumn: 30, centers: [logo.left, logo.left + logo.columns] as const };
 	// The four gauges share their name and value columns, so their bars are the same
 	// length. The value column fits "100%", so a bar does not move as its value grows.
 	// The line is drawn in "text"; after its bar, the colour is set again for the value.
@@ -172,12 +180,10 @@ function vitalsLines(env: PanelEnv, width: number): string[] {
 		{ ...columns, label: "CTX", ratio: (usage?.percent ?? 0) / 100, value: usage?.percent === null || usage === undefined ? "--" : undefined },
 		{ ...columns, label: "5H", ratio: limits.fiveHour ?? 0, value: limits.fiveHour === undefined ? "--" : undefined },
 		inner,
-		{ gap: 4, maxColumn: GAUGE_COLUMN },
+		gauges,
 	));
 	body.push("");
-	body.push(...logoLines(env, inner));
-	const error = logoError(env.state, sceneTime(env).scene);
-	if (error) body.push(centerLine(error, inner));
+	body.push(...logo.lines);
 	body.push("");
 	body.push(centerLine(stateText(env), inner));
 	body.push("");
@@ -185,18 +191,21 @@ function vitalsLines(env: PanelEnv, width: number): string[] {
 		{ ...columns, label: "CACHE", ratio: v.cacheRatio ?? 0, value: v.cacheRatio === undefined ? "--" : undefined },
 		{ ...columns, label: "WEEK", ratio: limits.weekly ?? 0, value: limits.weekly === undefined ? "--" : undefined },
 		inner,
-		{ gap: 4, maxColumn: GAUGE_COLUMN },
+		gauges,
 	));
 	body.push("");
 
 	const lines = body.map((line) => ` ${t.fg("text", line)}`);
+	// The cards are as wide as their names and values need, up to the panel's width, and centred.
+	const cardInputs = cardsOf(env);
 	// statCards returns four lines per row: frame, name, value, frame.
-	const cards = statCards(cardsOf(env), inner);
+	const cards = statCards(cardInputs, Math.min(inner, cardsWidth(cardInputs)));
 	cards.forEach((line, index) => {
 		const slot = index % 4 === 1 ? "muted" : index % 4 === 2 ? "accent" : "dim";
-		lines.push(` ${t.fg(slot, line)}`);
+		lines.push(` ${t.fg(slot, centerLine(line, inner))}`);
 	});
 	lines.push(` ${t.fg("muted", centerLine(allowance.usageModel ?? "-- no model --", inner))}`);
+	lines.push(` ${t.fg("muted", centerLine(env.cwd(), inner))}`);
 	return lines;
 }
 
@@ -279,8 +288,11 @@ function logoKey(env: PanelEnv, width: number): unknown[] {
 	return [scene, frame.key, stage, noisy, breath];
 }
 
-/** The logo in the theme's accent colour, as large as the panel allows. */
-function logoLines(env: PanelEnv, width: number): string[] {
+/**
+ * The logo in the theme's accent colour, as large as the panel allows, centred in
+ * `width`: its lines, the cell its left edge is at, and its width in cells.
+ */
+function logoLines(env: PanelEnv, width: number): { lines: string[]; left: number; columns: number } {
 	const theme = env.theme();
 	const mode = theme.getColorMode();
 	const rgb = colorToRgb(theme.colors.accent);
@@ -293,19 +305,21 @@ function logoLines(env: PanelEnv, width: number): string[] {
 	const tick = Math.floor(now / 120);
 	const picture = logoPicture(env.state, width, base, scene, at);
 	if (picture) {
-		const pad = " ".repeat(Math.max(0, Math.floor((width - picture.columns) / 2)));
-		return [pad + picture.lines[0], ...picture.lines.slice(1)];
+		const left = Math.max(0, Math.floor((width - picture.columns) / 2));
+		return { lines: [" ".repeat(left) + picture.lines[0], ...picture.lines.slice(1)], left, columns: picture.columns };
 	}
 	const image = logoArt(env.state, width, scene, at);
 	if (image) {
-		const pad = " ".repeat(Math.max(0, Math.floor((width - image[0]!.length) / 2)));
-		return image.map((row) => pad + row.map(({ glyph, fg, bg }) => {
+		const columns = image[0]!.length;
+		const left = Math.max(0, Math.floor((width - columns) / 2));
+		const pad = " ".repeat(left);
+		return { left, columns, lines: image.map((row) => pad + row.map(({ glyph, fg, bg }) => {
 			if (fg === undefined && bg === undefined) return glyph;
 			const f = shade(base, fg ?? 0);
 			const b = shade(base, bg ?? 0);
 			return (fg !== undefined ? foregroundAnsi({ kind: "rgb", r: f[0], g: f[1], b: f[2] }, mode) : "") +
 				(bg !== undefined ? backgroundAnsi({ kind: "rgb", r: b[0], g: b[1], b: b[2] }, mode) : "") + glyph + "\x1b[0m";
-		}).join(""));
+		}).join("")) };
 	}
 	// Cells are about twice as tall as they are wide, so both scales stay equal.
 	let scale = 4;
@@ -346,8 +360,9 @@ function logoLines(env: PanelEnv, width: number): string[] {
 		return prefix === "" ? glyph : `${prefix}${glyph}${reset}`;
 	};
 	const art = renderPixelArt(rows, { scaleX: 1, scaleY: 1, paint });
-	const pad = " ".repeat(Math.max(0, Math.floor((width - pixelArtWidth(PI_LOGO, scale)) / 2)));
-	return art.map((line) => pad + line);
+	const columns = pixelArtWidth(PI_LOGO, scale);
+	const left = Math.max(0, Math.floor((width - columns) / 2));
+	return { lines: art.map((line) => " ".repeat(left) + line), left, columns };
 }
 
 /** The five cards under the logo. */
