@@ -156,14 +156,15 @@ function reason(error: unknown): string {
  * The logo for a panel `width` cells wide: logo.* at most COLUMNS x ROWS cells, made
  * once per width. None when there is no logo.*, or it cannot be made (the error is
  * kept, and Pi's logo is shown). The colours are applied by the panel, from the theme.
+ * `elapsed` is the time into the scene: its animation starts with the first frame.
  */
-export function logoArt(state: CrtState, width: number, scene: LogoScene = "standby", now = 0): LogoCell[][] | undefined {
+export function logoArt(state: CrtState, width: number, scene: LogoScene = "standby", elapsed = 0): LogoCell[][] | undefined {
 	const feature = features.get(state);
 	if (!feature) return undefined;
 	const { data, env } = feature;
 	const columns = Math.max(1, Math.min(COLUMNS, width));
 	try {
-		const frame = sceneFrame(data, scene, now);
+		const frame = sceneFrame(data, scene, elapsed);
 		if (!frame) return undefined;
 		const key = `${columns} ${frame.key}`;
 		const cached = data.art.get(key);
@@ -181,8 +182,9 @@ export function logoArt(state: CrtState, width: number, scene: LogoScene = "stan
  * The logo as a Kitty image for a panel `width` cells wide, in the colour `accent`, at
  * most COLUMNS x ROWS cells. None when the terminal does not show Kitty images (the
  * panel draws logoArt then), when there is no logo.*, or when it cannot be made.
+ * `elapsed` is the time into the scene, as for logoArt.
  */
-export function logoPicture(state: CrtState, width: number, accent: readonly [number, number, number], scene: LogoScene = "standby", now = 0): LogoPicture | undefined {
+export function logoPicture(state: CrtState, width: number, accent: readonly [number, number, number], scene: LogoScene = "standby", elapsed = 0): LogoPicture | undefined {
 	if (getCapabilities().images !== "kitty") return undefined;
 	const feature = features.get(state);
 	if (!feature) return undefined;
@@ -194,7 +196,7 @@ export function logoPicture(state: CrtState, width: number, accent: readonly [nu
 	const key = `${width} ${cell.widthPx}x${cell.heightPx} ${accent.join(",")}`;
 	if (data.kitty?.key !== key) data.kitty = { key, pictures: new Map() };
 	try {
-		const frame = sceneFrame(data, scene, now);
+		const frame = sceneFrame(data, scene, elapsed);
 		if (!frame) return undefined;
 		const kitty = data.kitty;
 		// Every picture of the scene is made before any is shown, so that an animation
@@ -225,17 +227,17 @@ export function logoError(state: CrtState, scene: LogoScene): string | undefined
 	return data.errors.get(scene) ?? (data.scenes.has(scene) ? undefined : data.error);
 }
 
-/** The current composited frame and the next time its picture changes. */
-function frameAt(data: Readonly<LogoData>, scene: LogoScene, now: number): { frame?: Frame; next?: number } {
+/** The composited frame `elapsed` ms into the scene, and the next time (in the same terms) its picture changes. */
+function frameAt(data: Readonly<LogoData>, scene: LogoScene, elapsed: number): { frame?: Frame; next?: number } {
 	const frames = data.scenes.get(scene) ?? data.image;
 	if (!frames?.length) return {};
 	const total = frames.reduce((sum, frame) => sum + frame.duration, 0);
 	if (!total) return { frame: frames[0] };
-	let at = ((now % total) + total) % total;
+	let at = ((elapsed % total) + total) % total;
 	let index = 0;
 	while (index < frames.length && at >= frames[index]!.duration) at -= frames[index++]!.duration;
 	const frame = frames[index] ?? frames[0]!;
-	let next = now + frame.duration - at;
+	let next = elapsed + frame.duration - at;
 	for (let offset = 1; offset < frames.length; offset++) {
 		const following = frames[(index + offset) % frames.length]!;
 		if (following.duration > 0 && following.key !== frame.key) return { frame, next };
@@ -244,15 +246,15 @@ function frameAt(data: Readonly<LogoData>, scene: LogoScene, now: number): { fra
 	return { frame };
 }
 
-/** The visible picture's identity and its next change, for scheduling and caching. */
-export function logoFrameTime(state: CrtState, scene: LogoScene, now: number): { key?: string; next?: number } {
-	const { frame, next } = frameAt(logoData(state), scene, now);
+/** The visible picture's identity and its next change, `elapsed` ms into the scene, for scheduling and caching. */
+export function logoFrameTime(state: CrtState, scene: LogoScene, elapsed: number): { key?: string; next?: number } {
+	const { frame, next } = frameAt(logoData(state), scene, elapsed);
 	return { key: frame?.key, next };
 }
 
 /** The current composited frame feeds both Kitty and octant rendering. */
-function sceneFrame(data: LogoData, scene: LogoScene, now: number): Frame | undefined {
-	return frameAt(data, scene, now).frame;
+function sceneFrame(data: LogoData, scene: LogoScene, elapsed: number): Frame | undefined {
+	return frameAt(data, scene, elapsed).frame;
 }
 
 /** Discard a failed source and fall back to logo.* or Pi's logo. */

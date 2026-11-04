@@ -209,12 +209,15 @@ function stateText(env: PanelEnv): string {
 	return `WORKING  ${elapsedText(startedAt, now)}`;
 }
 
+/** How long the error scene is shown after a tool fails. */
+const ERROR_SCENE_MS = 1000;
+
 /** Scene priority follows the live agent and tool state. */
 function logoScene(env: PanelEnv): LogoScene {
 	if (env.state.agentRunning) {
 		const tools = toolData(env.state);
-		if (tools.lastErrorAt !== undefined && env.now() - tools.lastErrorAt < 3000) {
-			env.redrawAt(tools.lastErrorAt + 3000);
+		if (tools.lastErrorAt !== undefined && env.now() - tools.lastErrorAt < ERROR_SCENE_MS) {
+			env.redrawAt(tools.lastErrorAt + ERROR_SCENE_MS);
 			return "error";
 		}
 		return tools.active.size ? "tool" : "thinking";
@@ -222,12 +225,33 @@ function logoScene(env: PanelEnv): LogoScene {
 	return env.state.termAttention ? "done" : "standby";
 }
 
+/** The scene each pi-crt instance shows, and when it started (see sceneTime). */
+const sceneStarts = new WeakMap<object, { key: string; since: number }>();
+
+/**
+ * The scene and the time into it: a scene's animation plays from its first frame
+ * when the scene starts. The error scene starts with the error (again with each new
+ * one); another scene starts when it is first shown in place of the one before.
+ */
+function sceneTime(env: PanelEnv): { scene: LogoScene; at: number; since: number } {
+	const scene = logoScene(env);
+	const now = env.now();
+	const errorAt = toolData(env.state).lastErrorAt;
+	const key = scene === "error" ? `error ${errorAt}` : scene;
+	let start = sceneStarts.get(env.state);
+	if (start?.key !== key) {
+		start = { key, since: scene === "error" && errorAt !== undefined ? errorAt : now };
+		sceneStarts.set(env.state, start);
+	}
+	return { scene, at: now - start.since, since: start.since };
+}
+
 /** The visible animation values also schedule their next change, even on a cache hit. */
 function logoKey(env: PanelEnv, width: number): unknown[] {
 	const now = env.now();
-	const scene = logoScene(env);
-	const frame = logoFrameTime(env.state, scene, now);
-	if (frame.next !== undefined) env.redrawAt(frame.next);
+	const { scene, at, since } = sceneTime(env);
+	const frame = logoFrameTime(env.state, scene, at);
+	if (frame.next !== undefined) env.redrawAt(since + frame.next);
 	if (frame.key !== undefined) return [scene, frame.key];
 	let scale = 4;
 	while (scale > 1 && pixelArtWidth(PI_LOGO, scale) > width) scale--;
@@ -254,15 +278,15 @@ function logoLines(env: PanelEnv, width: number): string[] {
 	// logo.*, when there is one: as a Kitty image where the terminal shows them, else
 	// as cells carrying brightness, coloured here so that a change of theme recolours
 	// them without reading the picture again.
-	const scene = logoScene(env);
+	const { scene, at } = sceneTime(env);
 	const now = env.now();
 	const tick = Math.floor(now / 120);
-	const picture = logoPicture(env.state, width, base, scene, now);
+	const picture = logoPicture(env.state, width, base, scene, at);
 	if (picture) {
 		const pad = " ".repeat(Math.max(0, Math.floor((width - picture.columns) / 2)));
 		return [pad + picture.lines[0], ...picture.lines.slice(1)];
 	}
-	const image = logoArt(env.state, width, scene, now);
+	const image = logoArt(env.state, width, scene, at);
 	if (image) {
 		const pad = " ".repeat(Math.max(0, Math.floor((width - image[0]!.length) / 2)));
 		return image.map((row) => pad + row.map(({ glyph, fg, bg }) => {
