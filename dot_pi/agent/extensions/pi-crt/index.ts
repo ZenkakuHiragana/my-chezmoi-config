@@ -18,10 +18,12 @@
  */
 import type { ExtensionAPI } from "@earendil-works/pi-coding-agent";
 import { setupContext } from "./features/context.ts";
+import { setupExtensions } from "./features/extensions.ts";
 import { setupGit } from "./features/git.ts";
 import { setupImages } from "./features/image.ts";
 import { setupInventory } from "./features/inv.ts";
 import { setupLogo } from "./features/logo.ts";
+import { setupModels } from "./features/models.ts";
 import { setupQuests } from "./features/quests.ts";
 import { setupRadio } from "./features/radio.ts";
 import { setupTools } from "./features/tools.ts";
@@ -44,6 +46,8 @@ export default function (pi: ExtensionAPI) {
 	setupLogo(pi, env);
 	setupImages(pi, env);
 	setupQuests(pi, env);
+	setupModels(pi, env);
+	setupExtensions(pi, env);
 	setupTree(pi, env);
 	setupInventory(pi, env);
 	setupRadio(pi, env);

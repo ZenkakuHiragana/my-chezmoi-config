@@ -33,8 +33,8 @@
  *
  * Panels: transcript, thinking, tools, toollog, vitals, context, usage, history, git,
  * gitfiles, gitdiff, gitlog, promptparts, prompttext, toollist, tooldetail,
- * skilllist, skilltext, quests, tree, location, stations, radiosearch, radiooutput,
- * nowplaying, nosignal
+ * skilllist, skilltext, quests, modellist, modeldetail, extensions, tree, location,
+ * stations, radiosearch, radiooutput, nowplaying, nosignal
  *
  * Tabs that show "transcript" at the current width blink when the agent finishes
  * while none of them is shown. When the transcript is narrower than the
@@ -124,6 +124,16 @@ const tabs: TabDef[] = [
 				},
 				primary: ["gitdiff", "git"],
 			},
+			{
+				label: "MODELS",
+				layout: {
+					minWidth: 120,
+					wide: { row: [{ panel: "modellist", size: "40%" }, "modeldetail"] },
+					narrow: { column: [{ panel: "modellist", size: "50%" }, "modeldetail"] },
+				},
+				primary: "modellist",
+			},
+			{ label: "EXTENSIONS", layout: "extensions" },
 		],
 	},
 	{
