@@ -1,9 +1,10 @@
 /**
  * RADIO's panels: STATIONS (the stations in radio.json), SEARCH (a search box and
- * the songs it found), OUTPUT (the output devices) and NOW PLAYING. Enter on a
- * station or a song plays it, or stops it when it is playing; Enter on a device
- * plays on it. On every RADIO panel `n` skips to the next song and `+` / `-`
- * change the volume.
+ * the playlists and songs it found), OUTPUT (the output devices) and NOW PLAYING.
+ * Enter on a station, a playlist or a song plays it, or stops it when it is
+ * playing; Enter on a device plays on it. Delete twice on a station removes it from
+ * radio.json, and `a` on a playlist adds it there. On every RADIO panel `n` skips
+ * to the next song and `+` / `-` change the volume.
  *
  * The search box takes every key but ctrl+c while it is being typed into (see
  * ListControl.typing); Enter searches, Esc or Tab leaves it, and Alt+O leaves it
@@ -11,18 +12,24 @@
  */
 import { Input, matchesKey, truncateToWidth, visibleWidth, wrapTextWithAnsi } from "@earendil-works/pi-tui";
 import {
+	addPlaylist,
 	changeVolume,
+	isStation,
 	nextTrack,
 	type OutputDevice,
 	pickOutput,
 	playedSeconds,
 	playsOn,
+	playsPlaylist,
 	playsSong,
 	playsStation,
+	RETRY_MS,
 	type RadioData,
 	radioData,
+	removeStation,
 	searchSongs,
 	stationKey,
+	togglePlaylist,
 	toggleSong,
 	toggleStation,
 } from "../features/radio.ts";
@@ -80,22 +87,38 @@ function spread(left: string, right: string, width: number): string {
 /* ------------------------------------------------------------ STATIONS */
 
 registerPanel("stations", (env) => {
+	/** The station Delete was pressed on once; a second Delete on it removes it. */
+	const armed: { key?: unknown } = {};
 	const selection = new RadioSelection(
 		// A station is its source; its name may change, and two stations may share one.
 		() => radioData(env.state).stations.map(stationKey),
 		(index) => toggleStation(env.state, index),
-		(data) => radioKey(env, data),
+		(data) => {
+			if (!matchesKey(data, "delete")) {
+				armed.key = undefined;
+				return radioKey(env, data);
+			}
+			const index = selection.index;
+			if (index < 0) return true;
+			if (armed.key === selection.selectedKey) {
+				armed.key = undefined;
+				removeStation(env.state, index);
+			} else armed.key = selection.selectedKey;
+			return true;
+		},
 	);
 	const panel = framed(
 		env.theme,
-		() => "STATIONS",
+		() => "STATIONS  ·  DEL ×2: remove",
 		new ListLines(
 			selection,
 			(width) => {
 				selection.reset();
-				return withCursor(env, selection, "stations", stationLines(env, selection, width - 1));
+				// Moving to another station takes back the first Delete.
+				if (armed.key !== selection.selectedKey) armed.key = undefined;
+				return withCursor(env, selection, "stations", stationLines(env, selection, armed.key, width - 1));
 			},
-			() => [radioData(env.state).version, selection.selectedKey, env.focused("stations")],
+			() => [radioData(env.state).version, selection.selectedKey, env.focused("stations"), armed.key],
 		),
 		"top",
 		() => env.focused("stations"),
@@ -104,7 +127,8 @@ registerPanel("stations", (env) => {
 	return { ...panel, list: selection };
 });
 
-function stationLines(env: PanelEnv, selection: Selection, width: number): string[] {
+/** `armed`: the key of the station Delete was pressed on once, which says so. */
+function stationLines(env: PanelEnv, selection: Selection, armed: unknown, width: number): string[] {
 	const t = env.theme();
 	const data = radioData(env.state);
 	const lines: string[] = [];
@@ -113,7 +137,14 @@ function stationLines(env: PanelEnv, selection: Selection, width: number): strin
 		const on = playsStation(data, station);
 		const name = on ? `${t.fg("accent", "♪")} ${t.fg("accent", t.bold(station.name))}` : `  ${t.fg("text", station.name)}`;
 		const place = on && data.position && data.position.index > 0 ? t.fg("muted", `${data.position.index} / ${data.position.total}`) : "";
-		lines.push(spread(name, place, width));
+		const armedHere = armed !== undefined && index === selection.index;
+		if (!armedHere) lines.push(spread(name, place, width));
+		else {
+			// The note is kept on a narrow panel: the name gives way to it, and then it shortens.
+			const note = t.fg("error", "DEL AGAIN TO REMOVE");
+			if (visibleWidth(name) + visibleWidth(note) + 1 <= width) lines.push(spread(name, note, width));
+			else lines.push(truncateToWidth(` ${t.fg("error", width > visibleWidth(note) ? "DEL AGAIN TO REMOVE" : "DEL AGAIN")}`, width));
+		}
 	});
 	if (!data.stations.length && !data.stationsError) lines.push(t.fg("dim", " -- no stations --"));
 	if (data.stationsError) {
@@ -121,7 +152,16 @@ function stationLines(env: PanelEnv, selection: Selection, width: number): strin
 		const note = data.stations.length ? `${data.stationsError} (showing the last good list)` : data.stationsError;
 		for (const line of wrapTextWithAnsi(note, Math.max(1, width - 2))) lines.push(` ${t.fg("error", line)}`);
 	}
+	saveErrorLines(env, width, lines);
 	return lines;
+}
+
+/** Why the last station added or removed could not be saved, after a blank line. */
+function saveErrorLines(env: PanelEnv, width: number, lines: string[]): void {
+	const error = radioData(env.state).saveError;
+	if (!error) return;
+	lines.push("");
+	for (const line of wrapTextWithAnsi(error, Math.max(1, width - 2))) lines.push(` ${env.theme().fg("error", line)}`);
 }
 
 /* ------------------------------------------------------------ SEARCH */
@@ -142,9 +182,18 @@ registerPanel("radiosearch", (env) => {
 	// Esc leaves the text as typed, so that entering the box again continues it.
 	input.onEscape = leave;
 
+	/** The playlist or the song at an index of the list; the search box is 0. */
+	const itemAt = (index: number) => {
+		const { playlists, results } = radioData(env.state).search;
+		const playlist = playlists[index - 1];
+		return playlist ? { playlist } : { track: results[index - 1 - playlists.length] };
+	};
 	const selection = new RadioSelection(
-		// The search box, then the tracks.
-		() => [undefined, ...radioData(env.state).search.results.map((track) => track.id)],
+		// The search box, then the playlists, then the songs.
+		() => {
+			const { playlists, results } = radioData(env.state).search;
+			return [undefined, ...playlists.map((playlist) => `playlist:${playlist.id}`), ...results.map((track) => `song:${track.id}`)];
+		},
 		(index) => {
 			if (index === 0) {
 				env.focusPanel("radiosearch");
@@ -152,11 +201,17 @@ registerPanel("radiosearch", (env) => {
 				input.focused = true;
 				return;
 			}
-			const track = radioData(env.state).search.results[index - 1];
-			if (track) toggleSong(env.state, track);
+			const { playlist, track } = itemAt(index);
+			if (playlist) togglePlaylist(env.state, playlist);
+			else if (track) toggleSong(env.state, track);
 		},
 		(data) => {
-			if (!typing) return radioKey(env, data);
+			if (!typing) {
+				if (!matchesKey(data, "a")) return radioKey(env, data);
+				const { playlist } = itemAt(selection.index);
+				if (playlist) addPlaylist(env.state, playlist);
+				return playlist !== undefined;
+			}
 			typed++;
 			if (matchesKey(data, "escape") || matchesKey(data, "tab")) leave();
 			else input.handleInput(data);
@@ -166,7 +221,7 @@ registerPanel("radiosearch", (env) => {
 	const list: ListControl = Object.assign(selection, { typing: () => typing });
 	const panel = framed(
 		env.theme,
-		() => "SEARCH",
+		() => "SEARCH  ·  a: add playlist",
 		new ListLines(
 			selection,
 			(width) => {
@@ -199,15 +254,28 @@ function searchLines(env: PanelEnv, selection: Selection, input: Input, typing: 
 		lines.push(truncateToWidth(`   ${t.fg("dim", "ENTER search   ESC cancel")}`, width));
 	} else {
 		selection.place(0, 0, 1);
-		const text = search.query ? t.fg("text", search.query) : t.fg("dim", "search YouTube Music");
+		const text = search.query ? t.fg("text", search.query) : t.fg("dim", "search YouTube");
 		lines.push(truncateToWidth(` ${t.fg("accent", "›")} ${text}`, width));
 	}
+	saveErrorLines(env, width, lines);
 	lines.push(t.fg("borderMuted", ` ${"─".repeat(Math.max(0, width - 2))}`));
 	if (search.loading) lines.push(` ${t.fg("warning", spinner(env.every(120)))} ${t.fg("muted", "searching…")}`);
 	else if (search.error) for (const line of wrapTextWithAnsi(search.error, Math.max(1, width - 2))) lines.push(` ${t.fg("error", line)}`);
-	else if (search.query && !search.results.length) lines.push(t.fg("dim", " -- no songs --"));
-	search.results.forEach((track, index) => {
+	else if (search.query && !search.results.length && !search.playlists.length) lines.push(t.fg("dim", " -- nothing found --"));
+	const heading = (label: string) => lines.push(` ${t.fg("dim", label)}`);
+	if (search.playlists.length) heading("PLAYLISTS");
+	search.playlists.forEach((playlist, index) => {
 		selection.place(index + 1, lines.length, 2);
+		const on = playsPlaylist(data, playlist);
+		const title = on ? `${t.fg("accent", "♪")} ${t.fg("accent", t.bold(playlist.title))}` : `  ${t.fg("text", playlist.title)}`;
+		lines.push(truncateToWidth(title, width));
+		const count = playlist.count === undefined ? "" : `${playlist.count} songs`;
+		const right = isStation(data, playlist) ? `${t.fg("success", "STATION")}${count && t.fg("dim", `  ${count}`)}` : t.fg("dim", count);
+		lines.push(spread(`  ${t.fg("muted", playlist.author)}`, right, width));
+	});
+	if (search.results.length) heading("SONGS");
+	search.results.forEach((track, index) => {
+		selection.place(index + 1 + search.playlists.length, lines.length, 2);
 		const on = playsSong(data, track);
 		const title = on ? `${t.fg("accent", "♪")} ${t.fg("accent", t.bold(track.title))}` : `  ${t.fg("text", track.title)}`;
 		lines.push(truncateToWidth(title, width));
@@ -313,6 +381,7 @@ function sourceLabel(data: Readonly<RadioData>): string {
 	const source = data.source;
 	if (!source) return "";
 	if (source.kind === "song") return `RADIO: ${source.seed.title}`;
+	if (source.kind === "playlist") return source.playlist.title;
 	return source.station.name;
 }
 
@@ -353,7 +422,8 @@ function nowPlayingLines(env: PanelEnv, width: number, height: number): string[]
 	const data = radioData(env.state);
 	if (data.status === "error") {
 		// Which track failed, when one did: the reason alone often does not say.
-		const reason = data.track ? `${data.track.title}: ${data.error ?? ""}` : (data.error ?? "");
+		const error = data.track ? `${data.track.title}: ${data.error ?? ""}` : (data.error ?? "");
+		const reason = `${error} (trying again in ${RETRY_MS / 1000} s)`;
 		env.every(120);
 		return noSignalLines(env.theme, "NO SIGNAL", width, height, reason);
 	}

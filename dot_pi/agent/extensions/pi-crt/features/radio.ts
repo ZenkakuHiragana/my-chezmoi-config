@@ -7,25 +7,31 @@
  *
  * The device is the system's default (SDL follows it when it changes) until one is
  * picked on the OUTPUT page; the pick lasts until pi-crt is loaded again and is not
- * saved. Picking another device, or another volume, while a track plays queues the
- * PCM not yet played again, so the track goes on.
+ * saved. A source opens the device for its first track and keeps it open for the
+ * tracks after it, until it stops or another device is picked. Picking another
+ * device, or another volume, while a track plays queues the PCM not yet played
+ * again, so the track goes on.
  *
  * Stations come from radio.json next to index.ts and are read again whenever the
  * file changes. A station with `playlist` plays that playlist shuffled, shuffling
  * again after each pass; one with `query` plays the YouTube Music radio of the
- * first song the query finds. A song picked on the SEARCH page plays its radio too.
+ * first song the query finds. On the SEARCH page a song found plays its radio, and
+ * a YouTube playlist found plays like a playlist station; RADIO adds a playlist to
+ * radio.json and removes a station from it by writing the file.
  *
  * One radio plays per process: starting one stops any other pi-crt instance's.
  * Playback stops when its pi-crt instance shuts down (/reload, quit, a session
- * switch), when the station playing is removed from radio.json, and on an error,
- * which NOW PLAYING shows. Only the PCM queued for the device is kept: the
- * download pauses once QUEUE_HIGH seconds wait and resumes at QUEUE_LOW.
+ * switch), when it is stopped, and when the station playing is removed from
+ * radio.json. An error (a track that cannot be played, the network, the device)
+ * shows on NOW PLAYING and is tried again after RETRY_MS: the next track, or what
+ * failed to be fetched. Only the PCM queued for the device is kept: the download
+ * pauses once QUEUE_HIGH seconds wait and resumes at QUEUE_LOW.
  *
  * The three packages are loaded on first use, so that pi-crt's other tabs still
  * load when they are missing or fail to load (a failed npm install, a Node.js
  * version they do not support); RADIO then shows why.
  */
-import { readFileSync, unwatchFile, watchFile } from "node:fs";
+import { readFileSync, unwatchFile, watchFile, writeFileSync } from "node:fs";
 import { fileURLToPath } from "node:url";
 import type { ExtensionAPI } from "@earendil-works/pi-coding-agent";
 import type { Ytdl } from "@distube/ytdl-core";
@@ -60,6 +66,10 @@ const PUMP_MS = 40;
 const DRAW_MS = 120;
 /** Songs a search shows. */
 const SEARCH_LIMIT = 20;
+/** Playlists a search shows. */
+const PLAYLIST_LIMIT = 10;
+/** How long an error shows before the radio tries again. */
+export const RETRY_MS = 5000;
 /** Opus audio in WebM, the format the demuxer reads. */
 const OPUS_FILTER = { hasAudio: true, hasVideo: false, container: "webm" } as const;
 
@@ -89,13 +99,28 @@ export interface OutputsData {
 	error?: string;
 }
 
-/** What is playing: a station from radio.json, or the radio of a song found on SEARCH. */
-export type Source = { kind: "station"; station: Station } | { kind: "song"; seed: Track };
+/** A YouTube playlist found on SEARCH. */
+export interface Playlist {
+	id: string;
+	title: string;
+	author: string;
+	/** Its videos, as the search tells. */
+	count: number | undefined;
+}
+
+/**
+ * What is playing: a station from radio.json, the radio of a song found on SEARCH,
+ * or a playlist found there.
+ */
+export type Source = { kind: "station"; station: Station } | { kind: "song"; seed: Track } | { kind: "playlist"; playlist: Playlist };
 
 export interface SearchData {
 	query: string;
+	/** The songs found. */
 	results: Track[];
+	playlists: Playlist[];
 	loading: boolean;
+	/** Why a search failed; the results of the other search, songs or playlists, still show. */
 	error?: string;
 }
 
@@ -105,6 +130,8 @@ export interface RadioData {
 	stations: Station[];
 	/** Why radio.json could not be used; `stations` is then the last list that could. */
 	stationsError?: string;
+	/** Why the last station added or removed on RADIO could not be written to radio.json. */
+	saveError?: string;
 	status: "idle" | "tuning" | "playing" | "error";
 	error?: string;
 	source?: Source;
@@ -129,6 +156,11 @@ interface RadioControl {
 	data: RadioData;
 	playStation(index: number): void;
 	playSong(track: Track): void;
+	playPlaylist(playlist: Playlist): void;
+	/** Add a playlist to radio.json as a station. */
+	addPlaylist(playlist: Playlist): void;
+	/** Remove a station from radio.json. */
+	removeStation(station: Station): void;
 	stop(): void;
 	next(): void;
 	setVolume(volume: number): void;
@@ -228,7 +260,7 @@ const NONE: RadioData = Object.freeze({
 	volume: 1,
 	playedFrames: 0,
 	levels: [],
-	search: { query: "", results: [], loading: false },
+	search: { query: "", results: [], playlists: [], loading: false },
 	outputs: { devices: [], loading: false },
 }) as RadioData;
 
@@ -241,16 +273,32 @@ export function stationKey(station: Station): string {
 	return "playlist" in station ? `playlist:${station.playlist}` : `query:${station.query}`;
 }
 
-/** Whether `station` is playing (or tuning in); a station that failed is not. */
+/*
+ * A source plays from its start until it is stopped: while it tunes in, plays, and
+ * after an error until it tries again. Enter on it stops it.
+ */
+
+/** Whether `station` is playing. */
 export function playsStation(data: Readonly<RadioData>, station: Station): boolean {
 	const source = data.source;
-	return source?.kind === "station" && stationKey(source.station) === stationKey(station) && data.status !== "error";
+	return source?.kind === "station" && stationKey(source.station) === stationKey(station);
 }
 
-/** Whether the radio of `track` is playing (or tuning in); one that failed is not. */
+/** Whether the radio of `track` is playing. */
 export function playsSong(data: Readonly<RadioData>, track: Track): boolean {
 	const source = data.source;
-	return source?.kind === "song" && source.seed.id === track.id && data.status !== "error";
+	return source?.kind === "song" && source.seed.id === track.id;
+}
+
+/** Whether `playlist`, found on SEARCH, is playing. */
+export function playsPlaylist(data: Readonly<RadioData>, playlist: Playlist): boolean {
+	const source = data.source;
+	return source?.kind === "playlist" && source.playlist.id === playlist.id;
+}
+
+/** Whether a station in radio.json plays `playlist`. */
+export function isStation(data: Readonly<RadioData>, playlist: Playlist): boolean {
+	return data.stations.some((station) => "playlist" in station && station.playlist === playlist.id);
 }
 
 /** Seconds of the current track played. */
@@ -273,6 +321,26 @@ export function toggleSong(state: CrtState, track: Track): void {
 	if (!radio) return;
 	if (playsSong(radio.data, track)) radio.stop();
 	else radio.playSong(track);
+}
+
+/** Play a playlist found on SEARCH, or stop it when it is the one playing. */
+export function togglePlaylist(state: CrtState, playlist: Playlist): void {
+	const radio = radios.get(state);
+	if (!radio) return;
+	if (playsPlaylist(radio.data, playlist)) radio.stop();
+	else radio.playPlaylist(playlist);
+}
+
+/** Add a playlist found on SEARCH to radio.json, unless a station plays it already. */
+export function addPlaylist(state: CrtState, playlist: Playlist): void {
+	radios.get(state)?.addPlaylist(playlist);
+}
+
+/** Remove the station at `index` of the list from radio.json. */
+export function removeStation(state: CrtState, index: number): void {
+	const radio = radios.get(state);
+	const station = radio?.data.stations[index];
+	if (radio && station) radio.removeStation(station);
 }
 
 export function nextTrack(state: CrtState): void {
@@ -343,6 +411,11 @@ function toTrack(video: { id: string; title: string; author: { name: string | un
 	return { id: video.id, title: sanitize(video.title), artist: sanitize(video.author.name ?? ""), seconds: video.lengthSeconds };
 }
 
+/** A playlist from YouTube's listing; its texts are drawn on the terminal, so control characters are dropped. */
+function toPlaylist(list: { id: string; title: string; author: { name: string | undefined }; videoCount: number | undefined }): Playlist {
+	return { id: list.id, title: sanitize(list.title), author: sanitize(list.author.name ?? ""), count: list.videoCount };
+}
+
 function messageOf(error: unknown): string {
 	return sanitize(error instanceof Error ? error.message : String(error));
 }
@@ -356,7 +429,7 @@ export function setupRadio(pi: ExtensionAPI, env: FeatureEnv): void {
 		volume: 1,
 		playedFrames: 0,
 		levels: [],
-		search: { query: "", results: [], loading: false },
+		search: { query: "", results: [], playlists: [], loading: false },
 		outputs: { devices: [], loading: false },
 	};
 	let client: Ytdl | undefined;
@@ -368,19 +441,26 @@ export function setupRadio(pi: ExtensionAPI, env: FeatureEnv): void {
 
 	/* ------------------------------------------------------------ playback */
 
-	/** Aborts the current source's track downloads and queue refills; a new one per source. */
+	/** Aborts the current source's track downloads, queue refills and retries; a new one per source. */
 	let session = new AbortController();
 	let drawTimer: ReturnType<typeof setInterval> | undefined;
 	/** Track IDs this source played, so that a radio refill does not repeat them. */
 	let played = new Set<string>();
-	/** A playlist station's tracks; each pass plays them shuffled. */
+	/** A playlist's tracks; each pass plays them shuffled. */
 	let pass: Track[] = [];
+	/** The track this source started last, which a radio refill goes on from. */
+	let last: Track | undefined;
 	/** The refill under way, which the next track waits for instead of starting another. */
 	let refilling: Promise<void> | undefined;
 	/** Ends the current track's download, when another track or source replaces it. */
 	let endTrack: (() => void) | undefined;
 	/** Queues the current track's unplayed PCM again: on the device now picked, or at the volume now set. */
 	let requeueTrack: ((reopen: boolean) => void) | undefined;
+	/** The device the source plays on, from its first track until it stops or another device is picked. */
+	let output: Sdl.Audio.AudioPlaybackInstance | undefined;
+	/** What trying again after an error does: start the source again until its tracks are found, then the next track. */
+	let retry: () => void = () => {};
+	let retryTimer: ReturnType<typeof setTimeout> | undefined;
 
 	const startDrawing = () => {
 		if (drawTimer) return;
@@ -402,21 +482,26 @@ export function setupRadio(pi: ExtensionAPI, env: FeatureEnv): void {
 		requeueTrack = undefined;
 	};
 
-	/**
-	 * Stop the sound and drop what plays. With an error, keep the source, and the
-	 * track when the error is that track's, so that NOW PLAYING can say what failed.
-	 */
-	const halt = (error?: string, failed?: Track) => {
+	const closeOutput = () => {
+		if (output && !output.closed) output.close();
+		output = undefined;
+	};
+
+	/** Stop the sound and drop the source. */
+	const halt = () => {
 		session.abort();
 		session = new AbortController();
 		refilling = undefined;
+		clearTimeout(retryTimer);
+		retryTimer = undefined;
 		dropTrack();
+		closeOutput();
 		if (playing === control) playing = undefined;
 		stopDrawing();
-		data.status = error === undefined ? "idle" : "error";
-		data.error = error;
-		if (error === undefined) data.source = undefined;
-		data.track = failed;
+		data.status = "idle";
+		data.error = undefined;
+		data.source = undefined;
+		data.track = undefined;
 		data.queue = [];
 		data.position = undefined;
 		data.playedFrames = 0;
@@ -424,19 +509,39 @@ export function setupRadio(pi: ExtensionAPI, env: FeatureEnv): void {
 		env.changed(data);
 	};
 
-	const fail = (error: unknown, track?: Track) => halt(messageOf(error), track);
+	/**
+	 * Stop the track and show why, with the track when the error is that track's, so
+	 * that NOW PLAYING can say what failed; then try again after RETRY_MS. The source
+	 * keeps its queue.
+	 */
+	const fail = (error: unknown, track?: Track) => {
+		dropTrack();
+		stopDrawing();
+		data.status = "error";
+		data.error = messageOf(error);
+		data.track = track;
+		data.playedFrames = 0;
+		data.levels = [];
+		clearTimeout(retryTimer);
+		const signal = session.signal;
+		retryTimer = setTimeout(() => {
+			retryTimer = undefined;
+			if (!signal.aborted) retry();
+		}, RETRY_MS);
+		retryTimer.unref?.();
+		env.changed(data);
+	};
 
 	/** Tracks to play after the queue runs out, for the current source. */
 	const refill = async (signal: AbortSignal): Promise<Track[]> => {
 		const source = data.source;
 		if (!source) return [];
-		if (source.kind === "station" && "playlist" in source.station) {
-			// Another pass over the same playlist, shuffled again, not starting with the track playing.
+		if (source.kind === "playlist" || (source.kind === "station" && "playlist" in source.station)) {
+			// Another pass over the same playlist, shuffled again, not starting with the track played last.
 			const again = shuffled(pass);
-			if (again.length > 1 && again[0]!.id === data.track?.id) again.push(again.shift()!);
+			if (again.length > 1 && again[0]!.id === last?.id) again.push(again.shift()!);
 			return again;
 		}
-		const last = data.track;
 		const seed = source.kind === "song" ? source.seed.id : played.values().next().value;
 		if (!last || !seed) return [];
 		const { client } = await ytdl();
@@ -463,6 +568,7 @@ export function setupRadio(pi: ExtensionAPI, env: FeatureEnv): void {
 		const signal = session.signal;
 		// Tuning until the next track's first write played: `n` waits for it.
 		data.status = "tuning";
+		data.error = undefined;
 		env.changed(data);
 		try {
 			if (!data.queue.length) await fill(signal);
@@ -488,6 +594,7 @@ export function setupRadio(pi: ExtensionAPI, env: FeatureEnv): void {
 	/** Download, decode and queue one track; the next one starts when its last PCM played. */
 	const playTrack = async (track: Track, signal: AbortSignal) => {
 		played.add(track.id);
+		last = track;
 		data.track = track;
 		data.status = "tuning";
 		data.error = undefined;
@@ -502,17 +609,24 @@ export function setupRadio(pi: ExtensionAPI, env: FeatureEnv): void {
 		let waitingBytes = 0;
 		let ended = false;
 		const decoder = new loaded.audify.OpusDecoder(SAMPLE_RATE, CHANNELS);
+		if (!output || output.closed) output = openOutput(loaded.audio);
+		/** The device the track plays on now; one that closed is an error. */
+		const device = () => {
+			if (!output || output.closed) throw new Error("audio device: closed");
+			return output;
+		};
 		const download = client.download(track.id, { filter: OPUS_FILTER, signal });
 		const demuxer = new loaded.WebmDemuxer();
-		let output = openOutput(loaded.audio);
 		/** Read how much SDL played: drop the packets it finished, count their frames, keep their levels. */
 		const pump = () => {
 			if (endTrack !== finish) return;
-			if (output.closed) {
-				fail(new Error("audio device: closed"), track);
+			let unplayed: number;
+			try {
+				unplayed = device().queued;
+			} catch (error) {
+				fail(error, track);
 				return;
 			}
-			const unplayed = output.queued;
 			while (waiting.length && waitingBytes - waiting[0]!.length >= unplayed) {
 				const packet = waiting.shift()!;
 				waitingBytes -= packet.length;
@@ -534,21 +648,29 @@ export function setupRadio(pi: ExtensionAPI, env: FeatureEnv): void {
 			clearInterval(timer);
 			download.destroy();
 			demuxer.destroy();
-			if (!output.closed) output.close();
+			// The device stays open for the next track; what this one left unplayed goes.
+			if (output && !output.closed) output.clearQueue();
 			signal.removeEventListener("abort", finish);
 		};
 		endTrack = finish;
 		signal.addEventListener("abort", finish);
 		requeueTrack = (reopen) => {
-			// What SDL has not played yet is the tail of `waiting`. SDL's own short buffer
-			// past its queue may play again or be skipped around the switch.
-			const unplayed = output.queued;
-			const tail = Buffer.concat(waiting).subarray(waitingBytes - unplayed);
+			const current = device();
+			// What SDL has not played yet is the tail of `waiting`. It is made at the volume
+			// now set before the queue is cleared, so that SDL does not run out of PCM
+			// meanwhile. SDL's own short buffer past its queue may play again or be
+			// skipped around a device switch.
+			let tail = atVolume(Buffer.concat(waiting).subarray(waitingBytes - current.queued), data.volume);
+			let target = current;
 			if (reopen) {
-				if (!output.closed) output.close();
-				output = openOutput(loaded.audio);
-			} else output.clearQueue();
-			output.enqueue(atVolume(tail, data.volume));
+				current.close();
+				target = output = openOutput(loaded.audio);
+			} else {
+				// SDL went on playing while the tail was made: queue only what it has not played.
+				tail = tail.subarray(tail.length - current.queued);
+				current.clearQueue();
+			}
+			if (tail.length) target.enqueue(tail);
 		};
 		const failTrack = (error: unknown) => {
 			if (!signal.aborted && endTrack === finish) fail(error, track);
@@ -562,12 +684,12 @@ export function setupRadio(pi: ExtensionAPI, env: FeatureEnv): void {
 				waiting.push(pcm);
 				levels.push(level(pcm));
 				waitingBytes += pcm.length;
-				output.enqueue(atVolume(pcm, data.volume));
+				device().enqueue(atVolume(pcm, data.volume));
 			} catch (error) {
 				failTrack(error);
 				return;
 			}
-			if (output.queued >= QUEUE_HIGH * SAMPLE_RATE * FRAME_BYTES) demuxer.pause();
+			if (device().queued >= QUEUE_HIGH * SAMPLE_RATE * FRAME_BYTES) demuxer.pause();
 		});
 		demuxer.on("end", () => {
 			if (endTrack !== finish) return;
@@ -582,13 +704,15 @@ export function setupRadio(pi: ExtensionAPI, env: FeatureEnv): void {
 		halt();
 		playing = control;
 		data.source = source;
-		data.status = "tuning";
 		played = new Set();
 		pass = [];
-		env.changed(data);
-		startDrawing();
+		last = undefined;
 		const signal = session.signal;
-		void (async () => {
+		const run = async () => {
+			data.status = "tuning";
+			data.error = undefined;
+			env.changed(data);
+			startDrawing();
 			try {
 				const found = await start(signal);
 				if (signal.aborted) return;
@@ -597,24 +721,31 @@ export function setupRadio(pi: ExtensionAPI, env: FeatureEnv): void {
 					pass = found.pass;
 					data.position = { index: 0, total: pass.length };
 				}
+				retry = () => void advance();
 				await advance();
 			} catch (error) {
 				if (!signal.aborted) fail(error);
 			}
-		})();
+		};
+		retry = () => void run();
+		void run();
+	};
+
+	/** Find a playlist's tracks: the queue, shuffled, and the pass each later pass shuffles again. */
+	const playlistTracks = async (id: string, signal: AbortSignal) => {
+		const { client } = await ytdl();
+		const list = await client.getPlaylist(id, { signal });
+		const tracks = list.videos.map(toTrack);
+		if (!tracks.length) throw new Error("the playlist has no playable songs");
+		return { queue: shuffled(tracks), pass: tracks };
 	};
 
 	const playStation = (index: number) => {
 		const station = data.stations[index];
 		if (!station) return;
 		begin({ kind: "station", station }, async (signal) => {
+			if ("playlist" in station) return playlistTracks(station.playlist, signal);
 			const { client, loaded } = await ytdl();
-			if ("playlist" in station) {
-				const list = await client.getPlaylist(station.playlist, { signal });
-				const tracks = list.videos.map(toTrack);
-				if (!tracks.length) throw new Error("the playlist has no playable songs");
-				return { queue: shuffled(tracks), pass: tracks };
-			}
 			const [song] = await client.search(station.query, { type: loaded.SearchType.Song, limit: 1, signal });
 			if (!song) throw new Error(`no song found for "${station.query}"`);
 			return { queue: [toTrack(song)] };
@@ -623,6 +754,10 @@ export function setupRadio(pi: ExtensionAPI, env: FeatureEnv): void {
 
 	const playSong = (track: Track) => {
 		begin({ kind: "song", seed: track }, async () => ({ queue: [track] }));
+	};
+
+	const playPlaylist = (playlist: Playlist) => {
+		begin({ kind: "playlist", playlist }, (signal) => playlistTracks(playlist.id, signal));
 	};
 
 	/** Go on to the queue's next track. */
@@ -650,20 +785,31 @@ export function setupRadio(pi: ExtensionAPI, env: FeatureEnv): void {
 	const search = (query: string) => {
 		const text = query.trim();
 		searchAbort?.abort();
-		data.search = { query: text, results: [], loading: text !== "" };
+		data.search = { query: text, results: [], playlists: [], loading: text !== "" };
 		env.changed(data);
 		if (!text) return;
 		const abort = new AbortController();
 		searchAbort = abort;
+		const signal = abort.signal;
 		void (async () => {
 			try {
 				const { client, loaded } = await ytdl();
-				const songs = await client.search(text, { type: loaded.SearchType.Song, limit: SEARCH_LIMIT, signal: abort.signal });
-				if (abort.signal.aborted) return;
-				data.search = { query: text, results: songs.map(toTrack), loading: false };
+				const [songs, lists] = await Promise.allSettled([
+					client.search(text, { type: loaded.SearchType.Song, limit: SEARCH_LIMIT, signal }),
+					client.search(text, { type: loaded.SearchType.Playlist, limit: PLAYLIST_LIMIT, signal }),
+				]);
+				if (signal.aborted) return;
+				const failed = songs.status === "rejected" ? songs : lists.status === "rejected" ? lists : undefined;
+				data.search = {
+					query: text,
+					results: songs.status === "fulfilled" ? songs.value.map(toTrack) : [],
+					playlists: lists.status === "fulfilled" ? lists.value.map(toPlaylist) : [],
+					loading: false,
+					error: failed && messageOf(failed.reason),
+				};
 			} catch (error) {
-				if (abort.signal.aborted) return;
-				data.search = { query: text, results: [], loading: false, error: messageOf(error) };
+				if (signal.aborted) return;
+				data.search = { query: text, results: [], playlists: [], loading: false, error: messageOf(error) };
 			}
 			env.changed(data);
 		})();
@@ -681,7 +827,11 @@ export function setupRadio(pi: ExtensionAPI, env: FeatureEnv): void {
 		}
 	};
 
-	const moveOutput = () => requeue(true);
+	const moveOutput = () => {
+		if (requeueTrack) requeue(true);
+		// No track plays: the next one opens the device now picked.
+		else closeOutput();
+	};
 
 	/** List the output devices again; the OUTPUT page does so whenever it comes on screen. */
 	const listOutputs = () => {
@@ -738,10 +888,75 @@ export function setupRadio(pi: ExtensionAPI, env: FeatureEnv): void {
 		env.changed(data);
 	};
 
+	/**
+	 * Change radio.json. `edit` gets the stations as the file has them now, not as
+	 * last read, both as parsed and as written (other fields kept), and changes the
+	 * written ones; it returns whether it changed them. A file that cannot be used is
+	 * left alone. The file is read again at once, without waiting for its watcher.
+	 * Returns whether the file is as `edit` wants it.
+	 */
+	const editStations = (edit: (stations: Station[], items: unknown[]) => boolean): boolean => {
+		try {
+			const text = readFileSync(STATIONS_FILE, "utf8");
+			const stations = parseStations(text);
+			const items = JSON.parse(text) as unknown[];
+			if (edit(stations, items)) writeFileSync(STATIONS_FILE, `${JSON.stringify(items, null, 2)}\n`);
+			data.saveError = undefined;
+		} catch (error) {
+			data.saveError = `radio.json: ${messageOf(error)}`;
+			env.changed(data);
+			return false;
+		}
+		readStations();
+		return true;
+	};
+
+	const addPlaylistStation = (playlist: Playlist) => {
+		const station: Station = { name: playlist.title.trim() || playlist.id, playlist: playlist.id };
+		const saved = editStations((stations, items) => {
+			if (stations.some((item) => stationKey(item) === stationKey(station))) return false;
+			items.push(station);
+			return true;
+		});
+		// The playlist playing is now a station: STATIONS shows it playing, and removing it stops it.
+		const source = data.source;
+		const added = data.stations.find((item) => stationKey(item) === stationKey(station));
+		if (saved && added && source?.kind === "playlist" && source.playlist.id === playlist.id) {
+			data.source = { kind: "station", station: added };
+			env.changed(data);
+		}
+	};
+
+	const removeStationFromFile = (station: Station) => {
+		editStations((stations, items) => {
+			// The station by its source; of two with the same source, the one with its name.
+			// It may have been renamed since the list was read.
+			const same = (item: Station) => stationKey(item) === stationKey(station);
+			let at = stations.findIndex((item) => same(item) && item.name === station.name);
+			if (at < 0) at = stations.findIndex(same);
+			if (at < 0) return false;
+			items.splice(at, 1);
+			return true;
+		});
+	};
+
 	let watching = false;
 	const onFileChange = () => readStations();
 
-	const control: RadioControl = { data, playStation, playSong, stop: () => halt(), next, setVolume, search, moveOutput, refresh: () => env.changed(data) };
+	const control: RadioControl = {
+		data,
+		playStation,
+		playSong,
+		playPlaylist,
+		addPlaylist: addPlaylistStation,
+		removeStation: removeStationFromFile,
+		stop: () => halt(),
+		next,
+		setVolume,
+		search,
+		moveOutput,
+		refresh: () => env.changed(data),
+	};
 	radios.set(env.state, control);
 
 	pi.on("session_start", (_event, ctx) => {
