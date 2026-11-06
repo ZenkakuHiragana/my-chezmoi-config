@@ -13,7 +13,7 @@ import { type PanelEnv, registerPanel } from "./registry.ts";
 /**
  * When every file is shown, files are added while fewer screen lines than this are drawn
  * (a wrapped code line counts each of its lines; the last file added may go past it);
- * a picked file shows its whole kept diff.
+ * a picked file shows its diff up to split-diff's limit for one file.
  */
 const MAX_ALL_LINES = 4000;
 

@@ -20,8 +20,11 @@
  *   is drawn (pi-tidy leaves that to pi). It lists each change's removed lines,
  *   then its added lines, as a unified diff does.
  * - A code line longer than its column (a pane, or the one column) wraps onto
- *   the next screen lines instead of being cut (pi-tidy cuts it). Only a panel too narrow for the line
- *   number and a character of code (a few columns) still loses text.
+ *   the next screen lines instead of being cut (pi-tidy cuts it). Text is lost
+ *   only in a panel too narrow for the line number and a character of code (a
+ *   few columns), past MAX_DIFF_LINE_BYTES of one line, where state/git.ts
+ *   cuts it on reading, and past about MAX_SECTION_LINES screen lines of one file,
+ *   where the rest is only counted.
  * - Each side of a file is highlighted in one call (pi-tidy highlights line by
  *   line; one call is about twice as fast, and a file has many lines).
  */
@@ -32,6 +35,14 @@ import { backgroundAnsi, type Color, colorToRgb, rgbColor, truncateToWidth, visi
 /** Blank cells on each side of the panes. */
 const PAD = 1;
 const SEPARATOR = " │ ";
+/**
+ * About the screen lines of code drawn for one file (see rowsWithin: the first row is
+ * drawn however long, and the heading lines are not counted); the diff lines after them
+ * are counted in the "more diff lines not shown" line. More than this is too much to
+ * read in a panel, and a file of many long lines would stop the screen while it is
+ * wrapped and highlighted.
+ */
+const MAX_SECTION_LINES = 10_000;
 /** When a pane would have fewer columns of code than this, the diff is drawn in one column. */
 const MIN_CONTENT_WIDTH = 80;
 const TAB = "    ";
@@ -522,10 +533,15 @@ export function renderDiffSection(section: DiffSection, width: number, theme: Th
 	const lines: string[] = [renderHeading(sanitize(section.path), added, removed, width, palette, theme)];
 	for (const note of notes) lines.push(truncateToWidth(`${" ".repeat(PAD)}${label(note)}`, width));
 
+	let hidden = 0;
 	if (rows.length) {
-		const highlighted = highlightCells(section.path, rows);
 		const numWidth = numberWidth(rows);
 		const lay = layout(width, numWidth);
+		// The width of the code: in a pane, or in the one column.
+		const content = lay ? lay.content : Math.max(1, width - PAD * 2 - numWidth - 3);
+		const shown = rowsWithin(rows, lay !== null, content);
+		for (const row of rows.slice(shown.length)) hidden += diffLinesOf(row);
+		const highlighted = highlightCells(section.path, shown);
 		const skip = (row: Row) => truncateToWidth(`${" ".repeat(PAD)}${label(row.heading ? `… ${row.heading}` : "…")}`, width);
 		if (lay) {
 			const separator = `${palette.contextFg}${SEPARATOR}\x1b[39m`;
@@ -535,7 +551,7 @@ export function renderDiffSection(section: DiffSection, width: number, theme: Th
 					width,
 				),
 			);
-			for (const row of rows) {
+			for (const row of shown) {
 				if (row.kind === "skip") {
 					lines.push(skip(row));
 					continue;
@@ -559,7 +575,6 @@ export function renderDiffSection(section: DiffSection, width: number, theme: Th
 			// ones that are added. Consecutive changed rows are one change: git separates two
 			// changes with a context line or a hunk header, and parseSection pairs a change's
 			// removed and added lines into its rows.
-			const content = Math.max(1, width - PAD * 2 - numWidth - 3);
 			const addCell = (cell: Cell, kind: CellKind, emphasis: { start: number; end: number } | undefined) => {
 				const chunks = cellChunks(cell, kind, content, palette, highlighted, emphasis);
 				for (const line of renderCellLines(cell, kind, numWidth, content, palette, chunks)) lines.push(pad(`${" ".repeat(PAD)}${line}`, width));
@@ -571,8 +586,8 @@ export function renderDiffSection(section: DiffSection, width: number, theme: Th
 				for (const [index, row] of change.entries()) if (row.right) addCell(row.right, "add", emphases[index]!.right);
 				change = [];
 			};
-			for (const row of rows) {
-				if (row.kind === "row" && (row.left?.changed || row.right?.changed)) {
+			for (const row of shown) {
+				if (row.kind === "row" && rowIsChanged(row)) {
 					change.push(row);
 					continue;
 				}
@@ -583,6 +598,38 @@ export function renderDiffSection(section: DiffSection, width: number, theme: Th
 			flush();
 		}
 	}
-	if (section.omitted) lines.push(truncateToWidth(`${" ".repeat(PAD)}${label(`… ${section.omitted} more diff lines not shown`)}`, width));
+	const more = hidden + (section.omitted ?? 0);
+	if (more) lines.push(truncateToWidth(`${" ".repeat(PAD)}${label(`… ${more} more diff lines not shown`)}`, width));
 	return lines;
+}
+
+function rowIsChanged(row: Row): boolean {
+	return !!(row.left?.changed || row.right?.changed);
+}
+
+/** Lines of the git diff a row stands for: each side of a change, one for an unchanged line, none for a skip. */
+function diffLinesOf(row: Row): number {
+	if (row.kind === "skip") return 0;
+	return rowIsChanged(row) ? Number(row.left !== undefined) + Number(row.right !== undefined) : 1;
+}
+
+/**
+ * The first rows, as many as take at most MAX_SECTION_LINES screen lines (at least one
+ * row). The lines are counted from the plain text, before any highlighting, as
+ * renderDiffSection lays the rows out (a row of two panes is as high as its higher
+ * side; in one column a change takes both its sides, an unchanged line one); a change
+ * there has to change this too. Wrapping and highlighting then cost only the rows
+ * drawn. The count leaves out the cut of a wide character at a wrap, so it can come
+ * out a little short.
+ */
+function rowsWithin(rows: readonly Row[], split: boolean, content: number): readonly Row[] {
+	const height = (cell: Cell | undefined) => (cell ? Math.max(1, Math.ceil(visibleWidth(cell.text) / content)) : 0);
+	let total = 0;
+	for (const [index, row] of rows.entries()) {
+		if (row.kind === "skip") total += 1;
+		else if (split) total += Math.max(height(row.left), height(row.right));
+		else total += rowIsChanged(row) ? height(row.left) + height(row.right) : height(row.left);
+		if (total > MAX_SECTION_LINES && index > 0) return rows.slice(0, index);
+	}
+	return rows;
 }

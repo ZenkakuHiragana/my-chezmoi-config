@@ -2,9 +2,10 @@
  * The git snapshot the git panels show, read through Pi's exec.
  *
  * readGit reads the whole output of `git diff` (pi.exec gathers all of it) and
- * keeps the first MAX_FILE_DIFF_LINES lines of each file. It runs while a git
- * panel is shown, every few seconds and after edits. Untracked files are read up
- * to UNTRACKED_BYTES each, and only when their size or time changed.
+ * keeps the first MAX_FILE_DIFF_LINES lines of each file, its lines after the first
+ * hunk header cut at MAX_DIFF_LINE_BYTES. It runs while a git panel is shown, every
+ * few seconds and after edits. Untracked files are read up to UNTRACKED_BYTES each
+ * (which bounds their lines as well), and only when their size or time changed.
  *
  * readLineCounts reads only the line counts, for STATUS's DIFF card.
  */
@@ -66,6 +67,13 @@ export interface GitSnapshot {
 const MAX_LISTED_FILES = 500;
 /** Lines of one file's diff kept at most. */
 const MAX_FILE_DIFF_LINES = 2000;
+/**
+ * UTF-8 bytes of one line of `git diff` output kept at most (64 KiB, where lazygit cuts
+ * too); a longer line (minified code, data) keeps what fits and gets "…" after it.
+ * Such a line is too long to read on screen anyway, and wrapping and drawing all of it
+ * would take long. Tabs are counted as one byte here and drawn as four columns later.
+ */
+const MAX_DIFF_LINE_BYTES = 64 * 1024;
 /** Untracked files read at most, and bytes read of each. */
 const MAX_UNTRACKED = 100;
 const UNTRACKED_BYTES = 64 * 1024;
@@ -357,9 +365,10 @@ function samePathOf(header: string): string {
 
 /**
  * Split a unified diff into per-file sections of at most MAX_FILE_DIFF_LINES lines,
- * without control characters. Only the lines kept are cut out of the output and
- * cleaned; the lines after them in a file's hunks are only counted, so a large diff
- * costs a scan for its line breaks.
+ * without control characters, each line after a file's first hunk header shortened
+ * by cutLine. Only the lines kept are sliced out of the output and cleaned; the lines
+ * after them in a file's hunks are only counted, so a large diff costs a scan for its
+ * line breaks.
  */
 function splitByFile(output: string): GitDiffFile[] {
 	const files: GitDiffFile[] = [];
@@ -379,8 +388,11 @@ function splitByFile(output: string): GitDiffFile[] {
 			if (current) current.omitted = (current.omitted ?? 0) + 1;
 			continue;
 		}
-		// The paths in the headers: shown from the cleaned line, told apart by the line as git gave it.
-		const raw = output.slice(from, stop);
+		// The paths in the headers: shown from the cleaned line, told apart by the line as git
+		// gave it, so the lines before a file's first hunk header (and that header) are never
+		// shortened; later lines, hunk headers included, are. `inHunk` still holds the
+		// previous file's state on a `diff --git` line, hence `!starts`.
+		const raw = inHunk && !starts ? cutLine(output, from, stop) : output.slice(from, stop);
 		const line = sanitize(raw);
 		if (starts) {
 			current = { path: samePathOf(line), gitPath: samePathOf(raw), lines: [] };
@@ -406,6 +418,26 @@ function splitByFile(output: string): GitDiffFile[] {
 		else current.omitted = (current.omitted ?? 0) + 1;
 	}
 	return files;
+}
+
+/**
+ * The line from `from` to `stop`; when it is longer than MAX_DIFF_LINE_BYTES in UTF-8,
+ * its first characters that fit, then "…". The bytes are counted only up to the cut,
+ * so the rest of a line of megabytes is never read (Buffer.byteLength would read it
+ * all). A character is never split (pi's truncateLine cuts UTF-16 units, so it can
+ * leave half of a surrogate pair).
+ */
+function cutLine(output: string, from: number, stop: number): string {
+	// A UTF-16 unit is at most 3 bytes in UTF-8, so a short line needs no counting.
+	if ((stop - from) * 3 <= MAX_DIFF_LINE_BYTES) return output.slice(from, stop);
+	let bytes = 0;
+	for (let end = from; end < stop; ) {
+		const code = output.codePointAt(end)!;
+		bytes += code < 0x80 ? 1 : code < 0x800 ? 2 : code < 0x10000 ? 3 : 4;
+		if (bytes > MAX_DIFF_LINE_BYTES) return `${output.slice(from, end)}…`;
+		end += code >= 0x10000 ? 2 : 1;
+	}
+	return output.slice(from, stop);
 }
 
 /**
