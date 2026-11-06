@@ -1,10 +1,14 @@
 /**
  * The allowance windows STAT shows, read with quota-axi (a pinned dependency; it
  * needs Node 22.19 or later, as Pi does). quota-axi asks the vendor for the account's
- * usage and names the windows; nothing here guesses a window from a name.
+ * usage and reports each window's length and kind; the gauges take a window by what
+ * quota-axi reports for it, never by its name.
  *
- * readQuota runs `quota-axi --provider <id> --json` as a child process (node with its
- * bin script) and reads its report. The reading is for the account Pi signed in with
+ * readQuota runs `quota-axi --provider <id> --json --full` as a child process (node
+ * with its bin script) and reads its report. --full is what keeps each window's
+ * length: the default --json redacts `windowSeconds`, which leaves a window quota-axi
+ * could not identify (OpenCode Go's five-hour cap, which the vendor calls "rolling")
+ * with no evidence of what it is. The reading is for the account Pi signed in with
  * and no other. quota-axi would otherwise also read other tools' sign-ins (Claude
  * Code's, Codex's, OpenCode's, the Grok and MiniMax CLIs', API keys in environment
  * variables) and may prefer them, so it runs with only the environment a process
@@ -63,6 +67,8 @@ export interface QuotaWindow {
 	kind: string;
 	/** Share of the limit used, 0..1; undefined when the window has no percentage (credits). */
 	ratio?: number;
+	/** The window's length in seconds, when quota-axi reports one. */
+	windowSeconds?: number;
 	/** When the window resets, in milliseconds since the epoch. */
 	resetAt?: number;
 	/** Set when `ratio` is a share of that window, not an allowance of its own. */
@@ -126,7 +132,7 @@ export function readQuota(
 	return new Promise((resolve) => {
 		execFile(
 			process.execPath,
-			[QUOTA_BIN, "--provider", provider.id, "--json", "--no-credential-refresh"],
+			[QUOTA_BIN, "--provider", provider.id, "--json", "--full", "--no-credential-refresh"],
 			{ env, signal, timeout: QUOTA_TIMEOUT_MS, windowsHide: true, maxBuffer: 4 * 1024 * 1024 },
 			(error, stdout, stderr) => {
 				// quota-axi exits with 1 when the provider failed, and still prints its report.
@@ -165,13 +171,14 @@ export function parseQuota(stdout: string): QuotaReading {
 		const window = record(value);
 		const label = text(window?.label) || text(window?.id);
 		if (!window || !label) return [];
-		// The default --json keeps percentRemaining for an allowance and percentUsed for a share.
+		// --full reports percentUsed too; either one gives the same share.
 		const used = finite(window.percentUsed) ? window.percentUsed : finite(window.percentRemaining) ? 100 - window.percentRemaining : undefined;
 		const resetAt = typeof window.resetsAt === "string" ? Date.parse(window.resetsAt) : Number.NaN;
 		return [{
 			label,
 			kind: text(window.kind) ?? "unknown",
 			ratio: used === undefined ? undefined : Math.max(0, Math.min(1, used / 100)),
+			windowSeconds: finite(window.windowSeconds) && window.windowSeconds > 0 ? window.windowSeconds : undefined,
 			resetAt: Number.isFinite(resetAt) ? resetAt : undefined,
 			shareOf: text(window.shareOf),
 		}];
@@ -184,8 +191,18 @@ export function parseQuota(stdout: string): QuotaReading {
 	};
 }
 
-/** STATUS's 5H and WEEK gauges: the first session and weekly windows that are allowances of their own. */
+/** The length quota-axi measures a five-hour allowance at. */
+const FIVE_HOURS_SECONDS = 18_000;
+
+/**
+ * STATUS's 5H and WEEK gauges: the five-hour and weekly windows that are allowances of
+ * their own. The five-hour one is taken by its length first, so that a window quota-axi
+ * cannot identify is still the 5H gauge's: OpenCode Go caps five hours with a window the
+ * vendor calls "rolling", which comes as kind "unknown" and is measured at 18,000 s.
+ */
 export function gaugeRatios(windows: readonly QuotaWindow[]): { fiveHour?: number; weekly?: number } {
-	const first = (kind: string) => windows.find((window) => window.kind === kind && window.shareOf === undefined)?.ratio;
-	return { fiveHour: first("session"), weekly: first("weekly") };
+	const own = (window: QuotaWindow) => window.shareOf === undefined;
+	const byLength = windows.find((window) => own(window) && window.windowSeconds === FIVE_HOURS_SECONDS);
+	const byKind = (kind: string) => windows.find((window) => own(window) && window.kind === kind)?.ratio;
+	return { fiveHour: byLength?.ratio ?? byKind("session"), weekly: byKind("weekly") };
 }
