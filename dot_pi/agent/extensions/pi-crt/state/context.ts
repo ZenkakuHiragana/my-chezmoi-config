@@ -3,6 +3,7 @@
  * (bounded by the model's context window), once per request, from a timer
  * outside rendering (features/context.ts).
  */
+import { getCurrentSystemPrompt, getCurrentTools } from "@earendil-works/pi-ai";
 import { estimateTokens } from "@earendil-works/pi-coding-agent";
 
 export interface ContextPart {
@@ -19,29 +20,25 @@ export function textTokens(text: string): number {
 
 /**
  * Estimates the parts of a request: the system prompt, tool definitions and the
- * messages by role, with Pi's own estimator (characters / 4). Assistant messages
- * with tool calls are the only ones whose estimate needs JSON serialisation, so
- * their estimates are remembered by a fingerprint that takes no serialisation.
+ * messages by role, with Pi's own estimator (characters / 4). The prompt and the
+ * tools are the ones the request's system messages declare (pi-ai replays them).
+ * Assistant messages with tool calls are the only messages whose estimate needs JSON
+ * serialisation, so their estimates are remembered by a fingerprint that takes no
+ * serialisation.
  */
 export class ContextMeter {
 	private remembered = new Map<string, number>();
-	private toolsKey = "";
-	private toolsTokens = 0;
 
-	measure(messages: readonly unknown[], systemPrompt: string, tools: { names: string[]; definitions: () => unknown[] }): ContextPart[] {
+	measure(messages: readonly unknown[]): ContextPart[] {
 		const totals = new Map<string, number>();
 		const add = (label: string, tokens: number) => totals.set(label, (totals.get(label) ?? 0) + tokens);
-		add("SYSTEM", textTokens(systemPrompt));
-		const toolsKey = tools.names.join("\n");
-		if (toolsKey !== this.toolsKey) {
-			this.toolsKey = toolsKey;
-			this.toolsTokens = textTokens(JSON.stringify(tools.definitions()));
-		}
-		add("TOOLS", this.toolsTokens);
+		const transcript = messages as Parameters<typeof getCurrentTools>[0];
+		add("SYSTEM", textTokens(getCurrentSystemPrompt(transcript)));
+		add("TOOLS", textTokens(JSON.stringify(getCurrentTools(transcript))));
 		const remembered = new Map<string, number>();
 		for (const message of messages) {
 			const msg = message as ContextMessage;
-			// The system prompt is measured above from the prompt Pi actually sends.
+			// The system messages are measured above, as the prompt and the tools they declare.
 			if (!msg || msg.role === "system") continue;
 			add(roleLabel(msg.role), this.estimate(msg, remembered));
 		}

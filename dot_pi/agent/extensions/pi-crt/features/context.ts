@@ -72,15 +72,9 @@ export function setupContext(pi: ExtensionAPI, env: FeatureEnv): void {
 		setTimeout(() => {
 			scheduled = false;
 			const messages = pending;
-			const ctx = env.context();
-			if (!messages || !ctx || closed) return;
+			if (!messages || closed) return;
 			pending = undefined;
-			const activeNames = pi.getActiveTools();
-			const activeSet = new Set(activeNames);
-			feature.data.contextParts = meter.measure(messages, ctx.getSystemPrompt(), {
-				names: activeNames,
-				definitions: () => pi.getAllTools().filter((tool) => activeSet.has(tool.name)),
-			});
+			feature.data.contextParts = meter.measure(messages);
 			env.changed(feature.data);
 		}, 0).unref?.();
 	};
@@ -99,7 +93,7 @@ export function setupContext(pi: ExtensionAPI, env: FeatureEnv): void {
 		env.changed(feature.data);
 	});
 
-	// Only keep the request; it is measured when the context panel is shown.
+	// Only keep the request (its system messages hold its prompt and tools); it is measured when the context panel is shown.
 	pi.on("context_with_system", (event) => {
 		pending = event.messages;
 		schedule();

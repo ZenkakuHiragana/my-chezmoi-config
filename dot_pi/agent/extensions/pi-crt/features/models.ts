@@ -51,9 +51,19 @@ export interface ModelData extends Versioned {
 	picked?: string;
 	/** Why the last switch to a model failed, for that model. */
 	failure?: { key: string; text: string };
-	/** What was read last, to tell when Pi's lists changed. */
-	read: string;
+	/** What was read last, to tell when Pi's lists changed (see models()). */
+	read: ModelsRead;
 }
+
+/** The models read of Pi, and the model and thinking level in use. */
+interface ModelsRead {
+	available: readonly Model<Api>[];
+	scoped: readonly Model<Api>[];
+	current: string;
+	thinkingLevel: string;
+}
+
+const NOTHING_READ: ModelsRead = Object.freeze({ available: [], scoped: [], current: "", thinkingLevel: "" });
 
 interface ModelFeature {
 	pi: ExtensionAPI;
@@ -65,7 +75,7 @@ interface ModelFeature {
 const features = new WeakMap<CrtState, ModelFeature>();
 
 /** Before setupModels: nothing read. Never changed. */
-const NONE: Readonly<ModelData> = Object.freeze({ version: 0, available: [], scoped: [], read: "" });
+const NONE: Readonly<ModelData> = Object.freeze({ version: 0, available: [], scoped: [], read: NOTHING_READ });
 
 function keyOf(model: Model<Api>): string {
 	return `${model.provider}/${model.id}`;
@@ -88,7 +98,14 @@ function itemOf(model: Model<Api>): ModelItem {
 	};
 }
 
-/** The models, read again from Pi; a new version when they changed. Panels call this while drawing. */
+/**
+ * The models, read again from Pi; a new version when they changed. Panels call this while drawing.
+ *
+ * The model objects are compared, so that a provider registered again (which gives its
+ * models new objects with new costs and limits) is seen. Pi keeps the scoped models'
+ * objects until the scope is set again, so a scoped model is taken from the available
+ * ones when they have it, as Pi takes the scoped models it cycles through.
+ */
 export function models(state: CrtState): Readonly<ModelData> {
 	const feature = features.get(state);
 	if (!feature) return NONE;
@@ -96,11 +113,12 @@ export function models(state: CrtState): Readonly<ModelData> {
 	const ctx = env.context();
 	if (!ctx) return data;
 	const available = ctx.modelRegistry.getAvailable();
-	const scoped = ctx.scopedModels.map((entry) => entry.model);
+	const byKey = new Map(available.map((model) => [keyOf(model), model]));
+	const scoped = ctx.scopedModels.map(({ model }) => byKey.get(keyOf(model)) ?? model);
 	const current = ctx.model ? keyOf(ctx.model) : undefined;
 	const thinkingLevel = pi.getThinkingLevel();
-	const read = [available.map(keyOf).join("\n"), scoped.map(keyOf).join("\n"), current ?? "", thinkingLevel].join("\n\n");
-	if (read === data.read) return data;
+	const read: ModelsRead = { available, scoped, current: current ?? "", thinkingLevel };
+	if (sameRead(read, data.read)) return data;
 	data.read = read;
 	data.available = available.map(itemOf);
 	data.scoped = scoped.map(itemOf);
@@ -108,6 +126,11 @@ export function models(state: CrtState): Readonly<ModelData> {
 	data.thinkingLevel = thinkingLevel;
 	data.version++;
 	return data;
+}
+
+function sameRead(a: ModelsRead, b: ModelsRead): boolean {
+	const same = (x: readonly Model<Api>[], y: readonly Model<Api>[]) => x.length === y.length && x.every((model, index) => model === y[index]);
+	return a.current === b.current && a.thinkingLevel === b.thinkingLevel && same(a.available, b.available) && same(a.scoped, b.scoped);
 }
 
 /** The list shown: the chosen one, else scoped when the session has scoped models (as /model starts). */
@@ -157,7 +180,7 @@ export function switchModel(state: CrtState, item: ModelItem): void {
 }
 
 export function setupModels(pi: ExtensionAPI, env: FeatureEnv): void {
-	const data: ModelData = { version: 0, available: [], scoped: [], read: "" };
+	const data: ModelData = { version: 0, available: [], scoped: [], read: NOTHING_READ };
 	features.set(env.state, { pi, env, data });
 	const changed = (): void => env.changed(data);
 	pi.on("session_start", changed);

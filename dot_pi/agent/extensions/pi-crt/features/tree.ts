@@ -21,6 +21,8 @@ export type TreeFilterMode = NonNullable<ReturnType<ExtensionAPI["getSettings"]>
 
 /** Name of the command that jumps to an entry. */
 const COMMAND = "crt-tree";
+/** How often a shown TREE looks for entries Pi added without an event. */
+const LEAF_CHECK_MS = 1000;
 /** Choices of the summary question, as /tree words them. */
 const NO_SUMMARY = "No summary";
 const SUMMARIZE = "Summarize";
@@ -155,6 +157,25 @@ export function setupTree(pi: ExtensionAPI, env: FeatureEnv): void {
 	pi.on("session_start", moved);
 	pi.on("session_tree", moved);
 	pi.on("message_end", moved);
+	// Pi adds an entry for a new model or thinking level and moves to it.
+	pi.on("model_select", moved);
+	pi.on("thinking_level_select", moved);
+	// Pi adds some entries without an event (a model set again to the one in use, say).
+	// Every entry it adds becomes the leaf, so a shown TREE looks at the leaf every
+	// LEAF_CHECK_MS, as the git panels read git again while shown; reading the leaf id
+	// costs nothing next to reading the tree, which happens only once it moved.
+	let timer: ReturnType<typeof setInterval> | undefined;
+	pi.on("session_start", (_event, ctx) => {
+		if (ctx.mode !== "tui" || !ctx.hasUI || timer) return;
+		timer = setInterval(() => {
+			if (env.shows("tree") && !data.stale && env.context()?.sessionManager.getLeafId() !== data.leafId) moved();
+		}, LEAF_CHECK_MS);
+		timer.unref?.();
+	});
+	pi.on("session_shutdown", () => {
+		if (timer) clearInterval(timer);
+		timer = undefined;
+	});
 
 	pi.registerCommand(COMMAND, {
 		description: "Jump to a point picked in MAP › TREE",

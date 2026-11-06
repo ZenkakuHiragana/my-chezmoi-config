@@ -89,8 +89,7 @@ export interface SkillItem extends Versioned {
 	bodyError?: string;
 }
 
-/** Skills listed at most, and bytes read of each skill file. */
-const MAX_SKILLS = 200;
+/** Bytes read of each skill file. */
 const BODY_BYTES = 256 * 1024;
 
 /** A skill as a request's options or Pi's loaded skills give it. */
@@ -130,8 +129,8 @@ interface Inventory {
 interface ToolList extends Versioned {
 	items: ToolItem[];
 	key: string;
-	/** The fields read of each tool's namespace when the items were built. */
-	namespaces: readonly (NamespaceFields | undefined)[];
+	/** The fields read of each tool when the items were built. */
+	fields: readonly ToolFields[];
 	/** The picked tool, one that the tool list shows. */
 	tool?: string;
 	/** The picked namespace's name; a tool and a namespace are not picked at once. */
@@ -160,9 +159,9 @@ export function skills(state: CrtState): { known: boolean; items: readonly Skill
 }
 
 /**
- * The tools, rebuilt when the set of tools, of active tools, the exposures or the
- * namespaces change. Panels call this while drawing; reading the two lists is cheap
- * next to drawing.
+ * The tools, rebuilt when the set of tools, of active tools, the exposures, the
+ * namespaces or a tool's definition change. Panels call this while drawing; reading
+ * the two lists is cheap next to drawing.
  *
  * Pi's MCP extension registers the tools of a disabled server again as hidden, and
  * the tools of a reconnected server again with a new namespace (whose instructions
@@ -170,7 +169,9 @@ export function skills(state: CrtState): { known: boolean; items: readonly Skill
  * are compared, not the objects: Pi does not say whether a namespace object is ever
  * changed or replaced by an equal one. Comparing a string with itself takes no
  * time whatever its length, so long instructions cost nothing while Pi hands the
- * same ones.
+ * same ones. A tool registered again under its name replaces its definition, so the
+ * parts of the definition the items show are compared the same way; getAllTools()
+ * hands the definition's own description, parameters and guidelines.
  */
 export function tools(state: CrtState): readonly ToolItem[] {
 	const inv = inventories.get(state);
@@ -179,12 +180,18 @@ export function tools(state: CrtState): readonly ToolItem[] {
 	const active = inv.pi.getActiveTools();
 	const all = inv.pi.getAllTools();
 	const key = `${all.map((tool) => `${tool.name}\t${tool.exposure}`).join("\n")}\n\n${active.join("\n")}`;
-	const namespaces = all.map((tool) => namespaceFields(tool.namespace));
-	if (key === list.key && namespaces.every((fields, index) => sameFields(fields, list.namespaces[index]))) return list.items;
+	const fields = all.map((tool): ToolFields => ({
+		description: tool.description,
+		parameters: tool.parameters,
+		guidelines: tool.promptGuidelines,
+		source: tool.sourceInfo?.path,
+		namespace: namespaceFields(tool.namespace),
+	}));
+	if (key === list.key && fields.every((tool, index) => sameTool(tool, list.fields[index]))) return list.items;
 	const activeSet = new Set(active);
-	const groups = toolGroups(all, namespaces);
+	const groups = toolGroups(all, fields.map((tool) => tool.namespace));
 	list.key = key;
-	list.namespaces = namespaces;
+	list.fields = fields;
 	list.items = all.map((tool) => ({
 		name: sanitize(tool.name),
 		description: sanitize(tool.description ?? ""),
@@ -228,6 +235,26 @@ function namespaceFields(namespace: ToolNamespace | undefined): NamespaceFields 
 function sameFields(a: NamespaceFields | undefined, b: NamespaceFields | undefined): boolean {
 	if (!a || !b) return a === b;
 	return (Object.keys(a) as (keyof NamespaceFields)[]).every((field) => a[field] === b[field]);
+}
+
+/** What a ToolItem is built from beside the name and the exposure: the values read of a tool. */
+interface ToolFields {
+	description?: string;
+	parameters: unknown;
+	guidelines?: readonly string[];
+	source?: string;
+	namespace?: NamespaceFields;
+}
+
+function sameTool(a: ToolFields, b: ToolFields | undefined): boolean {
+	return (
+		b !== undefined &&
+		a.description === b.description &&
+		a.parameters === b.parameters &&
+		a.guidelines === b.guidelines &&
+		a.source === b.source &&
+		sameFields(a.namespace, b.namespace)
+	);
 }
 
 /**
@@ -340,7 +367,7 @@ export function setupInventory(pi: ExtensionAPI, env: FeatureEnv): void {
 		env,
 		skills: [],
 		skillsKnown: false,
-		toolList: { items: [], key: "", namespaces: [], version: 0 },
+		toolList: { items: [], key: "", fields: [], version: 0 },
 		version: 0,
 		bodies: { version: 0 },
 		folds: { expanded: new Set(), version: 0 },
@@ -420,15 +447,20 @@ function measurePrompt(ctx: ExtensionContext): PromptInventory {
 
 /**
  * Take a set of skills; read the files of a new set in the background. A request's
- * set also settles which skills are listed; the loaded set leaves an unchanged list
- * as it is, since a request may have settled it already.
+ * set also settles which skills are listed and their descriptions; the loaded set
+ * leaves an unchanged list as it is, since a request may have settled it already.
  */
-function setSkills(inv: Inventory, skillList: readonly GivenSkill[], fromRequest: boolean): void {
-	const given = skillList.slice(0, MAX_SKILLS);
+function setSkills(inv: Inventory, given: readonly GivenSkill[], fromRequest: boolean): void {
 	const key = given.map((skill) => `${skill.name}\n${skill.filePath}`).join("\n");
 	inv.skillsKnown = true;
 	if (key === inv.skills.map((skill) => `${skill.name}\n${skill.filePath}`).join("\n")) {
-		if (fromRequest) given.forEach((skill, index) => setListed(inv.skills[index]!, !skill.disableModelInvocation));
+		if (fromRequest) {
+			given.forEach((skill, index) => {
+				const item = inv.skills[index]!;
+				item.description = sanitize(skill.description);
+				setListed(item, !skill.disableModelInvocation);
+			});
+		}
 	} else {
 		inv.skills = given.map((skill) => {
 			const item: SkillItem = {
