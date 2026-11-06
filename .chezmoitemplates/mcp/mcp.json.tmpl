@@ -2,9 +2,13 @@
 {{- $format := .format -}}
 {{- $servers := dict -}}
 {{- range $name, $source := .root.mcpServers -}}
-  {{- if ne (dig "enabled" true $source) false -}}
+  {{- $enabled := ne (dig "enabled" true $source) false -}}
+  {{- if or $enabled (eq $format "pi") -}}
     {{- $server := deepCopy $source -}}
     {{- $_ := unset $server "enabled" -}}
+    {{- if not $enabled -}}
+      {{- $_ := set $server "enabled" false -}}
+    {{- end -}}
     {{- if hasKey $server "command" -}}
       {{- $_ := set $server "type" "stdio" -}}
     {{- else if hasKey $server "url" -}}
