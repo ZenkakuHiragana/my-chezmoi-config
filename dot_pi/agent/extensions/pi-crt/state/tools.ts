@@ -230,8 +230,9 @@ export function clipBudget(): ClipBudget {
  * CLIP_ITEMS array items or object properties per level, CLIP_DEPTH levels, and
  * CLIP_VALUES values and CLIP_VALUE_CHARS string characters in all (strings past
  * that become a one-character "\u2026"); object keys shortened and without control
- * characters. `budget.cut` tells whether anything was left out, including a
- * shortened key or two keys that became the same. Arrays are read only as far as
+ * characters. `budget.cut` tells whether anything was left out by these limits,
+ * including a shortened key or two keys that became the same; a string that clipText
+ * shortens says so in its own text, and does not set it. Arrays are read only as far as
  * kept; an object's keys are all listed by JavaScript before the first is read,
  * so an object with very many properties costs time in proportion to them.
  */

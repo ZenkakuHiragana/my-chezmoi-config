@@ -10,7 +10,10 @@ import { type GitDiffFile, type GitFile, listedFiles } from "../state/git.ts";
 import { ListLines, Selection, withCursor } from "./common.ts";
 import { type PanelEnv, registerPanel } from "./registry.ts";
 
-/** Diff lines drawn at most when every file is shown; a picked file shows its whole kept diff. */
+/**
+ * When every file is shown, files are added while fewer diff lines than this are drawn
+ * (the last one added may go past it); a picked file shows its whole kept diff.
+ */
 const MAX_ALL_LINES = 4000;
 
 registerPanel(GIT_PANEL, (env) => {
@@ -182,8 +185,8 @@ function fileDiffLines(env: PanelEnv, file: GitDiffFile, width: number): string[
 }
 
 /**
- * The diff of the picked file, or of every file one after another (at most
- * MAX_ALL_LINES lines; the rest of the files are named, to be picked). Every
+ * The diff of the picked file, or of every file one after another (until MAX_ALL_LINES
+ * lines are reached; the rest of the files are named, to be picked). Every
  * line fits `width` (the panels do not clip them again).
  */
 function gitDiffLines(env: PanelEnv, width: number): string[] {

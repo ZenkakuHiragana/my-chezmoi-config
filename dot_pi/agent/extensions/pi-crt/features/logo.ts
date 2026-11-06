@@ -153,9 +153,10 @@ function reason(error: unknown): string {
 }
 
 /**
- * The logo for a panel `width` cells wide: logo.* at most COLUMNS x ROWS cells, made
- * once per width. None when there is no logo.*, or it cannot be made (the error is
- * kept, and Pi's logo is shown). The colours are applied by the panel, from the theme.
+ * The logo for a panel `width` cells wide: the scene's logo-<scene>.*, else logo.*, at
+ * most COLUMNS x ROWS cells, made once per width. An image that cannot be made is
+ * dropped and its error kept: a scene's image gives way to logo.*, and logo.* to Pi's
+ * logo. None when neither is there. The colours are applied by the panel, from the theme.
  * `elapsed` is the time into the scene: its animation starts with the first frame.
  */
 export function logoArt(state: CrtState, width: number, scene: LogoScene = "standby", elapsed = 0): LogoCell[][] | undefined {

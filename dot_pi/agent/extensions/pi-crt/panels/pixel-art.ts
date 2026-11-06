@@ -38,8 +38,8 @@ export interface PixelArtOptions {
 /**
  * The art as terminal lines.
  *
- * `rows` holds one character per pixel. `.` is not painted; any other character names a
- * colour for `paint`. Rows shorter than the widest one are padded with unpainted pixels.
+ * `rows` holds one character per pixel. `.` and a space are not painted; any other
+ * character names a colour for `paint`. Rows shorter than the widest one are padded with unpainted pixels.
  */
 export function renderPixelArt(rows: readonly string[], options: PixelArtOptions = {}): string[] {
 	const scaleX = Math.max(1, Math.floor(options.scaleX ?? 2));

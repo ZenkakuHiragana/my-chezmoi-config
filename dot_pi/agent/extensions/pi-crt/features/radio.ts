@@ -27,9 +27,10 @@
  * failed to be fetched. Only the PCM queued for the device is kept: the download
  * pauses once QUEUE_HIGH seconds wait and resumes at QUEUE_LOW.
  *
- * The three packages are loaded on first use, so that pi-crt's other tabs still
- * load when they are missing or fail to load (a failed npm install, a Node.js
- * version they do not support); RADIO then shows why.
+ * The four packages (@distube/ytdl-core, audify, prism-media and @kmamal/sdl) are
+ * loaded on first use, so that pi-crt's other tabs still load when they are missing
+ * or fail to load (a failed npm install, a Node.js version they do not support);
+ * RADIO then shows why.
  */
 import { readFileSync, unwatchFile, watchFile, writeFileSync } from "node:fs";
 import { fileURLToPath } from "node:url";

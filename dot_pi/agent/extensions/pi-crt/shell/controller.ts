@@ -183,7 +183,8 @@ export function createShell(pi: ExtensionAPI): Shell {
 	const maximized = new Map<string, string>();
 	/**
 	 * The tabs are on screen (fullscreen, root mounted). While they are, tool calls
-	 * are hidden from the transcript and the panels take keys. Pi asks for a call's
+	 * are hidden from the transcript, and the panels take keys in panel mode (see
+	 * panelMode); otherwise Pi's editor has them. Pi asks for a call's
 	 * renderers when it creates the call's block, so blocks made in one mode keep
 	 * that mode's look until Pi rebuilds the transcript (/reload, a session switch).
 	 */
@@ -647,6 +648,8 @@ export function createShell(pi: ExtensionAPI): Shell {
 		roots.clear();
 		arrangements.clear();
 		panelCache.clear();
+		// The session's context is stale from here on (FeatureEnv.context).
+		ctxRef = undefined;
 	});
 
 	pi.on("agent_start", () => {

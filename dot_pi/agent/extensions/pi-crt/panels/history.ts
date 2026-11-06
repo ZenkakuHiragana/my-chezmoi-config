@@ -8,7 +8,8 @@
  * flatten the rest: it is the tallest column once the top 5% are set aside, plus 15%,
  * rounded up to a round number. The headroom keeps a context that grows response
  * after response from clipping its newest columns. A column above the scale is cut at
- * the top and marked ▲, and the row above the chart gives its real size.
+ * the top and marked ▲, and the row above the chart gives its real size where the
+ * size fits there without touching another one (the larger sizes are placed first).
  *
  * Each cell takes the colour of the part that fills most of it, so a boundary between
  * parts is drawn to the nearest half cell. The chart only reads the responses that
@@ -46,8 +47,9 @@ const STEPS = [1, 1.2, 1.5, 2, 2.5, 3, 4, 5, 6, 8, 10];
 /** Height used before the panel has been laid out once. */
 const FALLBACK_HEIGHT = 12;
 /**
- * Cells before the columns: the scale's label, then " ┤". Labels are a nice ceiling
- * (1, 2 or 5 times a power of ten) in compactNumber's form, at most four cells ("200k").
+ * Cells before the columns: the scale's label, then " ┤". Labels are a round ceiling
+ * (one of STEPS times a power of ten) in compactNumber's form, at most four cells
+ * ("250k", "1.5M") below ten million tokens, and wider above.
  */
 const GUTTER = 7;
 

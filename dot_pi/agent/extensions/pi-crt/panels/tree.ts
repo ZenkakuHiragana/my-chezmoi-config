@@ -36,7 +36,12 @@
  * Mouse: the wheel scrolls, a click selects, a double click jumps.
  *
  * The tree is flattened into rows when it or the filter changes. Drawing writes only
- * the rows on screen, so it costs the same however long the session is.
+ * the rows on screen. What a row shows (its look and labels, see rowShown) is worked out
+ * the first time it is drawn after the rows were made, in time that grows with the
+ * entries the row holds; drawing it again only colours and measures that, so a redraw
+ * (HERE blinking, say) does not grow with the entries of the session or of a turn. It
+ * grows with the labels the row shows, which are measured whole, as Pi's /tree measures
+ * the label of each of its rows.
  */
 import type { AppKeybinding, SessionTreeNode, Theme, ThemeColor } from "@earendil-works/pi-coding-agent";
 import { getMarkdownTheme, keyText } from "@earendil-works/pi-coding-agent";

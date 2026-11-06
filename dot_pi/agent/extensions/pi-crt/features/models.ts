@@ -45,7 +45,7 @@ export interface ModelData extends Versioned {
 	/** The model in use, as `provider/id`. */
 	current?: string;
 	thinkingLevel?: string;
-	/** The list shown: none until `s` is pressed, and then the default (see shownModels) applies. */
+	/** The list chosen with `s`; none until it is pressed, while the default (see modelFilter) is shown. */
 	filter?: ModelFilter;
 	/** The model shown beside the list. */
 	picked?: string;

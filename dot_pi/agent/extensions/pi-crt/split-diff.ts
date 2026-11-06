@@ -414,7 +414,9 @@ export function renderDiffSection(section: DiffSection, width: number, theme: Th
 				lines.push(`${" ".repeat(PAD)}${left}${separator}${right}${" ".repeat(width - PAD - 2 * lay.pane - SEPARATOR.length)}`);
 			}
 		} else {
-			// One column: removed lines of a row first, then added ones, as in a unified diff.
+			// One column: row by row, each row's removed line, then its added one. A change of
+			// several lines therefore alternates them, unlike a unified diff, which lists all
+			// the removed lines before the added ones.
 			const content = Math.max(1, width - PAD * 2 - numWidth - 3);
 			for (const row of rows) {
 				if (row.kind === "skip") {
