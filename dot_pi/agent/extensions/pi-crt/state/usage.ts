@@ -1,154 +1,191 @@
-/** Codex reports percentages (0–100) and rolling window durations in minutes. */
-export interface RateLimitWindow {
-	name: "primary" | "secondary";
-	usedPercent: number;
-	minutes?: number;
-	resetAt?: number;
+/**
+ * The allowance windows STAT shows, read with quota-axi (a pinned dependency; it
+ * needs Node 22.19 or later, as Pi does). quota-axi asks the vendor for the account's
+ * usage and names the windows; nothing here guesses a window from a name.
+ *
+ * readQuota runs `quota-axi --provider <id> --json` as a child process (node with its
+ * bin script) and reads its report. The reading is for the account Pi signed in with
+ * and no other. quota-axi would otherwise also read other tools' sign-ins (Claude
+ * Code's, Codex's, OpenCode's, the Grok and MiniMax CLIs', API keys in environment
+ * variables) and may prefer them, so it runs with only the environment a process
+ * needs (QUOTA_ENV) and its home, data, config and cache folders in QUOTA_HOME, where
+ * no sign-in is. Pi's agent folder is named for it, so it reads Pi's auth.json; a
+ * provider whose key Pi resolves from elsewhere gets the key in the variable
+ * quota-axi reads first (QuotaProvider.keyEnv). When the Codex reading fails,
+ * quota-axi may start the codex CLI, which finds no sign-in file there either (one
+ * the CLI kept in an OS keyring is not looked at here). A provider without a keyEnv is
+ * read from Pi's auth.json only: a key Pi takes from an environment variable is not
+ * seen, and quota-axi reports no sign-in.
+ *
+ * Not pi.exec, as state/git.ts uses: pi.exec runs the child in Pi's whole environment.
+ * --no-credential-refresh keeps quota-axi from renewing a sign-in through a vendor CLI.
+ */
+import { execFile } from "node:child_process";
+import { tmpdir } from "node:os";
+import { join } from "node:path";
+import { fileURLToPath } from "node:url";
+import { sanitize } from "./core.ts";
+
+/** How quota-axi is asked about one of Pi's providers. */
+export interface QuotaProvider {
+	/** quota-axi's id (`--provider`). */
+	id: string;
+	/** The variable quota-axi reads the key from before Pi's auth.json, if any; it gets Pi's key. */
+	keyEnv?: string;
 }
 
-const WINDOW_NAMES = ["primary", "secondary"] as const;
+/**
+ * Pi's provider id → quota-axi's, for quota-axi 0.1.69. Left out: Copilot (quota-axi
+ * does not read it from Pi) and minimax-cn (quota-axi reads MiniMax's global endpoint
+ * only). A provider not listed is not asked about.
+ */
+const QUOTA_PROVIDERS: Readonly<Record<string, QuotaProvider>> = {
+	anthropic: { id: "claude", keyEnv: "CLAUDE_CODE_OAUTH_TOKEN" },
+	"openai-codex": { id: "codex" },
+	"kimi-coding": { id: "kimi" },
+	zai: { id: "zai" },
+	"opencode-go": { id: "opencode-go" },
+	xai: { id: "grok" },
+	minimax: { id: "minimax", keyEnv: "MINIMAX_API_KEY" },
+	deepseek: { id: "deepseek", keyEnv: "DEEPSEEK_API_KEY" },
+	openrouter: { id: "openrouter", keyEnv: "OPENROUTER_API_KEY" },
+};
+
+/** The quota-axi id for one of Pi's providers, or undefined when it is not asked about. */
+export function quotaProvider(piProvider: string): QuotaProvider | undefined {
+	return Object.hasOwn(QUOTA_PROVIDERS, piProvider) ? QUOTA_PROVIDERS[piProvider] : undefined;
+}
+
+/** One window of a provider's allowance. */
+export interface QuotaWindow {
+	label: string;
+	/** quota-axi's kind: session, weekly, monthly, model, credits or unknown. */
+	kind: string;
+	/** Share of the limit used, 0..1; undefined when the window has no percentage (credits). */
+	ratio?: number;
+	/** When the window resets, in milliseconds since the epoch. */
+	resetAt?: number;
+	/** Set when `ratio` is a share of that window, not an allowance of its own. */
+	shareOf?: string;
+}
+
+/** What quota-axi reported for one provider. */
+export interface QuotaReading {
+	windows: QuotaWindow[];
+	/** quota-axi's state.status: fresh, stale, unavailable, auth_required, rate_limited or error. */
+	status: string;
+	/** quota-axi's reason when the status is not fresh. */
+	error?: string;
+	/** quota-axi found no sign-in for the provider. */
+	notSetUp: boolean;
+}
+
+const QUOTA_BIN = fileURLToPath(new URL("../node_modules/quota-axi/dist/bin/quota-axi.js", import.meta.url));
+/**
+ * quota-axi's home: no sign-in is kept there, only quota-axi's own cache. The
+ * temporary folder is the user's own on Windows and macOS; on Linux it is the shared
+ * /tmp, where another user could make this folder first.
+ */
+const QUOTA_HOME = join(tmpdir(), "pi-crt-quota-axi");
+/** A reading that takes longer is given up. */
+const QUOTA_TIMEOUT_MS = 60_000;
+/**
+ * The variables passed on from Pi's environment: what Node and Windows need to run and
+ * reach the network (proxies, certificates), and nothing that names a sign-in.
+ */
+const QUOTA_ENV = new Set([
+	"PATH", "PATHEXT", "SYSTEMROOT", "WINDIR", "COMSPEC", "TEMP", "TMP", "TMPDIR", "LANG", "TZ",
+	"HTTP_PROXY", "HTTPS_PROXY", "NO_PROXY", "ALL_PROXY", "NODE_EXTRA_CA_CERTS", "SSL_CERT_FILE", "SSL_CERT_DIR",
+]);
+
+/**
+ * quota-axi's reading for one provider, or why there is none. `key` is the key or
+ * token Pi resolved, given to quota-axi when the provider has a keyEnv; `agentDir`
+ * is Pi's agent folder.
+ */
+export function readQuota(
+	provider: QuotaProvider,
+	key: string | undefined,
+	agentDir: string,
+	signal: AbortSignal,
+): Promise<{ reading?: QuotaReading; error?: string }> {
+	const env: NodeJS.ProcessEnv = {
+		...Object.fromEntries(Object.entries(process.env).filter(([name]) => QUOTA_ENV.has(name.toUpperCase()))),
+		HOME: QUOTA_HOME,
+		USERPROFILE: QUOTA_HOME,
+		APPDATA: join(QUOTA_HOME, "AppData", "Roaming"),
+		LOCALAPPDATA: join(QUOTA_HOME, "AppData", "Local"),
+		XDG_CONFIG_HOME: join(QUOTA_HOME, ".config"),
+		XDG_DATA_HOME: join(QUOTA_HOME, ".local", "share"),
+		XDG_CACHE_HOME: join(QUOTA_HOME, ".cache"),
+		PI_CODING_AGENT_DIR: agentDir,
+		// OpenCode Go is read from Pi's auth.json only when asked to.
+		QUOTA_AXI_OPENCODE_GO_PI_AUTH: "1",
+		...(provider.keyEnv && key ? { [provider.keyEnv]: key } : {}),
+	};
+	return new Promise((resolve) => {
+		execFile(
+			process.execPath,
+			[QUOTA_BIN, "--provider", provider.id, "--json", "--no-credential-refresh"],
+			{ env, signal, timeout: QUOTA_TIMEOUT_MS, windowsHide: true, maxBuffer: 4 * 1024 * 1024 },
+			(error, stdout, stderr) => {
+				// quota-axi exits with 1 when the provider failed, and still prints its report.
+				try {
+					resolve({ reading: parseQuota(stdout) });
+				} catch {
+					const reason = firstLine(String(stderr)) || firstLine(String(stdout)) || (error ? firstLine(error.message) : "no output");
+					resolve({ error: `quota-axi: ${reason}` });
+				}
+			},
+		);
+	});
+}
 
 type RecordValue = Record<string, unknown>;
 const record = (value: unknown): RecordValue | undefined =>
 	typeof value === "object" && value !== null && !Array.isArray(value) ? value as RecordValue : undefined;
 const finite = (value: unknown): value is number => typeof value === "number" && Number.isFinite(value);
+/** A string from the report on one line: no control characters, line breaks and tabs as spaces. */
+const text = (value: unknown): string | undefined => (typeof value === "string" ? sanitize(value.replace(/[\r\n\t]+/g, " ")) : undefined);
+/** The first line of an error output, without control characters. */
+const firstLine = (value: string): string => sanitize(value.trim().split(/\r?\n/, 1)[0] ?? "").slice(0, 200);
 
-/** Undefined means another event/bucket; an empty array means no usable windows. */
-export function codexEventWindows(data: unknown): RateLimitWindow[] | undefined {
-	const event = record(data);
-	if (event?.type !== "codex.rate_limits") return undefined;
-	// Other metered buckets must not replace the Codex conversation allowance.
-	const limit = event.metered_limit_name ?? event.limit_name;
-	if (limit !== undefined && limit !== null && (typeof limit !== "string" || limit.trim().toLowerCase() !== "codex")) return undefined;
-	const limits = record(event.rate_limits);
-	return WINDOW_NAMES.flatMap((name) => {
-		const window = record(limits?.[name]);
-		if (!window || !finite(window.used_percent)) return [];
+/**
+ * The first provider of `quota-axi --json` output (one provider is asked for, and it
+ * reports one account); throws when the output is not that report. quota-axi 0.1.69
+ * writes schema 5, or 6 when it reports account keys; both have this shape.
+ */
+export function parseQuota(stdout: string): QuotaReading {
+	const report = record(JSON.parse(stdout));
+	if (report?.schemaVersion !== 5 && report?.schemaVersion !== 6) throw new Error("not a quota-axi report this version knows");
+	const provider = record(Array.isArray(report.providers) ? report.providers[0] : undefined);
+	if (!provider) throw new Error("quota-axi reported no provider");
+	const state = record(provider.state);
+	const windows = (Array.isArray(provider.windows) ? provider.windows : []).flatMap((value): QuotaWindow[] => {
+		const window = record(value);
+		const label = text(window?.label) || text(window?.id);
+		if (!window || !label) return [];
+		// The default --json keeps percentRemaining for an allowance and percentUsed for a share.
+		const used = finite(window.percentUsed) ? window.percentUsed : finite(window.percentRemaining) ? 100 - window.percentRemaining : undefined;
+		const resetAt = typeof window.resetsAt === "string" ? Date.parse(window.resetsAt) : Number.NaN;
 		return [{
-			name,
-			usedPercent: window.used_percent,
-			minutes: finite(window.window_minutes) && window.window_minutes > 0 ? window.window_minutes : undefined,
-			resetAt: finite(window.reset_at) ? window.reset_at : undefined,
+			label,
+			kind: text(window.kind) ?? "unknown",
+			ratio: used === undefined ? undefined : Math.max(0, Math.min(1, used / 100)),
+			resetAt: Number.isFinite(resetAt) ? resetAt : undefined,
+			shareOf: text(window.shareOf),
 		}];
 	});
-}
-
-/** Read the Codex window fields carried by SSE response headers. */
-export function codexHeaderWindows(headers: ReadonlyArray<[string, string]>): RateLimitWindow[] | undefined {
-	const values = new Map(headers.map(([key, value]) => [key.toLowerCase(), value]));
-	if (!WINDOW_NAMES.some((name) => values.has(`x-codex-${name}-used-percent`))) return undefined;
-	const numeric = (key: string): number | undefined => {
-		const value = values.get(key);
-		if (value === undefined || value.trim() === "") return undefined;
-		const number = Number(value);
-		return Number.isFinite(number) ? number : undefined;
+	return {
+		windows,
+		status: text(state?.status) ?? "unknown",
+		error: text(state?.error),
+		notSetUp: provider.notSetUp === true,
 	};
-	return WINDOW_NAMES.flatMap((name) => {
-		const prefix = `x-codex-${name}-`;
-		const usedPercent = numeric(`${prefix}used-percent`);
-		if (usedPercent === undefined) return [];
-		const minutes = numeric(`${prefix}window-minutes`);
-		return [{ name, usedPercent, minutes: minutes !== undefined && minutes > 0 ? minutes : undefined, resetAt: numeric(`${prefix}reset-at`) }];
-	});
 }
 
-/** Classify the duration independently of the text used to display it. */
-export function windowPeriod(window: RateLimitWindow): "fiveHour" | "weekly" | undefined {
-	if (window.minutes === 300) return "fiveHour";
-	if (window.minutes === 10080) return "weekly";
-	return undefined;
-}
-
-export function windowLabel(window: RateLimitWindow): string {
-	const period = windowPeriod(window);
-	if (period === "fiveHour") return "5h";
-	if (period === "weekly") return "7d";
-	return window.minutes ? `${window.minutes}m` : window.name;
-}
-
-/**
- * A rate-limit header as a share of the limit (0..1), or undefined when the header is
- * not a usage share. `used-percent` is a percentage; `utilization` is a fraction, or a
- * percentage when it is above 1.
- */
-export function headerRatio(name: string, value: string): number | undefined {
-	const numeric = Number(value);
-	if (!Number.isFinite(numeric)) return undefined;
-	if (/used.?percent/i.test(name)) return numeric / 100;
-	if (/utili[sz]ation/i.test(name)) return numeric > 1 ? numeric / 100 : numeric;
-	return undefined;
-}
-
-/** A rate-limit window as STAT shows it. */
-export interface AllowanceWindow {
-	/** "5H", "WEEK", or the window's own name. */
-	label: string;
-	period?: "fiveHour" | "weekly";
-	/** Share of the limit used, 0..1. */
-	ratio: number;
-	/** When the window resets, in milliseconds since the epoch. */
-	resetAt?: number;
-}
-
-/** A header name without the provider's common prefix. */
-export function shortHeader(name: string): string {
-	return name.replace(/^anthropic-ratelimit-unified-/, "").replace(/^x-codex-/, "codex ").replace(/^x-ratelimit-/, "");
-}
-
-/**
- * The windows the last response reported, and the headers that are not part of one
- * (credits, status and other details). With Codex windows (from its headers or its
- * stream event), those are the windows; otherwise each `utilization` header is one,
- * with its `-reset` header. A window's period is matched on its actual duration,
- * never on the primary/secondary position.
- */
-export function allowanceWindows(
-	headers: ReadonlyArray<[string, string]>,
-	windows?: readonly RateLimitWindow[],
-): { windows: AllowanceWindow[]; rest: Array<[string, string]> } {
-	const label = (period: AllowanceWindow["period"], name: string) => (period === "fiveHour" ? "5H" : period === "weekly" ? "WEEK" : name);
-	if (windows !== undefined) {
-		return {
-			windows: windows.map((window) => {
-				const period = windowPeriod(window);
-				return {
-					label: label(period, `codex ${windowLabel(window)}`),
-					period,
-					ratio: window.usedPercent / 100,
-					resetAt: window.resetAt === undefined ? undefined : window.resetAt * 1000,
-				};
-			}),
-			rest: headers.filter(([name]) => !/^x-codex-(primary|secondary)-/i.test(name)),
-		};
-	}
-	const values = new Map(headers.map(([name, value]) => [name.toLowerCase(), value]));
-	const used = new Set<string>();
-	const found: AllowanceWindow[] = [];
-	for (const [name, value] of headers) {
-		if (!/utili[sz]ation/i.test(name)) continue;
-		const ratio = headerRatio(name, value);
-		if (ratio === undefined) continue;
-		const prefix = name.replace(/-?utili[sz]ation$/i, "");
-		const period = /5h|5-hour/i.test(name) ? "fiveHour" : /week|7d/i.test(name) ? "weekly" : undefined;
-		const resetName = `${prefix}-reset`.toLowerCase();
-		const reset = Number(values.get(resetName));
-		used.add(name.toLowerCase());
-		if (values.has(resetName)) used.add(resetName);
-		found.push({
-			label: label(period, shortHeader(prefix)),
-			period,
-			ratio,
-			resetAt: Number.isFinite(reset) && reset > 1e9 ? (reset > 1e12 ? reset : reset * 1000) : undefined,
-		});
-	}
-	return { windows: found, rest: headers.filter(([name]) => !used.has(name.toLowerCase())) };
-}
-
-/** The 5-hour and weekly shares, for STATUS's gauges. */
-export function rateLimits(headers: ReadonlyArray<[string, string]>, windows?: readonly RateLimitWindow[]): { fiveHour?: number; weekly?: number } {
-	const out: { fiveHour?: number; weekly?: number } = {};
-	for (const window of allowanceWindows(headers, windows).windows) {
-		if (window.period) out[window.period] ??= window.ratio;
-	}
-	return out;
+/** STATUS's 5H and WEEK gauges: the first session and weekly windows that are allowances of their own. */
+export function gaugeRatios(windows: readonly QuotaWindow[]): { fiveHour?: number; weekly?: number } {
+	const first = (kind: string) => windows.find((window) => window.kind === kind && window.shareOf === undefined)?.ratio;
+	return { fiveHour: first("session"), weekly: first("weekly") };
 }

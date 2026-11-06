@@ -6,9 +6,9 @@ import { CONTEXT_PANEL, contextData, contextUsage } from "../features/context.ts
 import { gitData } from "../features/git.ts";
 import { logoArt, logoData, logoError, logoFrameTime, logoPicture, type LogoScene } from "../features/logo.ts";
 import { toolData } from "../features/tools.ts";
-import { usageData } from "../features/usage.ts";
+import { USAGE_PANEL, usageData } from "../features/usage.ts";
 import { VITALS_PANEL, vitals } from "../features/vitals.ts";
-import { allowanceWindows, rateLimits, shortHeader } from "../state/usage.ts";
+import { gaugeRatios } from "../state/usage.ts";
 import { framed, type SizedView } from "../screen/frame.ts";
 import { Lines } from "../screen/lines.ts";
 import { bar, compactNumber, elapsedText } from "./common.ts";
@@ -67,16 +67,16 @@ registerPanel(CONTEXT_PANEL, (env) =>
 		() => env.focused(CONTEXT_PANEL),
 	));
 
-registerPanel("usage", (env) =>
+registerPanel(USAGE_PANEL, (env) =>
 	framed(
 		env.theme,
 		() => {
-			const model = usageData(env.state).usageModel;
+			const model = usageData(env.state).model;
 			return model ? `USAGE  ${model}` : "USAGE";
 		},
 		new Lines((width) => usageLines(env, width)),
 		"top",
-		() => env.focused("usage"),
+		() => env.focused(USAGE_PANEL),
 	));
 
 function contextLines(env: PanelEnv, width: number): string[] {
@@ -112,13 +112,17 @@ function contextLines(env: PanelEnv, width: number): string[] {
 function usageLines(env: PanelEnv, width: number): string[] {
 	const t = env.theme();
 	const usage = usageData(env.state);
-	const { windows, rest } = allowanceWindows(usage.usageHeaders, usage.usageWindows);
-	if (!windows.length && !rest.length) {
-		if (usage.usageWindows !== undefined) return [t.fg("dim", " -- no usable rate-limit windows in the last update --")];
-		if (usage.usageAt) return [t.fg("dim", " -- the last response had no rate-limit headers --")];
-		return [t.fg("dim", " -- no response yet --"), t.fg("dim", " -- updates after the next response --")];
-	}
+	const reading = usage.reading;
+	const windows = reading?.windows ?? [];
 	const lines: string[] = [];
+	// Above the windows, what is unusual: no reading, or a state other than fresh
+	// (stale, unavailable, auth_required and the rest).
+	if (usage.error) lines.push(t.fg("error", ` ${usage.error}`));
+	else if (!reading) lines.push(t.fg("dim", " -- reading --"));
+	else if (reading.notSetUp) lines.push(t.fg("dim", " -- quota-axi found no sign-in in Pi --"));
+	else if (reading.status !== "fresh") lines.push(t.fg("warning", ` ${reading.status}${reading.error ? `: ${reading.error}` : ""}`));
+	else if (!windows.length) lines.push(t.fg("dim", " -- no windows reported --"));
+	if (lines.length && windows.length) lines.push("");
 	const labelWidth = Math.max(4, ...windows.map((window) => visibleWidth(window.label)));
 	const now = env.now();
 	for (const window of windows) {
@@ -129,17 +133,14 @@ function usageLines(env: PanelEnv, width: number): string[] {
 		const reset = window.resetAt === undefined ? "" : `resets in ${untilText(window.resetAt - now)}`;
 		// Name, bar, "100%", then the reset time when it fits.
 		const barWidth = Math.max(4, Math.min(24, width - labelWidth - 9 - (reset ? reset.length + 2 : 0)));
-		const color = window.ratio > 0.85 ? "error" : window.ratio > 0.6 ? "warning" : "accent";
-		const percent = `${Math.round(window.ratio * 100)}%`.padStart(4);
+		// A window without a percentage (credits) shows an empty bar and "--".
+		const ratio = window.ratio ?? 0;
+		const color = ratio > 0.85 ? "error" : ratio > 0.6 ? "warning" : "accent";
+		const percent = (window.ratio === undefined ? "--" : `${Math.round(ratio * 100)}%`).padStart(4);
 		const resetText = reset ? `  ${t.fg("muted", reset)}` : "";
-		lines.push(` ${t.fg("text", window.label.padEnd(labelWidth))} ${bar(t, window.ratio, barWidth, color)} ${t.fg("accent", percent)}${resetText}`);
+		lines.push(` ${t.fg("text", window.label.padEnd(labelWidth))} ${bar(t, ratio, barWidth, color)} ${t.fg("accent", percent)}${resetText}`);
 	}
-	// Keep every other header the provider sent, credits and status included.
-	if (rest.length) {
-		if (lines.length) lines.push("");
-		for (const [name, value] of rest) lines.push(` ${t.fg("muted", shortHeader(name).padEnd(24))}${t.fg("text", value)}`);
-	}
-	const at = usage.usageAt;
+	const at = usage.at;
 	if (at) lines.push("", t.fg("dim", ` updated ${new Date(at).toLocaleTimeString()}`));
 	return lines;
 }
@@ -173,7 +174,7 @@ function vitalsLines(env: PanelEnv, width: number): string[] {
 	const v = vitals(env.state);
 	const usage = contextUsage(env.state);
 	const allowance = usageData(env.state);
-	const limits = rateLimits(allowance.usageHeaders, allowance.usageWindows);
+	const limits = gaugeRatios(allowance.reading?.windows ?? []);
 	const body: string[] = [];
 
 	body.push(gaugeRow(
@@ -204,7 +205,7 @@ function vitalsLines(env: PanelEnv, width: number): string[] {
 		const slot = index % 4 === 1 ? "muted" : index % 4 === 2 ? "accent" : "dim";
 		lines.push(` ${t.fg(slot, centerLine(line, inner))}`);
 	});
-	lines.push(` ${t.fg("muted", centerLine(allowance.usageModel ?? "-- no model --", inner))}`);
+	lines.push(` ${t.fg("muted", centerLine(allowance.model ?? "-- no model --", inner))}`);
 	lines.push(` ${t.fg("muted", centerLine(env.cwd(), inner))}`);
 	return lines;
 }
