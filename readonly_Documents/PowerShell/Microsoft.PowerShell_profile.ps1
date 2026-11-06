@@ -126,6 +126,8 @@ if (Test-InteractiveShell) {
 }
 
 $env:OPENCODE_DISABLE_CLAUDE_CODE=1
+# herdr のペインには SSH_CONNECTION / SSH_CLIENT が引き継がれないので、pi が手元へ OSC 52 を出すよう明示する。
+$env:PI_CLIPBOARD_OSC52 = "1"
 
 function claude {
     & claude.exe --settings "$HOME/.claude/settings-chezmoi.json" --mcp-config="$HOME/.config/mcp/mcp.json" @args
