@@ -12,11 +12,14 @@ import type { ExtensionAPI } from "@earendil-works/pi-coding-agent";
 import { type CrtState, sanitize } from "../state/core.ts";
 import { type GitData, pickGitFile as pick, readGit, readLineCounts, setGit } from "../state/git.ts";
 import type { FeatureEnv } from "./env.ts";
+import { VITALS_PANEL } from "./vitals.ts";
 
-/** Panels that show git. */
-const GIT_PANELS = ["git", "gitfiles", "gitdiff", "gitlog"];
-/** STATUS: its DIFF card shows the line counts. */
-const COUNTS_PANEL = "vitals";
+/** The ids of the panels that show git. */
+export const GIT_PANEL = "git";
+export const GIT_FILES_PANEL = "gitfiles";
+export const GIT_DIFF_PANEL = "gitdiff";
+export const GIT_LOG_PANEL = "gitlog";
+const GIT_PANELS = [GIT_PANEL, GIT_FILES_PANEL, GIT_DIFF_PANEL, GIT_LOG_PANEL];
 /** Tools that may change the working tree. */
 const EDIT_TOOLS = new Set(["edit", "write", "bash"]);
 /** How often a shown git panel re-reads git, so that edits made outside Pi show up. */
@@ -50,7 +53,8 @@ export function setupGit(pi: ExtensionAPI, env: FeatureEnv): void {
 	let freshLog = true;
 
 	const showsGit = () => GIT_PANELS.some((id) => env.shows(id));
-	const showsCounts = () => env.shows(COUNTS_PANEL);
+	// STATUS: its DIFF card shows the line counts.
+	const showsCounts = () => env.shows(VITALS_PANEL);
 
 	/** Re-read git while a git panel or STATUS is shown: what each of them shows. */
 	const refresh = async () => {

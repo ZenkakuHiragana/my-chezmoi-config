@@ -39,6 +39,10 @@ import type { Sdl } from "@kmamal/sdl";
 import { type CrtState, sanitize } from "../state/core.ts";
 import type { FeatureEnv } from "./env.ts";
 
+/** The ids of the panels the radio draws again itself: NOW PLAYING while a song plays, OUTPUT while it lists devices. */
+export const NOW_PLAYING_PANEL = "nowplaying";
+export const RADIO_OUTPUT_PANEL = "radiooutput";
+
 /** The station list. */
 export const STATIONS_FILE = fileURLToPath(new URL("../radio.json", import.meta.url));
 
@@ -486,7 +490,7 @@ export function setupRadio(pi: ExtensionAPI, env: FeatureEnv): void {
 	const startDrawing = () => {
 		if (drawTimer) return;
 		drawTimer = setInterval(() => {
-			if (env.shows("nowplaying")) env.requestRender();
+			if (env.shows(NOW_PLAYING_PANEL)) env.requestRender();
 		}, DRAW_MS);
 		drawTimer.unref?.();
 	};
@@ -870,7 +874,7 @@ export function setupRadio(pi: ExtensionAPI, env: FeatureEnv): void {
 
 	let outputShown = false;
 	env.onShownChange(() => {
-		const shown = env.shows("radiooutput");
+		const shown = env.shows(RADIO_OUTPUT_PANEL);
 		if (shown && !outputShown) listOutputs();
 		outputShown = shown;
 	});

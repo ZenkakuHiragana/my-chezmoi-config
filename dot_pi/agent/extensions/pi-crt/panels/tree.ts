@@ -53,7 +53,7 @@ import {
 	visibleWidth,
 } from "@earendil-works/pi-tui";
 import { contextUsage } from "../features/context.ts";
-import { canLabel, copyEntry, initialFilter, jumpedBefore, jumpsBefore, jumpTo, sessionTree, setEntryLabel, type TreeFilterMode } from "../features/tree.ts";
+import { canLabel, copyEntry, initialFilter, jumpedBefore, jumpsBefore, jumpTo, sessionTree, setEntryLabel, TREE_PANEL, type TreeFilterMode } from "../features/tree.ts";
 import { framed, type SizedView } from "../screen/frame.ts";
 import { Lines } from "../screen/lines.ts";
 import { type CrtState, sanitize } from "../state/core.ts";
@@ -163,10 +163,10 @@ interface Selected {
 /** Each pi-crt instance's TREE view, by its CrtState, for LOCATION. */
 const views = new WeakMap<CrtState, TreeView>();
 
-registerPanel("tree", (env) => {
+registerPanel(TREE_PANEL, (env) => {
 	const view = new TreeView(env);
 	views.set(env.state, view);
-	const panel = framed(env.theme, () => "TREE", view, "sized", () => env.focused("tree"));
+	const panel = framed(env.theme, () => "TREE", view, "sized", () => env.focused(TREE_PANEL));
 	view.sized = panel.scroll as SizedView;
 	return { ...panel, list: view };
 });

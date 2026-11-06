@@ -12,6 +12,9 @@ import { type ContextPart, ContextMeter } from "../state/context.ts";
 import type { CrtState, Versioned } from "../state/core.ts";
 import type { FeatureEnv } from "./env.ts";
 
+/** The id of the CONTEXT panel, which the measuring waits for. */
+export const CONTEXT_PANEL = "context";
+
 interface ContextFeature {
 	env: FeatureEnv;
 	data: ContextData;
@@ -67,7 +70,7 @@ export function setupContext(pi: ExtensionAPI, env: FeatureEnv): void {
 
 	/** Measure the latest request once, off the render path, while the context panel is shown. */
 	const schedule = () => {
-		if (scheduled || !pending || !env.shows("context")) return;
+		if (scheduled || !pending || !env.shows(CONTEXT_PANEL)) return;
 		scheduled = true;
 		setTimeout(() => {
 			scheduled = false;

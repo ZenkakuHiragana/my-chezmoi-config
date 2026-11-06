@@ -19,6 +19,8 @@ import type { FeatureEnv } from "./env.ts";
 /** /tree's filters, as its treeFilterMode setting names them. */
 export type TreeFilterMode = NonNullable<ReturnType<ExtensionAPI["getSettings"]>["treeFilterMode"]>;
 
+/** The id of the TREE panel, which is drawn again when the tree changes. */
+export const TREE_PANEL = "tree";
 /** Name of the command that jumps to an entry. */
 const COMMAND = "crt-tree";
 /** How often a shown TREE looks for entries Pi added without an event. */
@@ -147,7 +149,7 @@ export function setupTree(pi: ExtensionAPI, env: FeatureEnv): void {
 
 	const markStale = (): void => {
 		data.stale = true;
-		if (env.shows("tree")) env.requestRender();
+		if (env.shows(TREE_PANEL)) env.requestRender();
 	};
 	// Any move but pi-crt's own jump ends what that jump recorded.
 	const moved = (): void => {
@@ -168,7 +170,7 @@ export function setupTree(pi: ExtensionAPI, env: FeatureEnv): void {
 	pi.on("session_start", (_event, ctx) => {
 		if (ctx.mode !== "tui" || !ctx.hasUI || timer) return;
 		timer = setInterval(() => {
-			if (env.shows("tree") && !data.stale && env.context()?.sessionManager.getLeafId() !== data.leafId) moved();
+			if (env.shows(TREE_PANEL) && !data.stale && env.context()?.sessionManager.getLeafId() !== data.leafId) moved();
 		}, LEAF_CHECK_MS);
 		timer.unref?.();
 	});

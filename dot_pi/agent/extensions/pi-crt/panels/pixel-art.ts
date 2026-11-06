@@ -88,11 +88,6 @@ export function pixelArtWidth(rows: readonly string[], scaleX = 2): number {
 	return width * Math.max(1, Math.floor(scaleX));
 }
 
-/** Lines the art takes down. */
-export function pixelArtHeight(rows: readonly string[], scaleY = 1): number {
-	return Math.ceil((rows.length * Math.max(1, Math.floor(scaleY))) / 2);
-}
-
 /** Pi's logo, as laid out in pi's own pi-logo.d.ts. */
 export const PI_LOGO: readonly string[] = ["ccc.", "b.c.", "bb.y", "b..y"];
 

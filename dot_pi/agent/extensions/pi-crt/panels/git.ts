@@ -5,7 +5,7 @@ import { truncateToWidth } from "@earendil-works/pi-tui";
 import { framed } from "../screen/frame.ts";
 import { Lines } from "../screen/lines.ts";
 import { renderDiffSection } from "../split-diff.ts";
-import { gitData, pickGitFile } from "../features/git.ts";
+import { GIT_DIFF_PANEL, GIT_FILES_PANEL, GIT_LOG_PANEL, GIT_PANEL, gitData, pickGitFile } from "../features/git.ts";
 import { type GitDiffFile, type GitFile, listedFiles } from "../state/git.ts";
 import { ListLines, Selection, withCursor } from "./common.ts";
 import { type PanelEnv, registerPanel } from "./registry.ts";
@@ -13,7 +13,7 @@ import { type PanelEnv, registerPanel } from "./registry.ts";
 /** Diff lines drawn at most when every file is shown; a picked file shows its whole kept diff. */
 const MAX_ALL_LINES = 4000;
 
-registerPanel("git", (env) => {
+registerPanel(GIT_PANEL, (env) => {
 	const selection = gitSelection(env);
 	const panel = framed(
 		env.theme,
@@ -28,19 +28,19 @@ registerPanel("git", (env) => {
 				// gitFileLines already reports a failed diff.
 				const git = gitData(env.state).git;
 				if (!git.error && git.updatedAt && !git.diffError) lines.push("", ...gitDiffLines(env, inner));
-				return withCursor(env, selection, "git", lines);
+				return withCursor(env, selection, GIT_PANEL, lines);
 			},
-			() => gitKey(env, selection, "git"),
+			() => gitKey(env, selection, GIT_PANEL),
 			true,
 		),
 		"top",
-		() => env.focused("git"),
+		() => env.focused(GIT_PANEL),
 	);
 	selection.view = panel.scroll;
 	return { ...panel, list: selection };
 });
 
-registerPanel("gitfiles", (env) => {
+registerPanel(GIT_FILES_PANEL, (env) => {
 	const selection = gitSelection(env, true);
 	const panel = framed(
 		env.theme,
@@ -49,18 +49,18 @@ registerPanel("gitfiles", (env) => {
 			selection,
 			() => {
 				selection.reset();
-				return withCursor(env, selection, "gitfiles", gitFileLines(env, selection));
+				return withCursor(env, selection, GIT_FILES_PANEL, gitFileLines(env, selection));
 			},
-			() => gitKey(env, selection, "gitfiles"),
+			() => gitKey(env, selection, GIT_FILES_PANEL),
 		),
 		"top",
-		() => env.focused("gitfiles"),
+		() => env.focused(GIT_FILES_PANEL),
 	);
 	selection.view = panel.scroll;
 	return { ...panel, list: selection };
 });
 
-registerPanel("gitdiff", (env) =>
+registerPanel(GIT_DIFF_PANEL, (env) =>
 	framed(
 		env.theme,
 		() => {
@@ -80,10 +80,10 @@ registerPanel("gitdiff", (env) =>
 			true,
 		),
 		"top",
-		() => env.focused("gitdiff"),
+		() => env.focused(GIT_DIFF_PANEL),
 	));
 
-registerPanel("gitlog", (env) =>
+registerPanel(GIT_LOG_PANEL, (env) =>
 	framed(
 		env.theme,
 		() => "HISTORY",
@@ -92,7 +92,7 @@ registerPanel("gitlog", (env) =>
 			() => [gitData(env.state).version],
 		),
 		"top",
-		() => env.focused("gitlog"),
+		() => env.focused(GIT_LOG_PANEL),
 	));
 
 /**

@@ -50,10 +50,10 @@ export interface LogoPicture {
 /** The largest logo, in cells. */
 const COLUMNS = 40;
 const ROWS = 20;
-/** A logo.* file in the extension's folder: logo.png, logo.jpg, logo.webp, … */
-const LOGO_FILE = /^logo(?:-(standby|thinking|tool|error|done))?\..+$/i;
-export type LogoScene = "standby" | "thinking" | "tool" | "error" | "done";
-const SCENES: LogoScene[] = ["standby", "thinking", "tool", "error", "done"];
+const SCENES = ["standby", "thinking", "tool", "error", "done"] as const;
+export type LogoScene = (typeof SCENES)[number];
+/** A logo.* file in the extension's folder: logo.png, logo.jpg, logo.webp, …, or logo-<scene>.* for one scene. */
+const LOGO_FILE = new RegExp(`^logo(?:-(${SCENES.join("|")}))?\\..+$`, "i");
 
 /** Each pi-crt instance's logo, by its CrtState (see FeatureEnv). */
 const features = new WeakMap<CrtState, { data: LogoData; env: FeatureEnv }>();

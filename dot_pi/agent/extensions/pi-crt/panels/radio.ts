@@ -15,24 +15,29 @@ import {
 	addPlaylist,
 	changeVolume,
 	isStation,
+	NOW_PLAYING_PANEL,
 	nextTrack,
 	type OutputDevice,
 	pickOutput,
+	type Playlist,
 	playedSeconds,
 	playsOn,
 	playsPlaylist,
 	playsSong,
 	playsStation,
+	RADIO_OUTPUT_PANEL,
 	RETRY_MS,
 	type RadioData,
 	radioData,
 	removeStation,
+	type SearchData,
 	searchSongs,
 	type Station,
 	stationKey,
 	togglePlaylist,
 	toggleSong,
 	toggleStation,
+	type Track,
 } from "../features/radio.ts";
 import { framed, type SizedView } from "../screen/frame.ts";
 import { Lines } from "../screen/lines.ts";
@@ -220,35 +225,27 @@ registerPanel("radiosearch", (env) => {
 	// Esc leaves the text as typed, so that entering the box again continues it.
 	input.onEscape = leave;
 
-	/** The playlist or the song at an index of the list; the search box is 0. */
-	const itemAt = (index: number) => {
-		const { playlists, results } = radioData(env.state).search;
-		const playlist = playlists[index - 1];
-		return playlist ? { playlist } : { track: results[index - 1 - playlists.length] };
-	};
+	const itemAt = (index: number): SearchItem | undefined => searchItems(radioData(env.state).search)[index];
 	const selection = new RadioSelection(
-		// The search box, then the playlists, then the songs.
-		() => {
-			const { playlists, results } = radioData(env.state).search;
-			return [undefined, ...playlists.map((playlist) => `playlist:${playlist.id}`), ...results.map((track) => `song:${track.id}`)];
-		},
+		() =>
+			searchItems(radioData(env.state).search).map((item) =>
+				item.kind === "box" ? undefined : item.kind === "playlist" ? `playlist:${item.playlist.id}` : `song:${item.track.id}`,
+			),
 		(index) => {
-			if (index === 0) {
+			const item = itemAt(index);
+			if (item?.kind === "box") {
 				env.focusPanel("radiosearch");
 				typing = true;
 				input.focused = true;
-				return;
-			}
-			const { playlist, track } = itemAt(index);
-			if (playlist) togglePlaylist(env.state, playlist);
-			else if (track) toggleSong(env.state, track);
+			} else if (item?.kind === "playlist") togglePlaylist(env.state, item.playlist);
+			else if (item?.kind === "song") toggleSong(env.state, item.track);
 		},
 		(data) => {
 			if (!typing) {
 				if (!matchesKey(data, "a")) return radioKey(env, data);
-				const { playlist } = itemAt(selection.index);
-				if (playlist) addPlaylist(env.state, playlist);
-				return playlist !== undefined;
+				const item = itemAt(selection.index);
+				if (item?.kind === "playlist") addPlaylist(env.state, item.playlist);
+				return item?.kind === "playlist";
 			}
 			typed++;
 			if (matchesKey(data, "escape") || matchesKey(data, "tab")) leave();
@@ -300,31 +297,50 @@ function searchLines(env: PanelEnv, selection: Selection, input: Input, typing: 
 	if (search.loading) lines.push(` ${t.fg("warning", spinner(env.every(120)))} ${t.fg("muted", "searching…")}`);
 	else if (search.error) for (const line of wrapTextWithAnsi(search.error, Math.max(1, width - 2))) lines.push(` ${t.fg("error", line)}`);
 	else if (search.query && !search.results.length && !search.playlists.length) lines.push(t.fg("dim", " -- nothing found --"));
-	const heading = (label: string) => lines.push(` ${t.fg("dim", label)}`);
-	if (search.playlists.length) heading("PLAYLISTS");
-	search.playlists.forEach((playlist, index) => {
-		selection.place(index + 1, lines.length, 2);
-		const on = playsPlaylist(data, playlist);
-		const title = on ? `${t.fg("accent", "♪")} ${t.fg("accent", t.bold(playlist.title))}` : `  ${t.fg("text", playlist.title)}`;
-		lines.push(truncateToWidth(title, width));
-		const count = playlist.count === undefined ? "" : `${playlist.count} songs`;
-		const right = isStation(data, playlist) ? `${t.fg("success", "STATION")}${count && t.fg("dim", `  ${count}`)}` : t.fg("dim", count);
-		lines.push(spread(`  ${t.fg("muted", playlist.author)}`, right, width));
-	});
-	if (search.results.length) heading("SONGS");
-	search.results.forEach((track, index) => {
-		selection.place(index + 1 + search.playlists.length, lines.length, 2);
-		const on = playsSong(data, track);
-		const title = on ? `${t.fg("accent", "♪")} ${t.fg("accent", t.bold(track.title))}` : `  ${t.fg("text", track.title)}`;
-		lines.push(truncateToWidth(title, width));
-		lines.push(spread(`  ${t.fg("muted", track.artist)}`, t.fg("dim", track.seconds === undefined ? "" : clock(track.seconds)), width));
+	// The playlists, then the songs, each kind under its heading.
+	let heading: string | undefined;
+	searchItems(search).forEach((item, index) => {
+		if (item.kind === "box") return;
+		const label = item.kind === "playlist" ? "PLAYLISTS" : "SONGS";
+		if (label !== heading) {
+			heading = label;
+			lines.push(` ${t.fg("dim", label)}`);
+		}
+		selection.place(index, lines.length, 2);
+		if (item.kind === "playlist") {
+			const { playlist } = item;
+			const on = playsPlaylist(data, playlist);
+			const title = on ? `${t.fg("accent", "♪")} ${t.fg("accent", t.bold(playlist.title))}` : `  ${t.fg("text", playlist.title)}`;
+			lines.push(truncateToWidth(title, width));
+			const count = playlist.count === undefined ? "" : `${playlist.count} songs`;
+			const right = isStation(data, playlist) ? `${t.fg("success", "STATION")}${count && t.fg("dim", `  ${count}`)}` : t.fg("dim", count);
+			lines.push(spread(`  ${t.fg("muted", playlist.author)}`, right, width));
+		} else {
+			const { track } = item;
+			const on = playsSong(data, track);
+			const title = on ? `${t.fg("accent", "♪")} ${t.fg("accent", t.bold(track.title))}` : `  ${t.fg("text", track.title)}`;
+			lines.push(truncateToWidth(title, width));
+			lines.push(spread(`  ${t.fg("muted", track.artist)}`, t.fg("dim", track.seconds === undefined ? "" : clock(track.seconds)), width));
+		}
 	});
 	return lines;
 }
 
+/** An item of the SEARCH list; its index in searchItems is its index in the selection. */
+type SearchItem = { kind: "box" } | { kind: "playlist"; playlist: Playlist } | { kind: "song"; track: Track };
+
+/** The SEARCH list in order: the search box, then the playlists, then the songs. */
+function searchItems(search: SearchData): SearchItem[] {
+	return [
+		{ kind: "box" },
+		...search.playlists.map((playlist): SearchItem => ({ kind: "playlist", playlist })),
+		...search.results.map((track): SearchItem => ({ kind: "song", track })),
+	];
+}
+
 /* ------------------------------------------------------------ OUTPUT */
 
-registerPanel("radiooutput", (env) => {
+registerPanel(RADIO_OUTPUT_PANEL, (env) => {
 	const selection = new RadioSelection(
 		() => radioData(env.state).outputs.devices.map((device) => device.name),
 		(index) => {
@@ -340,16 +356,16 @@ registerPanel("radiooutput", (env) => {
 			selection,
 			(width) => {
 				selection.reset();
-				return withCursor(env, selection, "radiooutput", outputLines(env, selection, width - 1));
+				return withCursor(env, selection, RADIO_OUTPUT_PANEL, outputLines(env, selection, width - 1));
 			},
 			// The tick only while the spinner turns.
 			() => {
 				const data = radioData(env.state);
-				return [data.version, data.outputs.loading && !data.outputs.devices.length && env.every(120), selection.selectedKey, env.focused("radiooutput")];
+				return [data.version, data.outputs.loading && !data.outputs.devices.length && env.every(120), selection.selectedKey, env.focused(RADIO_OUTPUT_PANEL)];
 			},
 		),
 		"top",
-		() => env.focused("radiooutput"),
+		() => env.focused(RADIO_OUTPUT_PANEL),
 	);
 	selection.view = panel.scroll;
 	return { ...panel, list: selection };
@@ -388,7 +404,7 @@ function outputLines(env: PanelEnv, selection: Selection, width: number): string
 
 /* ------------------------------------------------------------ NOW PLAYING */
 
-registerPanel("nowplaying", (env) => {
+registerPanel(NOW_PLAYING_PANEL, (env) => {
 	let view: SizedView | undefined;
 	const panel = framed(
 		env.theme,
@@ -399,7 +415,7 @@ registerPanel("nowplaying", (env) => {
 			return nowPlayingLines(env, width, height);
 		}),
 		"sized",
-		() => env.focused("nowplaying"),
+		() => env.focused(NOW_PLAYING_PANEL),
 	);
 	view = panel.scroll as SizedView;
 	// Nothing to select or scroll: the panel is drawn to its height. It takes the RADIO keys.

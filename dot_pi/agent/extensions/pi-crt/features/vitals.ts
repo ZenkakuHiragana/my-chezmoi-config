@@ -24,6 +24,9 @@ import type { ExtensionAPI, ExtensionContext } from "@earendil-works/pi-coding-a
 import type { CrtState, Versioned } from "../state/core.ts";
 import type { FeatureEnv } from "./env.ts";
 
+/** The id of STATUS, the panel with the numbers and the DIFF card (features/git.ts asks whether it is shown). */
+export const VITALS_PANEL = "vitals";
+
 export interface Vitals extends Versioned {
 	/** Cached share of the prompt of the latest response on the branch; undefined without one. */
 	cacheRatio?: number;
