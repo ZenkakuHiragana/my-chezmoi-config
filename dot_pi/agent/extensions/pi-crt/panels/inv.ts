@@ -6,6 +6,7 @@
  */
 import { truncateToWidth, visibleWidth, wrapTextWithAnsi } from "@earendil-works/pi-tui";
 import {
+	bodiesVersion,
 	folds,
 	pickPart,
 	pickSkill,
@@ -394,7 +395,7 @@ registerPanel("skilllist", (env) => {
 			});
 			return lines;
 		},
-		() => [version(env.state)],
+		() => [version(env.state), bodiesVersion(env.state)],
 	);
 });
 
@@ -417,6 +418,9 @@ registerPanel("skilltext", (env) =>
 			}
 			return lines;
 		},
-		() => [version(env.state)],
+		() => {
+			const name = picks(env.state).skill;
+			return [version(env.state), skills(env.state).items.find((skill) => skill.name === name)?.version];
+		},
 	),
 );

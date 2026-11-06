@@ -70,7 +70,8 @@ export interface ToolGroup {
 	instructions: string;
 }
 
-export interface SkillItem {
+/** A skill; its version changes when its file has been read. */
+export interface SkillItem extends Versioned {
 	name: string;
 	description: string;
 	filePath: string;
@@ -117,6 +118,8 @@ interface Inventory {
 	toolList: ToolList;
 	/** Changes whenever the prompt, the skills or the picked part or skill change. */
 	version: number;
+	/** Changes whenever a skill file has been read (the skill's own version changes too). */
+	bodies: Versioned;
 	/** The label of the picked part; none: the whole prompt. */
 	part?: string;
 	folds: Folds;
@@ -262,6 +265,11 @@ export function version(state: CrtState): number {
 	return inventories.get(state)?.version ?? 0;
 }
 
+/** Changes whenever a skill file has been read. */
+export function bodiesVersion(state: CrtState): number {
+	return inventories.get(state)?.bodies.version ?? 0;
+}
+
 /** Changes whenever the tools or the picked tool or namespace change; read it after tools(). */
 export function toolsVersion(state: CrtState): number {
 	return inventories.get(state)?.toolList.version ?? 0;
@@ -334,6 +342,7 @@ export function setupInventory(pi: ExtensionAPI, env: FeatureEnv): void {
 		skillsKnown: false,
 		toolList: { items: [], key: "", namespaces: [], version: 0 },
 		version: 0,
+		bodies: { version: 0 },
 		folds: { expanded: new Set(), version: 0 },
 	};
 	inventories.set(env.state, inv);
@@ -427,6 +436,7 @@ function setSkills(inv: Inventory, skillList: readonly GivenSkill[], fromRequest
 				description: sanitize(skill.description),
 				filePath: skill.filePath,
 				tokens: 0,
+				version: 0,
 			};
 			if (fromRequest) setListed(item, !skill.disableModelInvocation);
 			return item;
@@ -462,6 +472,7 @@ async function readBodies(inv: Inventory, items: SkillItem[]): Promise<void> {
 		} catch (error) {
 			item.bodyError = sanitize(String((error as Error)?.message ?? error));
 		}
-		inv.env.changed(inv);
+		item.version++;
+		inv.env.changed(inv.bodies);
 	}
 }

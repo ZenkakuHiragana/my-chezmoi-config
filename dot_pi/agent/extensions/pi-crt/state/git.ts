@@ -32,6 +32,8 @@ export interface GitDiffFile {
 	omitted?: number;
 	/** Size and modification time of an untracked file when it was read. */
 	stamp?: string;
+	/** Lines of an untracked text file that was read whole and is shown whole. */
+	added?: number;
 }
 
 export interface GitSnapshot {
@@ -173,10 +175,8 @@ export async function readGit(
 		snapshot.diffError = failure(patch, "git diff");
 		return snapshot;
 	}
-	const lines = sanitize(patch.stdout).split("\n");
-	if (lines.at(-1) === "") lines.pop();
 	const kept = new Map((previous?.diff ?? []).map((file) => [file.path, file]));
-	snapshot.diff = splitByFile(lines).map((file) => {
+	snapshot.diff = splitByFile(patch.stdout).map((file) => {
 		const old = kept.get(file.path);
 		return old && !old.stamp && old.omitted === file.omitted && sameLines(old.lines, file.lines) ? old : file;
 	});
@@ -276,8 +276,7 @@ async function readUntracked(
 			const stamp = `${info.size}:${info.mtimeMs}`;
 			const old = kept.get(file.path);
 			const section = old?.stamp === stamp ? old : await untrackedDiff(full, file.path, header, info.size, stamp);
-			// Every line of the file was read: header, note, hunk header, then the lines.
-			if (section.stamp !== "binary" && !section.omitted && section.lines[1] !== PARTIAL_NOTE) file.added = section.lines.length - 3;
+			if (section.added !== undefined) file.added = section.added;
 			snapshot.diff.push(section);
 		} catch (error) {
 			snapshot.diff.push({ path: file.path, lines: [header, `untracked file: ${sanitize(String((error as Error)?.message ?? error))}`] });
@@ -298,7 +297,7 @@ async function untrackedDiff(full: string, path: string, header: string, size: n
 		await handle.close();
 	}
 	// Git calls a file binary when its first 8000 bytes hold a NUL.
-	if (bytes.subarray(0, 8000).includes(0)) return { path, lines: [header, "untracked binary file"], stamp: "binary" };
+	if (bytes.subarray(0, 8000).includes(0)) return { path, lines: [header, "untracked binary file"], stamp };
 	const partial = size > bytes.length;
 	const text = sanitize(bytes.toString("utf8"));
 	const body = text.split("\n");
@@ -308,7 +307,9 @@ async function untrackedDiff(full: string, path: string, header: string, size: n
 	const lines = [header, partial ? PARTIAL_NOTE : "untracked file", `@@ -0,0 +1,${body.length} @@`, ...body.map((line) => `+${line}`)];
 	const omitted = Math.max(0, lines.length - MAX_FILE_DIFF_LINES);
 	if (omitted) lines.length = MAX_FILE_DIFF_LINES;
-	return { path, lines, stamp, ...(omitted ? { omitted } : {}) };
+	if (omitted) return { path, lines, stamp, omitted };
+	// The line count needs every line: none when the file was cut at UNTRACKED_BYTES.
+	return { path, lines, stamp, ...(partial ? {} : { added: body.length }) };
 }
 
 /**
@@ -338,14 +339,31 @@ function samePathOf(header: string): string {
 	return rest === `a/${path} b/${path}` ? path : "";
 }
 
-/** Split a unified diff into per-file sections of at most MAX_FILE_DIFF_LINES lines. */
-function splitByFile(lines: string[]): GitDiffFile[] {
+/**
+ * Split a unified diff into per-file sections of at most MAX_FILE_DIFF_LINES lines,
+ * without control characters. Only the lines kept are cut out of the output and
+ * cleaned; the lines after them in a file's hunks are only counted, so a large diff
+ * costs a scan for its line breaks.
+ */
+function splitByFile(output: string): GitDiffFile[] {
 	const files: GitDiffFile[] = [];
 	let current: GitDiffFile | undefined;
 	let inHunk = false;
 	let oldPath: string | undefined;
-	for (const line of lines) {
-		if (line.startsWith("diff --git ")) {
+	// The text after the output's last line break is a line only when something is left of it once cleaned.
+	for (let start = 0; start < output.length; ) {
+		const found = output.indexOf("\n", start);
+		const stop = found < 0 ? output.length : found;
+		const from = start;
+		start = stop + 1;
+		if (found < 0 && sanitize(output.slice(from)) === "") break;
+		const starts = output.startsWith("diff --git ", from);
+		if (!starts && (!current || (inHunk && current.lines.length >= MAX_FILE_DIFF_LINES))) {
+			if (current) current.omitted = (current.omitted ?? 0) + 1;
+			continue;
+		}
+		const line = sanitize(output.slice(from, stop));
+		if (starts) {
 			current = { path: samePathOf(line), lines: [] };
 			files.push(current);
 			inHunk = false;

@@ -128,6 +128,8 @@ interface Row {
 	/** On the last row of a branch, the entries the branch holds. */
 	branchSize?: number;
 	turn: Turn;
+	/** How the row is drawn, worked out when it is first drawn (see rowShown); rows are made again when the tree changes. */
+	shown?: { look: Look & { tail: string }; labels: string };
 }
 
 /** What the entries of a row add up to. */
@@ -136,8 +138,8 @@ interface Turn {
 	calls: string[];
 	/** Failed tool calls, commands and replies. */
 	errors: number;
-	/** The last text the assistant wrote in the row. */
-	reply: string;
+	/** The first line of the last text the assistant wrote in the row (see replyLine). */
+	replyLine: string;
 	/** Context tokens after the row's last reply that reports its usage. */
 	tokens?: number;
 }
@@ -338,7 +340,7 @@ class TreeView implements Component, ListControl {
 	private rowLine(row: Row, index: number, width: number, t: Theme): string {
 		const head = row.nodes[0]!;
 		const last = row.nodes[row.nodes.length - 1]!;
-		const look = rowLook(row);
+		const { look, labels } = rowShown(row);
 		const onPath = this.path.has(head.entry.id);
 		const here = index === this.hereRow;
 		const selected = index === this.selected;
@@ -346,7 +348,7 @@ class TreeView implements Component, ListControl {
 		const right = [
 			row.branches > 1 ? t.fg(onPath ? "warning" : "dim", `◆${row.branches}`) : "",
 			row.branchSize !== undefined ? t.fg("dim", `╴${compactNumber(row.branchSize)}`) : "",
-			...rowLabels(row).map((node) => t.fg("warning", `#${sanitize(node.label!)}`)),
+			labels ? t.fg("warning", labels) : "",
 			here ? t.fg(hereLit ? "accent" : "dim", t.bold("HERE")) : "",
 			width >= CONTEXT_MIN_WIDTH ? this.contextCell(row, t) : "",
 			t.fg("dim", ago(last.entry.timestamp).padStart(3)),
@@ -725,7 +727,7 @@ function flatten(
 			row = above;
 			row.nodes.push(node);
 		} else {
-			row = { nodes: [node], gutter, connector, branches: 0, turn: { calls: [], errors: 0, reply: "" } };
+			row = { nodes: [node], gutter, connector, branches: 0, turn: { calls: [], errors: 0, replyLine: "" } };
 			rows.push(row);
 		}
 		addToTurn(row.turn, node.entry);
@@ -737,7 +739,7 @@ function flatten(
 		// None when that is the turn's first entry, where Enter on the turn already goes.
 		const from = turns && children.length === 0 ? row.nodes.findLastIndex((item) => !jumpsBefore(item.entry)) : -1;
 		if (from > 0) {
-			rows.push({ nodes: row.nodes.slice(from), tip: true, gutter: below, connector: "", branches: 0, branchSize: row.branchSize, turn: { calls: [], errors: 0, reply: "", tokens: row.turn.tokens } });
+			rows.push({ nodes: row.nodes.slice(from), tip: true, gutter: below, connector: "", branches: 0, branchSize: row.branchSize, turn: { calls: [], errors: 0, replyLine: "", tokens: row.turn.tokens } });
 			row.tipFrom = from;
 			row.branchSize = undefined;
 		}
@@ -767,8 +769,8 @@ function addToTurn(turn: Turn, entry: Entry): void {
 	if (message.role === "assistant") {
 		for (const block of message.content) if (block.type === "toolCall") turn.calls.push(block.name);
 		if (message.stopReason === "error") turn.errors++;
-		const text = fullText(entry);
-		if (text) turn.reply = text;
+		const line = replyLine(message);
+		if (line) turn.replyLine = line;
 		const tokens = usageTokens(message.usage);
 		if (tokens !== undefined) turn.tokens = tokens;
 	} else if (message.role === "toolResult" && message.isError) turn.errors++;
@@ -784,14 +786,35 @@ function usageTokens(
 	return total > 0 ? total : undefined;
 }
 
+/**
+ * The first line with text of a reply, as firstLine(fullText(entry)) gives it, read only up
+ * to that line: a reply's text blocks are joined with \n, so no line spans two blocks.
+ */
+function replyLine(message: { content: ReadonlyArray<{ type: string; text?: string }> }): string {
+	for (const block of message.content) {
+		if (block.type !== "text") continue;
+		for (const match of (block.text ?? "").matchAll(/[^\n]+/g)) {
+			const line = sanitize(match[0]);
+			if (/\S/.test(line)) return sanitize(line.trim());
+		}
+	}
+	return "";
+}
+
+/** The look and the labels (`#one #two`) of a row, worked out the first time it is drawn. */
+function rowShown(row: Row): NonNullable<Row["shown"]> {
+	row.shown ??= { look: rowLook(row), labels: rowLabels(row).map((node) => `#${sanitize(node.label!)}`).join(" ") };
+	return row.shown;
+}
+
 /** How a row is shown: its first entry, then what the rest of the turn did (`tail`). */
 function rowLook(row: Row): Look & { tail: string } {
 	if (row.tip) return { tag: "╴END", color: "muted", text: "", tail: "" };
 	const head = row.nodes[0]!.entry;
 	const look = describe(head);
 	if (row.nodes.length === 1) return { ...look, tail: "" };
-	const { calls, reply } = row.turn;
-	const did = calls.length ? `${calls.length} ${calls.length === 1 ? "call" : "calls"} · ${toolNames(calls)}` : firstLine(reply);
+	const { calls, replyLine } = row.turn;
+	const did = calls.length ? `${calls.length} ${calls.length === 1 ? "call" : "calls"} · ${toolNames(calls)}` : replyLine;
 	// A row that starts with a reply (after a fork) sums up the whole row instead.
 	if (head.type === "message" && head.message.role === "assistant") return { tag: "ASST", color: "text", text: "", tail: did };
 	return { ...look, tail: did };
