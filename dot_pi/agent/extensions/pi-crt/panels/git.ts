@@ -11,8 +11,9 @@ import { ListLines, Selection, withCursor } from "./common.ts";
 import { type PanelEnv, registerPanel } from "./registry.ts";
 
 /**
- * When every file is shown, files are added while fewer diff lines than this are drawn
- * (the last one added may go past it); a picked file shows its whole kept diff.
+ * When every file is shown, files are added while fewer screen lines than this are drawn
+ * (a wrapped code line counts each of its lines; the last file added may go past it);
+ * a picked file shows its whole kept diff.
  */
 const MAX_ALL_LINES = 4000;
 
@@ -30,7 +31,11 @@ registerPanel(GIT_PANEL, (env) => {
 				const lines = gitFileLines(env, selection).map((line) => truncateToWidth(line, inner));
 				// gitFileLines already reports a failed diff.
 				const git = gitData(env.state).git;
-				if (!git.error && git.updatedAt && !git.diffError) lines.push("", ...gitDiffLines(env, inner));
+				if (!git.error && git.updatedAt && !git.diffError) {
+					// Not push(...): a wrapped diff can have more lines than a call takes arguments.
+					lines.push("");
+					for (const line of gitDiffLines(env, inner)) lines.push(line);
+				}
 				return withCursor(env, selection, GIT_PANEL, lines);
 			},
 			() => gitKey(env, selection, GIT_PANEL),
@@ -204,7 +209,8 @@ function gitDiffLines(env: PanelEnv, width: number): string[] {
 			break;
 		}
 		if (index > 0) lines.push("");
-		lines.push(...fileDiffLines(env, git.diff[index]!, width));
+		// Not push(...): a wrapped diff can have more lines than a call takes arguments.
+		for (const line of fileDiffLines(env, git.diff[index]!, width)) lines.push(line);
 	}
 	return lines;
 }

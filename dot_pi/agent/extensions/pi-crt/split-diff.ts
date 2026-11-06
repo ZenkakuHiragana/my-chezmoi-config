@@ -17,7 +17,11 @@
  *   before the change shifted the emphasis.
  * - No collapsed window and no expand hint: the panel scrolls instead.
  * - When the panes would be too narrow, a one-column diff with the same colours
- *   is drawn (pi-tidy leaves that to pi).
+ *   is drawn (pi-tidy leaves that to pi). It lists each change's removed lines,
+ *   then its added lines, as a unified diff does.
+ * - A code line longer than its column (a pane, or the one column) wraps onto
+ *   the next screen lines instead of being cut (pi-tidy cuts it). Only a panel too narrow for the line
+ *   number and a character of code (a few columns) still loses text.
  * - Each side of a file is highlighted in one call (pi-tidy highlights line by
  *   line; one call is about twice as fast, and a file has many lines).
  */
@@ -28,8 +32,8 @@ import { backgroundAnsi, type Color, colorToRgb, rgbColor, truncateToWidth, visi
 /** Blank cells on each side of the panes. */
 const PAD = 1;
 const SEPARATOR = " │ ";
-/** Narrower panes than this and the diff is drawn in one column. */
-const MIN_CONTENT_WIDTH = 20;
+/** When a pane would have fewer columns of code than this, the diff is drawn in one column. */
+const MIN_CONTENT_WIDTH = 80;
 const TAB = "    ";
 
 /** One file's section of a unified diff, from its `diff --git` line on. */
@@ -268,7 +272,7 @@ function emphasize(rendered: string, start: number, end: number, fill: string, r
 		}
 	};
 	let index = 0;
-	for (const match of rendered.matchAll(/\x1b\[[0-9;:]*m/g)) {
+	for (const match of rendered.matchAll(SGR)) {
 		const at = match.index ?? 0;
 		text(rendered.slice(index, at));
 		out += match[0];
@@ -276,6 +280,103 @@ function emphasize(rendered: string, start: number, end: number, fill: string, r
 	}
 	text(rendered.slice(index));
 	return inside ? out + back : out;
+}
+
+/** One SGR sequence (colours and attributes): the only escapes in highlighted text. */
+const SGR = /\x1b\[[0-9;:]*m/g;
+
+/** One screen line of a cell's code: the coloured text and its width in columns. */
+interface Chunk {
+	text: string;
+	width: number;
+}
+
+/** SGR attributes (bold, italic, ...) by the code that turns each off. */
+const ATTRIBUTE_OFF: Record<number, number[]> = { 22: [1, 2], 23: [3], 24: [4], 25: [5], 27: [7], 28: [8], 29: [9] };
+
+/**
+ * The colours and attributes in effect at a point of coloured text, so that a wrapped
+ * line can start in the state the previous one ended in. Only the state is kept, not
+ * every code seen, so each line's prefix stays short however long the text is.
+ */
+class SgrState {
+	private fg = "";
+	private bg = "";
+	private readonly attributes = new Set<number>();
+
+	/** Take in one SGR sequence (`\x1b[...m`). */
+	apply(code: string): void {
+		const params = code.slice(2, -1).split(/[;:]/).map((param) => (param === "" ? 0 : Number(param)));
+		for (let index = 0; index < params.length; index++) {
+			const param = params[index]!;
+			if (param === 0) {
+				this.fg = "";
+				this.bg = "";
+				this.attributes.clear();
+			} else if (param === 38 || param === 48) {
+				// 38;5;n or 38;2;r;g;b (48 for the background).
+				const length = params[index + 1] === 5 ? 2 : params[index + 1] === 2 ? 4 : 0;
+				const colour = `\x1b[${params.slice(index, index + 1 + length).join(";")}m`;
+				if (param === 38) this.fg = colour;
+				else this.bg = colour;
+				index += length;
+			} else if (param === 39) this.fg = "";
+			else if (param === 49) this.bg = "";
+			else if ((param >= 30 && param <= 37) || (param >= 90 && param <= 97)) this.fg = `\x1b[${param}m`;
+			else if ((param >= 40 && param <= 47) || (param >= 100 && param <= 107)) this.bg = `\x1b[${param}m`;
+			else if (param >= 1 && param <= 9) this.attributes.add(param);
+			else for (const off of ATTRIBUTE_OFF[param] ?? []) this.attributes.delete(off);
+		}
+	}
+
+	/** Codes that set this state from a reset one. */
+	prefix(): string {
+		let out = "";
+		for (const attribute of this.attributes) out += `\x1b[${attribute}m`;
+		return out + this.fg + this.bg;
+	}
+}
+
+/**
+ * Cut coloured `body` into lines of at most `content` columns, in one pass. A line after
+ * the first starts in the colours and attributes the previous one ended in, so
+ * highlighting and emphasis go on across the cut; every line ends with a full reset
+ * (paint sets the row's tint again after it, so the padding keeps the tint). A zero-width grapheme stays on the
+ * line it follows. A grapheme wider than `content` gets a line of its own and is cut there
+ * by the caller. There is always at least one line.
+ *
+ * Not pi-tui's wrapTextWithAnsi: it breaks at words and drops the spaces at the break,
+ * and a diff has to show every space.
+ */
+function wrapBody(body: string, content: number): Chunk[] {
+	const lines: Chunk[] = [];
+	const state = new SgrState();
+	let text = "";
+	let width = 0;
+	const add = (part: string) => {
+		const ascii = ASCII.test(part);
+		for (const segment of splitGraphemes(part)) {
+			const cells = ascii ? 1 : visibleWidth(segment);
+			if (cells > 0 && width > 0 && width + cells > content) {
+				lines.push({ text: `${text}\x1b[0m`, width });
+				text = state.prefix();
+				width = 0;
+			}
+			text += segment;
+			width += cells;
+		}
+	};
+	let index = 0;
+	for (const match of body.matchAll(SGR)) {
+		const at = match.index ?? 0;
+		add(body.slice(index, at));
+		text += match[0];
+		state.apply(match[0]);
+		index = at + match[0].length;
+	}
+	add(body.slice(index));
+	lines.push({ text: `${text}\x1b[0m`, width });
+	return lines;
 }
 
 function pad(text: string, width: number): string {
@@ -312,34 +413,66 @@ function layout(width: number, numWidth: number): Layout | null {
 	return { numWidth, pane, content };
 }
 
-/** A cell: bar, number and code, tinted when changed. `content` is the width of the code. */
-function renderCell(
+type CellKind = "add" | "remove" | "context";
+
+/**
+ * A cell's code, highlighted, with its changed middle emphasised, cut into lines of at
+ * most `content` columns (the width of the code).
+ */
+function cellChunks(
 	cell: Cell,
-	kind: "add" | "remove" | "context",
-	numWidth: number,
+	kind: CellKind,
 	content: number,
 	palette: Palette,
 	highlighted: ReadonlyMap<Cell, string>,
 	emphasis: { start: number; end: number } | undefined,
-): string {
+): Chunk[] {
+	let body = highlighted.get(cell) ?? cell.text;
+	// The emphasis counts graphemes of the whole line, so it goes on before the cut.
+	if (cell.changed && emphasis) {
+		body = emphasize(body, emphasis.start, emphasis.end, kind === "add" ? palette.addedEmphasis : palette.removedEmphasis, rowFill(kind, palette));
+	}
+	// Colours do not change the width, so the plain text tells whether the line fits;
+	// most lines do, and need no walk through the coloured text.
+	const plainWidth = visibleWidth(cell.text);
+	return plainWidth <= content ? [{ text: body, width: plainWidth }] : wrapBody(body, content);
+}
+
+/** The background of a cell's lines: tinted on a changed line, none on a context line. */
+function rowFill(kind: CellKind, palette: Palette): string | undefined {
+	return kind === "add" ? palette.addedBg : kind === "remove" ? palette.removedBg : undefined;
+}
+
+/**
+ * The screen lines of a cell: bar, number and code (the `chunks` from cellChunks),
+ * tinted when changed. The lines after the first leave the number blank. Blank lines
+ * are added up to `height` (at least chunks.length), so that the two panes of a row end
+ * together. Every line is numWidth + 3 + content columns wide.
+ */
+function renderCellLines(
+	cell: Cell,
+	kind: CellKind,
+	numWidth: number,
+	content: number,
+	palette: Palette,
+	chunks: readonly Chunk[],
+	height = chunks.length,
+): string[] {
 	const changed = cell.changed;
 	const fg = !changed ? palette.contextFg : kind === "add" ? palette.addedFg : palette.removedFg;
-	const fill = kind === "add" ? palette.addedBg : kind === "remove" ? palette.removedBg : undefined;
-	const emphFill = kind === "add" ? palette.addedEmphasis : palette.removedEmphasis;
+	const fill = rowFill(kind, palette);
 	const bar = changed ? fg : palette.contextFg;
-
-	let body = highlighted.get(cell) ?? cell.text;
-	if (changed && emphasis) body = emphasize(body, emphasis.start, emphasis.end, emphFill, fill);
-	// Colours do not change the width, so the plain text tells whether the line fits;
-	// measuring the coloured line costs more than the rest of the cell.
-	const plainWidth = visibleWidth(cell.text);
-	body = plainWidth <= content ? body + " ".repeat(content - plainWidth) : truncateToWidth(body, content, "", true);
-
-	const label = String(cell.num).padStart(numWidth);
-	// Bar first, then the number: the marker sits in its own column, so the
-	// digits line up down the pane and the bar reads as a margin.
-	const line = `${bar}${changed ? "▌" : " "}\x1b[39m ${fg}${label}\x1b[39m ${body}`;
-	return fill ? paint(line, fill) : line;
+	const lines: string[] = [];
+	for (let index = 0; index < height; index++) {
+		const chunk = chunks[index] ?? { text: "", width: 0 };
+		const code = chunk.width <= content ? chunk.text + " ".repeat(content - chunk.width) : truncateToWidth(chunk.text, content, "", true);
+		const label = index === 0 ? String(cell.num).padStart(numWidth) : " ".repeat(numWidth);
+		// Bar first, then the number: the marker sits in its own column, so the
+		// digits line up down the pane and the bar reads as a margin, wrapped lines included.
+		const line = `${bar}${changed ? "▌" : " "}\x1b[39m ${fg}${label}\x1b[39m ${code}`;
+		lines.push(fill ? paint(line, fill) : line);
+	}
+	return lines;
 }
 
 /** The emphasis spans of a paired row, in graphemes of each side's text. */
@@ -373,7 +506,8 @@ function renderHeading(path: string, add: number, remove: number, width: number,
 /**
  * Render one file's diff for a panel `width` columns wide: a heading, the header
  * lines worth showing, then two panes (old | new), or one column when the panes
- * would be too narrow.
+ * would be too narrow. Every line is at most `width` columns wide; a long code line
+ * takes several.
  */
 export function renderDiffSection(section: DiffSection, width: number, theme: Theme): string[] {
 	const { rows, notes } = parseSection(section.lines);
@@ -407,30 +541,46 @@ export function renderDiffSection(section: DiffSection, width: number, theme: Th
 					continue;
 				}
 				const emphasis = emphasisOf(row);
+				const leftKind = row.left?.changed ? "remove" : "context";
+				const rightKind = row.right?.changed ? "add" : "context";
+				const leftChunks = row.left ? cellChunks(row.left, leftKind, lay.content, palette, highlighted, emphasis.left) : [];
+				const rightChunks = row.right ? cellChunks(row.right, rightKind, lay.content, palette, highlighted, emphasis.right) : [];
+				const height = Math.max(leftChunks.length, rightChunks.length);
 				// The other pane has nothing on this row: keep the cell blank so the two columns stay aligned.
-				// A cell is exactly lay.pane wide (bar, space, number, space, code), so the row needs no measuring.
-				const left = row.left ? renderCell(row.left, row.left.changed ? "remove" : "context", lay.numWidth, lay.content, palette, highlighted, emphasis.left) : " ".repeat(lay.pane);
-				const right = row.right ? renderCell(row.right, row.right.changed ? "add" : "context", lay.numWidth, lay.content, palette, highlighted, emphasis.right) : " ".repeat(lay.pane);
-				lines.push(`${" ".repeat(PAD)}${left}${separator}${right}${" ".repeat(width - PAD - 2 * lay.pane - SEPARATOR.length)}`);
+				// A cell line is exactly lay.pane wide (bar, space, number, space, code), so the row needs no measuring.
+				const blank = Array<string>(height).fill(" ".repeat(lay.pane));
+				const left = row.left ? renderCellLines(row.left, leftKind, lay.numWidth, lay.content, palette, leftChunks, height) : blank;
+				const right = row.right ? renderCellLines(row.right, rightKind, lay.numWidth, lay.content, palette, rightChunks, height) : blank;
+				const end = " ".repeat(width - PAD - 2 * lay.pane - SEPARATOR.length);
+				for (let index = 0; index < height; index++) lines.push(`${" ".repeat(PAD)}${left[index]}${separator}${right[index]}${end}`);
 			}
 		} else {
-			// One column: row by row, each row's removed line, then its added one. A change of
-			// several lines therefore alternates them, unlike a unified diff, which lists all
-			// the removed lines before the added ones.
+			// One column, as a unified diff: the lines of a change that are removed, then the
+			// ones that are added. Consecutive changed rows are one change: git separates two
+			// changes with a context line or a hunk header, and parseSection pairs a change's
+			// removed and added lines into its rows.
 			const content = Math.max(1, width - PAD * 2 - numWidth - 3);
+			const addCell = (cell: Cell, kind: CellKind, emphasis: { start: number; end: number } | undefined) => {
+				const chunks = cellChunks(cell, kind, content, palette, highlighted, emphasis);
+				for (const line of renderCellLines(cell, kind, numWidth, content, palette, chunks)) lines.push(pad(`${" ".repeat(PAD)}${line}`, width));
+			};
+			let change: Row[] = [];
+			const flush = () => {
+				const emphases = change.map(emphasisOf);
+				for (const [index, row] of change.entries()) if (row.left) addCell(row.left, "remove", emphases[index]!.left);
+				for (const [index, row] of change.entries()) if (row.right) addCell(row.right, "add", emphases[index]!.right);
+				change = [];
+			};
 			for (const row of rows) {
-				if (row.kind === "skip") {
-					lines.push(skip(row));
+				if (row.kind === "row" && (row.left?.changed || row.right?.changed)) {
+					change.push(row);
 					continue;
 				}
-				const emphasis = emphasisOf(row);
-				if (row.left && row.right && !row.left.changed) {
-					lines.push(pad(`${" ".repeat(PAD)}${renderCell(row.left, "context", numWidth, content, palette, highlighted, undefined)}`, width));
-					continue;
-				}
-				if (row.left) lines.push(pad(`${" ".repeat(PAD)}${renderCell(row.left, "remove", numWidth, content, palette, highlighted, emphasis.left)}`, width));
-				if (row.right) lines.push(pad(`${" ".repeat(PAD)}${renderCell(row.right, "add", numWidth, content, palette, highlighted, emphasis.right)}`, width));
+				flush();
+				if (row.kind === "skip") lines.push(skip(row));
+				else if (row.left) addCell(row.left, "context", undefined);
 			}
+			flush();
 		}
 	}
 	if (section.omitted) lines.push(truncateToWidth(`${" ".repeat(PAD)}${label(`… ${section.omitted} more diff lines not shown`)}`, width));
