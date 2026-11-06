@@ -45,7 +45,10 @@ import type { Sdl } from "@kmamal/sdl";
 import { type CrtState, sanitize } from "../state/core.ts";
 import type { FeatureEnv } from "./env.ts";
 
-/** The ids of the panels the radio draws again itself: NOW PLAYING while a song plays, OUTPUT while it lists devices. */
+/**
+ * The ids of NOW PLAYING (panels/radio.ts draws it and asks for its own redraws),
+ * and of OUTPUT, which lists the devices again whenever it comes on screen.
+ */
 export const NOW_PLAYING_PANEL = "nowplaying";
 export const RADIO_OUTPUT_PANEL = "radiooutput";
 
@@ -63,17 +66,17 @@ const MAX_PACKET = 5760;
 const QUEUE_HIGH = 10;
 const QUEUE_LOW = 5;
 /**
- * Levels kept of the packets played last, for the waveform. It draws two per cell
- * and is never wider than the terminal, so two per terminal column fill it at any
- * width; at least 4 s of 20 ms packets when the width is not known.
+ * Levels kept for the waveform of what SDL already took, besides those not taken
+ * yet: two per terminal column, as the waveform draws two levels a cell and is no
+ * wider than the terminal; and at least 200 (4 s).
  */
 function levelHistory(): number {
 	return Math.max(200, (process.stdout.columns ?? 0) * 2);
 }
-/** How often the queue is read while a track plays: the played position, the levels, the end. */
+/** How often the queue is read while a track plays: the played position, where it is heard, the levels kept, the end. */
 const PUMP_MS = 40;
-/** How often NOW PLAYING is drawn again while it moves. */
-const DRAW_MS = 120;
+/** Frames of one level of the waveform: 20 ms, whatever the length of the Opus packets. */
+const LEVEL_FRAMES = SAMPLE_RATE / 50;
 /** Songs a search shows. */
 const SEARCH_LIMIT = 20;
 /** Playlists a search shows. */
@@ -153,10 +156,24 @@ export interface RadioData {
 	position?: { index: number; total: number };
 	/** 0 to 1. audify's volume is logarithmic: 0.3 gives about 11% of the amplitude. */
 	volume: number;
-	/** Frames of the current track played so far. */
+	/** Frames of the current track's PCM SDL took so far, the time shown; the silences while the queue ran dry are not counted. */
 	playedFrames: number;
-	/** RMS levels (0 to 1) of the writes played last, oldest first. */
+	/**
+	 * RMS levels (0 to 1, at full volume) of what the device plays for the current
+	 * track, one per LEVEL_FRAMES, oldest first: the track's PCM and, where the queue
+	 * ran dry, silence. Those SDL took lately and those not taken yet.
+	 */
 	levels: number[];
+	/** Where `levels[0]` starts, in frames of what the device plays for the track (its PCM and its silences). */
+	levelsFrom: number;
+	/**
+	 * Where the current track is heard, in the frames of `levelsFrom`: `frames` at
+	 * `at` (Date.now()), going on at SAMPLE_RATE; below 0 before the track's first
+	 * frame is heard. The radio sets it as it reads the queue, taking SDL to play what
+	 * it takes about a device buffer later. Undefined until SDL takes the track's
+	 * first PCM.
+	 */
+	heard?: { frames: number; at: number };
 	search: SearchData;
 	/** The output devices, listed again whenever the OUTPUT page comes on screen. */
 	outputs: OutputsData;
@@ -276,6 +293,7 @@ const NONE: RadioData = Object.freeze({
 	volume: 1,
 	playedFrames: 0,
 	levels: [],
+	levelsFrom: 0,
 	search: { query: "", results: [], playlists: [], loading: false },
 	outputs: { devices: [], loading: false },
 }) as RadioData;
@@ -320,6 +338,30 @@ export function isStation(data: Readonly<RadioData>, playlist: Playlist): boolea
 /** Seconds of the current track played. */
 export function playedSeconds(data: Readonly<RadioData>): number {
 	return data.playedFrames / SAMPLE_RATE;
+}
+
+/** Frames heard by `now` (Date.now()), as `heard` has it. */
+function heardFrames(heard: NonNullable<RadioData["heard"]>, now: number): number {
+	return heard.frames + ((now - heard.at) * SAMPLE_RATE) / 1000;
+}
+
+/**
+ * The levels heard by `now` (Date.now()), up to a whole number of `stepLevels`
+ * levels from the track's start, so that the waveform moves on by `stepLevels`
+ * levels at a time. Past the levels kept (while the queue is dry) they are silent,
+ * no more than levelHistory() of silence, as no more fits the waveform. And `nextAt`,
+ * when the next step will have been heard (undefined until the track is heard).
+ */
+export function heardLevels(data: Readonly<RadioData>, now: number, stepLevels: number): { levels: readonly number[]; nextAt: number | undefined } {
+	const heard = data.heard;
+	if (!heard) return { levels: [], nextAt: undefined };
+	const step = stepLevels * LEVEL_FRAMES;
+	const shown = Math.floor(heardFrames(heard, now) / step) * step;
+	const count = Math.max(0, Math.floor((shown - data.levelsFrom) / LEVEL_FRAMES));
+	const kept = data.levels.slice(0, count);
+	const silent = Math.min(count - kept.length, levelHistory());
+	const levels = silent > 0 ? [...kept, ...Array.from({ length: silent }, () => 0)] : kept;
+	return { levels, nextAt: heard.at + ((shown + step - heard.frames) * 1000) / SAMPLE_RATE };
 }
 
 /** Play a station, or stop it when it is the one playing. */
@@ -465,6 +507,7 @@ function createRadio(): RadioControl {
 		volume: 1,
 		playedFrames: 0,
 		levels: [],
+		levelsFrom: 0,
 		search: { query: "", results: [], playlists: [], loading: false },
 		outputs: { devices: [], loading: false },
 	};
@@ -484,7 +527,6 @@ function createRadio(): RadioControl {
 
 	/** Aborts the current source's track downloads, queue refills and retries; a new one per source. */
 	let session = new AbortController();
-	let drawTimer: ReturnType<typeof setInterval> | undefined;
 	/** Track IDs this source played, so that a radio refill does not repeat them. */
 	let played = new Set<string>();
 	/** A playlist's tracks; each pass plays them shuffled. */
@@ -514,17 +556,12 @@ function createRadio(): RadioControl {
 	let retry: () => void = () => {};
 	let retryTimer: ReturnType<typeof setTimeout> | undefined;
 
-	const startDrawing = () => {
-		if (drawTimer) return;
-		drawTimer = setInterval(() => {
-			if (env?.shows(NOW_PLAYING_PANEL)) env.requestRender();
-		}, DRAW_MS);
-		drawTimer.unref?.();
-	};
-
-	const stopDrawing = () => {
-		if (drawTimer) clearInterval(drawTimer);
-		drawTimer = undefined;
+	/** Where the track is, as NOW PLAYING shows it (time and waveform): back to before its start. */
+	const clearPosition = () => {
+		data.playedFrames = 0;
+		data.levels = [];
+		data.levelsFrom = 0;
+		data.heard = undefined;
 	};
 
 	/** Stop the current track: its download and its sound. */
@@ -548,15 +585,13 @@ function createRadio(): RadioControl {
 		retryTimer = undefined;
 		dropTrack();
 		closeOutput();
-		stopDrawing();
 		data.status = "idle";
 		data.error = undefined;
 		data.source = undefined;
 		data.track = undefined;
 		data.queue = [];
 		data.position = undefined;
-		data.playedFrames = 0;
-		data.levels = [];
+		clearPosition();
 		changed();
 	};
 
@@ -567,12 +602,10 @@ function createRadio(): RadioControl {
 	 */
 	const fail = (error: unknown, track?: Track) => {
 		dropTrack();
-		stopDrawing();
 		data.status = "error";
 		data.error = messageOf(error);
 		data.track = track;
-		data.playedFrames = 0;
-		data.levels = [];
+		clearPosition();
 		clearTimeout(retryTimer);
 		const signal = session.signal;
 		retryTimer = setTimeout(() => {
@@ -649,15 +682,38 @@ function createRadio(): RadioControl {
 		data.track = track;
 		data.status = "tuning";
 		data.error = undefined;
-		data.playedFrames = 0;
+		clearPosition();
 		changed();
-		startDrawing();
 		const { client, loaded } = await ytdl();
 		if (signal.aborted) return;
-		/** The decoded packets not all played yet, oldest first, at full volume; and their levels. */
+		/** The decoded packets not all played yet, oldest first, at full volume. */
 		const waiting: Buffer[] = [];
-		const levels: number[] = [];
 		let waitingBytes = 0;
+		/** Frames of silence the device played within this track while the queue was dry. */
+		let silentFrames = 0;
+		/** What the device plays (PCM or silence, bytes) past the last whole level. */
+		let unleveled: Buffer = Buffer.alloc(0);
+		/** Add the levels of `pcm` (at full volume), what the device plays next, one per LEVEL_FRAMES. */
+		const addLevels = (pcm: Buffer) => {
+			let rest = unleveled.length ? Buffer.concat([unleveled, pcm]) : pcm;
+			const size = LEVEL_FRAMES * FRAME_BYTES;
+			for (; rest.length >= size; rest = rest.subarray(size)) data.levels.push(level(rest.subarray(0, size)));
+			unleveled = rest;
+		};
+		/** Add the levels of `frames` of silence, what the device plays next: whole levels of it are 0. */
+		const addSilence = (frames: number) => {
+			const size = LEVEL_FRAMES * FRAME_BYTES;
+			let bytes = frames * FRAME_BYTES;
+			// First what fills the level begun, if any.
+			const rest = Math.min(bytes, (size - unleveled.length) % size);
+			if (rest) addLevels(Buffer.alloc(rest));
+			bytes -= rest;
+			if (!bytes) return;
+			for (; bytes >= size; bytes -= size) data.levels.push(0);
+			unleveled = Buffer.alloc(bytes);
+		};
+		/** Frames of what the device plays for this track (its PCM and silences) SDL took, with `unplayed` bytes still queued. */
+		const takenFrames = (unplayed: number) => data.playedFrames + silentFrames + (waitingBytes - unplayed) / FRAME_BYTES;
 		let ended = false;
 		const decoder = new loaded.audify.OpusDecoder(SAMPLE_RATE, CHANNELS);
 		if (!output || output.closed) output = openOutput(loaded.audio);
@@ -668,7 +724,7 @@ function createRadio(): RadioControl {
 		};
 		const download = client.download(track.id, { filter: OPUS_FILTER, signal });
 		const demuxer = new loaded.WebmDemuxer();
-		/** Read how much SDL played: drop the packets it finished, count their frames, keep their levels. */
+		/** Read how much SDL took: drop the packets it took whole and count their frames; drop old levels; set where it is heard. */
 		const pump = () => {
 			if (endTrack !== finish) return;
 			let unplayed: number;
@@ -682,9 +738,30 @@ function createRadio(): RadioControl {
 				const packet = waiting.shift()!;
 				waitingBytes -= packet.length;
 				data.playedFrames += packet.length / FRAME_BYTES;
-				data.levels.push(levels.shift() ?? 0);
-				const keep = levelHistory();
-				if (data.levels.length > keep) data.levels.splice(0, data.levels.length - keep);
+			}
+			const old = Math.floor((data.playedFrames + silentFrames - data.levelsFrom) / LEVEL_FRAMES) - levelHistory();
+			if (old > 0) {
+				data.levels.splice(0, old);
+				data.levelsFrom += old * LEVEL_FRAMES;
+			}
+			// Where the track is heard: SDL is taken to play what it took about a device
+			// buffer later. It takes a buffer at a time and the queue is read only every
+			// PUMP_MS, so the clock goes on at the sample rate and is set again only when it
+			// leaves a range that allows for that: two buffers behind, a quarter of one
+			// ahead. While the queue is dry nothing is taken, and the clock goes on as the
+			// silence plays.
+			const taken = takenFrames(unplayed);
+			if (taken > 0) {
+				const now = Date.now();
+				const buffered = device().buffered;
+				const heard = data.heard;
+				if (!heard) data.heard = { frames: taken - buffered, at: now };
+				else if (unplayed > 0) {
+					const predicted = heardFrames(heard, now);
+					const low = taken - 2 * buffered;
+					const high = taken + buffered / 4;
+					if (predicted < low || predicted > high) data.heard = { frames: Math.min(high, Math.max(low, predicted)), at: now };
+				}
 			}
 			if (data.status === "tuning" && unplayed < waitingBytes) {
 				data.status = "playing";
@@ -732,8 +809,16 @@ function createRadio(): RadioControl {
 			if (endTrack !== finish) return;
 			try {
 				const pcm = decoder.decode(packet, MAX_PACKET);
+				const heard = data.heard;
+				if (heard && device().queued === 0) {
+					// The queue ran dry: the device played silence until this PCM, which is
+					// heard about a device buffer after SDL takes it; the clock went on.
+					const silence = Math.max(0, Math.round(heardFrames(heard, Date.now()) + device().buffered - takenFrames(0)));
+					silentFrames += silence;
+					addSilence(silence);
+				}
+				addLevels(pcm);
 				waiting.push(pcm);
-				levels.push(level(pcm));
 				waitingBytes += pcm.length;
 				device().enqueue(atVolume(pcm, data.volume));
 			} catch (error) {
@@ -761,7 +846,6 @@ function createRadio(): RadioControl {
 			data.status = "tuning";
 			data.error = undefined;
 			changed();
-			startDrawing();
 			try {
 				const found = await start(signal);
 				if (signal.aborted) return;

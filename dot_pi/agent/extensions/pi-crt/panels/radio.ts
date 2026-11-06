@@ -14,6 +14,7 @@ import { Input, matchesKey, truncateToWidth, visibleWidth, wrapTextWithAnsi } fr
 import {
 	addPlaylist,
 	changeVolume,
+	heardLevels,
 	isStation,
 	NOW_PLAYING_PANEL,
 	nextTrack,
@@ -409,11 +410,17 @@ registerPanel(NOW_PLAYING_PANEL, (env) => {
 	const panel = framed(
 		env.theme,
 		() => "NOW PLAYING",
-		new Lines((width) => {
-			const height = Math.max(1, view?.viewportHeight ?? 1);
-			if (view) view.drawnFor = height;
-			return nowPlayingLines(env, width, height);
-		}),
+		// nowPlayingLines fits its lines to the width itself. No key: the waveform moves
+		// on without the radio's version changing.
+		new Lines(
+			(width) => {
+				const height = Math.max(1, view?.viewportHeight ?? 1);
+				if (view) view.drawnFor = height;
+				return nowPlayingLines(env, width, height);
+			},
+			undefined,
+			true,
+		),
 		"sized",
 		() => env.focused(NOW_PLAYING_PANEL),
 	);
@@ -444,8 +451,8 @@ const LEFT_DOTS = [0x01, 0x02, 0x04, 0x40];
 const RIGHT_DOTS = [0x08, 0x10, 0x20, 0x80];
 
 /**
- * `rows` rows of braille: the levels of the packets played last, newest at the
- * right, drawn above and below a middle line. Each cell holds two levels.
+ * `rows` rows of braille: the levels given, newest at the right, drawn above and
+ * below a middle line. Each cell holds two levels.
  */
 function waveform(levels: readonly number[], cells: number, rows: number): string[] {
 	const points = cells * 2;
@@ -479,7 +486,7 @@ function nowPlayingLines(env: PanelEnv, width: number, height: number): string[]
 		const error = data.track ? `${data.track.title}: ${data.error ?? ""}` : (data.error ?? "");
 		const reason = `${error} (trying again in ${RETRY_MS / 1000} s)`;
 		env.every(120);
-		return noSignalLines(env.theme, "NO SIGNAL", width, height, reason);
+		return noSignalLines(env.theme, "NO SIGNAL", width, height, reason).map((line) => truncateToWidth(line, width));
 	}
 	const lines = playerLines(env, data, width, height);
 	// The RADIO keys on the bottom row, when there is a row to spare.
@@ -487,8 +494,8 @@ function nowPlayingLines(env: PanelEnv, width: number, height: number): string[]
 	const room = hint ? height - 1 : height;
 	const above = Math.max(0, Math.floor((room - lines.length) / 2));
 	const body = [...Array.from({ length: above }, () => ""), ...lines];
-	if (hint) body.push(...Array.from({ length: Math.max(0, room - body.length) }, () => ""), keyHints(env));
-	return body.map((line) => truncateToWidth(line, width));
+	if (hint) body.push(...Array.from({ length: Math.max(0, room - body.length) }, () => ""), truncateToWidth(keyHints(env), width));
+	return body;
 }
 
 /**
@@ -503,39 +510,55 @@ function keyHints(env: PanelEnv): string {
 
 /** Rows NOW PLAYING has besides the waveform while a track plays, with the key row and the blank row above it. */
 const PLAYER_ROWS = 10;
+/** Cells the waveform moves on by at each redraw NOW PLAYING asks for while a track plays; a cell is two levels, 40 ms. */
+const WAVE_STEP_CELLS = 2;
 
+/** The player's rows, each no wider than `width`. */
 function playerLines(env: PanelEnv, data: Readonly<RadioData>, width: number, height: number): string[] {
 	const t = env.theme();
 	const indent = "   ";
 	const inner = Math.max(10, width - indent.length * 2);
+	const fit = (line: string) => truncateToWidth(line, width);
 	// About a third of the panel, as far as the other rows leave room; never under two rows.
 	const rows = Math.max(2, Math.min(Math.round(height / 3), height - PLAYER_ROWS));
-	const wave = waveform(data.status === "playing" ? data.levels : [], inner - 2, rows).map(
-		(row) => `${indent}${t.fg("borderMuted", "┊")}${t.fg("accent", row)}${t.fg("borderMuted", "┊")}`,
-	);
+	let levels: readonly number[] = [];
+	if (data.status === "playing") {
+		const heardNow = heardLevels(data, env.now(), WAVE_STEP_CELLS * 2);
+		levels = heardNow.levels;
+		// Drawn again when the next step is heard, so that each redraw moves it on by
+		// one step; 2 ms after, as a timer may fire a little early.
+		if (heardNow.nextAt !== undefined) env.redrawAt(heardNow.nextAt + 2);
+	}
+	// A row of braille is slow to measure: a waveform row is indent + inner wide, as
+	// it is made, and is cut only when the width is narrower.
+	const fits = indent.length + inner <= width;
+	const wave = waveform(levels, inner - 2, rows).map((row) => {
+		const line = `${indent}${t.fg("borderMuted", "┊")}${t.fg("accent", row)}${t.fg("borderMuted", "┊")}`;
+		return fits ? line : fit(line);
+	});
 	const track = data.track;
 	if (data.status === "idle" || !data.source) {
 		const hint = "ENTER TO TUNE IN";
-		return [...wave, "", " ".repeat(Math.max(0, Math.floor((width - hint.length) / 2))) + t.fg("muted", hint)];
+		return [...wave, "", fit(" ".repeat(Math.max(0, Math.floor((width - hint.length) / 2))) + t.fg("muted", hint))];
 	}
 	const lines: string[] = [];
 	if (data.status === "tuning" || !track) {
-		lines.push(`${indent}${t.fg("warning", spinner(env.every(120)))} ${t.fg("warning", t.bold("TUNING…"))}`);
-		lines.push(`${indent}${t.fg("muted", track ? `${track.title} — ${track.artist}` : sourceLabel(data))}`);
+		lines.push(fit(`${indent}${t.fg("warning", spinner(env.every(120)))} ${t.fg("warning", t.bold("TUNING…"))}`));
+		lines.push(fit(`${indent}${t.fg("muted", track ? `${track.title} — ${track.artist}` : sourceLabel(data))}`));
 		lines.push("", ...wave);
 		return lines;
 	}
-	lines.push(`${indent}${t.fg("accent", t.bold(track.title))}`);
-	lines.push(`${indent}${t.fg("muted", track.artist)}`);
+	lines.push(fit(`${indent}${t.fg("accent", t.bold(track.title))}`));
+	lines.push(fit(`${indent}${t.fg("muted", track.artist)}`));
 	lines.push("", ...wave, "");
 	const elapsed = playedSeconds(data);
 	const total = track.seconds;
 	const time = total === undefined ? clock(elapsed) : `${clock(elapsed)} / ${clock(total)}`;
 	const barWidth = Math.max(4, inner - visibleWidth(time) - 3);
-	lines.push(`${indent}${bar(t, total ? elapsed / total : 0, barWidth)}   ${t.fg("muted", time)}`);
+	lines.push(fit(`${indent}${bar(t, total ? elapsed / total : 0, barWidth)}   ${t.fg("muted", time)}`));
 	const volume = `${t.fg("muted", "VOL")} ${bar(t, data.volume, 10)} ${t.fg("muted", String(Math.round(data.volume * 100)))}`;
-	lines.push(`${indent}${spread(volume, t.fg("accent", sourceLabel(data)), inner)}`);
+	lines.push(fit(`${indent}${spread(volume, t.fg("accent", sourceLabel(data)), inner)}`));
 	const next = data.queue[0];
-	if (next) lines.push("", `${indent}${t.fg("dim", "NEXT")}  ${t.fg("muted", `${next.title} — ${next.artist}`)}`);
+	if (next) lines.push("", fit(`${indent}${t.fg("dim", "NEXT")}  ${t.fg("muted", `${next.title} — ${next.artist}`)}`));
 	return lines;
 }
