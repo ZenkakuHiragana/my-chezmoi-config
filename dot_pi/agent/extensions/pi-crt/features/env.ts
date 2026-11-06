@@ -9,7 +9,8 @@
  * that run in the same process (core/extensions/loader.js, extensionCache). A
  * module-level variable is therefore shared by all those sessions. A feature
  * keeps its data per pi-crt instance, in a WeakMap keyed by `env.state`, which
- * its panels reach as `PanelEnv.state`.
+ * its panels reach as `PanelEnv.state`. RADIO is the exception: its radio outlives
+ * the instance, so that a session switch does not stop the music (radio.ts, RADIO).
  *
  * Each piece of data has one version (Versioned). Whoever changes the data raises
  * the version right there, with the redraw (`changed` does both); a panel keys its cached lines on the versions of the data it reads and on its own

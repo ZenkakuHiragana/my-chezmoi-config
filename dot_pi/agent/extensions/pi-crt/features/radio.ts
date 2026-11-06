@@ -6,11 +6,11 @@
  * the audio driver SDL picks, which mixes and resamples it like any other program.
  *
  * The device is the system's default (SDL follows it when it changes) until one is
- * picked on the OUTPUT page; the pick lasts until pi-crt is loaded again and is not
- * saved. A source opens the device for its first track and keeps it open for the
- * tracks after it, until it stops or another device is picked. Picking another
- * device, or another volume, while a track plays queues the PCM not yet played
- * again, so the track goes on.
+ * picked on the OUTPUT page; the pick lasts as long as the radio and is not saved.
+ * A source opens the device for its first track and keeps it open for the tracks
+ * after it, until it stops or another device is picked. Picking another device, or
+ * another volume, while a track plays queues the PCM not yet played again, so the
+ * track goes on.
  *
  * Stations come from radio.json next to index.ts and are read again whenever the
  * file changes. A station with `playlist` plays that playlist shuffled, shuffling
@@ -19,13 +19,18 @@
  * a YouTube playlist found plays like a playlist station; RADIO adds a playlist to
  * radio.json and removes a station from it by writing the file.
  *
- * One radio plays per process: starting one stops any other pi-crt instance's.
- * Playback stops when its pi-crt instance shuts down (/reload, quit, a session
- * switch), when it is stopped, and when the station playing is removed from
- * radio.json. An error (a track that cannot be played, the network, the device)
- * shows on NOW PLAYING and is tried again after RETRY_MS: the next track, or what
- * failed to be fetched. Only the PCM queued for the device is kept: the download
- * pauses once QUEUE_HIGH seconds wait and resumes at QUEUE_LOW.
+ * The process has one radio, which the pi-crt instance on screen shows. A session
+ * switch (/new, /resume, /fork) hands it to the next session's instance, still
+ * playing; /reload and quit end it, so that a reload starts its new code with a new
+ * radio. A switch that fails after the shutdown brings no next instance: the radio
+ * then plays on, shown by nobody. The next session to come on screen shows it,
+ * still playing, unless that session comes from /reload, which ends it; the end of
+ * the process ends it too. Playback also stops when it is stopped, and when the
+ * station playing is removed from radio.json. An error (a track that cannot be
+ * played, the network, the device) shows on NOW PLAYING and is tried again after
+ * RETRY_MS: the next track, or what failed to be fetched. Only the PCM queued for
+ * the device is kept: the download pauses once QUEUE_HIGH seconds wait and resumes
+ * at QUEUE_LOW.
  *
  * The four packages (@distube/ytdl-core, audify, prism-media and @kmamal/sdl) are
  * loaded on first use, so that pi-crt's other tabs still load when they are missing
@@ -170,10 +175,19 @@ interface RadioControl {
 	next(): void;
 	setVolume(volume: number): void;
 	search(query: string): void;
-	/** Move the track playing to the output device now picked. */
-	moveOutput(): void;
-	/** Draw the panels again. */
-	refresh(): void;
+	/** Whether the music plays on `device`, or will. */
+	playsOn(device: OutputDevice): boolean;
+	/** Play on `device` from now on, moving the track playing to it. */
+	pickOutput(device: OutputDevice): void;
+	/** List the output devices again; the OUTPUT page does so whenever it comes on screen. */
+	listOutputs(): void;
+	/**
+	 * Draw on `env`'s screen from now on, without the search and the save error of the
+	 * screen before; undefined draws nowhere, while one session gives way to the next.
+	 */
+	show(env: FeatureEnv | undefined): void;
+	/** Stop the sound, the search and the watching of radio.json, for good. */
+	dispose(): void;
 }
 
 /* ------------------------------------------------------------ packages */
@@ -222,22 +236,10 @@ async function loadSdl(): Promise<typeof import("@kmamal/sdl")> {
 	}
 }
 
-/** The device picked on the OUTPUT page; null plays on the system's default. */
-let pickedDevice: string | null = null;
-
 /** The output devices SDL sees now, after SYSTEM_DEFAULT. */
 function outputDevices(audio: Sdl.Audio.Module): OutputDevice[] {
 	const named = audio.devices.filter((device) => device.type === "playback" && device.name);
 	return [SYSTEM_DEFAULT, ...named.map((device) => ({ name: device.name!, label: sanitize(device.name!) }))];
-}
-
-/** Open the picked device, or the default when the picked one is gone, for 48 kHz stereo 16-bit PCM. */
-function openOutput(audio: Sdl.Audio.Module): Sdl.Audio.AudioPlaybackInstance {
-	if (pickedDevice !== null && !outputDevices(audio).some((device) => device.name === pickedDevice)) pickedDevice = null;
-	const device: Sdl.Audio.PlaybackDevice = pickedDevice === null ? { type: "playback" } : { type: "playback", name: pickedDevice };
-	const output = audio.openDevice(device, { channels: CHANNELS, frequency: SAMPLE_RATE, format: "s16" });
-	output.play();
-	return output;
 }
 
 /** PCM at a volume of 0 to 1, on the same logarithmic scale as before: 0.3 gives about 11% of the amplitude. */
@@ -249,12 +251,21 @@ function atVolume(pcm: Buffer, volume: number): Buffer {
 	return out;
 }
 
-/** The radio that plays now, of any pi-crt instance in this process. */
-let playing: RadioControl | undefined;
+/**
+ * The process's radio, from the first session on screen until /reload or quit.
+ * Unlike the other features' data (see FeatureEnv), it outlives the pi-crt
+ * instance that made it, so that a session switch does not stop the music. It is
+ * kept on globalThis, not in a module variable, because the instance after a switch
+ * may run these modules evaluated again: Pi evaluates an extension's modules again
+ * whenever a session, a subagent's included, is made in another working directory
+ * than the last one (core/extensions/loader.js, extensionCache).
+ */
+const RADIO = Symbol.for("pi-crt.radio");
+const shared = globalThis as { [RADIO]?: RadioControl };
 
 /* ------------------------------------------------------------ for the panels */
 
-/** Each pi-crt instance's radio, by its CrtState (see FeatureEnv). */
+/** The radio by the CrtState of the pi-crt instance that shows it (see FeatureEnv). */
 const radios = new WeakMap<CrtState, RadioControl>();
 
 const NONE: RadioData = Object.freeze({
@@ -363,16 +374,12 @@ export function searchSongs(state: CrtState, query: string): void {
 
 /** Whether the music plays on `device`, or will. */
 export function playsOn(device: OutputDevice): boolean {
-	return device.name === pickedDevice;
+	return shared[RADIO]?.playsOn(device) ?? device.name === null;
 }
 
 /** Play on `device` from now on, moving the track playing to it. */
 export function pickOutput(state: CrtState, device: OutputDevice): void {
-	const radio = radios.get(state);
-	if (!radio || playsOn(device)) return;
-	pickedDevice = device.name;
-	playing?.moveOutput();
-	radio.refresh();
+	radios.get(state)?.pickOutput(device);
 }
 
 /**
@@ -446,7 +453,10 @@ function messageOf(error: unknown): string {
 	return sanitize(error instanceof Error ? error.message : String(error));
 }
 
-export function setupRadio(pi: ExtensionAPI, env: FeatureEnv): void {
+/** A new radio, idle, reading radio.json and watching it until it is disposed. */
+function createRadio(): RadioControl {
+	/** The env of the pi-crt instance that shows the radio; undefined between two sessions and after dispose. */
+	let env: FeatureEnv | undefined;
 	const data: RadioData = {
 		version: 0,
 		stations: [],
@@ -457,6 +467,11 @@ export function setupRadio(pi: ExtensionAPI, env: FeatureEnv): void {
 		levels: [],
 		search: { query: "", results: [], playlists: [], loading: false },
 		outputs: { devices: [], loading: false },
+	};
+	/** `data` changed: a new version, drawn again when the radio is on screen. */
+	const changed = () => {
+		if (env) env.changed(data);
+		else data.version++;
 	};
 	let client: Ytdl | undefined;
 	const ytdl = async () => {
@@ -484,6 +499,17 @@ export function setupRadio(pi: ExtensionAPI, env: FeatureEnv): void {
 	let requeueTrack: ((reopen: boolean) => void) | undefined;
 	/** The device the source plays on, from its first track until it stops or another device is picked. */
 	let output: Sdl.Audio.AudioPlaybackInstance | undefined;
+	/** The device picked on the OUTPUT page; null plays on the system's default. */
+	let picked: string | null = null;
+
+	/** Open the picked device, or the default when the picked one is gone, for 48 kHz stereo 16-bit PCM. */
+	const openOutput = (audio: Sdl.Audio.Module): Sdl.Audio.AudioPlaybackInstance => {
+		if (picked !== null && !outputDevices(audio).some((device) => device.name === picked)) picked = null;
+		const device: Sdl.Audio.PlaybackDevice = picked === null ? { type: "playback" } : { type: "playback", name: picked };
+		const opened = audio.openDevice(device, { channels: CHANNELS, frequency: SAMPLE_RATE, format: "s16" });
+		opened.play();
+		return opened;
+	};
 	/** What trying again after an error does: start the source again until its tracks are found, then the next track. */
 	let retry: () => void = () => {};
 	let retryTimer: ReturnType<typeof setTimeout> | undefined;
@@ -491,7 +517,7 @@ export function setupRadio(pi: ExtensionAPI, env: FeatureEnv): void {
 	const startDrawing = () => {
 		if (drawTimer) return;
 		drawTimer = setInterval(() => {
-			if (env.shows(NOW_PLAYING_PANEL)) env.requestRender();
+			if (env?.shows(NOW_PLAYING_PANEL)) env.requestRender();
 		}, DRAW_MS);
 		drawTimer.unref?.();
 	};
@@ -522,7 +548,6 @@ export function setupRadio(pi: ExtensionAPI, env: FeatureEnv): void {
 		retryTimer = undefined;
 		dropTrack();
 		closeOutput();
-		if (playing === control) playing = undefined;
 		stopDrawing();
 		data.status = "idle";
 		data.error = undefined;
@@ -532,7 +557,7 @@ export function setupRadio(pi: ExtensionAPI, env: FeatureEnv): void {
 		data.position = undefined;
 		data.playedFrames = 0;
 		data.levels = [];
-		env.changed(data);
+		changed();
 	};
 
 	/**
@@ -555,7 +580,7 @@ export function setupRadio(pi: ExtensionAPI, env: FeatureEnv): void {
 			if (!signal.aborted) retry();
 		}, RETRY_MS);
 		retryTimer.unref?.();
-		env.changed(data);
+		changed();
 	};
 
 	/** Tracks to play after the queue runs out, for the current source. */
@@ -581,7 +606,7 @@ export function setupRadio(pi: ExtensionAPI, env: FeatureEnv): void {
 			.then((tracks) => {
 				if (signal.aborted) return;
 				data.queue.push(...tracks);
-				env.changed(data);
+				changed();
 			})
 			.finally(() => {
 				if (!signal.aborted) refilling = undefined;
@@ -595,7 +620,7 @@ export function setupRadio(pi: ExtensionAPI, env: FeatureEnv): void {
 		// Tuning until the next track's first write played: `n` waits for it.
 		data.status = "tuning";
 		data.error = undefined;
-		env.changed(data);
+		changed();
 		try {
 			if (!data.queue.length) await fill(signal);
 			if (signal.aborted) return;
@@ -625,7 +650,7 @@ export function setupRadio(pi: ExtensionAPI, env: FeatureEnv): void {
 		data.status = "tuning";
 		data.error = undefined;
 		data.playedFrames = 0;
-		env.changed(data);
+		changed();
 		startDrawing();
 		const { client, loaded } = await ytdl();
 		if (signal.aborted) return;
@@ -663,7 +688,7 @@ export function setupRadio(pi: ExtensionAPI, env: FeatureEnv): void {
 			}
 			if (data.status === "tuning" && unplayed < waitingBytes) {
 				data.status = "playing";
-				env.changed(data);
+				changed();
 			}
 			if (demuxer.isPaused() && unplayed <= QUEUE_LOW * SAMPLE_RATE * FRAME_BYTES) demuxer.resume();
 			if (ended && unplayed === 0) skip();
@@ -726,9 +751,7 @@ export function setupRadio(pi: ExtensionAPI, env: FeatureEnv): void {
 
 	/** Start a source: drop what plays, then play the tracks `start` finds. */
 	const begin = (source: Source, start: (signal: AbortSignal) => Promise<{ queue: Track[]; pass?: Track[] }>) => {
-		if (playing && playing !== control) playing.stop();
 		halt();
-		playing = control;
 		data.source = source;
 		played = new Set();
 		pass = [];
@@ -737,7 +760,7 @@ export function setupRadio(pi: ExtensionAPI, env: FeatureEnv): void {
 		const run = async () => {
 			data.status = "tuning";
 			data.error = undefined;
-			env.changed(data);
+			changed();
 			startDrawing();
 			try {
 				const found = await start(signal);
@@ -802,7 +825,7 @@ export function setupRadio(pi: ExtensionAPI, env: FeatureEnv): void {
 		if (next === data.volume) return;
 		data.volume = next;
 		requeue(false);
-		env.changed(data);
+		changed();
 	};
 
 	/* ------------------------------------------------------------ search */
@@ -812,7 +835,7 @@ export function setupRadio(pi: ExtensionAPI, env: FeatureEnv): void {
 		const text = query.trim();
 		searchAbort?.abort();
 		data.search = { query: text, results: [], playlists: [], loading: text !== "" };
-		env.changed(data);
+		changed();
 		if (!text) return;
 		const abort = new AbortController();
 		searchAbort = abort;
@@ -837,7 +860,7 @@ export function setupRadio(pi: ExtensionAPI, env: FeatureEnv): void {
 				if (signal.aborted) return;
 				data.search = { query: text, results: [], playlists: [], loading: false, error: messageOf(error) };
 			}
-			env.changed(data);
+			changed();
 		})();
 	};
 
@@ -853,32 +876,33 @@ export function setupRadio(pi: ExtensionAPI, env: FeatureEnv): void {
 		}
 	};
 
+	/** Move the track playing to the output device now picked. */
 	const moveOutput = () => {
 		if (requeueTrack) requeue(true);
 		// No track plays: the next one opens the device now picked.
 		else closeOutput();
 	};
 
+	const pickOutputDevice = (device: OutputDevice) => {
+		if (device.name === picked) return;
+		picked = device.name;
+		moveOutput();
+		changed();
+	};
+
 	/** List the output devices again; the OUTPUT page does so whenever it comes on screen. */
 	const listOutputs = () => {
 		data.outputs = { ...data.outputs, loading: true, error: undefined };
-		env.changed(data);
+		changed();
 		void (async () => {
 			try {
 				data.outputs = { devices: outputDevices((await loadPackages()).audio), loading: false };
 			} catch (error) {
 				data.outputs = { devices: data.outputs.devices, loading: false, error: messageOf(error) };
 			}
-			env.changed(data);
+			changed();
 		})();
 	};
-
-	let outputShown = false;
-	env.onShownChange(() => {
-		const shown = env.shows(RADIO_OUTPUT_PANEL);
-		if (shown && !outputShown) listOutputs();
-		outputShown = shown;
-	});
 
 	/* ------------------------------------------------------------ stations */
 
@@ -888,7 +912,7 @@ export function setupRadio(pi: ExtensionAPI, env: FeatureEnv): void {
 			text = readFileSync(STATIONS_FILE, "utf8");
 		} catch (error) {
 			data.stationsError = `radio.json: ${messageOf(error)}`;
-			env.changed(data);
+			changed();
 			return;
 		}
 		try {
@@ -898,7 +922,7 @@ export function setupRadio(pi: ExtensionAPI, env: FeatureEnv): void {
 			// Keep the last list that could be used, so that saving a half-edited file
 			// does not stop the music.
 			data.stationsError = `radio.json: ${messageOf(error)}`;
-			env.changed(data);
+			changed();
 			return;
 		}
 		const source = data.source;
@@ -911,7 +935,7 @@ export function setupRadio(pi: ExtensionAPI, env: FeatureEnv): void {
 			// A renamed station keeps playing under its new name.
 			source.station = station;
 		}
-		env.changed(data);
+		changed();
 	};
 
 	/**
@@ -933,7 +957,7 @@ export function setupRadio(pi: ExtensionAPI, env: FeatureEnv): void {
 			data.saveError = undefined;
 		} catch (error) {
 			data.saveError = `radio.json: ${messageOf(error)}`;
-			env.changed(data);
+			changed();
 			return false;
 		}
 		readStations();
@@ -952,7 +976,7 @@ export function setupRadio(pi: ExtensionAPI, env: FeatureEnv): void {
 		const added = data.stations.find((item) => stationKey(item) === stationKey(station));
 		if (saved && added && source?.kind === "playlist" && source.playlist.id === playlist.id) {
 			data.source = { kind: "station", station: added };
-			env.changed(data);
+			changed();
 		}
 	};
 
@@ -969,10 +993,11 @@ export function setupRadio(pi: ExtensionAPI, env: FeatureEnv): void {
 		});
 	};
 
-	let watching = false;
 	const onFileChange = () => readStations();
+	readStations();
+	watchFile(STATIONS_FILE, { interval: 1000, persistent: false }, onFileChange);
 
-	const control: RadioControl = {
+	return {
 		data,
 		playStation,
 		playSong,
@@ -983,23 +1008,68 @@ export function setupRadio(pi: ExtensionAPI, env: FeatureEnv): void {
 		next,
 		setVolume,
 		search,
-		moveOutput,
-		refresh: () => env.changed(data),
+		playsOn: (device) => device.name === picked,
+		pickOutput: pickOutputDevice,
+		listOutputs,
+		show: (shownOn) => {
+			env = shownOn;
+			// The search box belongs to the screen (panels/radio.ts); what it searched for
+			// goes with it, and so does why the last station added or removed could not be
+			// saved: a new screen starts without them.
+			searchAbort?.abort();
+			data.search = { query: "", results: [], playlists: [], loading: false };
+			data.saveError = undefined;
+			changed();
+		},
+		dispose: () => {
+			// The screen first, so that stopping does not draw on a screen that is gone.
+			env = undefined;
+			unwatchFile(STATIONS_FILE, onFileChange);
+			searchAbort?.abort();
+			halt();
+		},
 	};
-	radios.set(env.state, control);
+}
 
-	pi.on("session_start", (_event, ctx) => {
-		// Only a session on screen has the RADIO tab.
-		if (ctx.mode !== "tui" || !ctx.hasUI || watching) return;
-		watching = true;
-		readStations();
-		watchFile(STATIONS_FILE, { interval: 1000, persistent: false }, onFileChange);
+/**
+ * RADIO for one pi-crt instance. The instance on screen shows the process's radio
+ * (see RADIO) from its session_start, making it when there is none. At its shutdown
+ * a session switch hands the radio on, still playing, to the next session's
+ * instance; /reload and quit dispose of it. A subagent's session never shows it, so
+ * it never stops it either.
+ */
+export function setupRadio(pi: ExtensionAPI, env: FeatureEnv): void {
+	/** The radio this instance shows, from its session_start until its shutdown. */
+	let radio: RadioControl | undefined;
+	let outputShown = false;
+	env.onShownChange(() => {
+		const shown = env.shows(RADIO_OUTPUT_PANEL);
+		if (shown && !outputShown) radio?.listOutputs();
+		outputShown = shown;
 	});
 
-	pi.on("session_shutdown", () => {
-		if (watching) unwatchFile(STATIONS_FILE, onFileChange);
-		watching = false;
-		searchAbort?.abort();
-		if (data.source || data.status !== "idle") halt();
+	pi.on("session_start", (event, ctx) => {
+		// Only a session on screen has the RADIO tab.
+		if (ctx.mode !== "tui" || !ctx.hasUI || radio) return;
+		// A reload starts its new code with a new radio, even when a session switch that
+		// failed after its shutdown left one behind, shown by nobody.
+		if (event.reason === "reload") {
+			shared[RADIO]?.dispose();
+			delete shared[RADIO];
+		}
+		radio = shared[RADIO] ??= createRadio();
+		radios.set(env.state, radio);
+		radio.show(env);
+	});
+
+	pi.on("session_shutdown", (event) => {
+		if (!radio) return;
+		radios.delete(env.state);
+		if (event.reason === "new" || event.reason === "resume" || event.reason === "fork") radio.show(undefined);
+		else {
+			radio.dispose();
+			delete shared[RADIO];
+		}
+		radio = undefined;
 	});
 }
