@@ -124,8 +124,14 @@ export function models(state: CrtState): Readonly<ModelData> {
 	data.scoped = scoped.map(itemOf);
 	data.current = current && sanitize(current);
 	data.thinkingLevel = thinkingLevel;
+	unpickHidden(data);
 	data.version++;
 	return data;
+}
+
+/** A picked model that the list shown no longer has is unpicked, as the list no longer offers it. */
+function unpickHidden(data: ModelData): void {
+	if (data.picked !== undefined && !shownModels(data).some((item) => item.key === data.picked)) data.picked = undefined;
 }
 
 function sameRead(a: ModelsRead, b: ModelsRead): boolean {
@@ -148,6 +154,7 @@ export function toggleModelFilter(state: CrtState): void {
 	if (!feature) return;
 	const { data, env } = feature;
 	data.filter = modelFilter(data) === "scoped" ? "all" : "scoped";
+	unpickHidden(data);
 	env.changed(data);
 }
 

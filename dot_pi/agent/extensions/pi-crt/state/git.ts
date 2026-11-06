@@ -16,7 +16,10 @@ import { sanitize, type Versioned } from "./core.ts";
 export interface GitFile {
 	/** Two-letter porcelain status, e.g. " M", "A ", "??". */
 	status: string;
+	/** The path as a panel shows it (see pathText). */
 	path: string;
+	/** The path as git gave it, which tells files apart; never drawn. */
+	gitPath: string;
 	added?: number;
 	removed?: number;
 }
@@ -26,7 +29,10 @@ export interface GitFile {
  * untracked file gets one made from its contents, every line added.
  */
 export interface GitDiffFile {
+	/** The path as a panel shows it. */
 	path: string;
+	/** The path as git gave it, as GitFile.gitPath; never drawn. */
+	gitPath: string;
 	lines: string[];
 	/** Lines of the file's diff left out after MAX_FILE_DIFF_LINES. */
 	omitted?: number;
@@ -56,6 +62,8 @@ export interface GitSnapshot {
 	updatedAt?: number;
 }
 
+/** Changed files the file list shows at most. */
+const MAX_LISTED_FILES = 500;
 /** Lines of one file's diff kept at most. */
 const MAX_FILE_DIFF_LINES = 2000;
 /** Untracked files read at most, and bytes read of each. */
@@ -74,27 +82,33 @@ export interface GitLines {
 /** What the git panels show: the last snapshot and the file picked in the list; and STATUS's line counts. */
 export interface GitData extends Versioned {
 	git: GitSnapshot;
-	/** The file whose diff the git panels show; none shows every file. */
+	/** The gitPath of the file whose diff the git panels show; none shows every file. */
 	gitPick?: string;
 	/** The last readLineCounts; none before it, or when git could not tell. */
 	lines?: GitLines;
 }
 
 /**
- * Store a git snapshot. A picked file that is no longer changed is unpicked,
- * since the file list no longer offers it.
+ * Store a git snapshot. A picked file that the file list no longer shows (it is no
+ * longer changed, or past MAX_LISTED_FILES) is unpicked, since the list no longer
+ * offers it.
  */
 export function setGit(data: GitData, snapshot: GitSnapshot): void {
 	data.git = snapshot;
 	if (snapshot.error || data.gitPick === undefined) return;
-	if (snapshot.files.some((file) => file.path === data.gitPick)) return;
+	if (listedFiles(snapshot).some((file) => file.gitPath === data.gitPick)) return;
 	pickGitFile(data, undefined);
 }
 
-/** Show the diff of one file, or of every file (`undefined`). */
-export function pickGitFile(data: GitData, path: string | undefined): void {
-	if (data.gitPick === path) return;
-	data.gitPick = path;
+/** The files the file list shows: the first MAX_LISTED_FILES. A file is picked among these. */
+export function listedFiles(snapshot: GitSnapshot): readonly GitFile[] {
+	return snapshot.files.slice(0, MAX_LISTED_FILES);
+}
+
+/** Show the diff of one file (by its gitPath), or of every file (`undefined`). */
+export function pickGitFile(data: GitData, gitPath: string | undefined): void {
+	if (data.gitPick === gitPath) return;
+	data.gitPick = gitPath;
 	data.version++;
 }
 
@@ -133,7 +147,7 @@ export async function readGit(
 	if (failed(status)) return { files: [], diff: [], error: failure(status, "git status"), updatedAt: Date.now() };
 	const records = status.stdout.split("\0");
 	const files: GitFile[] = [];
-	const untracked: Array<{ file: GitFile; raw: string }> = [];
+	const untracked: GitFile[] = [];
 	let branch: string | undefined;
 	for (let index = 0; index < records.length; index++) {
 		const record = records[index]!;
@@ -143,9 +157,10 @@ export async function readGit(
 			continue;
 		}
 		const code = record.slice(0, 2);
-		const file: GitFile = { status: code, path: pathText(record.slice(3)) };
+		const gitPath = record.slice(3);
+		const file: GitFile = { status: code, path: pathText(gitPath), gitPath };
 		files.push(file);
-		if (code === "??") untracked.push({ file, raw: record.slice(3) });
+		if (code === "??") untracked.push(file);
 		// A rename or copy is followed by a record holding the original path.
 		if (code[0] === "R" || code[0] === "C") index++;
 	}
@@ -167,7 +182,7 @@ export async function readGit(
 	}
 	const counts = parseNumstat(numstat.stdout);
 	for (const file of files) {
-		const count = counts.get(file.path);
+		const count = counts.get(file.gitPath);
 		if (count) [file.added, file.removed] = count;
 	}
 	const patch = await git(["diff", "--no-color", "--no-ext-diff", base]);
@@ -175,9 +190,9 @@ export async function readGit(
 		snapshot.diffError = failure(patch, "git diff");
 		return snapshot;
 	}
-	const kept = new Map((previous?.diff ?? []).map((file) => [file.path, file]));
+	const kept = new Map((previous?.diff ?? []).map((file) => [file.gitPath, file]));
 	snapshot.diff = splitByFile(patch.stdout).map((file) => {
-		const old = kept.get(file.path);
+		const old = kept.get(file.gitPath);
 		return old && !old.stamp && old.omitted === file.omitted && sameLines(old.lines, file.lines) ? old : file;
 	});
 	if (untracked.length) await readUntracked(snapshot, untracked, git, kept);
@@ -252,7 +267,7 @@ async function readLog(snapshot: GitSnapshot, git: Git, previous: GitSnapshot | 
  */
 async function readUntracked(
 	snapshot: GitSnapshot,
-	untracked: ReadonlyArray<{ file: GitFile; raw: string }>,
+	untracked: readonly GitFile[],
 	git: Git,
 	kept: ReadonlyMap<string, GitDiffFile>,
 ): Promise<void> {
@@ -260,33 +275,34 @@ async function readUntracked(
 	// Without the root the files cannot be read; each one's diff says why.
 	const unreadable = failed(top) ? failure(top, "git rev-parse") : undefined;
 	const root = top.stdout.trim();
-	for (const { file, raw } of untracked.slice(0, MAX_UNTRACKED)) {
-		const header = `diff --git a/${file.path} b/${file.path}`;
-		if (raw.endsWith("/")) {
-			snapshot.diff.push({ path: file.path, lines: [header, "untracked directory"], stamp: "dir" });
+	for (const file of untracked.slice(0, MAX_UNTRACKED)) {
+		const { path, gitPath } = file;
+		const header = `diff --git a/${path} b/${path}`;
+		if (gitPath.endsWith("/")) {
+			snapshot.diff.push({ path, gitPath, lines: [header, "untracked directory"], stamp: "dir" });
 			continue;
 		}
 		if (unreadable !== undefined) {
-			snapshot.diff.push({ path: file.path, lines: [header, `untracked file: ${unreadable}`] });
+			snapshot.diff.push({ path, gitPath, lines: [header, `untracked file: ${unreadable}`] });
 			continue;
 		}
 		try {
-			const full = join(root, raw);
+			const full = join(root, gitPath);
 			const info = await stat(full);
 			const stamp = `${info.size}:${info.mtimeMs}`;
-			const old = kept.get(file.path);
-			const section = old?.stamp === stamp ? old : await untrackedDiff(full, file.path, header, info.size, stamp);
+			const old = kept.get(gitPath);
+			const section = old?.stamp === stamp ? old : await untrackedDiff(full, { path, gitPath }, header, info.size, stamp);
 			if (section.added !== undefined) file.added = section.added;
 			snapshot.diff.push(section);
 		} catch (error) {
-			snapshot.diff.push({ path: file.path, lines: [header, `untracked file: ${sanitize(String((error as Error)?.message ?? error))}`] });
+			snapshot.diff.push({ path, gitPath, lines: [header, `untracked file: ${sanitize(String((error as Error)?.message ?? error))}`] });
 		}
 	}
 }
 
 const PARTIAL_NOTE = `untracked file, first ${UNTRACKED_BYTES / 1024} KiB shown`;
 
-async function untrackedDiff(full: string, path: string, header: string, size: number, stamp: string): Promise<GitDiffFile> {
+async function untrackedDiff(full: string, paths: Pick<GitDiffFile, "path" | "gitPath">, header: string, size: number, stamp: string): Promise<GitDiffFile> {
 	const handle = await open(full, "r");
 	let bytes: Buffer;
 	try {
@@ -297,7 +313,7 @@ async function untrackedDiff(full: string, path: string, header: string, size: n
 		await handle.close();
 	}
 	// Git calls a file binary when its first 8000 bytes hold a NUL.
-	if (bytes.subarray(0, 8000).includes(0)) return { path, lines: [header, "untracked binary file"], stamp };
+	if (bytes.subarray(0, 8000).includes(0)) return { ...paths, lines: [header, "untracked binary file"], stamp };
 	const partial = size > bytes.length;
 	const text = sanitize(bytes.toString("utf8"));
 	const body = text.split("\n");
@@ -307,9 +323,9 @@ async function untrackedDiff(full: string, path: string, header: string, size: n
 	const lines = [header, partial ? PARTIAL_NOTE : "untracked file", `@@ -0,0 +1,${body.length} @@`, ...body.map((line) => `+${line}`)];
 	const omitted = Math.max(0, lines.length - MAX_FILE_DIFF_LINES);
 	if (omitted) lines.length = MAX_FILE_DIFF_LINES;
-	if (omitted) return { path, lines, stamp, omitted };
+	if (omitted) return { ...paths, lines, stamp, omitted };
 	// The line count needs every line: none when the file was cut at UNTRACKED_BYTES.
-	return { path, lines, stamp, ...(partial ? {} : { added: body.length }) };
+	return { ...paths, lines, stamp, ...(partial ? {} : { added: body.length }) };
 }
 
 /**
@@ -350,6 +366,7 @@ function splitByFile(output: string): GitDiffFile[] {
 	let current: GitDiffFile | undefined;
 	let inHunk = false;
 	let oldPath: string | undefined;
+	let oldGitPath: string | undefined;
 	// The text after the output's last line break is a line only when something is left of it once cleaned.
 	for (let start = 0; start < output.length; ) {
 		const found = output.indexOf("\n", start);
@@ -362,19 +379,25 @@ function splitByFile(output: string): GitDiffFile[] {
 			if (current) current.omitted = (current.omitted ?? 0) + 1;
 			continue;
 		}
-		const line = sanitize(output.slice(from, stop));
+		// The paths in the headers: shown from the cleaned line, told apart by the line as git gave it.
+		const raw = output.slice(from, stop);
+		const line = sanitize(raw);
 		if (starts) {
-			current = { path: samePathOf(line), lines: [] };
+			current = { path: samePathOf(line), gitPath: samePathOf(raw), lines: [] };
 			files.push(current);
 			inHunk = false;
 			oldPath = undefined;
+			oldGitPath = undefined;
 		} else if (current && !inHunk && line.startsWith("--- ")) {
 			oldPath = headerPath(line, "--- a/");
+			oldGitPath = headerPath(raw, "--- a/");
 		} else if (current && !inHunk && line.startsWith("+++ ")) {
 			current.path = headerPath(line, "+++ b/") ?? oldPath ?? current.path;
+			current.gitPath = headerPath(raw, "+++ b/") ?? oldGitPath ?? current.gitPath;
 		} else if (current && !inHunk && (line.startsWith("rename to ") || line.startsWith("copy to "))) {
 			// A rename or copy without content changes has no +++ / --- lines.
 			current.path = line.slice(line.indexOf(" to ") + 4);
+			current.gitPath = raw.slice(raw.indexOf(" to ") + 4);
 		} else if (line.startsWith("@@")) {
 			inHunk = true;
 		}
@@ -404,7 +427,7 @@ function parseNumstat(output: string): Map<string, [number | undefined, number |
 			path = fields[index + 2] ?? "";
 			index += 2;
 		}
-		if (path) counts.set(pathText(path), count);
+		if (path) counts.set(path, count);
 	}
 	return counts;
 }

@@ -28,6 +28,7 @@ import {
 	radioData,
 	removeStation,
 	searchSongs,
+	type Station,
 	stationKey,
 	togglePlaylist,
 	toggleSong,
@@ -89,9 +90,9 @@ function spread(left: string, right: string, width: number): string {
 registerPanel("stations", (env) => {
 	/** The station Delete was pressed on once; a second Delete on it removes it. */
 	const armed: { key?: unknown } = {};
+	const keys = stationKeys();
 	const selection = new RadioSelection(
-		// A station is its source; its name may change, and two stations may share one.
-		() => radioData(env.state).stations.map(stationKey),
+		() => keys(radioData(env.state).stations),
 		(index) => toggleStation(env.state, index),
 		(data) => {
 			if (!matchesKey(data, "delete")) {
@@ -126,6 +127,43 @@ registerPanel("stations", (env) => {
 	selection.view = panel.scroll;
 	return { ...panel, list: selection };
 });
+
+/**
+ * The keys of the stations, one object per station, kept while radio.json is read
+ * again. A station is its source and its name, as removing one finds it (two stations
+ * may share a source), and it keeps its key when it is renamed: of the stations of one
+ * source, one that went and one that came are one station renamed (a station is its
+ * source, as what plays is). Any other new station gets a new key, so that the selection
+ * and a first Delete never pass to another station. No two stations have the same
+ * source and name (parseStations keeps one).
+ */
+function stationKeys(): (stations: readonly Station[]) => readonly object[] {
+	/** By the id of each station (its source and name): its source and its key. */
+	type Known = Map<string, { source: string; key: object }>;
+	let last: { stations: readonly Station[]; known: Known; keys: readonly object[] } = { stations: [], known: new Map(), keys: [] };
+	const idOf = (station: Station) => JSON.stringify([stationKey(station), station.name]);
+	return (stations) => {
+		if (stations === last.stations) return last.keys;
+		const ids = new Set(stations.map(idOf));
+		// By source: the keys of the stations that went, and the ids of those that came.
+		const went = new Map<string, object[]>();
+		for (const [id, { source, key }] of last.known) if (!ids.has(id)) went.set(source, [...(went.get(source) ?? []), key]);
+		const came = new Map<string, Set<string>>();
+		for (const id of ids) {
+			const source = JSON.parse(id)[0] as string;
+			if (!last.known.has(id)) came.set(source, (came.get(source) ?? new Set()).add(id));
+		}
+		const known: Known = new Map();
+		for (const id of ids) {
+			const source = JSON.parse(id)[0] as string;
+			const gone = went.get(source);
+			const renamed = came.get(source)?.has(id) && came.get(source)!.size === 1 && gone?.length === 1 ? gone[0] : undefined;
+			known.set(id, { source, key: last.known.get(id)?.key ?? renamed ?? {} });
+		}
+		last = { stations, known, keys: stations.map((station) => known.get(idOf(station))!.key) };
+		return last.keys;
+	};
+}
 
 /** `armed`: the key of the station Delete was pressed on once, which says so. */
 function stationLines(env: PanelEnv, selection: Selection, armed: unknown, width: number): string[] {

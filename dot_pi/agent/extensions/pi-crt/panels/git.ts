@@ -6,12 +6,10 @@ import { framed } from "../screen/frame.ts";
 import { Lines } from "../screen/lines.ts";
 import { renderDiffSection } from "../split-diff.ts";
 import { gitData, pickGitFile } from "../features/git.ts";
-import type { GitDiffFile, GitFile } from "../state/git.ts";
+import { type GitDiffFile, type GitFile, listedFiles } from "../state/git.ts";
 import { ListLines, Selection, withCursor } from "./common.ts";
 import { type PanelEnv, registerPanel } from "./registry.ts";
 
-/** Changed files listed in the git panels at most. */
-const MAX_FILE_LINES = 500;
 /** Diff lines drawn at most when every file is shown; a picked file shows its whole kept diff. */
 const MAX_ALL_LINES = 4000;
 
@@ -65,7 +63,10 @@ registerPanel("gitfiles", (env) => {
 registerPanel("gitdiff", (env) =>
 	framed(
 		env.theme,
-		() => `DIFF  ${gitData(env.state).gitPick ?? "ALL"}`,
+		() => {
+			const { git, gitPick } = gitData(env.state);
+			return `DIFF  ${gitPick === undefined ? "ALL" : (git.files.find((file) => file.gitPath === gitPick)?.path ?? "")}`;
+		},
 		new DiffLines(
 			(width) => {
 				const t = env.theme();
@@ -96,14 +97,14 @@ registerPanel("gitlog", (env) =>
 
 /**
  * Selection over the file list: ALL, then the changed files, keyed as the diff panel
- * picks them (a file by its path, ALL by undefined). Enter shows the diff of the
+ * picks them (a file by its gitPath, ALL by undefined). Enter shows the diff of the
  * selected file, or of every file on ALL. `besideDiff`: the file list beside the diff
  * panel, whose selection is the file the diff panel shows.
  */
 function gitSelection(env: PanelEnv, besideDiff = false): Selection {
 	return new Selection(
-		() => [undefined, ...gitData(env.state).git.files.slice(0, MAX_FILE_LINES).map((file) => file.path)],
-		(index) => pickGitFile(env.state, index === 0 ? undefined : gitData(env.state).git.files[index - 1]?.path),
+		() => [undefined, ...listedFiles(gitData(env.state).git).map((file) => file.gitPath)],
+		(index) => pickGitFile(env.state, index === 0 ? undefined : listedFiles(gitData(env.state).git)[index - 1]?.gitPath),
 		besideDiff ? () => gitData(env.state).gitPick : undefined,
 	);
 }
@@ -129,11 +130,12 @@ function gitFileLines(env: PanelEnv, selection: Selection): string[] {
 	const all = gitData(env.state).gitPick === undefined ? t.fg("accent", "◆") : " ";
 	lines.push(`${all}${t.fg("text", t.bold("ALL"))} ${t.fg("muted", `${git.files.length} file(s)`)}`);
 	if (!git.files.length) lines.push(t.fg("dim", " -- working tree clean --"));
-	git.files.slice(0, MAX_FILE_LINES).forEach((file, index) => {
+	const listed = listedFiles(git);
+	listed.forEach((file, index) => {
 		selection.place(index + 1, lines.length, 1);
 		lines.push(gitFileLine(env, file));
 	});
-	const hidden = git.files.length - MAX_FILE_LINES;
+	const hidden = git.files.length - listed.length;
 	if (hidden > 0) lines.push(t.fg("warning", ` -- ${hidden} more files --`));
 	if (git.diffError) lines.push(t.fg("error", ` diff unavailable: ${git.diffError}`));
 	return lines;
@@ -147,7 +149,7 @@ function gitFileLine(env: PanelEnv, file: GitFile): string {
 		file.added === undefined && file.removed === undefined
 			? ""
 			: ` ${t.fg("success", `+${file.added ?? "-"}`)} ${t.fg("error", `-${file.removed ?? "-"}`)}`;
-	const picked = gitData(env.state).gitPick === file.path ? t.fg("accent", "◆") : " ";
+	const picked = gitData(env.state).gitPick === file.gitPath ? t.fg("accent", "◆") : " ";
 	return `${picked}${t.fg(color, code.replace(/ /g, "·"))} ${t.fg("text", file.path)}${counts}`;
 }
 
@@ -188,7 +190,7 @@ function gitDiffLines(env: PanelEnv, width: number): string[] {
 	const t = env.theme();
 	const { git, gitPick: pick } = gitData(env.state);
 	if (pick !== undefined) {
-		const file = git.diff.find((section) => section.path === pick);
+		const file = git.diff.find((section) => section.gitPath === pick);
 		return file ? fileDiffLines(env, file, width) : [truncateToWidth(t.fg("dim", " -- no diff for this file --"), width)];
 	}
 	if (!git.diff.length) return [truncateToWidth(t.fg("dim", " -- no diff --"), width)];

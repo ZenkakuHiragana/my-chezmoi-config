@@ -33,10 +33,10 @@ export function gitData(state: CrtState): Readonly<GitData> {
 	return collected.get(state) ?? NONE;
 }
 
-/** Show the diff of one file, or of every file (`undefined`). */
-export function pickGitFile(state: CrtState, path: string | undefined): void {
+/** Show the diff of one file (by its gitPath), or of every file (`undefined`). */
+export function pickGitFile(state: CrtState, gitPath: string | undefined): void {
 	const data = collected.get(state);
-	if (data) pick(data, path);
+	if (data) pick(data, gitPath);
 }
 
 export function setupGit(pi: ExtensionAPI, env: FeatureEnv): void {

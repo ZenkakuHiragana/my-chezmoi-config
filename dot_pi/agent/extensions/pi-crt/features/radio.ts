@@ -370,8 +370,29 @@ export function pickOutput(state: CrtState, device: OutputDevice): void {
 	radio.refresh();
 }
 
-/** The stations in radio.json, or why they cannot be used. */
+/**
+ * The stations in radio.json, or why they cannot be used. Entries with the same source
+ * and name are one station: only the first is kept (see firstOfEach).
+ */
 export function parseStations(text: string): Station[] {
+	const entries = parseEntries(text);
+	const first = firstOfEach(entries);
+	return entries.filter((_, index) => first[index]);
+}
+
+/** Whether each station is the first with its source and name; the others are dropped. */
+function firstOfEach(stations: readonly Station[]): boolean[] {
+	const seen = new Set<string>();
+	return stations.map((station) => {
+		const id = JSON.stringify([stationKey(station), station.name]);
+		if (seen.has(id)) return false;
+		seen.add(id);
+		return true;
+	});
+}
+
+/** The station of each entry of radio.json, in its order, or why one cannot be used. */
+function parseEntries(text: string): Station[] {
 	const parsed: unknown = JSON.parse(text);
 	if (!Array.isArray(parsed)) throw new Error("expected an array of stations");
 	return parsed.map((item: unknown, index): Station => {
@@ -898,8 +919,11 @@ export function setupRadio(pi: ExtensionAPI, env: FeatureEnv): void {
 	const editStations = (edit: (stations: Station[], items: unknown[]) => boolean): boolean => {
 		try {
 			const text = readFileSync(STATIONS_FILE, "utf8");
-			const stations = parseStations(text);
-			const items = JSON.parse(text) as unknown[];
+			// The entries as parseStations keeps them: a file written goes without the others.
+			const entries = parseEntries(text);
+			const first = firstOfEach(entries);
+			const stations = entries.filter((_, index) => first[index]);
+			const items = (JSON.parse(text) as unknown[]).filter((_, index) => first[index]);
 			if (edit(stations, items)) writeFileSync(STATIONS_FILE, `${JSON.stringify(items, null, 2)}\n`);
 			data.saveError = undefined;
 		} catch (error) {
