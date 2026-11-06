@@ -278,8 +278,9 @@ class TreeView implements Component, ListControl {
 			this.filter = FILTERS.some(([mode]) => mode === initial) ? initial : "default";
 		}
 		if (data.version === this.builtVersion && this.filter === this.builtFilter && this.rows.length + this.byId.size > 0) return;
-		const leafMoved = data.leafId !== this.leafId || this.builtVersion < 0;
+		const first = this.builtVersion < 0;
 		const previous = this.rows[this.selected]?.nodes[0]!.entry.id;
+		const offset = this.selected - this.top;
 		// Every entry once, parents before children, counting the forks above each.
 		const order: SessionTreeNode[] = [];
 		let branches = 0;
@@ -326,9 +327,10 @@ class TreeView implements Component, ListControl {
 		const before = jumpedBefore(this.env.state);
 		const beforeRow = before === undefined ? undefined : this.rowOf.get(before);
 		this.hereRow = this.rows.length === 0 ? -1 : (beforeRow ?? this.nearestRow(data.leafId));
-		// After pi moves, the selection starts where pi is now, as in /tree.
-		this.selected = leafMoved ? Math.max(0, this.hereRow) : this.nearestRow(previous ?? data.leafId);
-		this.top = this.selected - Math.floor(this.listRows / 2);
+		// The selection starts where pi is, then stays on its entry as the tree changes (pi
+		// moving on as the agent works too), at the same place in the list.
+		this.selected = first ? Math.max(0, this.hereRow) : this.nearestRow(previous ?? data.leafId);
+		this.top = this.selected - (first ? Math.floor(this.listRows / 2) : offset);
 		this.keepInView(0);
 		this.version++;
 	}
