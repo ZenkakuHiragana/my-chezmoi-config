@@ -4,24 +4,33 @@
  * panels/inv.ts read them through the functions here, which take the pi-crt
  * instance's state (see FeatureEnv).
  *
- * The parts of the system prompt are its named sections as the session records
- * them: the first request of a session stores a system message with every section,
- * and later changes patch sections by name (docs/session-format.md). pi-ai's
- * getCurrentSystemMessage replays those messages into the current set. The total is
- * the prompt Pi sends (getSystemPrompt), which an extension may have replaced, so
- * what the sections do not cover is shown as the rest. The prompt is read at
- * session_start, after each turn (the request has stored its system message by
- * then) and after a move in the tree.
+ * The parts of the system prompt are the sections rendered into the text of the
+ * request: the preamble, written without a tag, then each section between its
+ * `<name>` and `</name>` lines. The text is Pi's own rendering for the run
+ * (getSystemPrompt), read while the run's options are live: a `before_agent_start`
+ * handler may replace the whole prompt, and Pi keeps that replacement out of the
+ * session (docs/session-format.md records sections, and a forced prompt records none
+ * of its own), so the recorded sections are not the text the model gets. Pi renders
+ * that text when a run starts and at the end of each of its turns, and that is when it is
+ * measured; before any of them the panel shows the text Pi would build now instead, said
+ * to be unsent. A handler of `context` or `before_provider_request` then rewrites the
+ * request after this text is fixed, and what it writes is not part of it.
  *
  * The skills start as the ones Pi has loaded, read at session_start through
- * getCommands(), so the list is there before the first request. The options of
- * each request then replace them: Pi hands those to extensions only in
- * before_agent_start, and other extensions may still change them after pi-crt's
- * handler, so they are read at agent_start. getCommands() does not say which
- * skills only the user can invoke, so that stays unknown until a request says it.
+ * getCommands(), so the list is there before the first run. The options of each run
+ * then replace them: Pi hands those to extensions only in before_agent_start, and
+ * other extensions may still change them after pi-crt's handler, so they are read at
+ * agent_start. getCommands() does not say which skills only the user can invoke, so
+ * that stays unknown until a request says it. What each skill adds to the request is
+ * read from the prompt's own skill list, which may hold none.
+ *
+ * Every figure carries an Origin, and every panel words it the same way, so how fresh it
+ * is stays on screen: what a request this process saw, what the session's transcript
+ * records, and what Pi would build now. A prompt leaves no trace in the session once it
+ * was sent, so this process remembers one by its session for the switches back to it.
  */
 import { open } from "node:fs/promises";
-import { getCurrentSystemMessage } from "@earendil-works/pi-ai";
+import { getCurrentTools, type Tool } from "@earendil-works/pi-ai";
 import type { ExtensionAPI, ExtensionContext, ToolNamespace } from "@earendil-works/pi-coding-agent";
 import { textTokens } from "../state/context.ts";
 import { type CrtState, sanitize, type Versioned } from "../state/core.ts";
@@ -35,22 +44,26 @@ export interface PromptPart {
 }
 
 export interface PromptInventory {
+	/** The text the request carries, or the one Pi would build now. */
 	text: string;
 	tokens: number;
-	/** Empty before the session's first request has stored the prompt. */
+	/** Empty until a run has rendered the prompt. */
 	parts: PromptPart[];
-	/** Tokens in no part: what the prompt Pi sends has beyond the recorded parts. */
+	/** Tokens in no part: the separators and any text outside the sections, which an extension may have written. */
 	rest: number;
+	origin: Origin;
 }
 
 export interface ToolItem {
 	name: string;
 	description: string;
-	/** Declared to the model in every request. */
+	/** Declared by the last request (a loadout may hide a registered tool from the declarations). */
 	active: boolean;
 	exposure: string;
 	/** Tokens of the definition the model gets (name, description, parameters). */
 	tokens: number;
+	/** Where the description and the tokens came from. */
+	origin: Origin;
 	parameters: unknown;
 	guidelines: readonly string[];
 	source: string;
@@ -76,11 +89,14 @@ export interface SkillItem extends Versioned {
 	description: string;
 	filePath: string;
 	/**
-	 * In the skill list of the system prompt (skills that only the user can invoke are
-	 * not). Undefined until a request says it.
+	 * In the skill list of the prompt the run sent (Pi writes one block per skill that the
+	 * model may load, and another extension may remove that section). Undefined while no
+	 * prompt of a run is known.
 	 */
 	listed?: boolean;
-	/** Tokens of the skill's entry in that list, in every request; 0 while `listed` is unknown. */
+	/** Whether the model may load the skill; undefined until a request's options say it. */
+	invocable?: boolean;
+	/** Tokens of the skill's block in that list; 0 when the prompt lists no such block. */
 	tokens: number;
 	/** The skill file, read in the background; at most BODY_BYTES of it. */
 	body?: string;
@@ -91,6 +107,20 @@ export interface SkillItem extends Versioned {
 
 /** Bytes read of each skill file. */
 const BODY_BYTES = 256 * 1024;
+
+/**
+ * Where a figure comes from, worded the same way by every panel.
+ *
+ * - `observed`: measured from a request this process saw, so it is what the session sent
+ *   while pi-crt was running.
+ * - `recorded`: replayed from the session's transcript, which holds the last request
+ *   recorded there whichever process sent it (tools survive a restart; a prompt does not).
+ * - `built`: what Pi would build or declare now, no request measured: it may well be
+ *   what a request carried, and it is not evidence that one did.
+ *
+ * Named Origin because a tool's `source` is already the file that defines it.
+ */
+export type Origin = "observed" | "recorded" | "built";
 
 /** A skill as a request's options or Pi's loaded skills give it. */
 interface GivenSkill {
@@ -104,6 +134,8 @@ interface GivenSkill {
 /** The part of the request options that INV reads (Pi's NormalizedBuildSystemPromptOptions). */
 interface PromptOptions {
 	skills?: GivenSkill[];
+	/** Declarations the run's loadout hides; they stay registered but the request sends none. */
+	hiddenTools?: string[];
 }
 
 /** One pi-crt instance's inventory. */
@@ -111,6 +143,13 @@ interface Inventory {
 	pi: ExtensionAPI;
 	env: FeatureEnv;
 	prompt?: PromptInventory;
+	/**
+	 * The tools the last request declared, as the model was told them (a loadout may have
+	 * changed a description); undefined until a run has declared any.
+	 */
+	declared?: readonly Tool[];
+	/** The tools a run's loadout hid from its declarations, which stay registered. */
+	hidden: ReadonlySet<string>;
 	skills: SkillItem[];
 	/** Whether the skills have been given yet. */
 	skillsKnown: boolean;
@@ -170,35 +209,46 @@ export function skills(state: CrtState): { known: boolean; items: readonly Skill
  * changed or replaced by an equal one. Comparing a string with itself takes no
  * time whatever its length, so long instructions cost nothing while Pi hands the
  * same ones. A tool registered again under its name replaces its definition, so the
- * parts of the definition the items show are compared the same way; getAllTools()
- * hands the definition's own description, parameters and guidelines.
+ * parts of the definition the items show are compared the same way.
+ *
+ * A tool's description and parameters are the ones the last request declared, which a
+ * loadout can change (Pi appends its own note to codemode's tools, for example), and
+ * only those the request declared are active: a loadout may hide declarations that
+ * stay registered. Before a run has declared any, the registered definitions stand in.
  */
 export function tools(state: CrtState): readonly ToolItem[] {
 	const inv = inventories.get(state);
 	if (!inv) return NO_TOOLS;
 	const list = inv.toolList;
-	const active = inv.pi.getActiveTools();
+	/** What the last request declared of each tool, less the declarations its loadout hid. */
+	const declarations = new Map((inv.declared ?? []).filter((tool) => !inv.hidden.has(tool.name)).map((tool) => [tool.name, tool]));
+	/** The names the last request declared; before the transcript records any, the registered loadout stands in. */
+	const declaredNames = new Set(inv.declared ? declarations.keys() : inv.pi.getActiveTools());
+	/** Where the declarations and their tokens come from. */
+	const origin: Origin = inv.declared ? "recorded" : "built";
 	const all = inv.pi.getAllTools();
-	const key = `${all.map((tool) => `${tool.name}\t${tool.exposure}`).join("\n")}\n\n${active.join("\n")}`;
+	const key = `${origin}\n${all.map((tool) => `${tool.name}\t${tool.exposure}`).join("\n")}\n\n${[...declaredNames].join("\n")}`;
+	/** What the request said of a tool, or the registered definition while it said nothing. */
+	const said = (tool: (typeof all)[number]) => declarations.get(tool.name) ?? tool;
 	const fields = all.map((tool): ToolFields => ({
-		description: tool.description,
-		parameters: tool.parameters,
+		description: said(tool).description,
+		parameters: said(tool).parameters,
 		guidelines: tool.promptGuidelines,
 		source: tool.sourceInfo?.path,
 		namespace: namespaceFields(tool.namespace),
 	}));
 	if (key === list.key && fields.every((tool, index) => sameTool(tool, list.fields[index]))) return list.items;
-	const activeSet = new Set(active);
 	const groups = toolGroups(all, fields.map((tool) => tool.namespace));
 	list.key = key;
 	list.fields = fields;
 	list.items = all.map((tool) => ({
 		name: sanitize(tool.name),
-		description: sanitize(tool.description ?? ""),
-		active: activeSet.has(tool.name),
+		description: sanitize(said(tool).description ?? ""),
+		active: declaredNames.has(tool.name),
 		exposure: tool.exposure,
-		tokens: textTokens(JSON.stringify({ name: tool.name, description: tool.description, parameters: tool.parameters })),
-		parameters: tool.parameters,
+		tokens: textTokens(JSON.stringify({ name: tool.name, description: said(tool).description, parameters: said(tool).parameters })),
+		origin,
+		parameters: said(tool).parameters,
 		guidelines: (tool.promptGuidelines ?? []).map(sanitize),
 		source: sanitize(tool.sourceInfo?.path ?? ""),
 		namespace: tool.namespace && groups.get(tool.namespace.name),
@@ -371,34 +421,110 @@ export function setupInventory(pi: ExtensionAPI, env: FeatureEnv): void {
 		version: 0,
 		bodies: { version: 0 },
 		folds: { expanded: new Set(), version: 0 },
+		hidden: new Set(),
 	};
 	inventories.set(env.state, inv);
 	/** The options of the request being started, read once the other extensions are done with them. */
 	let pending: PromptOptions | undefined;
 
-	/** Measure the prompt Pi sends now, keeping the picked part when it is still there. */
+	/** The tools the session's transcript declares: Pi's replay of what the last request sent. */
+	const readDeclared = (ctx: ExtensionContext) => {
+		const messages = ctx.sessionManager.buildSessionProjection().messages as Parameters<typeof getCurrentTools>[0];
+		// getCurrentTools answers [] for a transcript that declares nothing, which is also what a
+		// request declaring no tool leaves; only the messages telling of a change say which it is.
+		const declared = getCurrentTools(messages);
+		inv.declared = declaresTools(messages) ? declared : undefined;
+	};
+
+	/** Measure what the run carries now, keeping the picked part when it is still there. */
 	const readPrompt = (ctx: ExtensionContext) => {
-		inv.prompt = measurePrompt(ctx);
+		inv.prompt = measurePrompt(ctx.getSystemPrompt(), "observed");
 		if (!inv.prompt.parts.some((part) => part.label === inv.part)) inv.part = undefined;
+		readDeclared(ctx);
+		remember(ctx, inv);
+		settleListed(inv);
+		env.changed(inv);
+	};
+
+	/**
+	 * Show what is known of the session's prompt: the request this process measured on its
+	 * branch, else the one Pi would build now. A switch back to a session and a move in the
+	 * tree both land here, and neither promise the same freshness (see Origin).
+	 */
+	const showPrompt = (ctx: ExtensionContext) => {
+		const request = remembered(ctx);
+		inv.prompt = request?.prompt ?? measurePrompt(ctx.getSystemPrompt(), "built");
+		inv.part = undefined;
+		inv.hidden = request?.hidden ?? new Set();
+		readDeclared(ctx);
+		settleListed(inv);
 		env.changed(inv);
 	};
 
 	pi.on("session_start", (_event, ctx) => {
-		readPrompt(ctx);
 		setSkills(inv, loadedSkills(pi), false);
+		showPrompt(ctx);
 	});
 	pi.on("turn_end", (_event, ctx) => readPrompt(ctx));
-	pi.on("session_tree", (_event, ctx) => readPrompt(ctx));
+	pi.on("session_tree", (_event, ctx) => showPrompt(ctx));
 
-	pi.on("before_agent_start", (event) => {
+	pi.on("before_agent_start", (event, ctx) => {
 		pending = event.systemPromptOptions as PromptOptions;
+		// Pi adds the resources extensions bring after session_start, so the prompt built then is
+		// stale; build it again here, just before the run that measures the real one.
+		if (inv.prompt?.origin !== "observed") showPrompt(ctx);
 	});
 
-	pi.on("agent_start", () => {
+	pi.on("agent_start", (_event, ctx) => {
 		const options = pending;
 		pending = undefined;
-		if (options) setSkills(inv, options.skills ?? [], true);
+		if (options) {
+			inv.hidden = new Set(options.hiddenTools ?? []);
+			setSkills(inv, options.skills ?? [], true);
+		}
+		// The run's options are settled by now, so this is the prompt its requests carry.
+		readPrompt(ctx);
 	});
+}
+
+/** Whether the transcript holds a declaration change, which tells a request's tools from none at all. */
+function declaresTools(messages: readonly { role?: string; toolsAdded?: unknown; toolsRemoved?: unknown }[]): boolean {
+	return messages.some(
+		(message) => message.role === "system" && (Array.isArray(message.toolsAdded) || Array.isArray(message.toolsRemoved)),
+	);
+}
+
+/**
+ * The last request this process measured in one session: the prompt it carried, the
+ * declarations the run's loadout hid, and the leaf it was measured at. Pi keeps neither a
+ * forced prompt nor a loadout's hidden names in the session, so a switch back to a session
+ * can only be answered from here.
+ */
+interface SentRequest {
+	prompt: PromptInventory;
+	hidden: ReadonlySet<string>;
+	leaf: string | null;
+}
+
+/** By session id: a session switch makes a new Inventory, the process and this stay. */
+const sentRequests = new Map<string, SentRequest>();
+/** Sessions remembered at most, oldest first, so a long run does not hold every prompt it saw. */
+const MAX_SENT_REQUESTS = 16;
+
+function remember(ctx: ExtensionContext, inv: Inventory): void {
+	if (!inv.prompt) return;
+	const id = ctx.sessionManager.getSessionId();
+	// Re-inserted so that the oldest entry is the one evicted.
+	sentRequests.delete(id);
+	sentRequests.set(id, { prompt: inv.prompt, hidden: inv.hidden, leaf: ctx.sessionManager.getLeafId() });
+	if (sentRequests.size > MAX_SENT_REQUESTS) sentRequests.delete(sentRequests.keys().next().value!);
+}
+
+/** The remembered request, if the view is still on the branch it was measured on. */
+function remembered(ctx: ExtensionContext): SentRequest | undefined {
+	const request = sentRequests.get(ctx.sessionManager.getSessionId());
+	if (!request) return undefined;
+	return ctx.sessionManager.getBranch().some((entry) => entry.id === request.leaf) ? request : undefined;
 }
 
 /** The skills Pi has loaded, as its slash commands list them. */
@@ -415,7 +541,6 @@ function loadedSkills(pi: ExtensionAPI): GivenSkill[] {
 
 /** Labels of the sections Pi writes itself. */
 const SECTION_LABELS: Readonly<Record<string, string>> = {
-	preamble: "PREAMBLE",
 	tools: "TOOL LIST",
 	rules: "RULES",
 	docs: "PI DOCS",
@@ -425,30 +550,82 @@ const SECTION_LABELS: Readonly<Record<string, string>> = {
 	cwd: "CWD",
 };
 
-/** The prompt Pi sends, by the parts the session records for it. */
-function measurePrompt(ctx: ExtensionContext): PromptInventory {
-	const text = ctx.getSystemPrompt();
-	const tokens = textTokens(text);
-	const system = getCurrentSystemMessage(ctx.sessionManager.buildSessionProjection().messages);
-	const parts: PromptPart[] = [];
-	const add = (label: string, part: string) => {
-		if (part.trim()) parts.push({ label, text: part, tokens: textTokens(part) });
-	};
-	if (system) {
-		const content = typeof system.content === "string" ? system.content : system.content.map((block) => block.text).join("\n");
-		add("PROMPT TEXT", content);
-		for (const [name, section] of Object.entries(system.sections ?? {})) {
-			if (section !== null) add(SECTION_LABELS[name] ?? `<${name}>`, section);
+/** A section of a rendered prompt: the line `<name>` to the line `</name>`, both included. */
+interface RenderedSection {
+	name: string;
+	/** The first character of the line `<name>`. */
+	start: number;
+	/** Just past the line `</name>`. */
+	end: number;
+}
+
+/**
+ * The prompt's sections in text order. Pi frames each one as `<name>` and `</name>`
+ * lines around its body (core/system-prompt.js). The fences of the text before the first
+ * section are followed, since a prompt file may show a frame as a fenced example. Inside
+ * and between sections they are not: a section ends at its first `</name>` line even when
+ * a fence quotes that line, because reading fences there lets one unbalanced fence hide
+ * every section after it, while a misjudged end only leaves text outside the parts, where
+ * the panel still counts it.
+ */
+function renderedSections(text: string): RenderedSection[] {
+	const sections: RenderedSection[] = [];
+	/** The fence of the text before the first section. Never set once a section is found. */
+	let fence: string | undefined;
+	const pattern = /^<([a-z][a-z0-9_-]*)>$|^ {0,3}(`{3,}|~{3,})([^\n]*)$/gm;
+	for (let match = pattern.exec(text); match !== null; match = pattern.exec(text)) {
+		const name = match[1];
+		if (name === undefined) {
+			// A fence line: it opens a block or closes the open one.
+			if (sections.length === 0) fence = fenceAfter(fence, match[0]);
+			continue;
 		}
+		if (fence !== undefined) continue;
+		const closing = `\n</${name}>`;
+		const close = text.indexOf(closing, pattern.lastIndex);
+		if (close === -1) continue;
+		const end = close + closing.length;
+		// The closing line ends its section unless something follows it on the same line.
+		if (end < text.length && text[end] !== "\n") continue;
+		sections.push({ name, start: match.index, end });
+		pattern.lastIndex = end;
 	}
+	return sections;
+}
+
+/** The fence after `line`: a fence line opens one, and a line of the same character and at least its length closes it. */
+function fenceAfter(fence: string | undefined, line: string): string | undefined {
+	const fenced = /^ {0,3}(`{3,}|~{3,})(.*)$/.exec(line);
+	if (!fenced) return fence;
+	const marker = fenced[1]!;
+	if (fence === undefined) return marker;
+	return marker[0] === fence[0] && marker.length >= fence.length && fenced[2]!.trim() === "" ? undefined : fence;
+}
+
+/** The prompt a request carries, by the sections rendered into it. */
+function measurePrompt(text: string, origin: Origin): PromptInventory {
+	const tokens = textTokens(text);
+	const sections = renderedSections(text);
+	/** Tokens up to `end`: a part costs the difference of two prefixes, so the parts and the rest add up to the whole. */
+	const prefix = (end: number) => textTokens(text.slice(0, end));
+	const parts: PromptPart[] = [];
+	const add = (label: string, start: number, end: number) => {
+		const part = text.slice(start, end).trimEnd();
+		if (!part) return;
+		parts.push({ label, text: part, tokens: prefix(end) - prefix(start) });
+	};
+	// Pi writes the preamble, its own or an extension's, before the first section and without a tag.
+	add("PREAMBLE", 0, sections[0]?.start ?? text.length);
+	for (const section of sections) add(SECTION_LABELS[section.name] ?? `<${section.name}>`, section.start, section.end);
 	const counted = parts.reduce((sum, part) => sum + part.tokens, 0);
-	return { text, tokens, parts, rest: Math.max(0, tokens - counted) };
+	return { text, tokens, parts, rest: Math.max(0, tokens - counted), origin };
 }
 
 /**
  * Take a set of skills; read the files of a new set in the background. A request's
- * set also settles which skills are listed and their descriptions; the loaded set
- * leaves an unchanged list as it is, since a request may have settled it already.
+ * set also says which skills the model may load and gives their descriptions; the
+ * loaded set leaves an unchanged list as it is, since a request may have said it
+ * already.
  */
 function setSkills(inv: Inventory, given: readonly GivenSkill[], fromRequest: boolean): void {
 	const key = given.map((skill) => `${skill.name}\n${skill.filePath}`).join("\n");
@@ -458,7 +635,7 @@ function setSkills(inv: Inventory, given: readonly GivenSkill[], fromRequest: bo
 			given.forEach((skill, index) => {
 				const item = inv.skills[index]!;
 				item.description = sanitize(skill.description);
-				setListed(item, !skill.disableModelInvocation);
+				item.invocable = !skill.disableModelInvocation;
 			});
 		}
 	} else {
@@ -470,19 +647,49 @@ function setSkills(inv: Inventory, given: readonly GivenSkill[], fromRequest: bo
 				tokens: 0,
 				version: 0,
 			};
-			if (fromRequest) setListed(item, !skill.disableModelInvocation);
+			if (fromRequest) item.invocable = !skill.disableModelInvocation;
 			return item;
 		});
 		if (inv.skill !== undefined && !inv.skills.some((item) => item.name === inv.skill)) inv.skill = undefined;
 		void readBodies(inv, inv.skills);
 	}
+	settleListed(inv);
 	inv.env.changed(inv);
 }
 
-/** Whether a skill is in the system prompt's list, and what its entry costs there. */
-function setListed(item: SkillItem, listed: boolean): void {
-	item.listed = listed;
-	item.tokens = listed ? textTokens(`${item.name}\n${item.description}\n${item.filePath}`) : 0;
+/** One block of Pi's skill list: a `<skill>` element holding the skill's name, description and file. */
+const SKILL_BLOCK = / {2}<skill>\n[\s\S]*?\n {2}<\/skill>/g;
+const SKILL_BLOCK_NAME = /<name>([^<]*)<\/name>/;
+
+/**
+ * Settle which skills the prompt the run sent lists, and the tokens each block adds to
+ * it: Pi writes one `<skill>` block per skill the model may load into its `skills`
+ * section, and a handler may remove that section or replace the whole prompt. Pi escapes
+ * the name it writes there, and loads a skill whose name fails its checks, so the name is
+ * unescaped before it is matched.
+ */
+function settleListed(inv: Inventory): void {
+	const prompt = inv.prompt;
+	// A prompt no request carried cannot say what the list holds: a handler may keep it or remove it.
+	const list = prompt && prompt.origin !== "built" ? (prompt.parts.find((part) => part.label === SECTION_LABELS.skills)?.text ?? "") : undefined;
+	const blocks = new Map<string, number>();
+	for (const [block] of list?.matchAll(SKILL_BLOCK) ?? []) {
+		const name = SKILL_BLOCK_NAME.exec(block)?.[1];
+		if (name !== undefined) blocks.set(unescapeXml(name), textTokens(block));
+	}
+	for (const item of inv.skills) {
+		// A sent prompt settles every skill: a skill without a block is in no list.
+		const tokens = list === undefined ? undefined : (blocks.get(item.name) ?? 0);
+		item.listed = tokens === undefined ? undefined : tokens > 0;
+		item.tokens = tokens ?? 0;
+	}
+}
+
+/** The five characters Pi writes as entities into its skill list (core/skills.js). */
+const XML_ENTITIES: Readonly<Record<string, string>> = { amp: "&", lt: "<", gt: ">", quot: '"', apos: "'" };
+
+function unescapeXml(text: string): string {
+	return text.replace(/&(amp|lt|gt|quot|apos);/g, (_match, name: string) => XML_ENTITIES[name]!);
 }
 
 async function readBodies(inv: Inventory, items: SkillItem[]): Promise<void> {

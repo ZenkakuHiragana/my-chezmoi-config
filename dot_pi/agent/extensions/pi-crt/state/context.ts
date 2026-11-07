@@ -3,7 +3,7 @@
  * (bounded by the model's context window), once per request, from a timer
  * outside rendering (features/context.ts).
  */
-import { getCurrentSystemPrompt, getCurrentTools } from "@earendil-works/pi-ai";
+import { getCurrentTools } from "@earendil-works/pi-ai";
 import { estimateTokens } from "@earendil-works/pi-coding-agent";
 
 export interface ContextPart {
@@ -20,20 +20,26 @@ export function textTokens(text: string): number {
 
 /**
  * Estimates the parts of a request: the system prompt, tool definitions and the
- * messages by role, with Pi's own estimator (characters / 4). The prompt and the
- * tools are the ones the request's system messages declare (pi-ai replays them).
- * Assistant messages with tool calls are the only messages whose estimate needs JSON
- * serialisation, so their estimates are remembered by a fingerprint that takes no
- * serialisation.
+ * messages by role, with Pi's own estimator (characters / 4). The prompt is the text
+ * the request carries, which the transcript's sections do not give when an extension
+ * replaced the prompt; the tools are the ones its system messages declare, which
+ * replay to exactly the declarations Pi sends. Assistant messages with tool calls are
+ * the only messages whose estimate needs JSON serialisation, so their estimates are
+ * remembered by a fingerprint that takes no serialisation.
  */
 export class ContextMeter {
 	private remembered = new Map<string, number>();
 
-	measure(messages: readonly unknown[]): ContextPart[] {
+	/**
+	 * The breakdown of one request. `messages` is the request's transcript, whose system
+	 * messages declare its prompt and tools, and `prompt` is the text it sends in place
+	 * of the replayed sections.
+	 */
+	measure(messages: readonly unknown[], prompt: string): ContextPart[] {
 		const totals = new Map<string, number>();
 		const add = (label: string, tokens: number) => totals.set(label, (totals.get(label) ?? 0) + tokens);
 		const transcript = messages as Parameters<typeof getCurrentTools>[0];
-		add("SYSTEM", textTokens(getCurrentSystemPrompt(transcript)));
+		add("SYSTEM", textTokens(prompt));
 		add("TOOLS", textTokens(JSON.stringify(getCurrentTools(transcript))));
 		const remembered = new Map<string, number>();
 		for (const message of messages) {

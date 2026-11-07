@@ -2,6 +2,7 @@
  * Pieces the panels share, and the NO SIGNAL panel.
  */
 import { backgroundAnsi, colorToRgb, type ScrollView, type TuiMouseEvent, type TuiMouseEventResult } from "@earendil-works/pi-tui";
+import type { Origin } from "../features/inv.ts";
 import { Lines, type ThemeRef } from "../screen/lines.ts";
 import { noSignal } from "../screen/nosignal.ts";
 import { type ListControl, type PanelEnv, registerPanel } from "./registry.ts";
@@ -43,6 +44,15 @@ export function compactNumber(value: number): string {
 	if (value >= 10_000) return `${Math.round(value / 1000)}k`;
 	if (value >= 1000) return `${(value / 1000).toFixed(1)}k`;
 	return String(Math.round(value));
+}
+
+/**
+ * How a panel says where its figures came from, the same words everywhere so that a panel
+ * showing an old request, or none measured at all, says so instead of leaving it implied.
+ * `unmeasured` for Pi's build: it is not a record of anything sent, and it may match it.
+ */
+export function originNote(origin: Origin): string {
+	return `  · ${origin === "built" ? "unmeasured" : origin}`;
 }
 
 /** The key before an item was selected. */

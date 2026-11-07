@@ -2,10 +2,13 @@
  * STAT › DETAIL › CONTEXT: what the latest request held, and Pi's context usage.
  *
  * The request is only kept when it is sent (context_with_system) and measured once,
- * off the render path, while the CONTEXT panel is shown. Pi's getContextUsage()
- * walks the whole branch, so it is called only when the session, its leaf or the
- * model changes. Pi does not tell when the leaf or the model changes, so reading
- * the data checks them, and a change gives the data a new version there.
+ * off the render path, while the CONTEXT panel is shown. That event hands over the
+ * transcript, whose system messages declare the prompt and the tools; an extension may
+ * have replaced the prompt itself, so the text the request carries is read from Pi
+ * (getSystemPrompt) while the run's options are live, here rather than when measuring.
+ * Pi's getContextUsage() walks the whole branch, so it is called only when the session,
+ * its leaf or the model changes. Pi does not tell when the leaf or the model changes,
+ * so reading the data checks them, and a change gives the data a new version there.
  */
 import type { ContextUsage, ExtensionAPI } from "@earendil-works/pi-coding-agent";
 import { type ContextPart, ContextMeter } from "../state/context.ts";
@@ -64,7 +67,8 @@ export function setupContext(pi: ExtensionAPI, env: FeatureEnv): void {
 	const feature: ContextFeature = { env, data: { contextParts: [], version: 0 }, usageKey: "" };
 	features.set(env.state, feature);
 	const meter = new ContextMeter();
-	let pending: readonly unknown[] | undefined;
+	/** The messages of the request being sent, and the prompt text it sends with them. */
+	let pending: { messages: readonly unknown[]; prompt: string } | undefined;
 	let scheduled = false;
 	let closed = false;
 
@@ -74,10 +78,10 @@ export function setupContext(pi: ExtensionAPI, env: FeatureEnv): void {
 		scheduled = true;
 		setTimeout(() => {
 			scheduled = false;
-			const messages = pending;
-			if (!messages || closed) return;
+			const request = pending;
+			if (!request || closed) return;
 			pending = undefined;
-			feature.data.contextParts = meter.measure(messages);
+			feature.data.contextParts = meter.measure(request.messages, request.prompt);
 			env.changed(feature.data);
 		}, 0).unref?.();
 	};
@@ -96,9 +100,9 @@ export function setupContext(pi: ExtensionAPI, env: FeatureEnv): void {
 		env.changed(feature.data);
 	});
 
-	// Only keep the request (its system messages hold its prompt and tools); it is measured when the context panel is shown.
-	pi.on("context_with_system", (event) => {
-		pending = event.messages;
+	// Only keep the request (its transcript, and the prompt text Pi sends it with) to measure it when the context panel is shown.
+	pi.on("context_with_system", (event, ctx) => {
+		pending = { messages: event.messages, prompt: ctx.getSystemPrompt() };
 		schedule();
 	});
 

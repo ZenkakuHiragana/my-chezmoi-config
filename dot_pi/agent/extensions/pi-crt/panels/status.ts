@@ -11,7 +11,7 @@ import { VITALS_PANEL, vitals } from "../features/vitals.ts";
 import { gaugeRatios } from "../state/usage.ts";
 import { framed, type SizedView } from "../screen/frame.ts";
 import { Lines } from "../screen/lines.ts";
-import { bar, compactNumber, elapsedText } from "./common.ts";
+import { bar, compactNumber, elapsedText, originNote } from "./common.ts";
 import { type Paint, PI_LOGO, PI_LOGO_SHADES, type Rgb, pixelArtWidth, renderPixelArt, shade, shadePalette } from "./pixel-art.ts";
 import { type CardInput, cardsWidth, centerLine, gaugeRow, statCards } from "./status-parts.ts";
 import { type PanelEnv, registerPanel } from "./registry.ts";
@@ -99,7 +99,7 @@ function contextLines(env: PanelEnv, width: number): string[] {
 		return lines;
 	}
 	const total = parts.reduce((sum, part) => sum + part.tokens, 0) || 1;
-	lines.push("", t.fg("muted", " BREAKDOWN (estimated, chars/4)"));
+	lines.push("", t.fg("muted", ` BREAKDOWN (estimated, chars/4)${originNote("observed")}`));
 	const partBar = Math.max(4, Math.min(20, width - 30));
 	for (const part of parts) {
 		const share = part.tokens / total;

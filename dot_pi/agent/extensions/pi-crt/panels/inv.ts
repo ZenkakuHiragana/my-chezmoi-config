@@ -15,6 +15,7 @@ import {
 	picks,
 	prompt,
 	skills,
+	type SkillItem,
 	type ToolGroup,
 	type ToolItem,
 	toggleToolGroup,
@@ -25,7 +26,7 @@ import {
 } from "../features/inv.ts";
 import { framed } from "../screen/frame.ts";
 import { Lines, type ThemeRef } from "../screen/lines.ts";
-import { compactNumber, ListLines, Selection, withCursor } from "./common.ts";
+import { compactNumber, ListLines, originNote, Selection, withCursor } from "./common.ts";
 import { type PanelEnv, type PanelHandle, registerPanel } from "./registry.ts";
 
 type Theme = ReturnType<ThemeRef>;
@@ -99,13 +100,13 @@ registerPanel("promptparts", (env) => {
 		"promptparts",
 		() => {
 			const p = prompt(env.state);
-			return p ? `PROMPT  ≈${compactNumber(p.tokens)} tok/req` : "PROMPT";
+			return p ? `PROMPT  ≈${compactNumber(p.tokens)} tok${originNote(p.origin)}` : "PROMPT";
 		},
 		selection,
 		(width) => {
 			const t = env.theme();
 			const p = prompt(env.state);
-			if (!p) return [t.fg("dim", " -- no prompt yet --")];
+			if (!p) return [t.fg("dim", " -- no prompt in this session yet --")];
 			const { part } = picks(env.state);
 			const lines: string[] = [];
 			selection.place(0, lines.length, 1);
@@ -114,8 +115,8 @@ registerPanel("promptparts", (env) => {
 				selection.place(index + 1, lines.length, 1);
 				lines.push(row(`${picked(t, part === item.label)}${t.fg("text", item.label)}`, tokens(t, item.tokens), width));
 			});
-			if (!p.parts.length) lines.push(t.fg("dim", " -- parts after the first request --"));
-			else lines.push(row(t.fg("dim", " rest: not in the recorded parts"), tokens(t, p.rest, "dim"), width));
+			if (!p.parts.length) lines.push(t.fg("dim", " -- no part in this prompt --"));
+			else lines.push(row(t.fg("dim", " rest: outside the parts"), tokens(t, p.rest, "dim"), width));
 			return lines;
 		},
 		() => [version(env.state)],
@@ -127,12 +128,13 @@ registerPanel("prompttext", (env) =>
 		env,
 		"prompttext",
 		() => {
-			return `TEXT  ${picks(env.state).part ?? "WHOLE PROMPT"}`;
+			const p = prompt(env.state);
+			return `TEXT  ${picks(env.state).part ?? "WHOLE PROMPT"}${p ? originNote(p.origin) : ""}`;
 		},
 		(width) => {
 			const t = env.theme();
 			const p = prompt(env.state);
-			if (!p) return [t.fg("dim", " -- no prompt yet --")];
+			if (!p) return [t.fg("dim", " -- no prompt in this session yet --")];
 			const { part } = picks(env.state);
 			const text = part === undefined ? p.text : (p.parts.find((item) => item.label === part)?.text ?? "");
 			return wrap(text.replace(/\t/g, "    "), width, (line) => t.fg("text", line));
@@ -249,7 +251,8 @@ registerPanel("toollist", (env) => {
 		() => {
 			const all = tools(env.state);
 			const active = all.filter((tool) => tool.active).length;
-			return `TOOLS  ${active}/${all.length} active  ≈${compactNumber(activeTokens(all))} tok/req`;
+			const origin = all[0]?.origin;
+			return `TOOLS  ${active}/${all.length} active  ≈${compactNumber(activeTokens(all))} tok${origin ? originNote(origin) : ""}`;
 		},
 		selection,
 		(width) => {
@@ -327,7 +330,11 @@ registerPanel("tooldetail", (env) =>
 			const item = tools(env.state).find((tool) => tool.name === name);
 			if (!item) return [t.fg("dim", " -- pick a tool: Enter or a click --")];
 			const state = item.active ? t.fg("success", "active") : t.fg("dim", "not active");
-			const cost = item.active ? `≈${compactNumber(item.tokens)} tok per request` : `≈${compactNumber(item.tokens)} tok when active`;
+			const cost = item.active
+				? item.origin === "built"
+					? `≈${compactNumber(item.tokens)} tok, not declared yet`
+					: `≈${compactNumber(item.tokens)} tok per request`
+				: `≈${compactNumber(item.tokens)} tok when active`;
 			const lines = [
 				` ${t.fg("toolTitle", t.bold(item.name))}`,
 				` ${state}${t.fg("muted", `  ·  ${item.exposure}  ·  ${cost}`)}`,
@@ -354,6 +361,19 @@ registerPanel("tooldetail", (env) =>
 
 /* ---------------------------------------------------------------- SKILLS */
 
+/**
+ * A skill's row cells: the tokens its block adds to the request's prompt (`?` while no
+ * prompt of a run is known, `user` when only the user may load it, else `0` for a prompt
+ * that lists no block for it, whether because the model may not load it or because an
+ * extension removed the list), and the tokens of its file when loaded.
+ */
+function skillCells(item: SkillItem): { req: string; load: string } {
+	const req =
+		item.listed === undefined ? "?" : item.listed ? `≈${compactNumber(item.tokens)}` : item.invocable === false ? "user" : "0";
+	const load = item.bodyTokens !== undefined ? `≈${compactNumber(item.bodyTokens)}` : item.bodyError ? "?" : "…";
+	return { req, load };
+}
+
 registerPanel("skilllist", (env) => {
 	const selection = new Selection(
 		() => skills(env.state).items.map((skill) => skill.name),
@@ -366,29 +386,28 @@ registerPanel("skilllist", (env) => {
 		() => {
 			const { known, items } = skills(env.state);
 			if (!known) return "SKILLS";
-			// Which skills are listed is known only once a request has said it.
-			if (items.some((item) => item.listed === undefined)) return `SKILLS  ${items.length}  ≈? tok/req`;
+			// The listing is what the prompt carries, so it is only as good as the prompt's origin.
+			const origin = prompt(env.state)?.origin;
+			const note = origin ? originNote(origin) : "";
+			if (items.some((item) => item.listed === undefined)) return `SKILLS  ${items.length}  ≈? tok${note}`;
 			const sum = items.reduce((total, item) => total + item.tokens, 0);
-			return `SKILLS  ${items.length}  ≈${compactNumber(sum)} tok/req`;
+			return `SKILLS  ${items.length}  ≈${compactNumber(sum)} tok${note}`;
 		},
 		selection,
 		(width) => {
 			const t = env.theme();
 			const { known, items } = skills(env.state);
-			if (!known) return [t.fg("dim", " -- skills appear after the first request --")];
+			if (!known) return [t.fg("dim", " -- skills are read when the session starts --")];
 			if (!items.length) return [t.fg("dim", " -- no skills --")];
 			const { skill } = picks(env.state);
-			// Two right-aligned columns under a header: tokens in every request, and when loaded.
-			const cells = items.map((item) => ({
-				req: item.listed === undefined ? "?" : item.listed ? `≈${compactNumber(item.tokens)}` : "user",
-				load: item.bodyTokens !== undefined ? `≈${compactNumber(item.bodyTokens)}` : item.bodyError ? "?" : "…",
-			}));
+			// Two right-aligned columns under a header: tokens the skill's entry adds to the prompt's list, and when loaded.
+			const cells = items.map(skillCells);
 			const reqWidth = Math.max(3, ...cells.map((cell) => cell.req.length));
 			const loadWidth = Math.max(4, ...cells.map((cell) => cell.load.length));
-			const lines = [row("", t.fg("dim", `${"REQ".padStart(reqWidth)}  ${"LOAD".padStart(loadWidth)}`), width)];
+			const lines = [row("", t.fg("dim", `${"LIST".padStart(reqWidth)}  ${"LOAD".padStart(loadWidth)}`), width)];
 			items.forEach((item, index) => {
 				selection.place(index, lines.length, 1);
-				const name = item.listed !== false ? t.fg("toolTitle", item.name) : t.fg("dim", item.name);
+				const name = item.invocable === false ? t.fg("dim", item.name) : t.fg("toolTitle", item.name);
 				const { req, load } = cells[index]!;
 				const right = `${t.fg(item.listed ? "muted" : "dim", req.padStart(reqWidth))}  ${t.fg(item.bodyTokens !== undefined ? "muted" : "dim", load.padStart(loadWidth))}`;
 				lines.push(row(`${picked(t, skill === item.name)}${name}`, right, width));
