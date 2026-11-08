@@ -1,0 +1,8 @@
+{
+  "transport": "cli",
+  "project": "main",
+  "captureFolder": "pi/sessions",
+  "useHookFlow": true,
+  "autoRecall": true,
+  "autoCapture": true
+}
