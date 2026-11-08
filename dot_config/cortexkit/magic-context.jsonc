@@ -14,7 +14,8 @@
       "model": "openai/gpt-5.6-luna"
     },
     "pi": {
-      "model": "opencode-go/deepseek-v4.1-flash"
+      // "model": "opencode-go/deepseek-v4.1-flash"
+      "model": "openai/gpt-6.1-terra"
     }
   },
   "embedding": {
@@ -26,7 +27,8 @@
       "model": "openai/gpt-5.6-luna"
     },
     "pi": {
-      "model": "opencode-go/deepseek-v4.1-flash"
+      // "model": "opencode-go/deepseek-v4.1-flash"
+      "model": "openai/gpt-6.1-terra"
     }
   },
   "memory": {
