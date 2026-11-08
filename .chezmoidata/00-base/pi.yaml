@@ -57,7 +57,6 @@ pi:
       - npm:pi-tool-display
       - git:github.com/jokerx0001/pi-model-system-prompt
       - git:github.com/johnnyshields/pi-keepalive
-      - git:github.com/nicobailon/visual-explainer
       - source: git:github.com/rytswd/pi-agent-extensions
         extensions:
           - "-direnv/index.ts"
