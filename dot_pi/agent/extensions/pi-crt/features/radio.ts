@@ -1,7 +1,7 @@
 /**
  * RADIO: YouTube Music played inside Pi's process, without yt-dlp or a player
  * program. ytdl-core fetches a track's audio (WebM with Opus), prism-media's
- * WebmDemuxer takes the Opus packets out of it, audify's OpusDecoder turns each
+ * WebmDemuxer takes the Opus packets out of it, @discordjs/opus turns each
  * packet into PCM, and SDL (@kmamal/sdl) plays the PCM on an output device through
  * the audio driver SDL picks, which mixes and resamples it like any other program.
  *
@@ -32,7 +32,7 @@
  * the device is kept: the download pauses once QUEUE_HIGH seconds wait and resumes
  * at QUEUE_LOW.
  *
- * The four packages (@distube/ytdl-core, audify, prism-media and @kmamal/sdl) are
+ * The four packages (@distube/ytdl-core, @discordjs/opus, prism-media and @kmamal/sdl) are
  * loaded on first use, so that pi-crt's other tabs still load when they are missing
  * or fail to load (a failed npm install, a Node.js version they do not support);
  * RADIO then shows why.
@@ -60,8 +60,6 @@ const SAMPLE_RATE = 48_000;
 const CHANNELS = 2;
 /** Bytes of one frame (one 16-bit sample per channel). */
 const FRAME_BYTES = CHANNELS * 2;
-/** The largest Opus packet, 120 ms, in frames per channel. */
-const MAX_PACKET = 5760;
 /** Seconds queued for the device before the download pauses, and when it resumes. */
 const QUEUE_HIGH = 10;
 const QUEUE_LOW = 5;
@@ -154,7 +152,7 @@ export interface RadioData {
 	queue: Track[];
 	/** A playlist station's place in the current pass, from 1. */
 	position?: { index: number; total: number };
-	/** 0 to 1. audify's volume is logarithmic: 0.3 gives about 11% of the amplitude. */
+	/** 0 to 1 on a logarithmic scale: 0.3 gives about 11% of the amplitude. */
 	volume: number;
 	/** Frames of the current track's PCM SDL took so far, the time shown; the silences while the queue ran dry are not counted. */
 	playedFrames: number;
@@ -212,7 +210,7 @@ interface RadioControl {
 interface Packages {
 	Ytdl: typeof import("@distube/ytdl-core").Ytdl;
 	SearchType: typeof import("@distube/ytdl-core").SearchType;
-	audify: typeof import("audify");
+	OpusEncoder: typeof import("@discordjs/opus").OpusEncoder;
 	WebmDemuxer: typeof import("prism-media").opus.WebmDemuxer;
 	audio: Sdl.Audio.Module;
 }
@@ -222,11 +220,11 @@ let packages: Promise<Packages> | undefined;
 /** The packages RADIO plays with, loaded once; a failed load is tried again next time. */
 function loadPackages(): Promise<Packages> {
 	packages ??= (async () => {
-		const [ytdl, audify, prism, sdl] = await Promise.all([import("@distube/ytdl-core"), import("audify"), import("prism-media"), loadSdl()]);
-		// audify and prism-media are CommonJS; their classes are on the default export.
-		const opus = (audify as { default?: typeof import("audify") }).default ?? audify;
+		const [ytdl, opus, prism, sdl] = await Promise.all([import("@distube/ytdl-core"), import("@discordjs/opus"), import("prism-media"), loadSdl()]);
+		// @discordjs/opus and prism-media are CommonJS; their classes are on the default export.
+		const codec = (opus as { default?: typeof import("@discordjs/opus") }).default ?? opus;
 		const media = (prism as { default?: typeof import("prism-media") }).default ?? prism;
-		return { Ytdl: ytdl.Ytdl, SearchType: ytdl.SearchType, audify: opus, WebmDemuxer: media.opus.WebmDemuxer, audio: sdl.audio };
+		return { Ytdl: ytdl.Ytdl, SearchType: ytdl.SearchType, OpusEncoder: codec.OpusEncoder, WebmDemuxer: media.opus.WebmDemuxer, audio: sdl.audio };
 	})().catch((error: unknown) => {
 		packages = undefined;
 		throw error;
@@ -715,7 +713,7 @@ function createRadio(): RadioControl {
 		/** Frames of what the device plays for this track (its PCM and silences) SDL took, with `unplayed` bytes still queued. */
 		const takenFrames = (unplayed: number) => data.playedFrames + silentFrames + (waitingBytes - unplayed) / FRAME_BYTES;
 		let ended = false;
-		const decoder = new loaded.audify.OpusDecoder(SAMPLE_RATE, CHANNELS);
+		const decoder = new loaded.OpusEncoder(SAMPLE_RATE, CHANNELS);
 		if (!output || output.closed) output = openOutput(loaded.audio);
 		/** The device the track plays on now; one that closed is an error. */
 		const device = () => {
@@ -808,7 +806,7 @@ function createRadio(): RadioControl {
 		demuxer.on("data", (packet: Buffer) => {
 			if (endTrack !== finish) return;
 			try {
-				const pcm = decoder.decode(packet, MAX_PACKET);
+				const pcm = decoder.decode(packet);
 				const heard = data.heard;
 				if (heard && device().queued === 0) {
 					// The queue ran dry: the device played silence until this PCM, which is
