@@ -1,0 +1,11 @@
+# Codex CLI の認証（/codex にマウントした HINDSIGHT_CODEX_AUTH_DIR）を LLM に使う。
+services:
+  hindsight:
+    environment:
+      HINDSIGHT_API_LLM_PROVIDER: openai-codex
+      HINDSIGHT_API_LLM_MODEL: gpt-6-luna
+      HINDSIGHT_API_LLM_REASONING_EFFORT: none
+      HINDSIGHT_API_LLM_CODEX_HOME: /codex
+      # 役割ごとにモデルを変える場合はここを有効にする
+      # HINDSIGHT_API_CONSOLIDATION_LLM_MODEL: gpt-6.1-terra
+      # HINDSIGHT_API_RETAIN_LLM_MODEL: gpt-6-luna

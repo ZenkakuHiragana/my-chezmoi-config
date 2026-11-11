@@ -1,0 +1,37 @@
+# RustXNG overlay applied by mounting this file over /app/settings.toml
+# (the image sets SEARXNG_SETTINGS_PATH=/app/settings.toml).
+#
+# bing        : the shipped default disables it as "permission/reuse scope pending".
+# yahoo japan : the shipped default disables it because its help page prohibits scraping.
+# seznam      : the shipped default disables it pending a scope review of its terms.
+# keenable    : the shipped default disables it because it calls a public endpoint without a key.
+# naver       : the shipped default disables it because its published terms are not reconciled.
+#
+# bing alone falls apart on identifier queries: "ERR_PNPM_OUTDATED_LOCKFILE" returns
+# dictionary pages for "err" and "tokio runtime documentation" returns nothing, while
+# seznam/keenable return the pnpm issue and the official docs (measured 2026-11-12).
+#
+# duckduckgo / brave stay off. Both answer CAPTCHA through the adapter while a plain
+# curl to the same host returns results on this line (measured 2026-11-12), so enabling
+# them only adds unresponsive engines to every search.
+use_default_settings = true
+
+[[engines]]
+name = "bing"
+disabled = false
+
+[[engines]]
+name = "yahoo japan"
+disabled = false
+
+[[engines]]
+name = "seznam"
+disabled = false
+
+[[engines]]
+name = "keenable"
+disabled = false
+
+[[engines]]
+name = "naver"
+disabled = false

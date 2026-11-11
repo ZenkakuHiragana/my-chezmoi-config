@@ -1,0 +1,166 @@
+name: hindsight
+
+services:
+  db:
+    build:
+      context: ./postgres
+    container_name: hindsight-db
+    restart: unless-stopped
+    environment:
+      POSTGRES_USER: ${HINDSIGHT_DB_USER}
+      POSTGRES_DB: ${HINDSIGHT_DB_NAME}
+      POSTGRES_PASSWORD_FILE: /run/secrets/db_password
+    secrets:
+      - db_password
+    volumes:
+      - postgres-data:/var/lib/postgresql/data
+    healthcheck:
+      test:
+        [
+          "CMD-SHELL",
+          "pg_isready -U ${HINDSIGHT_DB_USER} -d ${HINDSIGHT_DB_NAME}",
+        ]
+      interval: 5s
+      timeout: 5s
+      retries: 20
+
+  db-init:
+    build:
+      context: ./postgres
+    depends_on:
+      db:
+        condition: service_healthy
+    restart: "no"
+    secrets:
+      - db_password
+    command:
+      - bash
+      - -c
+      - |
+        export PGPASSWORD="$(cat /run/secrets/db_password)"
+        psql -h db -U ${HINDSIGHT_DB_USER} -d ${HINDSIGHT_DB_NAME} \
+          -c 'CREATE EXTENSION IF NOT EXISTS vector CASCADE;'
+        psql -h db -U ${HINDSIGHT_DB_USER} -d ${HINDSIGHT_DB_NAME} \
+          -c 'CREATE EXTENSION IF NOT EXISTS pgroonga CASCADE;'
+
+  embedding:
+    image: ghcr.io/huggingface/text-embeddings-inference:turing-1.9.4
+    container_name: hindsight-embedding
+    restart: unless-stopped
+    command:
+      - --model-id
+      - BAAI/bge-m3
+      - --max-concurrent-requests
+      - "256"
+      - --max-batch-tokens
+      - "8192"
+      - --max-client-batch-size
+      - "16"
+      - --auto-truncate
+      - --dtype
+      - float32
+    volumes:
+      - embedding-cache:/data
+    healthcheck:
+      test: ["CMD", "curl", "-fsS", "http://localhost:80/health"]
+      interval: 10s
+      timeout: 5s
+      retries: 60
+      start_period: 30s
+    environment:
+      USE_FLASH_ATTENTION: "False"
+    deploy:
+      resources:
+        reservations:
+          devices:
+            - driver: nvidia
+              count: all
+              capabilities: [gpu]
+
+  reranker:
+    image: ghcr.io/huggingface/text-embeddings-inference:turing-1.9.4
+    container_name: hindsight-reranker
+    restart: unless-stopped
+    command:
+      - --model-id
+      - hotchpotch/japanese-reranker-xsmall-v2
+      - --max-concurrent-requests
+      - "256"
+      - --max-batch-tokens
+      - "32768"
+      - --max-client-batch-size
+      - "256"
+      - --auto-truncate
+    volumes:
+      - reranker-cache:/data
+    healthcheck:
+      test: ["CMD", "curl", "-fsS", "http://localhost:80/health"]
+      interval: 10s
+      timeout: 5s
+      retries: 60
+      start_period: 30s
+    deploy:
+      resources:
+        reservations:
+          devices:
+            - driver: nvidia
+              count: all
+              capabilities: [gpu]
+
+  hindsight:
+    image: ghcr.io/vectorize-io/hindsight:latest-slim
+    container_name: hindsight
+    restart: unless-stopped
+    shm_size: "1gb"
+    depends_on:
+      db-init:
+        condition: service_completed_successfully
+      embedding:
+        condition: service_healthy
+      reranker:
+        condition: service_healthy
+    ports:
+      - "127.0.0.1:8888:8888"
+      - "127.0.0.1:9999:9999"
+    environment:
+      HINDSIGHT_API_WORKER_ID: hindsight-local
+
+      HINDSIGHT_API_VECTOR_EXTENSION: pgvector
+      HINDSIGHT_API_TEXT_SEARCH_EXTENSION: pgroonga
+
+      HINDSIGHT_API_EMBEDDINGS_PROVIDER: tei
+      HINDSIGHT_API_EMBEDDINGS_TEI_URL: http://embedding:80
+      HINDSIGHT_API_EMBEDDINGS_TEI_BATCH_SIZE: 16
+      HINDSIGHT_API_EMBEDDINGS_MAX_INPUT_TOKENS: 4096
+
+      HINDSIGHT_API_RERANKER_PROVIDER: tei
+      HINDSIGHT_API_RERANKER_TEI_URL: http://reranker:80
+      HINDSIGHT_API_RERANKER_TEI_MAX_CONCURRENT: 16
+      HINDSIGHT_API_RERANKER_TEI_BATCH_SIZE: 16
+      HINDSIGHT_API_RERANKER_MAX_CANDIDATES: 64
+      HINDSIGHT_API_RERANKER_TEI_HTTP_TIMEOUT: 180
+
+      # HINDSIGHT_API_VLM_PROVIDER: opencode-go
+      # HINDSIGHT_API_VLM_API_KEY: ${OPENCODE_GO_API_KEY}
+      # HINDSIGHT_API_VLM_MODEL: deepseek-v4.1-flash
+      # HINDSIGHT_API_VLM_BASE_URL: https://opencode.ai/zen/go/v1
+      HINDSIGHT_API_LLM_VISION: true
+
+      HINDSIGHT_API_LLM_MAX_CONCURRENT: 64
+      # LLM の provider / model は llm/*.yaml のオーバーレイで選ぶ（README 参照）
+      HINDSIGHT_API_LLM_OUTPUT_LANGUAGE: Japanese
+      HINDSIGHT_API_LLM_TIMEOUT: 1200
+      HINDSIGHT_API_REFLECT_WALL_TIMEOUT: 18000
+
+    volumes:
+      - ./secrets/hindsight.env:/app/api/.env:ro
+      - ${HINDSIGHT_CODEX_AUTH_DIR}:/codex
+
+secrets:
+  db_password:
+    file: ./secrets/db_password.txt
+
+volumes:
+  postgres-data:
+  embedding-cache:
+  reranker-cache:

@@ -8,6 +8,7 @@ docs/**
 packages/**
 scripts/**
 tools/**
+containers/**
 {{- if eq .chezmoi.os "windows" }}
 .config/herdr/
 .config/lazygit/

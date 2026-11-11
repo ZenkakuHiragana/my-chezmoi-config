@@ -1,0 +1,12 @@
+# OpenCode Go（API キー方式）の LLM を使う。
+# API キーは compose に書かない（`docker compose config` に展開される）。
+# キーの置き場所は `.env.example` のコメントに従う。
+services:
+  hindsight:
+    environment:
+      HINDSIGHT_API_LLM_PROVIDER: opencode-go
+      HINDSIGHT_API_LLM_MODEL: deepseek-v4.1-flash
+      HINDSIGHT_API_LLM_REASONING_EFFORT: off
+      # 役割ごとにモデルを変える場合はここを有効にする
+      # HINDSIGHT_API_REFLECT_LLM_MODEL: deepseek-v4.1-flash
+      # HINDSIGHT_API_REFLECT_LLM_REASONING_EFFORT: low
