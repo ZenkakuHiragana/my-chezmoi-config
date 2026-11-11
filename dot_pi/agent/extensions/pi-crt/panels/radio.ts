@@ -10,7 +10,7 @@
  * ListControl.typing); Enter searches, Esc or Tab leaves it, and Alt+O leaves it
  * and gives the keys to the editor (shell/input.ts).
  */
-import { Input, matchesKey, truncateToWidth, visibleWidth, wrapTextWithAnsi } from "@earendil-works/pi-tui";
+import { Input, matchesKey, sliceByColumn, truncateToWidth, visibleWidth, wrapTextWithAnsi } from "@earendil-works/pi-tui";
 import {
 	addPlaylist,
 	changeVolume,
@@ -557,7 +557,15 @@ function playerLines(env: PanelEnv, data: Readonly<RadioData>, width: number, he
 	const barWidth = Math.max(4, inner - visibleWidth(time) - 3);
 	lines.push(fit(`${indent}${bar(t, total ? elapsed / total : 0, barWidth)}   ${t.fg("muted", time)}`));
 	const volume = `${t.fg("muted", "VOL")} ${bar(t, data.volume, 10)} ${t.fg("muted", String(Math.round(data.volume * 100)))}`;
-	lines.push(fit(`${indent}${spread(volume, t.fg("accent", sourceLabel(data)), inner)}`));
+	const source = sourceLabel(data);
+	const room = inner - visibleWidth(volume) - 1;
+	let label = source;
+	if (visibleWidth(source) > room) {
+		const suffixWidth = Math.max(0, room - 3);
+		label = ".".repeat(Math.max(0, Math.min(3, room))) + sliceByColumn(source, visibleWidth(source) - suffixWidth, suffixWidth);
+	}
+	const volumeLine = room > 0 && label ? spread(volume, t.fg("accent", label), inner) : volume;
+	lines.push(fit(`${indent}${volumeLine}`));
 	const next = data.queue[0];
 	if (next) lines.push("", fit(`${indent}${t.fg("dim", "NEXT")}  ${t.fg("muted", `${next.title} — ${next.artist}`)}`));
 	return lines;
