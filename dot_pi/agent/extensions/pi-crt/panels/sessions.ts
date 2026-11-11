@@ -2,6 +2,7 @@
  * MAP's SESSIONS panel: the project's sessions, the one in progress first.
  * The arrow keys or j/k select a session and Enter switches to it.
  */
+import { formatSize } from "@earendil-works/pi-coding-agent";
 import { truncateToWidth } from "@earendil-works/pi-tui";
 import { openSession, refreshSessions, type SessionItem, sessions } from "../features/sessions.ts";
 import { framed } from "../screen/frame.ts";
@@ -39,7 +40,10 @@ function sessionTitle(env: PanelEnv): string {
 	return list.length ? `SESSIONS  ${list.length}` : "SESSIONS";
 }
 
-/** Two lines per session: its title, then when it was last touched and how long it is. */
+/**
+ * Two lines per session: its title, then when its file was last written (ACTIVE for
+ * the session in progress) and how big it is.
+ */
 function sessionLines(env: PanelEnv, selection: Selection, width: number): string[] {
 	refreshSessions(env.state);
 	const t = env.theme();
@@ -67,7 +71,7 @@ function metaLine(env: PanelEnv, session: SessionItem, now: number): string {
 	const t = env.theme();
 	const parts = [
 		session.active ? "ACTIVE" : ago(now, session.modified),
-		`${session.messageCount} msgs`,
+		formatSize(session.size),
 		...(session.forked ? ["forked"] : []),
 	];
 	return `   ${t.fg(session.active ? "muted" : "dim", parts.join(" · "))}`;
