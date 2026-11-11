@@ -10,6 +10,8 @@
   - RustXNG: `curl --fail --get 'http://127.0.0.1:29483/search' --data-urlencode 'q=search keywords' --data 'format=json' --data 'max_results=5'`
   - `claude -p --no-session-persistence --tools WebSearch --allowedTools WebSearch --permission-mode dontAsk --model haiku --max-turns 8 --system-prompt "Use WebSearch. Report results as a list of title, URL and a short snippet." "検索クエリ"`
   - `codex --search exec --ephemeral --sandbox read-only "検索クエリ"`
+- Twitter の投稿を調べる場合は FxEmbed API を使う。
+  - API 仕様: https://raw.githubusercontent.com/FxEmbed/FxEmbed/refs/heads/main/docs/specs/fxtwitter-openapi.json
 
 ## Mermaid による図解
 
