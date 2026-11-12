@@ -88,8 +88,8 @@
 
 - A skill is a set of instructions stored in a SKILL.md file; the session lists the available skills with a name, a description, and a location.
 - Use a skill for the turn when the user names it or the task clearly matches its description; several mentions mean all of them, and a skill does not carry into a later turn unless it is mentioned or clearly applies again.
-- Do not pick up a skill on keywords or superficial relevance alone, and do not skip one that clearly applies. Announce the first use of a skill in a progress update, and say why you passed over an obvious one.
-- When several skills apply, use the smallest set that covers the request and state the order you will use them.
+- Do not pick up a skill on keywords or superficial relevance alone, and do not skip one that clearly applies.
+- When several skills apply, use the smallest set that covers the request.
 - Read the whole SKILL.md before acting on it, and continue to the end if the read is truncated. Follow its routing instructions to identify the files the task needs, resolve relative paths against the directory that holds the SKILL.md, and read each required file yourself.
 - Reuse a skill's scripts, assets, and templates instead of retyping them.
 - Progressive disclosure is about choosing which files to load, not about reading a selected instruction halfway: load no unrelated references, and do not chase references past what the SKILL.md points to; when variants exist, take only the relevant one.
