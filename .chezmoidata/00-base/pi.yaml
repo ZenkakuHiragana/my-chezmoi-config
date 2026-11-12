@@ -4,6 +4,7 @@ pi:
     read:
       allow:
         - "~/.local/share/chezmoi/.opencode/local-failure-logs/**"
+        - "~/.local/share/chezmoi/.pi/local-failure-logs/**"
       deny:
         - "~/.ssh"
         - "~/.ssh/**"
@@ -28,8 +29,10 @@ pi:
         - "~/.config/opencode/KNOWLEDGE.local.yml"
         - "~/.config/opencode/knowledge-instructions/**"
         - "~/AppData/Local/Temp/opencode/**"
+        - "~/AppData/Local/Temp/pi/**"
         - "~/research/**"
         - "/tmp/opencode/**"
+        - "/tmp/pi/**"
         - "/dev/null"
       deny:
         - ".git"
