@@ -52,10 +52,8 @@ pi:
     fullscreenScrollbar: auto
     hideThinkingBlock: true
     packages:
-      - npm:pi-subagents-lite
       - npm:pi-context-view
       - npm:@valdo766hi/pi-fast
-      - npm:@cortexkit/pi-magic-context
       # - npm:pi-tidy
       - npm:pi-tool-display
       - git:github.com/jokerx0001/pi-model-system-prompt
@@ -87,12 +85,6 @@ pi:
     passthroughTools:
       - edit
       - write
-  subagents_lite:
-    agent:
-      disableDefaultAgents: true
-      systemPromptMode: replace
-    concurrency:
-      default: 32
   tool_display:
     registerToolOverrides:
       edit: false

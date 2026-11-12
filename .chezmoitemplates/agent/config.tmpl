@@ -21,6 +21,10 @@
 {{- if hasKey $agentSettings "opencode" -}}
 {{- $opencodeSettings = get $agentSettings "opencode" -}}
 {{- end -}}
+{{- $piSettings := dict -}}
+{{- if hasKey $agentSettings "pi" -}}
+{{- $piSettings = get $agentSettings "pi" -}}
+{{- end -}}
 {{- if eq $format "opencode" -}}
 ---
 description: {{ $agent.description | quote }}
@@ -75,10 +79,12 @@ exclude_extensions: [pi-instruction-nudge, pi-keep-alive]
 {{- else if eq $format "pi" -}}
 ---
 name: {{ $name }}
-description: {{ $agent.description | quote }}
+description: {{ $agent.description | trim | quote }}
 model: {{ includeTemplate "prompt/agents/resolve.tmpl" (dict "values" $profile "harness" "pi") }}
 thinking: {{ includeTemplate "prompt/agents/resolve.tmpl" (dict "values" $agent.effort "harness" "pi") }}
-exclude_extensions: [pi-instruction-nudge, pi-keepalive]
+{{- if get $piSettings "readOnly" }}
+read_only: true
+{{- end }}
 ---
 
 {{ includeTemplate $bodyTemplate $root }}

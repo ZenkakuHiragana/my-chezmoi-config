@@ -39,6 +39,8 @@ agents:
         permission:
           edit: deny
           task: deny
+      pi:
+        readOnly: true
 modelProfiles:
   fast:
     default: opencode-go/deepseek-v4.1-flash
