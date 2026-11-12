@@ -51,11 +51,15 @@ pi:
     tuiMode: fullscreen
     fullscreenScrollbar: auto
     hideThinkingBlock: true
+    defaultTools:
+      - bash
+    codemode:
+      mode: only
     packages:
       - npm:pi-context-view
       - npm:@valdo766hi/pi-fast
       # - npm:pi-tidy
-      - npm:pi-tool-display
+      # - npm:pi-tool-display
       - git:github.com/jokerx0001/pi-model-system-prompt
       - git:github.com/johnnyshields/pi-keepalive
       - source: git:github.com/rytswd/pi-agent-extensions

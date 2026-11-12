@@ -56,6 +56,8 @@ export default function (pi: ExtensionAPI) {
     pi.registerTool({
       name: "skill",
       label: "Skill",
+      // 説明にスキル一覧が入り長いので、codemode の一覧には収まらない。常にモデルへ直接宣言する。
+      exposure: "model-only",
       description: formatSkillDescription(availableSkills),
       parameters: Type.Object({
         skill: Type.String({ description: "スキル名" }),
