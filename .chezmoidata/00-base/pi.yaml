@@ -75,3 +75,4 @@ pi:
     keepalive:
       cache_ttl: 1h
       cache_upkeep: off
+      guide_shown: true
