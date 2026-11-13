@@ -114,6 +114,6 @@ await settled.capture(afterSettled);assert.equal(settled.inventory.prompt(settle
 const rawTool={role:'toolResult',toolCallId:'id',toolName:'call',content:[{type:'image',data:'RAW DETAILS IMAGE',mimeType:'image/png'}],details:{copy:'RAW DETAILS IMAGE'},isError:false,timestamp:1};
 const redacted=captureRequest(after.ctx.sessionManager.buildSessionProjection(),[...after.entries.map(e=>e.message),rawTool],'BASE',after.ctx.sessionManager.getLeafId());
 assert.ok(!JSON.stringify(redacted).includes('RAW DETAILS IMAGE'));
-const retainedTool=redacted.conversation.find(e=>e.type==='added'&&e.message.role==='toolResult').message;
-assert.equal(api.estimateTokens(retainedTool),api.estimateTokens(rawTool));
+const retainedTool=redacted.conversation.find(e=>e.type==='added'&&e.contribution.parts.some(p=>p.label==='TOOL RESULTS')).contribution;
+assert.equal(retainedTool.parts.reduce((n,p)=>n+p.tokens,0),api.estimateTokens(rawTool));
 console.log('known force, continuation and metadata assertions passed');

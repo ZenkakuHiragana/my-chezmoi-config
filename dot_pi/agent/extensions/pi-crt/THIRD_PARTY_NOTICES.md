@@ -30,7 +30,7 @@ SOFTWARE.
 `state/context-diff.ts` is derived from pi-context-view 0.8.4
 (https://github.com/dimk90/pi-context-view), with local type imports.
 The request projection and estimation in `state/request-context.ts` and
-`state/context.ts`, and redaction in `state/context-redact.ts`, also adapt its current-branch replay and measurement rules.
+`state/context.ts` also adapt its current-branch replay and measurement rules.
 
 MIT License
 

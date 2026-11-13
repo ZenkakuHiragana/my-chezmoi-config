@@ -99,7 +99,7 @@ function read(feature: ContextFeature): void {
 	const run = feature.runLoadout;
 	const runApplies = run && (run.leafId === null || branch.has(run.leafId));
 	const current = projectContext(projection, snapshotApplies ? captured : undefined, fallbackPrompt, fallbackTools, runApplies ? run.hidden : undefined);
-	const contextParts = meter.measure(current.messages, current.prompt, current.tools, nextRequestModel(selected, current.branchMessages));
+	const contextParts = meter.measureContributions(current.contributions, current.prompt, current.tools, nextRequestModel(selected, current.branchMessages));
 	Object.assign(feature.data, { contextParts, prompt: current.prompt, tools: current.tools, origin: current.origin, reportedUsage: ctx.getContextUsage() });
 	feature.data.version++;
 	key[6] = current.origin === "built" ? fallbackPrompt : undefined;

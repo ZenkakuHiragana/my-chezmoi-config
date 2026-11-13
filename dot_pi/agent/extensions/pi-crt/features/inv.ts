@@ -4,12 +4,11 @@
  * loaded skill metadata and bounded background reads of skill bodies.
  */
 import { open } from "node:fs/promises";
-import { type Tool } from "@earendil-works/pi-ai";
 import type { ExtensionAPI, ToolNamespace } from "@earendil-works/pi-coding-agent";
 import { textTokens, toolTokens } from "../state/context.ts";
 import { type CrtState, sanitize, type Versioned } from "../state/core.ts";
 import type { FeatureEnv } from "./env.ts";
-import { contextData } from "./context.ts";
+import { contextData, type ContextData } from "./context.ts";
 import type { ContextOrigin } from "../state/request-context.ts";
 
 /** A part of the system prompt: its instruction text, or one of its named sections. */
@@ -81,6 +80,8 @@ export interface SkillItem extends Versioned {
 	bodyError?: string;
 }
 
+type LoadedSkill = Omit<SkillItem, "listed" | "tokens">;
+
 /** Bytes read of each skill file. */
 const BODY_BYTES = 256 * 1024;
 
@@ -109,16 +110,10 @@ interface PromptOptions {
 interface Inventory {
 	pi: ExtensionAPI;
 	env: FeatureEnv;
+	/** Derived prompt and skill views, not additional sources of context state. */
 	prompt?: PromptInventory;
-	/**
-	 * The tools the last request declared, as the model was told them (a loadout may have
-	 * changed a description); undefined until a run has declared any.
-	 */
-	declared?: readonly Tool[];
-	/** Version of the shared context last projected into this inventory. */
-	contextVersion: number;
-	contextOrigin: Origin;
-	skills: SkillItem[];
+	skillView?: { prompt: PromptInventory; loaded: LoadedSkill[]; version: number; bodiesVersion: number; items: SkillItem[] };
+	skills: LoadedSkill[];
 	/** Whether the skills have been given yet. */
 	skillsKnown: boolean;
 	toolList: ToolList;
@@ -156,16 +151,37 @@ const inventories = new WeakMap<CrtState, Inventory>();
 /** The tools before setupInventory. */
 const NO_TOOLS: readonly ToolItem[] = [];
 
+/** Derive the prompt only when its text or provenance changes. */
+function promptView(inv: Inventory, current: Readonly<ContextData>): PromptInventory {
+	if (!inv.prompt || inv.prompt.text !== current.prompt || inv.prompt.origin !== current.origin) {
+		inv.prompt = measurePrompt(current.prompt, current.origin);
+	}
+	// Validate before a panel compares its version key, so a removed part cannot reappear selected.
+	if (inv.part !== undefined && !inv.prompt.parts.some((part) => part.label === inv.part)) {
+		inv.part = undefined;
+		inv.version++;
+	}
+	return inv.prompt;
+}
+
 export function prompt(state: CrtState): PromptInventory | undefined {
 	const inv = inventories.get(state);
-	if (inv) syncContext(inv);
-	return inv?.prompt;
+	return inv ? promptView(inv, contextData(state)) : undefined;
 }
 
 export function skills(state: CrtState): { known: boolean; items: readonly SkillItem[] } {
 	const inv = inventories.get(state);
-	if (inv) syncContext(inv);
-	return inv ? { known: inv.skillsKnown, items: inv.skills } : { known: false, items: [] };
+	if (!inv) return { known: false, items: [] };
+	const view = promptView(inv, contextData(state));
+	const cached = inv.skillView;
+	if (!cached || cached.prompt !== view || cached.loaded !== inv.skills ||
+		cached.version !== inv.version || cached.bodiesVersion !== inv.bodies.version) {
+		inv.skillView = {
+			prompt: view, loaded: inv.skills, version: inv.version, bodiesVersion: inv.bodies.version,
+			items: listedSkills(view, inv.skills),
+		};
+	}
+	return { known: inv.skillsKnown, items: inv.skillView!.items };
 }
 
 /**
@@ -190,14 +206,14 @@ export function skills(state: CrtState): { known: boolean; items: readonly Skill
 export function tools(state: CrtState): readonly ToolItem[] {
 	const inv = inventories.get(state);
 	if (!inv) return NO_TOOLS;
-	syncContext(inv);
+	const current = contextData(state);
 	const list = inv.toolList;
 	/** What the last request declared of each tool, less the declarations its loadout hid. */
-	const declarations = new Map((inv.declared ?? []).map((tool) => [tool.name, tool]));
-	/** The names the last request declared; before the transcript records any, the registered loadout stands in. */
-	const declaredNames = new Set(inv.declared ? declarations.keys() : inv.pi.getActiveTools());
+	const declarations = new Map(current.tools.map((tool) => [tool.name, tool]));
+	/** The names in the shared declaration set (the registered loadout for a built prompt). */
+	const declaredNames = new Set(declarations.keys());
 	/** Where the declarations and their tokens come from. */
-	const origin = inv.contextOrigin;
+	const origin = current.origin;
 	const registered = inv.pi.getAllTools();
 	const registeredNames = new Set(registered.map((tool) => tool.name));
 	// Declaration membership is authoritative; the registry only supplies runtime metadata.
@@ -205,7 +221,7 @@ export function tools(state: CrtState): readonly ToolItem[] {
 		...tool, exposure: "declared", namespace: undefined, promptGuidelines: undefined,
 		sourceInfo: { path: "session/request (not registered)" },
 	}))];
-	const key = `${origin}\n${all.map((tool) => `${tool.name}\t${tool.exposure}`).join("\n")}\n\n${[...declaredNames].join("\n")}`;
+	const key = `${current.version}\n${origin}\n${all.map((tool) => `${tool.name}\t${tool.exposure}`).join("\n")}\n\n${[...declaredNames].join("\n")}`;
 	/** What the request said of a tool, or the registered definition while it said nothing. */
 	const said = (tool: (typeof all)[number]) => declarations.get(tool.name) ?? tool;
 	const fields = all.map((tool): ToolFields => ({
@@ -318,8 +334,10 @@ function toolGroups(all: readonly { exposure: string }[], fields: readonly (Name
 /** Changes whenever the prompt, the skills or the picked part or skill change. */
 export function version(state: CrtState): number {
 	const inv = inventories.get(state);
-	if (inv) syncContext(inv);
-	return inv?.version ?? 0;
+	if (!inv) return 0;
+	const current = contextData(state);
+	promptView(inv, current);
+	return inv.version + current.version;
 }
 
 /** Changes whenever a skill file has been read. */
@@ -392,38 +410,21 @@ export function pickSkill(state: CrtState, name: string | undefined): void {
 	inv.env.changed(inv);
 }
 
-/** Refresh before panel key comparison, not only inside a cached line producer. */
-function syncContext(inv: Inventory): void {
-	const current = contextData(inv.env.state);
-	if (inv.contextVersion === current.version) return;
-	inv.contextVersion = current.version;
-	inv.contextOrigin = current.origin;
-	inv.prompt = measurePrompt(current.prompt, current.origin);
-	inv.declared = current.tools;
-	inv.toolList.key = "";
-	if (!inv.prompt.parts.some((part) => part.label === inv.part)) inv.part = undefined;
-	settleListed(inv);
-	inv.version++;
-}
-
 export function setupInventory(pi: ExtensionAPI, env: FeatureEnv): void {
 	const inv: Inventory = {
 		pi, env, skills: [], skillsKnown: false,
 		toolList: { items: [], key: "", fields: [], version: 0 },
 		version: 0, bodies: { version: 0 }, folds: { expanded: new Set(), version: 0 },
-		contextVersion: -1, contextOrigin: "built",
 	};
 	inventories.set(env.state, inv);
 	let pending: PromptOptions | undefined;
 	pi.on("session_start", () => {
 		setSkills(inv, loadedSkills(pi), false);
-		syncContext(inv);
 	});
 	pi.on("before_agent_start", (event) => { pending = event.systemPromptOptions as PromptOptions; });
 	pi.on("agent_start", () => {
 		if (pending) setSkills(inv, pending.skills ?? [], true);
 		pending = undefined;
-		syncContext(inv);
 	});
 }
 
@@ -540,11 +541,10 @@ function setSkills(inv: Inventory, given: readonly GivenSkill[], fromRequest: bo
 		}
 	} else {
 		inv.skills = given.map((skill) => {
-			const item: SkillItem = {
+			const item: LoadedSkill = {
 				name: sanitize(skill.name),
 				description: sanitize(skill.description),
 				filePath: skill.filePath,
-				tokens: 0,
 				version: 0,
 			};
 			if (fromRequest) item.invocable = !skill.disableModelInvocation;
@@ -553,7 +553,6 @@ function setSkills(inv: Inventory, given: readonly GivenSkill[], fromRequest: bo
 		if (inv.skill !== undefined && !inv.skills.some((item) => item.name === inv.skill)) inv.skill = undefined;
 		void readBodies(inv, inv.skills);
 	}
-	settleListed(inv);
 	inv.env.changed(inv);
 }
 
@@ -562,27 +561,21 @@ const SKILL_BLOCK = / {2}<skill>\n[\s\S]*?\n {2}<\/skill>/g;
 const SKILL_BLOCK_NAME = /<name>([^<]*)<\/name>/;
 
 /**
- * Settle which skills the prompt the run sent lists, and the tokens each block adds to
- * it: Pi writes one `<skill>` block per skill the model may load into its `skills`
- * section, and a handler may remove that section or replace the whole prompt. Pi escapes
- * the name it writes there, and loads a skill whose name fails its checks, so the name is
- * unescaped before it is matched.
+ * Derive listed status and block tokens from the sent prompt. Pi escapes the
+ * names in its skill list; loaded metadata and body state remain independent.
  */
-function settleListed(inv: Inventory): void {
-	const prompt = inv.prompt;
+function listedSkills(prompt: PromptInventory, skills: readonly LoadedSkill[]): SkillItem[] {
 	// A prompt no request carried cannot say what the list holds: a handler may keep it or remove it.
-	const list = prompt && prompt.origin !== "built" ? (prompt.parts.find((part) => part.label === SECTION_LABELS.skills)?.text ?? "") : undefined;
+	const list = prompt.origin !== "built" ? (prompt.parts.find((part) => part.label === SECTION_LABELS.skills)?.text ?? "") : undefined;
 	const blocks = new Map<string, number>();
 	for (const [block] of list?.matchAll(SKILL_BLOCK) ?? []) {
 		const name = SKILL_BLOCK_NAME.exec(block)?.[1];
 		if (name !== undefined) blocks.set(unescapeXml(name), textTokens(block));
 	}
-	for (const item of inv.skills) {
-		// A sent prompt settles every skill: a skill without a block is in no list.
+	return skills.map((item) => {
 		const tokens = list === undefined ? undefined : (blocks.get(item.name) ?? 0);
-		item.listed = tokens === undefined ? undefined : tokens > 0;
-		item.tokens = tokens ?? 0;
-	}
+		return { ...item, listed: tokens === undefined ? undefined : tokens > 0, tokens: tokens ?? 0 };
+	});
 }
 
 /** The five characters Pi writes as entities into its skill list (core/skills.js). */
@@ -592,7 +585,7 @@ function unescapeXml(text: string): string {
 	return text.replace(/&(amp|lt|gt|quot|apos);/g, (_match, name: string) => XML_ENTITIES[name]!);
 }
 
-async function readBodies(inv: Inventory, items: SkillItem[]): Promise<void> {
+async function readBodies(inv: Inventory, items: LoadedSkill[]): Promise<void> {
 	for (const item of items) {
 		// A newer set of skills replaced this one.
 		if (inv.skills !== items) return;

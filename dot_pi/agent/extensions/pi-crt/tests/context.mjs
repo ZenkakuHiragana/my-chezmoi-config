@@ -25,7 +25,7 @@ const conv=await harness({messages:[system(),user('old'),assistant('old answer')
 await conv.capture([conv.entries[0].message,user('replacement'),{role:'custom',customType:'injection',content:'extra',display:false,timestamp:9}]);
 conv.append(assistant('new answer')); await conv.emit('turn_end');
 const data=conv.context.contextData(conv.state);
-assert.equal(part(data,'USER'),3); assert.ok(part(data,'ASSISTANT')>0); assert.ok(part(data,'OTHER')>0);
+assert.deepEqual(Object.fromEntries(data.contextParts.map(p=>[p.label,p.tokens])), {USER:3,ASSISTANT:3,OTHER:2,SYSTEM:1});
 const { load } = await import('./support.mjs');
 const {ContextMeter,textTokens,toolTokens}=await load('state/context.ts');
 const meter=new ContextMeter();

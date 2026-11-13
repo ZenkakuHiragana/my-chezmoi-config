@@ -32,3 +32,27 @@ from known no-force, and are retained through retry until `agent_settled`.
 Pi can recompute hidden declarations in private per-turn option copies; those
 unexposed changes, like later context handlers, remain outside this hook's
 observation. No provider-specific payload parsing or private session access is used.
+
+
+## Behavioral and representation checks
+
+`behavior.mjs` fixes exact category values from an independent text-only
+chars/4 oracle across 75 edit fixtures and checks real Pi history edits,
+branch navigation, repeated messages with distinct IDs, and model changes.
+`skills.mjs` uses a real temporary UTF-8 file and independently known nonzero
+LIST/LOAD values, including cached updates and final right-column positions.
+`contribution-contract.mjs` covers per-message ceilings, stable zero-label
+insertion order and multiple projected messages from one source.
+`retention.mjs` checks that retained conversation edits contain only numeric
+parts and model identity, never original messages or metadata.
+
+For an additional old/new observable comparison, supply an archived baseline
+extension directory (including its tests/support.mjs):
+
+```sh
+node dot_pi/agent/extensions/pi-crt/tests/compare.mjs BASELINE_EXTENSION_DIRECTORY
+```
+
+This checks 191 checkpoints including prompt, declarations, origin, ordered
+parts, INV rows and picks. Equality with a baseline supplements the independent
+specification expectations; it is not itself proof that either side is correct.

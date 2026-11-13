@@ -2,7 +2,7 @@
 import { contentText, declarationsEqual, getCurrentSystemMessage, getCurrentSystemPrompt, getSystemMessageText, type SystemMessage, type Tool } from "@earendil-works/pi-ai";
 import type { ContextWithSystemEvent, SessionProjection } from "@earendil-works/pi-coding-agent";
 import { diffConversation, diffSystemState, trimMatchedEnds } from "./context-diff.ts";
-import { redactMessage } from "./context-redact.ts";
+import { messageContribution, type MessageContribution } from "./context.ts";
 
 export type RequestMessage = ContextWithSystemEvent["messages"][number];
 export interface BaselineMessage { readonly entryId: string; readonly message: RequestMessage }
@@ -11,8 +11,8 @@ export type SystemChange =
 	| { readonly type: "section"; readonly name: string; readonly text: string | null }
 	| { readonly type: "tool"; readonly name: string; readonly declaration: Tool | null };
 type ConversationChange =
-	| { readonly type: "added"; readonly message: RequestMessage }
-	| { readonly type: "modified"; readonly entryId: string; readonly message: RequestMessage }
+	| { readonly type: "added"; readonly contribution: MessageContribution }
+	| { readonly type: "modified"; readonly entryId: string; readonly contribution: MessageContribution }
 	| { readonly type: "deleted"; readonly entryId: string };
 export interface RequestSnapshot {
 	readonly leafId: string | null;
@@ -24,7 +24,7 @@ export interface RequestSnapshot {
 export interface CapturedContext { request: RequestSnapshot; hidden: ReadonlySet<string> }
 export type ContextOrigin = "built" | "recorded" | "observed";
 export interface ProjectedContext {
-	messages: RequestMessage[];
+	contributions: MessageContribution[];
 	branchMessages: RequestMessage[];
 	prompt: string;
 	tools: Tool[];
@@ -52,10 +52,10 @@ export function prepareRequestCapture(projection: SessionProjection, messages: r
 		leafId, baselineSystem,
 		systemChanges: diffSystemState(baselineSystem ? [baselineSystem] : [], requestSystem ? [requestSystem] : []),
 		conversation: diffConversation(unmatched.baseline, request).map((edit): ConversationChange => {
-			if (edit.type === "added") return { type: "added", message: redactMessage(edit.message) };
+			if (edit.type === "added") return { type: "added", contribution: messageContribution(edit.message) };
 			return edit.type === "deleted"
 				? { type: "deleted", entryId: edit.baseline.entryId }
-				: { type: "modified", entryId: edit.baseline.entryId, message: redactMessage(edit.message) };
+				: { type: "modified", entryId: edit.baseline.entryId, contribution: messageContribution(edit.message) };
 		}),
 		...(forcedPrompt === undefined ? {} : { forcedPrompt }),
 	});
@@ -101,21 +101,21 @@ export function projectContext(projection: SessionProjection, captured: Captured
 	const snapshot = captured?.request;
 	const current = readProjection(projection);
 	const branchMessages = current.map(({ message }) => message);
-	const replaced = new Map<BaselineMessage, RequestMessage | undefined>();
-	const additions: RequestMessage[] = [];
+	const replaced = new Map<BaselineMessage, MessageContribution | undefined>();
+	const additions: MessageContribution[] = [];
 	for (const change of snapshot?.conversation ?? []) {
-		if (change.type === "added") { additions.push(change.message); continue; }
+		if (change.type === "added") { additions.push(change.contribution); continue; }
 		const target = current.find((candidate) => candidate.entryId === change.entryId && candidate.message.role !== "system" && !replaced.has(candidate));
-		if (target) replaced.set(target, change.type === "deleted" ? undefined : change.message);
+		if (target) replaced.set(target, change.type === "deleted" ? undefined : change.contribution);
 	}
-	const messages = current.flatMap((entry) => replaced.has(entry) ? (replaced.get(entry) ? [replaced.get(entry)!] : []) : [entry.message]);
-	messages.push(...additions);
+	const contributions = current.flatMap((entry) => replaced.has(entry) ? (replaced.get(entry) ? [replaced.get(entry)!] : []) : [messageContribution(entry.message)]);
+	contributions.push(...additions);
 	const base = getCurrentSystemMessage(branchMessages);
 	const fresh = snapshot !== undefined && sameSystemState(snapshot.baselineSystem, base);
 	const system = fresh ? applySystemChanges(base, snapshot.systemChanges) : base;
 	const hidden = runHidden ?? (fresh ? captured!.hidden : new Set<string>());
 	return {
-		messages, branchMessages,
+		contributions, branchMessages,
 		prompt: fresh && snapshot.forcedPrompt !== undefined ? snapshot.forcedPrompt : system ? getSystemMessageText(system) : fallbackPrompt,
 		tools: (system?.toolsAdded ?? (system ? [] : fallbackTools)).filter((tool) => !hidden.has(tool.name)),
 		origin: fresh ? "observed" : base ? "recorded" : "built",

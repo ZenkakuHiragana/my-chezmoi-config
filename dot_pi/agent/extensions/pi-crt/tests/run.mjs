@@ -1,4 +1,8 @@
 await import('./context.mjs');
 await import('./regressions.mjs');
+await (await import('./behavior.mjs')).default();
+await (await import('./contribution-contract.mjs')).default();
+await (await import('./retention.mjs')).default();
 await (await import('./panels.mjs')).default();
+await (await import('./skills.mjs')).default();
 console.log('panel layout assertions passed');
