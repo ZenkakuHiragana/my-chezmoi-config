@@ -4,14 +4,13 @@
 - Pi Coding Agent に関する情報: https://pi.dev/docs
 - 一時フォルダは `/tmp/pi/` または `~/AppData/Local/Temp/pi/` 以下を使う。
 - 作業の記録には `./.pi/work/(task-name)/` 以下を使う。
-- インターネット検索は、bash で `web_search.sh "検索クエリ"` を実行する。
-- サブエージェントは、bash で `spawn_subagent.sh <種類> --name "<依頼の短い説明>"` を実行して起動する。
+- インターネット検索は `web_search.sh "検索クエリ"` で行う。
+- X (Twitter) の投稿は `fxtwitter.sh` で取得・検索できる。使い方は `--help` を参照する。
+- サブエージェントは `spawn_subagent.sh <種類> --name "<依頼の短い説明>"` を実行して起動する。
   - 依頼文は標準入力で渡す。サブエージェントの最終応答が標準出力に返る。
   - サブエージェントは MCP のツールと拡張機能のツールを使えない。
   - 種類は {{ range $index, $name := keys .agents | sortAlpha }}{{ if $index }}、{{ end }}`{{ $name }}`{{ end }}。それぞれの説明は `--help` で表示する。
   - 複数のサブエージェントを同時に走らせるときは、同じ応答の中で bash を複数回呼び出す。
-- Twitter の投稿を調べる場合は FxEmbed API を使う。
-  - API 仕様: https://raw.githubusercontent.com/FxEmbed/FxEmbed/refs/heads/main/docs/specs/fxtwitter-openapi.json
 
 ## Mermaid による図解
 
