@@ -1,0 +1,111 @@
+<!doctype html><html lang="ja"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>mechanism-textbook の手順を読む：第1章</title><style>:root{color-scheme:light;--ink:#21313e;--muted:#596875;--line:#d3dee5;--blue:#126174}*{box-sizing:border-box}html{scroll-behavior:smooth}body{margin:0;background:#f3f6f6;color:var(--ink);font-family:"Noto Sans JP","Yu Gothic","Meiryo",sans-serif;font-size:17px;line-height:1.95}main{max-width:820px;margin:0 auto;padding:46px 30px 80px;background:white}h1{font-size:1.85rem;line-height:1.5;margin:12px 0 26px}h2{font-size:1.4rem;line-height:1.6;margin:52px 0 20px;padding-bottom:8px;border-bottom:2px solid var(--line)}h3{font-size:1.13rem;margin:30px 0 12px}p{margin:16px 0}a{color:#075e73;text-underline-offset:3px}nav{padding:20px 24px;background:#edf4f5;border-radius:8px}nav ol{margin:10px 0;padding-left:1.6em}.eyebrow{font-size:.86rem;letter-spacing:.08em;color:var(--muted)}.lead{font-size:1.08rem}.table-scroll,.diagram-scroll{overflow-x:auto;max-width:100%;margin:22px 0}.table-scroll table{border-collapse:collapse;width:100%;min-width:620px;font-size:.94rem;line-height:1.7}caption{caption-side:bottom;text-align:left;font-size:.88rem;color:var(--muted);padding:10px 0}th,td{border:1px solid var(--line);padding:13px 15px;text-align:left;vertical-align:top}th{background:#edf4f5;font-weight:600}figure{margin:28px 0;padding:18px;background:#f7fafb;border:1px solid var(--line);border-radius:8px}figcaption{font-size:.9rem;line-height:1.8;color:var(--muted);margin-top:16px}.mermaid{margin:0;text-align:center;min-width:570px}.edgeLabel text{paint-order:stroke;stroke:#f7fafb;stroke-width:5px;stroke-linejoin:round}.mermaid svg{min-width:570px;max-width:none!important;height:auto}.refs{font-size:.86rem;line-height:1.8;color:var(--muted);border-top:1px solid var(--line);margin-top:44px;padding-top:20px}.ref{font-size:.75em;vertical-align:super;padding-left:.2em;white-space:nowrap}.note{border-left:4px solid #278398;padding:5px 20px;background:#f1f7f8}.draft{color:#606e77;font-size:.9rem}code{font-family:"Cascadia Mono","Meiryo",monospace;font-size:.92em}li{margin:8px 0}@media(max-width:520px){main{padding:25px 18px 60px}h1{font-size:1.5rem}body{font-size:16px}figure{padding:12px}nav{padding:15px}}</style><script src="https://cdn.jsdelivr.net/npm/mermaid@10.9.3/dist/mermaid.min.js"></script></head><body><main><header><p class="eyebrow">mechanism-textbook の手順を読む</p><h1>第1章　教科書を作る仕事の全体像</h1><p>本書は、<code>mechanism-textbook</code> の手順と参照資料を対象に、規則として定められた仕事と情報のつながりを説明する。対象の版は<a href="https://github.com/ZenkakuHiragana/my-chezmoi-config/commit/1530a55e23049badd5114886e810375f68971474">出典に記したコミット</a>に固定する。読む順序と各章の前提は目次に示す。</p></header><nav aria-label="全章の目次"><p><strong>読む順序：第1章 → 第2章 → 第3章 → 第4章</strong></p><ol><li><strong>第1章　教科書を作る仕事の全体像</strong>（前提章なし）</li><li><a href="chapter-2.html">第2章　対象理解と読者の出発点</a>（第1章が前提）</li><li><a href="chapter-3.html">第3章　説明の設計と執筆</a>（第1〜2章が前提）</li><li><a href="chapter-4.html">第4章　確認と修正の進め方</a>（第1〜3章が前提）</li></ol><p>幅の広い図表は、その枠内を横に送って読める。出典番号は章末の注に対応する。</p></nav><article aria-label="第1章">
+<p>人に仕組みを理解してもらう説明を作りたいとき、対象について詳しく調べる仕事と、その知識を人が学べる形にする仕事が必要になる。<code>mechanism-textbook</code> は、この二つを分けてから、実際の文章や図表を作る。ここでは、その受け渡しと、先へ進む前に確かめるものを見ていく。<a class="ref" href="#ref-n1" aria-label="注1">[1]</a></p>
+<section id="s11">
+<h2>1.1　調査・設計・制作の役割</h2>
+<p>最初に、対象を説明できるようになることと、その説明を読者が理解できる順に組むことを分けて考える。この違いが、調査の後に設計を置く理由になる。<a class="ref" href="#ref-n1" aria-label="注1">[1]</a></p>
+<p>出発点では、読者に何ができるようになってほしいかを決める。これが<strong>到達点</strong>である。「何の用語を載せるか」ではなく、「どんな性質や関係を説明できるようにするか」「学んだ関係から、別の場面の結果まで導けるようにするか」を定める。あわせて、読者がすでに知っていること、つまり<strong>既有知識</strong>を確かめる。名前を知っていることと、推論に使える性質まで知っていることは区別する。<a class="ref" href="#ref-n2" aria-label="注2">[2]</a></p>
+<p>到達点が決まったら、書き手は資料を調べ、対象の性質が、何を前提に、どんな規則や関係によって成り立つかを組み立て直す。これが<strong>知識体系の再構成</strong>である。事実を集めるだけでなく、その事実を結んで結果を説明できる状態にする。<a class="ref" href="#ref-n3" aria-label="注3">[3]</a></p>
+<p>しかし、対象の性質を支える前提が分かっても、その前提を読者が知っているとは限らない。そこで、必要な前提を読者の既有知識までたどり、何から教えれば先へ進めるかを決める。対象の構造や資料の目次をそのまま写すのではなく、<strong>読者が学ぶ順序</strong>へ組み直す。調査で得た関係と、読者についての情報が、ここで一緒に使われる。<a class="ref" href="#ref-n5" aria-label="注5">[5]</a></p>
+<p>表現の分担とは、示すべきことを文章・表・図などに割り当てることで、次節「学ぶ順序と表現の分担」で選び方を扱う。<a class="ref" href="#ref-n13" aria-label="注13">[13]</a></p>
+<p>その結果を、章ごとに「何が理解できるようになる章か」「どの章を前提にするか」「各節で何をどう示すか」として記録する。この記録が<strong>章の設計</strong>である。制作では、これに沿って図を描き、本文を書く。設計に記録したことが、制作する内容の根拠になる。<a class="ref" href="#ref-n6" aria-label="注6">[6]</a><a class="ref" href="#ref-n9" aria-label="注9">[9]</a></p>
+<div class="table-scroll"><table><caption>三つの仕事で受け渡すもの。<a class="ref" href="#ref-n3" aria-label="注3">[3]</a><a class="ref" href="#ref-n5" aria-label="注5">[5]</a><a class="ref" href="#ref-n6" aria-label="注6">[6]</a><a class="ref" href="#ref-n9" aria-label="注9">[9]</a></caption>
+<thead><tr><th>仕事</th><th>使う材料</th><th>次へ渡すもの</th></tr></thead>
+<tbody>
+<tr><td>対象を理解する</td><td>到達点と、対象の資料・実装など</td><td>性質を支える前提・規則・関係と、その根拠<a class="ref" href="#ref-n3" aria-label="注3">[3]</a></td></tr>
+<tr><td>説明を設計する</td><td>対象の前提関係と、読者の到達点・既有知識</td><td>章と節の順序、推論の道筋、表現の分担<a class="ref" href="#ref-n5" aria-label="注5">[5]</a><a class="ref" href="#ref-n6" aria-label="注6">[6]</a></td></tr>
+<tr><td>表現と本文を作る</td><td>確認を終えた設計と、対象の根拠</td><td>読者が読む文章・図表など<a class="ref" href="#ref-n9" aria-label="注9">[9]</a></td></tr>
+</tbody></table></div>
+<p>表では、同じ「使う材料／次へ渡すもの」という観点で三つの仕事を比べた。次の図は、材料がどこで合流するかを示している。図中の「導出」は、前提と関係を使って結果へ至る推論の道筋を指す。細かい分け方は次節「学ぶ順序と表現の分担」で扱う。<a class="ref" href="#ref-n6" aria-label="注6">[6]</a></p>
+<figure id="fig1"><div class="diagram-scroll"><pre class="mermaid">flowchart TD
+  R["読者の到達点と既有知識 ［2］"]
+  subgraph 対象理解
+    A["前提・規則・関係と根拠 ［3］"]
+  end
+  subgraph 説明設計
+    B["章と節の順序・導出・表現の分担 ［6］"]
+  end
+  subgraph 制作
+    C["設計に沿った図表と本文 ［9］"]
+  end
+  A --&gt;|何を説明できるか ［1］| B
+  R --&gt;|どこから何を学ぶか ［5］| B
+  B --&gt;|何をどの順でどう示すか ［6］| C</pre></div><figcaption>図1　対象について分かった関係と、読者がどこから何を学ぶかが、説明設計へ合流する。設計した順序と分担が、図表と本文の制作へ渡る。<a class="ref" href="#ref-n1" aria-label="注1">[1]</a><a class="ref" href="#ref-n5" aria-label="注5">[5]</a><a class="ref" href="#ref-n6" aria-label="注6">[6]</a></figcaption></figure>
+<p>全体を通して、対象の理解、説明の構成、最後の本文の一貫性に責任を持つのが<strong>編集責任者</strong>である。一人で書くなら執筆者が兼ねる。調査や執筆を分担しても、この全体の責任は残る。<a class="ref" href="#ref-n11" aria-label="注11">[11]</a></p>
+</section>
+<section id="s12">
+<h2>1.2　学ぶ順序と表現の分担</h2>
+<p>説明の設計では、知識を並べる順序と、その知識をどう見せるかを決める。同じ仕組みでも、読者にたどってもらう関係と、比べてもらう関係とでは、必要な表現が変わる。<a class="ref" href="#ref-n5" aria-label="注5">[5]</a><a class="ref" href="#ref-n13" aria-label="注13">[13]</a></p>
+<p>章の順序は、理解の前提で決まる。ある章で読者に結果を導いてもらうために、別の章で教える性質を使うなら、性質を教える章を先に置く。これが<strong>前提にする章</strong>という関係である。単に別の章の名前に触れることではなく、そこで得る理解を結果の導出に使うかどうかで決める。<a class="ref" href="#ref-n5" aria-label="注5">[5]</a></p>
+<p>各節では、何を説明する節なのかを決める。これを<strong>節の問い</strong>と呼ぶ。そこに推論があれば、結果へ至るまでに当てはめる関係を、一段に一つずつ書き出す。これが<strong>導出の段</strong>である。各段には、必要な前提をどこで教えるか、対象の事実の根拠はどこにあるかも記録する。段ごとに前提が見えるので、何を先に教える必要があるかを照らせる。<a class="ref" href="#ref-n6" aria-label="注6">[6]</a></p>
+<p>そのうえで、節の問いと導出から、示すべき関係と、それを使って読者がすることを取り出す。「項目を比べる」のか、「分岐をたどる」のか、「理由から結論へ進む」のか。それぞれの仕事を文章・表・図などに割り当てたものが<strong>表現の分担</strong>である。<a class="ref" href="#ref-n13" aria-label="注13">[13]</a></p>
+<p>たとえば、このスキルが定める四つの確認を説明する場面を考えよう。確認の種類と時点は、次節「制作の途中に入る確認」で扱う。四つの確認は、対象も時点も異なる。その違いを比べる仕事と、確認を挟んで先へ進む経路をたどる仕事は、同じものではない。スキルは、共通の観点で項目を比べる仕事には表、分岐や合流の経路をたどる仕事には図、理由から結論へ進む筋道には文章を選ぶと定めている。この規則を当てはめると、次のように分担できる。<a class="ref" href="#ref-n9" aria-label="注9">[9]</a><a class="ref" href="#ref-n13" aria-label="注13">[13]</a></p>
+<div class="table-scroll"><table><caption>四つの確認を説明するときの表現の分担。<a class="ref" href="#ref-n9" aria-label="注9">[9]</a><a class="ref" href="#ref-n13" aria-label="注13">[13]</a></caption>
+<thead><tr><th>読者がすること</th><th>取り出した関係</th><th>担当する表現</th></tr></thead>
+<tbody>
+<tr><td>四つの確認の違いを比べる</td><td>各確認について共通の観点をそろえる</td><td>表：対象と時点を行列にする</td></tr>
+<tr><td>本文に進むまでの経路をたどる</td><td>前後の依存、図がある場合とない場合の分岐</td><td>図：接続と分岐条件を示す</td></tr>
+<tr><td>その順序が必要な理由を理解する</td><td>前提から結論へ進む筋道</td><td>文章：何を前提に、なぜ次が決まるかを結ぶ</td></tr>
+</tbody></table></div>
+<p>このように、一つの節にも複数の表現を使える。同じ節を図だけ、文章だけに固定せず、それぞれの仕事を章の設計へ記録する。<a class="ref" href="#ref-n13" aria-label="注13">[13]</a></p>
+<p>図に割り当てた仕事には、さらに<strong>図の計画</strong>を作る。何を思い描かせる図か、それが成り立つ空間はどこか、その空間で何に答えるか、答えは何か、操作して読むか、どの形で描くかを決め、置く節も記録する。図の形の選択は、この計画の中に含まれる。<a class="ref" href="#ref-n14" aria-label="注14">[14]</a><a class="ref" href="#ref-n6" aria-label="注6">[6]</a></p>
+</section>
+<section id="s13">
+<h2>1.3　制作の途中に入る確認</h2>
+<p>確認は、原稿を書き終えた後だけに行う仕事ではない。後の作業が使う前提を、その作業の前に確かめるため、対象理解・設計・図・本文のそれぞれに置かれる。ここでは、新しく本を作るときの確認の位置をたどる。<a class="ref" href="#ref-n9" aria-label="注9">[9]</a><a class="ref" href="#ref-n18" aria-label="注18">[18]</a></p>
+<p>まず、対象について「何が何につながり、どちらへ作用やデータが流れるか」を書き出す。これが<strong>形の仮定</strong>である。物理的な形だけでなく、信号や情報の向きも含む。この仮定を支えるのが、規格、仕様、実装、実測の記録などの<strong>一次資料</strong>である。形の仮定は、出典の一次資料が本当にその関係を述べているか、章の設計に進む前に確認する。<a class="ref" href="#ref-n4" aria-label="注4">[4]</a></p>
+<p>章の設計では、読者が本の説明から結果を導けるかを調べるため、本文では答えを述べない別の例も作る。これを<strong>確認用の例</strong>と呼ぶ。その例についても導出の段を書き、本文で教える知識と既有知識だけで結果まで届くかを確かめる。確認用の例は、演習に使う場合を除き、読者に読ませる本文ではなく執筆側の記録に置く。<a class="ref" href="#ref-n6" aria-label="注6">[6]</a></p>
+<p>四つの確認は、次のように異なるものを比べる。確認者は、確かめる対象を作っていない、新しく起動した別のエージェント、つまり作業を担当するAIである。書き手が意図を知っているために、書いていない前提や描いていないものを補って読むことを避けるために分ける。<a class="ref" href="#ref-n9" aria-label="注9">[9]</a><a class="ref" href="#ref-n19" aria-label="注19">[19]</a></p>
+<div class="table-scroll"><table><caption>四つの確認の対象と時点。<a class="ref" href="#ref-n4" aria-label="注4">[4]</a><a class="ref" href="#ref-n6" aria-label="注6">[6]</a><a class="ref" href="#ref-n9" aria-label="注9">[9]</a><a class="ref" href="#ref-n17" aria-label="注17">[17]</a></caption>
+<thead><tr><th>確認</th><th>何を何と照らすか</th><th>いつ行うか</th></tr></thead>
+<tbody>
+<tr><td>① 形の仮定の確認</td><td>対象の接続・作用・流れについての仮定と、出典の一次資料</td><td>対象理解の後、章の設計へ進む前<a class="ref" href="#ref-n4" aria-label="注4">[4]</a></td></tr>
+<tr><td>② 設計の確認</td><td>全章の設計・確認用の例・導出と、理解のために定めた条件</td><td>すべての章の設計を記録した後、図と本文の制作前<a class="ref" href="#ref-n6" aria-label="注6">[6]</a><a class="ref" href="#ref-n24" aria-label="注24">[24]</a></td></tr>
+<tr><td>③ 図の読み取り</td><td>説明文を隠した図から読み取った問いと答えを、図の計画と照合</td><td>その章の図を描いた後、本文を書く前<a class="ref" href="#ref-n25" aria-label="注25">[25]</a></td></tr>
+<tr><td>④ 内容と表示の確認</td><td>本文と設計・根拠・書き方の規則、および実際のページの表示<a class="ref" href="#ref-n9" aria-label="注9">[9]</a></td><td>各章の本文を書き終えたとき<a class="ref" href="#ref-n26" aria-label="注26">[26]</a></td></tr>
+</tbody></table></div>
+<p>③の図の読み取りでは、確認者に図の計画や本文を見せない。図だけから何が読めたかを返してもらい、編集責任者が、その返答と計画を照合する。図の意図を先に教えてしまうと、その意図を確認者が補って読めてしまうからである。何を渡し、何を隠すかの違いは、第4章「確認者に渡す情報」で詳しく扱う。<a class="ref" href="#ref-n17" aria-label="注17">[17]</a><a class="ref" href="#ref-n19" aria-label="注19">[19]</a></p>
+<figure id="fig2"><div class="diagram-scroll"><pre class="mermaid">flowchart TD
+  subgraph 全章の制作より前
+    A["対象の知識体系を再構成"] --&gt;|形の仮定を書き出す| Q1["確認① 形の仮定と一次資料 ［4］"]
+    Q1 --&gt;|依拠する仮定の問題を解消 ［23］| B["すべての章の設計・確認用の例・導出"]
+    B --&gt;|全章分を記録| Q2["確認② 本全体の設計 ［6］"]
+  end
+  subgraph 章ごとの制作
+    Q2 --&gt;|前提となる設計の問題を解消 ［24］| G{"この章の図は？"}
+    G --&gt;|ある| C["章の図を描く"]
+    C --&gt;|表示の問題を直す| Q3["確認③ 図だけから読み取る ［17］"]
+    Q3 --&gt;|本文の前提となる図の問題を解消 ［25］| D["章の本文を書く"]
+    G --&gt;|ない| D
+    D --&gt;|表示の問題を直す| Q4["確認④ 内容と表示 ［26］"]
+  end</pre></div><figcaption>図2　新規制作の前進経路。上の枠は全章の制作前にそろえる仕事、下の枠は章ごとに進める仕事。図のある章とない章の経路を追う。<a class="ref" href="#ref-n4" aria-label="注4">[4]</a><a class="ref" href="#ref-n6" aria-label="注6">[6]</a><a class="ref" href="#ref-n9" aria-label="注9">[9]</a><a class="ref" href="#ref-n13" aria-label="注13">[13]</a><a class="ref" href="#ref-n18" aria-label="注18">[18]</a></figcaption></figure>
+<p>この順序で重要なのは、確認をした印を付けることではなく、後の作業が前提にする問題を解消してから進むことである。形の仮定を確かめてから設計し、設計を確かめてから図を描く。図がある章では、その図から必要なことが読めるかを確かめてから本文を書く。図を説明する本文を、まだ読み取れない図の上へ作り込まない順序になっている。<a class="ref" href="#ref-n18" aria-label="注18">[18]</a></p>
+<p>元のスキルの「手順6」は、この四つの確認を定める場所である。その番号は、確認をすべて最後にまとめるという実行順を意味しない。各確認は、図に示した前後関係で途中に入る。すべての章が書き終わった後には、章をまたぐ記述の一致、用語の意味、章や節の順序について、本全体の確認も行う。<a class="ref" href="#ref-n9" aria-label="注9">[9]</a><a class="ref" href="#ref-n18" aria-label="注18">[18]</a></p>
+<p>別のエージェントを起動できない場合に限って、編集責任者が同じ条件を使って自分で確認する。その場合は、独立した確認をしていないと記録し、報告する。<a class="ref" href="#ref-n21" aria-label="注21">[21]</a></p>
+</section>
+<section id="s14">
+<h2>1.4　作業途中の判断をたどる</h2>
+<p>前節の確認時点を、二つの作業状況に当てはめてみる。どちらも「一章を先に書きたい」という場面だが、先にそろっているものが違うと、進める作業も変わる。</p>
+<h3>一章分だけ設計ができている場合</h3>
+<p>第一章の設計はできたが、残りの章はまだ設計していない、とする。本文を書き始める前には、すべての章の設計と確認用の例、導出の段を記録し、本全体について設計の確認を受ける必要がある。一章分だけでは、この確認に必要なものがそろっていない。したがって、この時点で進めるのは第一章の本文ではなく、残りの章の設計である。<a class="ref" href="#ref-n6" aria-label="注6">[6]</a></p>
+<p>なぜ全体を先にそろえるのか。章の順序は、その章が別の章で教える理解を使うかどうかで決まる。使う側の章まで設計して初めて、どこで何を先に教える必要があるかを、本全体として照らせる。本文を先に固定する前に、この関係を検査する順序を採っている。<a class="ref" href="#ref-n5" aria-label="注5">[5]</a><a class="ref" href="#ref-n6" aria-label="注6">[6]</a></p>
+<h3>全章の設計の確認が終わっている場合</h3>
+<p>今度は、全章の設計の確認が済み、制作の前提となる設計の問題も解消しているとする。第一章では図の読み取りと、定められた手順での指摘への対応を終え、本文の前提となる図の問題も解消した。一方、第二章の図はまだ制作中だとする。設計の確認後は、章ごとに図と本文の制作・確認を分担し、並行して進めてよい。全章の本文を一斉に書き始める必要はない。<a class="ref" href="#ref-n11" aria-label="注11">[11]</a></p>
+<p>第一章では、必要な図の読み取りと指摘への対応を終え、本文の前提となる図の問題も解消しているので、本文へ進める。第二章ではまだ図の制作と読み取りを続ける。全章の設計を先に確認するという条件と、章ごとに必要な確認を終えて本文へ進むという条件を、両方満たす進め方である。<a class="ref" href="#ref-n9" aria-label="注9">[9]</a><a class="ref" href="#ref-n11" aria-label="注11">[11]</a><a class="ref" href="#ref-n18" aria-label="注18">[18]</a></p>
+<p>この二つの状況から、作業は「全章まとめてそろえるもの」と「章ごとに先へ進めるもの」に分かれると分かる。全章の設計の確認が、章ごとの制作を始める境目になっている。<a class="ref" href="#ref-n6" aria-label="注6">[6]</a><a class="ref" href="#ref-n11" aria-label="注11">[11]</a></p>
+</section>
+<section id="s15">
+<h2>1.5　本文と作業記録の役割</h2>
+<p>調査、設計、制作、確認を受け渡すには、何を根拠に決め、どこまで終わったかを保存する場所が要る。それが、執筆側の<strong>作業記録</strong>である。読者が読む本文と、必要なときに引く<strong>参照資料</strong>とは、役割を分ける。<a class="ref" href="#ref-n10" aria-label="注10">[10]</a><a class="ref" href="#ref-n11" aria-label="注11">[11]</a></p>
+<div class="table-scroll"><table><caption>本文・参照資料・作業記録の使い分け。<a class="ref" href="#ref-n10" aria-label="注10">[10]</a><a class="ref" href="#ref-n11" aria-label="注11">[11]</a></caption>
+<thead><tr><th>置く場所</th><th>置く内容</th><th>主な使い方</th></tr></thead>
+<tbody>
+<tr><td>本文</td><td>理解に必要な前提・関係と、結果を導く説明</td><td>読者が読み進めながら理解を作る<a class="ref" href="#ref-n10" aria-label="注10">[10]</a></td></tr>
+<tr><td>参照資料</td><td>網羅的な一覧、長い抜粋など</td><td>必要な項目をその都度引く<a class="ref" href="#ref-n10" aria-label="注10">[10]</a></td></tr>
+<tr><td>作業記録</td><td>到達点、既有知識と出どころ、対象理解、章の設計、確認と修正の状態</td><td>執筆側が判断を引き継ぎ、制作と確認に使う<a class="ref" href="#ref-n11" aria-label="注11">[11]</a></td></tr>
+</tbody></table></div>
+<p>章の本文は、作業記録にある設計から書く。確認者も、その設計と本文が一致するかを確かめる。そのため、設計を変えたら作業記録も更新する。記録の入力と保守は執筆側の仕事であり、読者や依頼者に記入してもらうものではない。<a class="ref" href="#ref-n6" aria-label="注6">[6]</a><a class="ref" href="#ref-n11" aria-label="注11">[11]</a></p>
+<p>一方、本文には対象の仕組みを説明する内容を置く。書き手が資料と照合した経緯や、確認を通ったことは、それ自体では対象の仕組みの説明にならない。検証の経過を渡す必要があれば、参照資料へ分ける。本文を理解するために不可欠な説明まで、参照資料へ追い出すことはしない。<a class="ref" href="#ref-n10" aria-label="注10">[10]</a></p>
+<p>この分担により、読者は仕組みを理解する道筋を読み、執筆側はその道筋が何を根拠に、どんな設計で作られたかをたどれる。章をまたいで前提を使うときの具体的な書き方は、第3章「章の中で前提をそろえる」で扱う。<a class="ref" href="#ref-n1" aria-label="注1">[1]</a><a class="ref" href="#ref-n10" aria-label="注10">[10]</a><a class="ref" href="#ref-n11" aria-label="注11">[11]</a></p>
+<p>確認を終えても、その事実だけで人間が無理なく学べたとは扱わない。エージェントによる確認が調べるのは、説明に必要として定めた条件を満たすかどうかである。人間の途中評価を受けられる進め方では、全体の見通しと十分な深さを含む代表部分を先に書き、読み手の判定を受けてから残りへ展開する。完了条件と人間の評価の関係は、第4章「完了と残るもの」で扱う。<a class="ref" href="#ref-n9" aria-label="注9">[9]</a><a class="ref" href="#ref-n11" aria-label="注11">[11]</a><a class="ref" href="#ref-n12" aria-label="注12">[12]</a></p>
+</section>
+</article><nav aria-label="前後の章"><p><a href="chapter-2.html">第2章へ →</a></p></nav><footer class="refs"><h2>第1章の注</h2><p>リンク先は、解説対象のコミットに固定したGitHub上の原文。対象の版は<a href="https://github.com/ZenkakuHiragana/my-chezmoi-config/commit/1530a55e23049badd5114886e810375f68971474">コミット 1530a55</a>。</p><ol><li id="ref-n1" value="1"><a href="https://github.com/ZenkakuHiragana/my-chezmoi-config/blob/1530a55e23049badd5114886e810375f68971474/dot_agents/exact_skills/mechanism-textbook/SKILL.md?plain=1#L12">SKILL.md「目的と原則」</a>（12〜64行）。</li><li id="ref-n2" value="2"><a href="https://github.com/ZenkakuHiragana/my-chezmoi-config/blob/1530a55e23049badd5114886e810375f68971474/dot_agents/exact_skills/mechanism-textbook/SKILL.md?plain=1#L65">SKILL.md「1. 理解の到達点と出発点を確かめる」</a>（65〜87行）。</li><li id="ref-n3" value="3"><a href="https://github.com/ZenkakuHiragana/my-chezmoi-config/blob/1530a55e23049badd5114886e810375f68971474/dot_agents/exact_skills/mechanism-textbook/SKILL.md?plain=1#L88">SKILL.md「2. 対象を説明できる知識体系を再構成する」</a>（88〜141行）。</li><li id="ref-n4" value="4"><a href="https://github.com/ZenkakuHiragana/my-chezmoi-config/blob/1530a55e23049badd5114886e810375f68971474/dot_agents/exact_skills/mechanism-textbook/SKILL.md?plain=1#L121">SKILL.md「書き手の理解を確かめる」</a>（121〜141行）。</li><li id="ref-n5" value="5"><a href="https://github.com/ZenkakuHiragana/my-chezmoi-config/blob/1530a55e23049badd5114886e810375f68971474/dot_agents/exact_skills/mechanism-textbook/SKILL.md?plain=1#L142">SKILL.md「3. 読者が理解を獲得する順序を設計する」</a>（142〜208行）。</li><li id="ref-n6" value="6"><a href="https://github.com/ZenkakuHiragana/my-chezmoi-config/blob/1530a55e23049badd5114886e810375f68971474/dot_agents/exact_skills/mechanism-textbook/SKILL.md?plain=1#L180">SKILL.md「本文を書く前に設計を記録する」</a>（180〜208行）。</li><li id="ref-n9" value="9"><a href="https://github.com/ZenkakuHiragana/my-chezmoi-config/blob/1530a55e23049badd5114886e810375f68971474/dot_agents/exact_skills/mechanism-textbook/SKILL.md?plain=1#L276">SKILL.md「6. 別のエージェントに確かめさせる」</a>（276〜299行）。</li><li id="ref-n10" value="10"><a href="https://github.com/ZenkakuHiragana/my-chezmoi-config/blob/1530a55e23049badd5114886e810375f68971474/dot_agents/exact_skills/mechanism-textbook/SKILL.md?plain=1#L300">SKILL.md「表現と参照資料」</a>（300〜329行）。</li><li id="ref-n11" value="11"><a href="https://github.com/ZenkakuHiragana/my-chezmoi-config/blob/1530a55e23049badd5114886e810375f68971474/dot_agents/exact_skills/mechanism-textbook/SKILL.md?plain=1#L330">SKILL.md「全体の一貫性を保って作業する」</a>（330〜361行）。</li><li id="ref-n12" value="12"><a href="https://github.com/ZenkakuHiragana/my-chezmoi-config/blob/1530a55e23049badd5114886e810375f68971474/dot_agents/exact_skills/mechanism-textbook/SKILL.md?plain=1#L362">SKILL.md「品質と完了を確かめる」</a>（362〜394行）。</li><li id="ref-n13" value="13"><a href="https://github.com/ZenkakuHiragana/my-chezmoi-config/blob/1530a55e23049badd5114886e810375f68971474/dot_agents/exact_skills/mechanism-textbook/references/representation.md?plain=1#L16">representation.md「表現を選ぶ」</a>（16〜40行）。</li><li id="ref-n14" value="14"><a href="https://github.com/ZenkakuHiragana/my-chezmoi-config/blob/1530a55e23049badd5114886e810375f68971474/dot_agents/exact_skills/mechanism-textbook/references/representation.md?plain=1#L41">representation.md「図の形を決める」</a>（41〜55行）。</li><li id="ref-n17" value="17"><a href="https://github.com/ZenkakuHiragana/my-chezmoi-config/blob/1530a55e23049badd5114886e810375f68971474/dot_agents/exact_skills/mechanism-textbook/references/review.md?plain=1#L103">review.md「確認の種類」</a>（103〜215行）。</li><li id="ref-n18" value="18"><a href="https://github.com/ZenkakuHiragana/my-chezmoi-config/blob/1530a55e23049badd5114886e810375f68971474/dot_agents/exact_skills/mechanism-textbook/references/review.md?plain=1#L216">review.md「進め方」</a>（216〜269行）。</li><li id="ref-n19" value="19"><a href="https://github.com/ZenkakuHiragana/my-chezmoi-config/blob/1530a55e23049badd5114886e810375f68971474/dot_agents/exact_skills/mechanism-textbook/references/review.md?plain=1#L5">review.md「確認を書き手から切り離す理由」</a>（5〜18行）。</li><li id="ref-n21" value="21"><a href="https://github.com/ZenkakuHiragana/my-chezmoi-config/blob/1530a55e23049badd5114886e810375f68971474/dot_agents/exact_skills/mechanism-textbook/references/review.md?plain=1#L270">review.md「別のエージェントを使えない場合」</a>（270〜276行）。</li><li id="ref-n23" value="23"><a href="https://github.com/ZenkakuHiragana/my-chezmoi-config/blob/1530a55e23049badd5114886e810375f68971474/dot_agents/exact_skills/mechanism-textbook/references/review.md?plain=1#L225">review.md「進め方・2」</a>（225〜225行）。</li><li id="ref-n24" value="24"><a href="https://github.com/ZenkakuHiragana/my-chezmoi-config/blob/1530a55e23049badd5114886e810375f68971474/dot_agents/exact_skills/mechanism-textbook/references/review.md?plain=1#L226">review.md「進め方・3」</a>（226〜226行）。</li><li id="ref-n25" value="25"><a href="https://github.com/ZenkakuHiragana/my-chezmoi-config/blob/1530a55e23049badd5114886e810375f68971474/dot_agents/exact_skills/mechanism-textbook/references/review.md?plain=1#L227">review.md「進め方・4」</a>（227〜227行）。</li><li id="ref-n26" value="26"><a href="https://github.com/ZenkakuHiragana/my-chezmoi-config/blob/1530a55e23049badd5114886e810375f68971474/dot_agents/exact_skills/mechanism-textbook/references/review.md?plain=1#L228">review.md「進め方・5」</a>（228〜228行）。</li></ol></footer></main><script>mermaid.initialize({startOnLoad:false,securityLevel:'strict',theme:'base',themeVariables:{fontFamily:'Noto Sans JP, Yu Gothic, Meiryo, sans-serif',fontSize:'17px',primaryColor:'#edf4f5',primaryTextColor:'#21313e',primaryBorderColor:'#5a8390',lineColor:'#356f82',clusterBkg:'#f7fafb',clusterBorder:'#c0d1d9'},flowchart:{htmlLabels:false,useMaxWidth:false,nodeSpacing:30,rankSpacing:42,curve:'linear'}});mermaid.run().then(()=>{document.querySelectorAll('svg g.cluster').forEach(g=>{const r=g.querySelector(':scope > rect'),l=g.querySelector(':scope > .cluster-label');if(!r||!l)return;const b=l.getBBox();const tr=l.getAttribute('transform');l.setAttribute('transform','translate('+(Number(r.getAttribute('x'))+12-b.x)+tr.slice(tr.indexOf(',')));});document.querySelectorAll('svg text').forEach(t=>{const txt=t.textContent;const i=txt.indexOf('［'),j=txt.indexOf('］',i);if(i<0||j<0)return;const n=Number(txt.slice(i+1,j)),note=document.getElementById('ref-n'+n);if(!note)return;const a=document.createElementNS('http://www.w3.org/2000/svg','a');a.setAttribute('href','#'+note.id);a.setAttribute('aria-label','注'+n+'へ');t.parentNode.insertBefore(a,t);a.appendChild(t);});});</script></body></html>

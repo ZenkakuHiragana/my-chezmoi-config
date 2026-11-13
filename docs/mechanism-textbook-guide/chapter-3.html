@@ -1,0 +1,111 @@
+<!doctype html><html lang="ja"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>mechanism-textbook の手順を読む：第3章</title><style>:root{color-scheme:light;--ink:#21313e;--muted:#596875;--line:#d3dee5;--blue:#126174}*{box-sizing:border-box}html{scroll-behavior:smooth}body{margin:0;background:#f3f6f6;color:var(--ink);font-family:"Noto Sans JP","Yu Gothic","Meiryo",sans-serif;font-size:17px;line-height:1.95}main{max-width:820px;margin:0 auto;padding:46px 30px 80px;background:white}h1{font-size:1.85rem;line-height:1.5;margin:12px 0 26px}h2{font-size:1.4rem;line-height:1.6;margin:52px 0 20px;padding-bottom:8px;border-bottom:2px solid var(--line)}h3{font-size:1.13rem;margin:30px 0 12px}p{margin:16px 0}a{color:#075e73;text-underline-offset:3px}nav{padding:20px 24px;background:#edf4f5;border-radius:8px}nav ol{margin:10px 0;padding-left:1.6em}.eyebrow{font-size:.86rem;letter-spacing:.08em;color:var(--muted)}.lead{font-size:1.08rem}.table-scroll,.diagram-scroll{overflow-x:auto;max-width:100%;margin:22px 0}.table-scroll table{border-collapse:collapse;width:100%;min-width:620px;font-size:.94rem;line-height:1.7}caption{caption-side:bottom;text-align:left;font-size:.88rem;color:var(--muted);padding:10px 0}th,td{border:1px solid var(--line);padding:13px 15px;text-align:left;vertical-align:top}th{background:#edf4f5;font-weight:600}figure{margin:28px 0;padding:18px;background:#f7fafb;border:1px solid var(--line);border-radius:8px}figcaption{font-size:.9rem;line-height:1.8;color:var(--muted);margin-top:16px}.mermaid{margin:0;text-align:center;min-width:570px}.edgeLabel text{paint-order:stroke;stroke:#f7fafb;stroke-width:5px;stroke-linejoin:round}.mermaid svg{min-width:570px;max-width:none!important;height:auto}.refs{font-size:.86rem;line-height:1.8;color:var(--muted);border-top:1px solid var(--line);margin-top:44px;padding-top:20px}.ref{font-size:.75em;vertical-align:super;padding-left:.2em;white-space:nowrap}.note{border-left:4px solid #278398;padding:5px 20px;background:#f1f7f8}.draft{color:#606e77;font-size:.9rem}code{font-family:"Cascadia Mono","Meiryo",monospace;font-size:.92em}li{margin:8px 0}@media(max-width:520px){main{padding:25px 18px 60px}h1{font-size:1.5rem}body{font-size:16px}figure{padding:12px}nav{padding:15px}}</style><script src="https://cdn.jsdelivr.net/npm/mermaid@10.9.3/dist/mermaid.min.js"></script></head><body><main><header><p class="eyebrow">mechanism-textbook の手順を読む</p><h1>第3章　説明の設計と執筆</h1></header><nav aria-label="全章の目次"><p><strong>読む順序：第1章 → 第2章 → 第3章 → 第4章</strong></p><ol><li><a href="index.html">第1章　教科書を作る仕事の全体像</a>（前提章なし）</li><li><a href="chapter-2.html">第2章　対象理解と読者の出発点</a>（第1章が前提）</li><li><strong>第3章　説明の設計と執筆</strong>（第1〜2章が前提）</li><li><a href="chapter-4.html">第4章　確認と修正の進め方</a>（第1〜3章が前提）</li></ol><p>幅の広い図表は、その枠内を横に送って読める。出典番号は章末の注に対応する。</p></nav><article>
+<p>対象の性質を支える前提と規則を調べても、それをどの順に、どの深さで教えるかはまだ決まらない。<a href="index.html#s11">1.1 調査・設計・制作の役割</a>で見たように、章の設計は対象理解と読者の情報を受け取り、本文を作るための順序を与える。この章では、前提のつながりから章と節を設計し、読者がたどる推論と表現に分け、本文で使える形にするまでを追う。<a class="ref" href="#ref-n5" aria-label="注5">[5]</a><a class="ref" href="#ref-n6" aria-label="注6">[6]</a></p>
+
+<section id="s31">
+<h2>3.1　章の順序と説明の深さ</h2>
+<p>まず、対象について組み立てた知識を、読者が学べる順序に直す。何を先に教え、個々の事柄をどこまで説明するかは、対象の前提関係と読者がすでに知っていることの両方から決める。<a class="ref" href="#ref-n5" aria-label="注5">[5]</a></p>
+<p>ある事柄を理解するために、どの考え方や関係が必要かをたどり、その先を読者の既有知識までつなぐ。<a class="ref" href="#ref-n5" aria-label="注5">[5]</a><a href="chapter-2.html#s21">2.1 読者の到達点と既有知識</a>で見たように、既有知識は名前だけ知っていることと、説明に使う性質まで知っていることを区別して記録する。<a class="ref" href="#ref-n2" aria-label="注2">[2]</a>したがって、名前が記録されているだけなら、その性質を前提にして話を飛ばすことはできない。必要な考え方を教える位置まで含めて順序を組む。<a class="ref" href="#ref-n5" aria-label="注5">[5]</a></p>
+<p>章どうしの順序は、章の前提から決める。<a href="index.html#s12">1.2 学ぶ順序と表現の分担</a>で述べたように、ある章が別の章を前提にするとは、結果を導くときに、別の章で教えた事柄の理解を使うことである。そのため、使われる事柄を教える章を、使う章より前に置く。<a class="ref" href="#ref-n5" aria-label="注5">[5]</a></p>
+<p><a href="chapter-2.html#s22">2.2 前提と規則の組み立て</a>で見た対応物は、読者がすでに知り、同じ役割を果たすもので、違いを説明すれば新しい事柄を理解する足場になる。<a class="ref" href="#ref-n3" aria-label="注3">[3]</a></p>
+<p>例えば章Aがある規則を教え、章Bがその規則を使って結果を導くとする。章CはAとBを前提にせず、AとBからも前提にされない。図3では、AからBへ向かう依存と、独立したCを見てほしい。<a class="ref" href="#ref-n5" aria-label="注5">[5]</a></p>
+<figure id="fig3"><div class="diagram-scroll"><pre class="mermaid">flowchart TD
+  subgraph 前提と利用
+    A["章A：規則の意味を教える"] --&gt;|その規則を結果の導出に使う ［5］| B["章B：規則を使って結果を導く"]
+  end
+  subgraph 独立した章
+    C["章C：A・Bと互いに依存しない"]
+  end</pre></div><figcaption>図3　章Aを前提とする章Bと、両章から独立する章C。矢印は前提から利用への向き。Cの読む位置は固定しない。<a class="ref" href="#ref-n5" aria-label="注5">[5]</a></figcaption></figure>
+<p>この入力では、規則を知ってからその規則で導くので、AをBより先に置く。一方、CとA、CとBの間にはその制約がない。独立した章どうしについては、それぞれが教える事柄のうち、対応物がある事柄の割合を比べ、割合の大きい章を先にする。図のCの位置だけから、Cが必ず最初や最後に来るとは決まらない。<a class="ref" href="#ref-n5" aria-label="注5">[5]</a></p>
+<p>対応物がある事柄では、その既知のものを示し、違いを説明する。独立した節を立てて最初から説明し直すのではなく、既知のまとまりを使って新しい関係へ進む。対応物がなければ、独立した節を立て、必要になる場面と前提を示して仕組みを教える。順序を選ぶときと説明の深さを選ぶときに、同じ読者情報を別の判断へ使っている。<a class="ref" href="#ref-n5" aria-label="注5">[5]</a></p>
+<p>前提を並べるだけでは、章の話はまだできない。各章で読者が何を知るところから始め、何を見て考え、どの理解に至るかを組み立てる。編集責任者は章ごとに前提にする章と役割を決め、到達点への寄与に応じて重みを定める。資料が豊富にある部分を長くするのではなく、読者が目指す理解に必要な部分へ紙幅と詳しさを配る。その判断は作業記録に残し、変えたときには記録も直す。<a class="ref" href="#ref-n5" aria-label="注5">[5]</a></p>
+</section>
+
+<section id="s32">
+<h2>3.2　節の問いと導出の段</h2>
+<p>章の順序を決めたら、各節の説明が実際に結果まで届くかを設計する。ここでは、読者が何を考える節なのかと、その推論に必要な前提をどう記録し、確かめられるようにするかを見る。<a class="ref" href="#ref-n6" aria-label="注6">[6]</a></p>
+<p><a href="index.html#s11">1.1 調査・設計・制作の役割</a>で見たように、章の設計は何をどの順にどう教えるかの記録である。その記録の節ごとの部分には、節の問い、必要になる場面、そこで教える事柄と推論を書く。<a href="index.html#s12">1.2 学ぶ順序と表現の分担</a>で見た節の問いは、その節で説明することであり、導出の段は、結果へ至る関係を一つずつ当てはめる記録である。節の問いがあることで、記録する事柄や後で選ぶ表現を、何の理解のために置くのか結び付けられる。<a class="ref" href="#ref-n6" aria-label="注6">[6]</a></p>
+<p>導出の各段には、当てはめる定義、規則、式、事実を一つだけ置く。二つの関係が必要なら二段に分ける。さらに、その段の前提が読者の既有知識なのか本で教える事柄なのかを添え、後者なら教える節を示す。前提や当てはめる関係が対象についての事実なら、資料の箇所や照合を終えた模型の出力など、事実を支える出典も添える。これによって、どの関係で進んだかと、その関係や前提をどこから得るかを別々にたどれる。<a class="ref" href="#ref-n6" aria-label="注6">[6]</a></p>
+<p>設計時には、到達点に書いた推論ごとに、本文で答えを述べない「確認用の例」も選ぶ。これは書き手と確認者が、本の説明から結果と理由を導けるかを確かめるための例である。例ごとに、どの節まで読んだ読者が導けるはずかを添え、そこまでに教えたことと既有知識だけを前提として、導出の段を書く。本文自体の推論なら、その推論を述べる箇所より前に教えたことと既有知識が前提になる。確認用の例は作業記録に置き、演習に使う場合を除いて本文には載せない。<a class="ref" href="#ref-n6" aria-label="注6">[6]</a></p>
+<p>導出を分ける働きを、このスキルの規則を当てはめる例で見る。ある応用の説明に、それまで教えていない性質が必要だと分かったとする。表の各行は、入力から次の判断へ進むときに使う関係を一つずつ示している。<a class="ref" href="#ref-n6" aria-label="注6">[6]</a><a class="ref" href="#ref-n8" aria-label="注8">[8]</a></p>
+<div class="table-scroll"><table>
+<caption>未説明の前提が見つかったときの導出の段 <a class="ref" href="#ref-n6" aria-label="注6">[6]</a><a class="ref" href="#ref-n8" aria-label="注8">[8]</a></caption>
+<thead><tr><th scope="col">段</th><th scope="col">使う関係または入力</th><th scope="col">その段で分かること</th></tr></thead>
+<tbody>
+<tr><td>1</td><td>既習事項の応用には未説明の知識を使わない。<a class="ref" href="#ref-n8" aria-label="注8">[8]</a></td><td>応用の前提には、すでに説明した知識が必要である。</td></tr>
+<tr><td>2</td><td>必要な性質は、それまで教えていないという例の入力。</td><td>その性質は、現在の応用箇所では未説明である。</td></tr>
+<tr><td>3</td><td>段1の規則を段2に当てはめる。<a class="ref" href="#ref-n8" aria-label="注8">[8]</a></td><td>その性質を現在の応用の前提には使えない。</td></tr>
+<tr><td>4</td><td>必要な前提が見つかれば、設計と説明に戻って教える節を直す。<a class="ref" href="#ref-n8" aria-label="注8">[8]</a></td><td>その性質を先に教えるように直す。</td></tr>
+</tbody></table></div>
+<p>段2は例の入力であり、スキルが特定の対象について観察した事実ではない。これに対して段1と段4はスキルの規則である。両者を区別すると、どの入力にどの規則を当てはめて「先に教える」と決めたのかが分かる。実際の章で使う性質なら、それが既有知識の記録にあるか、どの節で教えるかを調べる。<a class="ref" href="#ref-n6" aria-label="注6">[6]</a><a class="ref" href="#ref-n8" aria-label="注8">[8]</a></p>
+<p>対象についての事実に出典を添えられない場合、その事実を導出の段には使わない。必要なら対象の調査へ戻って確かめるか、根拠のある事実から対象についての結論を導けるよう、推論を組み直す。それでも到達点の一部が導けなければ、未達の範囲と理由を記録し依頼者に報告する。到達点を小さく書き換えて完了したことにはしない。<a class="ref" href="#ref-n6" aria-label="注6">[6]</a></p>
+<p>主張や式の成立条件と例外も、あらゆるものを節の設計へ集めるのではない。その主張や式が現れる導出のいずれかの段で、前提か当てはめる関係にしているものを記録する。後の本文はこの節の構成から書くため、条件と推論の対応も設計の時点で追える。<a class="ref" href="#ref-n6" aria-label="注6">[6]</a><a class="ref" href="#ref-n10" aria-label="注10">[10]</a></p>
+</section>
+
+<section id="s33">
+<h2>3.3　表現の分担と図の計画</h2>
+<p>同じ節でも、理由を順にたどることと、複数の項目を比べることでは、読者が行う操作が違う。節の問いと導出が決まったら、示す関係と読者にしてほしい操作を取り出し、それぞれに合う表現を選ぶ。<a class="ref" href="#ref-n13" aria-label="注13">[13]</a></p>
+<p><a href="chapter-2.html#s22">2.2 前提と規則の組み立て</a>で述べた理解の型は、構造や振る舞いのように、読者が理解するときに頭の中に組み立てるものの種類である。<a class="ref" href="#ref-n3" aria-label="注3">[3]</a>表現を決めるときはこの型も使い、どんな関係をたどるかを考える。例えば理由から結論への筋道なら文章にし、共通の観点で複数の項目を比べるなら表にする。理由の説明と比較が両方必要な節では、文章と表に仕事を分ける。<a class="ref" href="#ref-n13" aria-label="注13">[13]</a></p>
+<div class="table-scroll"><table>
+<caption>読者が行う操作と、表現に持たせる仕事 <a class="ref" href="#ref-n13" aria-label="注13">[13]</a></caption>
+<thead><tr><th scope="col">示す関係と読者の操作</th><th scope="col">選ぶ表現</th><th scope="col">持たせる仕事</th></tr></thead>
+<tbody>
+<tr><td>前提や理由から結論へ進む</td><td>文章</td><td>条件、理由、結論を文で結ぶ。</td></tr>
+<tr><td>操作を指定された順に実行する</td><td>番号付き手順</td><td>各操作とその順序を示す。</td></tr>
+<tr><td>同格の項目を個別に拾う</td><td>箇条書き</td><td>各項目を独立に拾えるようにする。</td></tr>
+<tr><td>複数の項目を共通の観点で比べる</td><td>表</td><td>項目と観点を行と列にそろえる。</td></tr>
+<tr><td>一か所にそろっていない接続や、分岐・合流の経路をたどる</td><td>図</td><td>要素と接続、向きや分岐の条件を示す。</td></tr>
+<tr><td>定義した量の関係を当てはめ、計算・変形する</td><td>式と文章</td><td>関係と記号、操作の意味を示す。</td></tr>
+<tr><td>条件を変えた結果の変化を確かめる</td><td>操作して読む図</td><td>条件を変え、結果の変化を見せる。操作できない媒体などでは状態を並べる。</td></tr>
+</tbody></table></div>
+<p>これは表現を一節一種類に決める表ではない。例えば比較の表に加え、その比較からどのような理由で結論へ進むかは文章に担わせる。文章も「図を選ばなかった残り」ではなく、理由を順に結ぶという仕事を持つ。どの事柄や関係をどの表現で示すか、文章を選んだものも含めて章の設計に記録する。<a class="ref" href="#ref-n13" aria-label="注13">[13]</a></p>
+<p>図に割り当てた仕事については、描く前に図の計画を作る。図4は、関係と読む操作の抽出から分担が決まり、図の側で形を決めた後、全章の設計を確認して描画へ進む経路を示す。図にしない側の文章や表なども、分担として記録される。<a class="ref" href="#ref-n13" aria-label="注13">[13]</a><a class="ref" href="#ref-n14" aria-label="注14">[14]</a><a class="ref" href="#ref-n6" aria-label="注6">[6]</a></p>
+<figure id="fig4"><div class="diagram-scroll"><pre class="mermaid">flowchart TD
+  S["節の問い・教える事柄・導出"] --&gt;|取り出す ［13］| R["示す関係と、たどる・比べる・求める操作"]
+  R --&gt;|割り当てる ［13］| A["文章・手順・表・式・図などへ分担"]
+  A --&gt;|文章・表などの仕事| T["何を何で示すかを記録 ［13］"]
+  subgraph 図に割り当てた仕事
+    D["頭の中に作るものが成り立つ空間 ［14］"]
+    D --&gt;|その空間で答えられる問い| Q["問いを一つ決め、答えを出す ［14］"]
+    Q --&gt;|読む条件に合わせる| U["操作して読むか、見るだけで読むか ［14］"]
+    U --&gt;|必要な関係が読めるもの| F["形を選び、図の計画を記録 ［14］"]
+  end
+  A --&gt;|図の計画へ| D
+  T --&gt;|章の設計の一部| P["すべての章の設計を確認 ［6］"]
+  F --&gt;|章の設計の一部| P
+  P --&gt;|後続の前提となる問題を解消| E["図を描く ［24］"]</pre></div><figcaption>図4　示す関係と読む操作を取り出して表現へ分担する。図の仕事には空間・問いと答え・読み方・形を計画し、設計の確認と問題解消を経て描く。<a class="ref" href="#ref-n13" aria-label="注13">[13]</a><a class="ref" href="#ref-n14" aria-label="注14">[14]</a><a class="ref" href="#ref-n6" aria-label="注6">[6]</a><a class="ref" href="#ref-n24" aria-label="注24">[24]</a></figcaption></figure>
+<p>図の計画では、まず読者の頭の中に作らせたいもののうち、その図が受け持つものを決め、それが成り立つ空間を選ぶ。次に、その空間で答えられる問いを一つ決め、答えを出す。例えば接続をたどる仕事なら、図3のように章と章の依存を描く空間で、どの章を先にするかを問える。図を操作して読むか、見るだけで読むかを決めたうえで、問いへの答えを形から読み取れるように形を選ぶ。<a class="ref" href="#ref-n14" aria-label="注14">[14]</a></p>
+<p><a href="chapter-2.html#s23">2.3 模型と形の仮定</a>で見たように、模型は入力から結果を計算するもので、形の仮定は対象の接続や作用などについての仮定である。模型を作った対象では、その出力から図の形と数値を作り、図と添える数値にも同じ出力を使う。仮の入力で作る図でも、その入力を模型に与え、図の説明に入力の値を示す。仮の入力からの結果は実測値ではない。模型を作らない構造図でも、描く部分と関係を形の仮定に合わせる。<a class="ref" href="#ref-n14" aria-label="注14">[14]</a><a class="ref" href="#ref-n15" aria-label="注15">[15]</a></p>
+<p>図の問いと答え、空間、読み方、形、置く節を記録し、図を含む全章の設計の確認を受けてから描く。図は説明する文のすぐ隣に置く。図がどの関係を受け持ち、文章が何を説明するかを、読者が行き来しながら探さずに結び付けられるようにするためである。<a class="ref" href="#ref-n6" aria-label="注6">[6]</a><a class="ref" href="#ref-n14" aria-label="注14">[14]</a><a class="ref" href="#ref-n16" aria-label="注16">[16]</a></p>
+</section>
+
+<section id="s34">
+<h2>3.4　章の中で前提をそろえる</h2>
+<p>章と節を設計しても、読者が離れた章の内容を覚えているとは決められない。そこでスキルは、章を読み始めたところから、そこで使う事柄をどう説明するかを定める。本文の冒頭、用語、図と出典も、この道筋に沿って置く。<a class="ref" href="#ref-n1" aria-label="注1">[1]</a><a class="ref" href="#ref-n7" aria-label="注7">[7]</a><a class="ref" href="#ref-n10" aria-label="注10">[10]</a></p>
+<p>ここでの章は読者が読み始める単位であり、節は章の直下の見出しで区切るまとまりである。章を読み始める読者は、その章が前提にする章と、さらにそれらが前提にする章を読み終え、章の中では先頭から順に読むものとする。この読み方のもとで、章の中で使う語や性質、推論が前提にする事実は、次の四つのいずれかに当てる。<a class="ref" href="#ref-n1" aria-label="注1">[1]</a></p>
+<div class="table-scroll"><table>
+<caption>章の中で使う事柄の四つの扱い <a class="ref" href="#ref-n1" aria-label="注1">[1]</a></caption>
+<thead><tr><th scope="col">事柄の位置付け</th><th scope="col">使うときの扱い</th></tr></thead>
+<tbody>
+<tr><td>その章の中で教える</td><td>使う箇所より前に説明する。</td></tr>
+<tr><td>読者の既有知識にある</td><td>今の説明に使う性質まで記録にあることを要する。名前だけの記録なら、名前で指すことに使う。</td></tr>
+<tr><td>前提にする章で教えた</td><td>名前で指すだけなら同じ名前を使う。推論の前提にするなら、必要な性質を一文で言い直し、教えた節の名前を示す。</td></tr>
+<tr><td>まだ教えていない、または前提にしない章で教える</td><td>使う箇所で、そこで知っていれば足りることを述べ、教える節を示す。ただし既習から結果を導く過程と演習では推論の前提にしない。</td></tr>
+</tbody></table></div>
+<p>例えば<a href="index.html#s12">1.2 学ぶ順序と表現の分担</a>で教えた章の前提は、別の章で教えた理解を結果の導出に使う関係である。3.1ではこの性質を言い直してから、使われる事柄を教える章を先に置くと説明した。単に「章の前提」という名前を指す場合とは違い、その性質を理由として使っているからである。前提章で教えた図の部分なら、一文で言い直す代わりに図を再び示してもよい。<a class="ref" href="#ref-n1" aria-label="注1">[1]</a><a class="ref" href="#ref-n5" aria-label="注5">[5]</a></p>
+<p>章と節の始まりにも、読者が今から何を学ぶかを示す文章を置く。章の最初の段落はその章で説明することと、それが必要になる場面を示す。場面は、前提章の内容か読者の既有知識から言い直す。節の最初の段落も、その節で説明することを示す。どちらも図や表、箇条書きより前に置く。<a class="ref" href="#ref-n1" aria-label="注1">[1]</a></p>
+<p>新しい用語は、必要になる場所で意味を説明し、その後も同じ意味で使う。名前には、その分野の日本語の文書で使われる表記を用い、根拠の資料で使う名前が異なれば導入時にそれも示す。日本語の表記がない場合は資料の名前をそのまま使う。意味は平易に説明し、その事柄が何を表し、他の知識とどうつながるかを示す。また、読者の誤解を取り上げるのは、本人の発言や記録、途中の評価などでその誤解が観測された場合に限る。<a class="ref" href="#ref-n7" aria-label="注7">[7]</a></p>
+<p><a href="index.html#s15">1.5 本文と作業記録の役割</a>で見たように、本文は対象について理解するための説明であり、参照資料は必要なときに引く情報を置く。したがって推論に不可欠な前提は本文の道筋に残し、網羅的な一覧や検証記録は参照資料へ分ける。<a class="ref" href="#ref-n10" aria-label="注10">[10]</a></p>
+<p>本文の主張には、根拠の具体的な箇所を指す短い参照番号を付ける。同じ箇所が段落全体を支えるなら段落末にまとめ、根拠箇所が変わる文では番号を分ける。図や表にも説明文の末尾に付け、内部の部分ごとに根拠箇所が異なればその部分に付ける。資料が支える前提と、そこから導いた結論を区別することで、読者は何が根拠で、どこからが推論かをたどれる。<a class="ref" href="#ref-n10" aria-label="注10">[10]</a></p>
+</section>
+
+<section id="s35">
+<h2>3.5　具体例と演習</h2>
+<p>設計した説明は、規則を述べるだけでなく、それを使って結果が得られる過程を示すことでつながる。最後に、既習の知識から導く部分と新しい知識を教える部分の境目、および読者が自分で試す演習の役割を整理する。<a class="ref" href="#ref-n8" aria-label="注8">[8]</a></p>
+<p>3.1の章A・B・Cの例に戻ろう。Aが規則を教え、Bがそれで結果を導くという入力に対し、事柄を教える章をそれを前提にする章より先に置く規則を当てはめると、AがBより先になる。Cについては、A・Bとの依存がないという入力から、依存による順序の制約は生じない。そこで、互いに依存しない章には対応物のある事柄の割合で順序を決めるという別の規則を当てはめる。どの章の割合が大きいかによってCの位置を選ぶことになる。<a class="ref" href="#ref-n5" aria-label="注5">[5]</a></p>
+<p>この例では、入力と、すでに3.1で説明した規則を分けている。結果を導くために必要な性質が既習でなければ、応用箇所でそのまま使わず、元のスキルの手順3「読者が理解を獲得する順序を設計する」と手順4「新しい知識の必要性と意味を伝える」へ戻り、教える節と説明を直す。新しい知識を教える段階に進むときも、既習事項だけで導けたところと、新しく教えるところの境目を示す。こうして読者は、何を自分で導け、何を新たに学ぶ必要があるかを追える。<a class="ref" href="#ref-n8" aria-label="注8">[8]</a></p>
+<p>一つの例だけでは、条件を変えても結果が同じように見える場合がある。そのときは条件を変えた例や比較を示し、共通する関係と変わる結果を説明する。先ほどの例なら、AをBより先に置く依存は保ったまま、独立する章の対応物の割合を変えて、独立な章どうしの順序がどの情報で決まるかを比べられる。<a class="ref" href="#ref-n5" aria-label="注5">[5]</a><a class="ref" href="#ref-n8" aria-label="注8">[8]</a></p>
+<p>作業記録の確認用の例と、読者向けの演習は役割が異なる。3.2で見たように、確認用の例は本の説明から到達点の推論を導けるかを、書き手と確認者が確かめるために作る。<a class="ref" href="#ref-n6" aria-label="注6">[6]</a>演習は、読者が読み終えた後に自分で行うことを到達点が求める場合に、その行為を試すために置く。到達点が複数の行為を求めるなら、それぞれに演習を置き、演習の形も到達点と同じ形にする。本文の答えを探すだけでは済まない課題にし、解答を付けるなら筋道を示しつつ、読者が先に考えられる位置に置く。<a class="ref" href="#ref-n8" aria-label="注8">[8]</a></p>
+<p>到達点が用語や結果を思い出すこと、あるいは仕組みを説明することだけなら、スキルは演習を置かない。本文の内容が資料や設計に合っているかを確かめることと、読者が実際にどのように学べたかを確かめることも別である。確認と修正の進め方は、次の章で扱う。<a class="ref" href="#ref-n8" aria-label="注8">[8]</a><a class="ref" href="#ref-n9" aria-label="注9">[9]</a></p>
+</section>
+</article>
+<nav aria-label="前後の章"><a href="chapter-2.html">← 第2章</a><p><a href="chapter-4.html">第4章へ →</a></p></nav><footer class="refs"><h2>第3章の注</h2><p>リンク先は、解説対象のコミットに固定したGitHub上の原文。対象の版は<a href="https://github.com/ZenkakuHiragana/my-chezmoi-config/commit/1530a55e23049badd5114886e810375f68971474">コミット 1530a55</a>。</p><ol><li id="ref-n1" value="1"><a href="https://github.com/ZenkakuHiragana/my-chezmoi-config/blob/1530a55e23049badd5114886e810375f68971474/dot_agents/exact_skills/mechanism-textbook/SKILL.md?plain=1#L12">SKILL.md「目的と原則」</a>（12〜64行）。</li><li id="ref-n2" value="2"><a href="https://github.com/ZenkakuHiragana/my-chezmoi-config/blob/1530a55e23049badd5114886e810375f68971474/dot_agents/exact_skills/mechanism-textbook/SKILL.md?plain=1#L65">SKILL.md「1. 理解の到達点と出発点を確かめる」</a>（65〜87行）。</li><li id="ref-n3" value="3"><a href="https://github.com/ZenkakuHiragana/my-chezmoi-config/blob/1530a55e23049badd5114886e810375f68971474/dot_agents/exact_skills/mechanism-textbook/SKILL.md?plain=1#L88">SKILL.md「2. 対象を説明できる知識体系を再構成する」</a>（88〜141行）。</li><li id="ref-n5" value="5"><a href="https://github.com/ZenkakuHiragana/my-chezmoi-config/blob/1530a55e23049badd5114886e810375f68971474/dot_agents/exact_skills/mechanism-textbook/SKILL.md?plain=1#L142">SKILL.md「3. 読者が理解を獲得する順序を設計する」</a>（142〜208行）。</li><li id="ref-n6" value="6"><a href="https://github.com/ZenkakuHiragana/my-chezmoi-config/blob/1530a55e23049badd5114886e810375f68971474/dot_agents/exact_skills/mechanism-textbook/SKILL.md?plain=1#L180">SKILL.md「本文を書く前に設計を記録する」</a>（180〜208行）。</li><li id="ref-n7" value="7"><a href="https://github.com/ZenkakuHiragana/my-chezmoi-config/blob/1530a55e23049badd5114886e810375f68971474/dot_agents/exact_skills/mechanism-textbook/SKILL.md?plain=1#L209">SKILL.md「4. 新しい知識の必要性と意味を伝える」</a>（209〜252行）。</li><li id="ref-n8" value="8"><a href="https://github.com/ZenkakuHiragana/my-chezmoi-config/blob/1530a55e23049badd5114886e810375f68971474/dot_agents/exact_skills/mechanism-textbook/SKILL.md?plain=1#L253">SKILL.md「5. 学んだ知識を結び付け、結果を導いて見せる」</a>（253〜275行）。</li><li id="ref-n9" value="9"><a href="https://github.com/ZenkakuHiragana/my-chezmoi-config/blob/1530a55e23049badd5114886e810375f68971474/dot_agents/exact_skills/mechanism-textbook/SKILL.md?plain=1#L276">SKILL.md「6. 別のエージェントに確かめさせる」</a>（276〜299行）。</li><li id="ref-n10" value="10"><a href="https://github.com/ZenkakuHiragana/my-chezmoi-config/blob/1530a55e23049badd5114886e810375f68971474/dot_agents/exact_skills/mechanism-textbook/SKILL.md?plain=1#L300">SKILL.md「表現と参照資料」</a>（300〜329行）。</li><li id="ref-n13" value="13"><a href="https://github.com/ZenkakuHiragana/my-chezmoi-config/blob/1530a55e23049badd5114886e810375f68971474/dot_agents/exact_skills/mechanism-textbook/references/representation.md?plain=1#L16">representation.md「表現を選ぶ」</a>（16〜40行）。</li><li id="ref-n14" value="14"><a href="https://github.com/ZenkakuHiragana/my-chezmoi-config/blob/1530a55e23049badd5114886e810375f68971474/dot_agents/exact_skills/mechanism-textbook/references/representation.md?plain=1#L41">representation.md「図の形を決める」</a>（41〜55行）。</li><li id="ref-n15" value="15"><a href="https://github.com/ZenkakuHiragana/my-chezmoi-config/blob/1530a55e23049badd5114886e810375f68971474/dot_agents/exact_skills/mechanism-textbook/references/representation.md?plain=1#L87">representation.md「模型から描く」</a>（87〜97行）。</li><li id="ref-n16" value="16"><a href="https://github.com/ZenkakuHiragana/my-chezmoi-config/blob/1530a55e23049badd5114886e810375f68971474/dot_agents/exact_skills/mechanism-textbook/references/representation.md?plain=1#L98">representation.md「図と本文を対応させる」</a>（98〜107行）。</li><li id="ref-n24" value="24"><a href="https://github.com/ZenkakuHiragana/my-chezmoi-config/blob/1530a55e23049badd5114886e810375f68971474/dot_agents/exact_skills/mechanism-textbook/references/review.md?plain=1#L226">review.md「進め方・3」</a>（226〜226行）。</li></ol></footer></main><script>mermaid.initialize({startOnLoad:false,securityLevel:'strict',theme:'base',themeVariables:{fontFamily:'Noto Sans JP, Yu Gothic, Meiryo, sans-serif',fontSize:'17px',primaryColor:'#edf4f5',primaryTextColor:'#21313e',primaryBorderColor:'#5a8390',lineColor:'#356f82',clusterBkg:'#f7fafb',clusterBorder:'#c0d1d9'},flowchart:{htmlLabels:false,useMaxWidth:false,nodeSpacing:30,rankSpacing:42,curve:'linear'}});mermaid.run().then(()=>{document.querySelectorAll('svg g.cluster').forEach(g=>{const r=g.querySelector(':scope > rect'),l=g.querySelector(':scope > .cluster-label');if(!r||!l)return;const b=l.getBBox();const tr=l.getAttribute('transform');l.setAttribute('transform','translate('+(Number(r.getAttribute('x'))+12-b.x)+tr.slice(tr.indexOf(',')));});document.querySelectorAll('svg text').forEach(t=>{const txt=t.textContent;const i=txt.indexOf('［'),j=txt.indexOf('］',i);if(i<0||j<0)return;const n=Number(txt.slice(i+1,j)),note=document.getElementById('ref-n'+n);if(!note)return;const a=document.createElementNS('http://www.w3.org/2000/svg','a');a.setAttribute('href','#'+note.id);a.setAttribute('aria-label','注'+n+'へ');t.parentNode.insertBefore(a,t);a.appendChild(t);});});</script></body></html>
