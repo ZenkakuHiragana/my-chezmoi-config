@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 # サブエージェントを一つ起動し、最終応答を標準出力へ返す。
 #
-#   spawn_subagent.sh <種類> [--name <説明>] [--timeout <秒>] [依頼文]
+#   subagent.sh <種類> [--name <説明>] [--timeout <秒>] [依頼文]
 #
 # 依頼文を省略すると標準入力から読む。
 # 種類は、このスクリプトと同じ場所にある agents/<種類>.md で定義する。
