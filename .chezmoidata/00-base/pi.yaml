@@ -58,8 +58,7 @@ pi:
     packages:
       - npm:pi-context-view
       - npm:@valdo766hi/pi-fast
-      # - npm:pi-tidy
-      # - npm:pi-tool-display
+      - npm:@foliox/transparent-compact-pi
       - git:github.com/jokerx0001/pi-model-system-prompt
       - git:github.com/johnnyshields/pi-keepalive
       - source: git:github.com/rytswd/pi-agent-extensions
@@ -72,24 +71,6 @@ pi:
           - "-statusline/index.ts"
           - "-inbox/index.ts"
           - "-python/index.ts"
-    doppelclaude:
-      provider:
-        systemPromptMode: pi
-        systemPromptReplacements:
-          identity: .
-          toolNameNote: .
-          documentation:
-            heading: .
-            instructions:
-              - .
     keepalive:
       cache_ttl: 1h
       cache_upkeep: off
-  compact_transcript:
-    passthroughTools:
-      - edit
-      - write
-  tool_display:
-    registerToolOverrides:
-      edit: false
-      read: false

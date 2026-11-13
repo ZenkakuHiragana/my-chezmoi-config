@@ -9,6 +9,7 @@
 .opencode/KNOWLEDGE.local.yml
 .opencode/package-lock.json
 .opencode/opencode.json
+.pi/work/
 **/__pycache__/
 # コンテナ用のローカル設定と秘密（リポジトリには入れない）。
 # コンテナを増やしても書き足さなくて済むよう、どの階層にも一致させる。
