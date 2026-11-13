@@ -28,5 +28,7 @@ peach = "#ffd27a"
 blue = "#8affc1"
 teal = "#8affc1"
 
+[server]
+allow_unelevated_clients = true
 [experimental]
 kitty_graphics = true
