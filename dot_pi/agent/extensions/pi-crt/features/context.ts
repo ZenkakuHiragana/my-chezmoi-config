@@ -1,113 +1,170 @@
-/**
- * STAT › DETAIL › CONTEXT: what the latest request held, and Pi's context usage.
- *
- * The request is only kept when it is sent (context_with_system) and measured once,
- * off the render path, while the CONTEXT panel is shown. That event hands over the
- * transcript, whose system messages declare the prompt and the tools; an extension may
- * have replaced the prompt itself, so the text the request carries is read from Pi
- * (getSystemPrompt) while the run's options are live, here rather than when measuring.
- * Pi's getContextUsage() walks the whole branch, so it is called only when the session,
- * its leaf or the model changes. Pi does not tell when the leaf or the model changes,
- * so reading the data checks them, and a change gives the data a new version there.
- */
+/** Shared current-branch estimate. Observed edits are captured at our context hook, not provider serialization. */
+import type { Tool } from "@earendil-works/pi-ai";
 import type { ContextUsage, ExtensionAPI } from "@earendil-works/pi-coding-agent";
-import { type ContextPart, ContextMeter } from "../state/context.ts";
+import { type ContextPart, ContextMeter, nextRequestModel } from "../state/context.ts";
+import { prepareRequestCapture, projectContext, type ContextOrigin, type RequestSnapshot, type CapturedContext } from "../state/request-context.ts";
 import type { CrtState, Versioned } from "../state/core.ts";
 import type { FeatureEnv } from "./env.ts";
 
-/** The id of the CONTEXT panel, which the measuring waits for. */
 export const CONTEXT_PANEL = "context";
-
+export interface ContextData extends Versioned {
+	contextParts: readonly ContextPart[];
+	prompt: string;
+	tools: readonly Tool[];
+	/** Provenance of prompt/tool declarations only; messages may include independent hook edits. */
+	origin: ContextOrigin;
+	/** Pi's own context estimate, not necessarily provider-reported usage. */
+	reportedUsage?: ContextUsage;
+	captureWarning?: string;
+}
 interface ContextFeature {
+	pi: ExtensionAPI;
 	env: FeatureEnv;
 	data: ContextData;
-	usageKey: string;
-	usage?: ContextUsage;
+	key?: readonly unknown[];
+	snapshot?: CapturedContext;
+	runLoadout?: { leafId: string | null; hidden: ReadonlySet<string> };
+	pending?: { build: () => RequestSnapshot; sessionId: string; hidden: ReadonlySet<string> };
+	timer?: ReturnType<typeof setImmediate>;
 }
-
-interface ContextData extends Versioned {
-	contextParts: ContextPart[];
-}
-
-/** Each pi-crt instance's context data, by its CrtState (see FeatureEnv). */
 const features = new WeakMap<CrtState, ContextFeature>();
+const NONE: Readonly<ContextData> = Object.freeze({ contextParts: [], prompt: "", tools: [], origin: "built", version: 0 });
+/** Only system evidence survives a session switch, not request-only conversation or image bytes. */
+const remembered = new Map<string, CapturedContext>();
+const MAX_REMEMBERED = 16;
+const EMPTY_HIDDEN: ReadonlySet<string> = new Set();
+const meter = new ContextMeter();
 
-/** Before setupContext: nothing measured. Never changed. */
-const NONE: Readonly<{ contextParts: readonly ContextPart[]; version: number }> = Object.freeze({ contextParts: [], version: 0 });
+function invalidate(feature: ContextFeature): void {
+	feature.key = undefined;
+	feature.env.changed(feature.data);
+}
+function cancelPending(feature: ContextFeature): void {
+	if (feature.timer) clearImmediate(feature.timer);
+	feature.timer = undefined;
+	feature.pending = undefined;
+}
+function finishPending(feature: ContextFeature): void {
+	const pending = feature.pending;
+	if (!pending) return;
+	cancelPending(feature);
+	try {
+		const request = pending.build();
+		feature.snapshot = { request, hidden: pending.hidden };
+		feature.data.captureWarning = undefined;
+		remembered.delete(pending.sessionId);
+		remembered.set(pending.sessionId, { request: { ...request, conversation: [] }, hidden: pending.hidden });
+		if (remembered.size > MAX_REMEMBERED) remembered.delete(remembered.keys().next().value!);
+	} catch {
+		feature.snapshot = undefined;
+		remembered.delete(pending.sessionId);
+		feature.data.captureWarning = "Request capture unavailable; showing session projection";
+	}
+	invalidate(feature);
+}
 
-/** The breakdown of the latest request that was measured; its version covers contextUsage too. */
-export function contextData(state: CrtState): Readonly<{ contextParts: readonly ContextPart[]; version: number }> {
+export function contextData(state: CrtState): Readonly<ContextData> {
 	const feature = features.get(state);
 	if (!feature) return NONE;
-	readUsage(feature);
+	finishPending(feature);
+	read(feature);
 	return feature.data;
 }
-
-/** Pi's context usage, recomputed only when the session, its leaf or the model changes. */
 export function contextUsage(state: CrtState): ContextUsage | undefined {
-	const feature = features.get(state);
-	if (!feature) return undefined;
-	readUsage(feature);
-	return feature.usage;
+	return contextData(state).reportedUsage;
 }
 
-function readUsage(feature: ContextFeature): void {
+function read(feature: ContextFeature): void {
 	const ctx = feature.env.context();
 	if (!ctx) return;
-	const model = ctx.model ? `${ctx.model.provider}/${ctx.model.id}` : "";
-	const key = `${ctx.sessionManager.getSessionId()}\n${ctx.sessionManager.getLeafId() ?? ""}\n${model}`;
-	if (key === feature.usageKey) return;
-	feature.usageKey = key;
-	feature.usage = ctx.getContextUsage();
-	// Read while drawing: the screen is being drawn already.
+	const selected = ctx.model;
+	const built = feature.data.origin === "built";
+	let fallbackTools: Tool[] = [];
+	let fallbackPrompt = "";
+	const readFallback = () => {
+		const active = new Set(feature.pi.getActiveTools());
+		fallbackTools = feature.pi.getAllTools().filter((tool) => active.has(tool.name));
+		fallbackPrompt = ctx.getSystemPrompt();
+	};
+	if (built) readFallback();
+	const definitionKey = () => JSON.stringify(fallbackTools.map(({ name, description, parameters }) => ({ name, description, parameters })));
+	const key = [ctx.sessionManager.getSessionId(), ctx.sessionManager.getLeafId(), selected?.provider, selected?.api, selected?.id, selected?.contextWindow,
+		built ? fallbackPrompt : undefined, built ? definitionKey() : undefined];
+	if (feature.key && key.every((value, index) => value === feature.key![index])) return;
+	if (!built) readFallback();
+	const projection = ctx.sessionManager.buildSessionProjection();
+	const branch = new Set(ctx.sessionManager.getBranch().map((entry) => entry.id));
+	const captured = feature.snapshot;
+	const snapshotApplies = captured && (captured.request.leafId === null ? projection.entries.length === 0 : branch.has(captured.request.leafId));
+	const run = feature.runLoadout;
+	const runApplies = run && (run.leafId === null || branch.has(run.leafId));
+	const current = projectContext(projection, snapshotApplies ? captured : undefined, fallbackPrompt, fallbackTools, runApplies ? run.hidden : undefined);
+	const contextParts = meter.measure(current.messages, current.prompt, current.tools, nextRequestModel(selected, current.branchMessages));
+	Object.assign(feature.data, { contextParts, prompt: current.prompt, tools: current.tools, origin: current.origin, reportedUsage: ctx.getContextUsage() });
 	feature.data.version++;
+	key[6] = current.origin === "built" ? fallbackPrompt : undefined;
+	key[7] = current.origin === "built" ? definitionKey() : undefined;
+	feature.key = key;
 }
 
 export function setupContext(pi: ExtensionAPI, env: FeatureEnv): void {
-	const feature: ContextFeature = { env, data: { contextParts: [], version: 0 }, usageKey: "" };
+	const feature: ContextFeature = { pi, env, data: { ...NONE, contextParts: [], tools: [] } };
 	features.set(env.state, feature);
-	const meter = new ContextMeter();
-	/** The messages of the request being sent, and the prompt text it sends with them. */
-	let pending: { messages: readonly unknown[]; prompt: string } | undefined;
-	let scheduled = false;
-	let closed = false;
-
-	/** Measure the latest request once, off the render path, while the context panel is shown. */
-	const schedule = () => {
-		if (scheduled || !pending || !env.shows(CONTEXT_PANEL)) return;
-		scheduled = true;
-		setTimeout(() => {
-			scheduled = false;
-			const request = pending;
-			if (!request || closed) return;
-			pending = undefined;
-			feature.data.contextParts = meter.measure(request.messages, request.prompt);
-			env.changed(feature.data);
-		}, 0).unref?.();
+	// Pi retains this same settled reference through retry/continue; a new user run replaces it.
+	let runOptions: { hiddenTools?: readonly string[]; forceSystemPrompt?: string } | undefined;
+	const changed = () => invalidate(feature);
+	const forget = (sessionId: string) => {
+		cancelPending(feature);
+		feature.snapshot = undefined;
+		remembered.delete(sessionId);
 	};
-
-	env.onShownChange(schedule);
-
-	pi.on("session_start", () => {
-		feature.usageKey = "";
-		feature.data.contextParts = [];
-		env.changed(feature.data);
+	pi.on("session_start", (_event, ctx) => {
+		feature.snapshot = remembered.get(ctx.sessionManager.getSessionId());
+		feature.runLoadout = undefined;
+		changed();
 	});
-
-	pi.on("session_tree", () => {
-		pending = undefined;
-		feature.data.contextParts = [];
-		env.changed(feature.data);
+	pi.on("before_agent_start", (event) => { runOptions = event.systemPromptOptions; });
+	pi.on("agent_start", (_event, ctx) => {
+		feature.runLoadout = { leafId: ctx.sessionManager.getLeafId(), hidden: new Set(runOptions?.hiddenTools ?? []) };
+		changed();
 	});
-
-	// Only keep the request (its transcript, and the prompt text Pi sends it with) to measure it when the context panel is shown.
 	pi.on("context_with_system", (event, ctx) => {
-		pending = { messages: event.messages, prompt: ctx.getSystemPrompt() };
-		schedule();
+		if (!ctx.hasUI) return;
+		const sessionId = ctx.sessionManager.getSessionId();
+		forget(sessionId);
+		try {
+			const prompt = ctx.getSystemPrompt();
+			const knownPrompt = runOptions ? { forceSystemPrompt: runOptions.forceSystemPrompt === undefined ? undefined : prompt } : undefined;
+			const hidden = new Set(runOptions?.hiddenTools ?? feature.runLoadout?.hidden ?? EMPTY_HIDDEN);
+			feature.runLoadout = { leafId: ctx.sessionManager.getLeafId(), hidden };
+			const build = prepareRequestCapture(ctx.sessionManager.buildSessionProjection(), event.messages, prompt, ctx.sessionManager.getLeafId(), knownPrompt);
+			feature.pending = { build, sessionId, hidden };
+			feature.timer = setImmediate(() => finishPending(feature));
+			feature.timer.unref?.();
+		} catch {
+			feature.data.captureWarning = "Request capture unavailable; showing session projection";
+		}
+		changed();
 	});
-
+	pi.on("session_compact", (_event, ctx) => {
+		forget(ctx.sessionManager.getSessionId());
+		feature.runLoadout = undefined;
+		changed();
+	});
+	pi.on("session_tree", () => {
+		feature.runLoadout = undefined;
+		changed();
+	});
+	pi.on("message_end", changed);
+	pi.on("turn_end", changed);
+	pi.on("agent_end", () => { feature.runLoadout = undefined; changed(); });
+	pi.on("model_select", changed);
+	pi.on("agent_settled", () => { runOptions = undefined; });
 	pi.on("session_shutdown", () => {
-		closed = true;
-		pending = undefined;
+		cancelPending(feature);
+		feature.snapshot = undefined;
+		feature.runLoadout = undefined;
+		runOptions = undefined;
+		features.delete(env.state);
 	});
 }

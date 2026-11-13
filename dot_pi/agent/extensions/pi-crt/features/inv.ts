@@ -1,40 +1,16 @@
 /**
- * INV: what the agent carries — the system prompt by part, the tools and the
- * skills — with rough token counts (Pi's estimate, characters / 4). The panels in
- * panels/inv.ts read them through the functions here, which take the pi-crt
- * instance's state (see FeatureEnv).
- *
- * The parts of the system prompt are the sections rendered into the text of the
- * request: the preamble, written without a tag, then each section between its
- * `<name>` and `</name>` lines. The text is Pi's own rendering for the run
- * (getSystemPrompt), read while the run's options are live: a `before_agent_start`
- * handler may replace the whole prompt, and Pi keeps that replacement out of the
- * session (docs/session-format.md records sections, and a forced prompt records none
- * of its own), so the recorded sections are not the text the model gets. Pi renders
- * that text when a run starts and at the end of each of its turns, and that is when it is
- * measured; before any of them the panel shows the text Pi would build now instead, said
- * to be unsent. A handler of `context` or `before_provider_request` then rewrites the
- * request after this text is fixed, and what it writes is not part of it.
- *
- * The skills start as the ones Pi has loaded, read at session_start through
- * getCommands(), so the list is there before the first run. The options of each run
- * then replace them: Pi hands those to extensions only in before_agent_start, and
- * other extensions may still change them after pi-crt's handler, so they are read at
- * agent_start. getCommands() does not say which skills only the user can invoke, so
- * that stays unknown until a request says it. What each skill adds to the request is
- * read from the prompt's own skill list, which may hold none.
- *
- * Every figure carries an Origin, and every panel words it the same way, so how fresh it
- * is stays on screen: what a request this process saw, what the session's transcript
- * records, and what Pi would build now. A prompt leaves no trace in the session once it
- * was sent, so this process remembers one by its session for the switches back to it.
+ * INV reads the shared current-context projection (features/context.ts) for prompt
+ * and declarations. It owns only inventory presentation: picks, namespace folds,
+ * loaded skill metadata and bounded background reads of skill bodies.
  */
 import { open } from "node:fs/promises";
-import { getCurrentTools, type Tool } from "@earendil-works/pi-ai";
-import type { ExtensionAPI, ExtensionContext, ToolNamespace } from "@earendil-works/pi-coding-agent";
-import { textTokens } from "../state/context.ts";
+import { type Tool } from "@earendil-works/pi-ai";
+import type { ExtensionAPI, ToolNamespace } from "@earendil-works/pi-coding-agent";
+import { textTokens, toolTokens } from "../state/context.ts";
 import { type CrtState, sanitize, type Versioned } from "../state/core.ts";
 import type { FeatureEnv } from "./env.ts";
+import { contextData } from "./context.ts";
+import type { ContextOrigin } from "../state/request-context.ts";
 
 /** A part of the system prompt: its instruction text, or one of its named sections. */
 export interface PromptPart {
@@ -109,18 +85,11 @@ export interface SkillItem extends Versioned {
 const BODY_BYTES = 256 * 1024;
 
 /**
- * Where a figure comes from, worded the same way by every panel.
- *
- * - `observed`: measured from a request this process saw, so it is what the session sent
- *   while pi-crt was running.
- * - `recorded`: replayed from the session's transcript, which holds the last request
- *   recorded there whichever process sent it (tools survive a restart; a prompt does not).
- * - `built`: what Pi would build or declare now, no request measured: it may well be
- *   what a request carried, and it is not evidence that one did.
- *
- * Named Origin because a tool's `source` is already the file that defines it.
+ * Evidence for the shared estimate: request edits still applicable to this branch
+ * (`observed`), session system replay (`recorded`), or live Pi fallback (`built`).
+ * An observed estimate includes current messages, not a frozen prior request.
  */
-export type Origin = "observed" | "recorded" | "built";
+export type Origin = ContextOrigin;
 
 /** A skill as a request's options or Pi's loaded skills give it. */
 interface GivenSkill {
@@ -134,8 +103,6 @@ interface GivenSkill {
 /** The part of the request options that INV reads (Pi's NormalizedBuildSystemPromptOptions). */
 interface PromptOptions {
 	skills?: GivenSkill[];
-	/** Declarations the run's loadout hides; they stay registered but the request sends none. */
-	hiddenTools?: string[];
 }
 
 /** One pi-crt instance's inventory. */
@@ -148,8 +115,9 @@ interface Inventory {
 	 * changed a description); undefined until a run has declared any.
 	 */
 	declared?: readonly Tool[];
-	/** The tools a run's loadout hid from its declarations, which stay registered. */
-	hidden: ReadonlySet<string>;
+	/** Version of the shared context last projected into this inventory. */
+	contextVersion: number;
+	contextOrigin: Origin;
 	skills: SkillItem[];
 	/** Whether the skills have been given yet. */
 	skillsKnown: boolean;
@@ -189,11 +157,14 @@ const inventories = new WeakMap<CrtState, Inventory>();
 const NO_TOOLS: readonly ToolItem[] = [];
 
 export function prompt(state: CrtState): PromptInventory | undefined {
-	return inventories.get(state)?.prompt;
+	const inv = inventories.get(state);
+	if (inv) syncContext(inv);
+	return inv?.prompt;
 }
 
 export function skills(state: CrtState): { known: boolean; items: readonly SkillItem[] } {
 	const inv = inventories.get(state);
+	if (inv) syncContext(inv);
 	return inv ? { known: inv.skillsKnown, items: inv.skills } : { known: false, items: [] };
 }
 
@@ -219,14 +190,21 @@ export function skills(state: CrtState): { known: boolean; items: readonly Skill
 export function tools(state: CrtState): readonly ToolItem[] {
 	const inv = inventories.get(state);
 	if (!inv) return NO_TOOLS;
+	syncContext(inv);
 	const list = inv.toolList;
 	/** What the last request declared of each tool, less the declarations its loadout hid. */
-	const declarations = new Map((inv.declared ?? []).filter((tool) => !inv.hidden.has(tool.name)).map((tool) => [tool.name, tool]));
+	const declarations = new Map((inv.declared ?? []).map((tool) => [tool.name, tool]));
 	/** The names the last request declared; before the transcript records any, the registered loadout stands in. */
 	const declaredNames = new Set(inv.declared ? declarations.keys() : inv.pi.getActiveTools());
 	/** Where the declarations and their tokens come from. */
-	const origin: Origin = inv.declared ? "recorded" : "built";
-	const all = inv.pi.getAllTools();
+	const origin = inv.contextOrigin;
+	const registered = inv.pi.getAllTools();
+	const registeredNames = new Set(registered.map((tool) => tool.name));
+	// Declaration membership is authoritative; the registry only supplies runtime metadata.
+	const all = [...registered, ...[...declarations.values()].filter((tool) => !registeredNames.has(tool.name)).map((tool) => ({
+		...tool, exposure: "declared", namespace: undefined, promptGuidelines: undefined,
+		sourceInfo: { path: "session/request (not registered)" },
+	}))];
 	const key = `${origin}\n${all.map((tool) => `${tool.name}\t${tool.exposure}`).join("\n")}\n\n${[...declaredNames].join("\n")}`;
 	/** What the request said of a tool, or the registered definition while it said nothing. */
 	const said = (tool: (typeof all)[number]) => declarations.get(tool.name) ?? tool;
@@ -246,7 +224,7 @@ export function tools(state: CrtState): readonly ToolItem[] {
 		description: sanitize(said(tool).description ?? ""),
 		active: declaredNames.has(tool.name),
 		exposure: tool.exposure,
-		tokens: textTokens(JSON.stringify({ name: tool.name, description: said(tool).description, parameters: said(tool).parameters })),
+		tokens: toolTokens({ name: tool.name, description: said(tool).description, parameters: said(tool).parameters }),
 		origin,
 		parameters: said(tool).parameters,
 		guidelines: (tool.promptGuidelines ?? []).map(sanitize),
@@ -339,7 +317,9 @@ function toolGroups(all: readonly { exposure: string }[], fields: readonly (Name
 
 /** Changes whenever the prompt, the skills or the picked part or skill change. */
 export function version(state: CrtState): number {
-	return inventories.get(state)?.version ?? 0;
+	const inv = inventories.get(state);
+	if (inv) syncContext(inv);
+	return inv?.version ?? 0;
 }
 
 /** Changes whenever a skill file has been read. */
@@ -349,6 +329,7 @@ export function bodiesVersion(state: CrtState): number {
 
 /** Changes whenever the tools or the picked tool or namespace change; read it after tools(). */
 export function toolsVersion(state: CrtState): number {
+	tools(state);
 	return inventories.get(state)?.toolList.version ?? 0;
 }
 
@@ -411,120 +392,39 @@ export function pickSkill(state: CrtState, name: string | undefined): void {
 	inv.env.changed(inv);
 }
 
+/** Refresh before panel key comparison, not only inside a cached line producer. */
+function syncContext(inv: Inventory): void {
+	const current = contextData(inv.env.state);
+	if (inv.contextVersion === current.version) return;
+	inv.contextVersion = current.version;
+	inv.contextOrigin = current.origin;
+	inv.prompt = measurePrompt(current.prompt, current.origin);
+	inv.declared = current.tools;
+	inv.toolList.key = "";
+	if (!inv.prompt.parts.some((part) => part.label === inv.part)) inv.part = undefined;
+	settleListed(inv);
+	inv.version++;
+}
+
 export function setupInventory(pi: ExtensionAPI, env: FeatureEnv): void {
 	const inv: Inventory = {
-		pi,
-		env,
-		skills: [],
-		skillsKnown: false,
+		pi, env, skills: [], skillsKnown: false,
 		toolList: { items: [], key: "", fields: [], version: 0 },
-		version: 0,
-		bodies: { version: 0 },
-		folds: { expanded: new Set(), version: 0 },
-		hidden: new Set(),
+		version: 0, bodies: { version: 0 }, folds: { expanded: new Set(), version: 0 },
+		contextVersion: -1, contextOrigin: "built",
 	};
 	inventories.set(env.state, inv);
-	/** The options of the request being started, read once the other extensions are done with them. */
 	let pending: PromptOptions | undefined;
-
-	/** The tools the session's transcript declares: Pi's replay of what the last request sent. */
-	const readDeclared = (ctx: ExtensionContext) => {
-		const messages = ctx.sessionManager.buildSessionProjection().messages as Parameters<typeof getCurrentTools>[0];
-		// getCurrentTools answers [] for a transcript that declares nothing, which is also what a
-		// request declaring no tool leaves; only the messages telling of a change say which it is.
-		const declared = getCurrentTools(messages);
-		inv.declared = declaresTools(messages) ? declared : undefined;
-	};
-
-	/** Measure what the run carries now, keeping the picked part when it is still there. */
-	const readPrompt = (ctx: ExtensionContext) => {
-		inv.prompt = measurePrompt(ctx.getSystemPrompt(), "observed");
-		if (!inv.prompt.parts.some((part) => part.label === inv.part)) inv.part = undefined;
-		readDeclared(ctx);
-		remember(ctx, inv);
-		settleListed(inv);
-		env.changed(inv);
-	};
-
-	/**
-	 * Show what is known of the session's prompt: the request this process measured on its
-	 * branch, else the one Pi would build now. A switch back to a session and a move in the
-	 * tree both land here, and neither promise the same freshness (see Origin).
-	 */
-	const showPrompt = (ctx: ExtensionContext) => {
-		const request = remembered(ctx);
-		inv.prompt = request?.prompt ?? measurePrompt(ctx.getSystemPrompt(), "built");
-		inv.part = undefined;
-		inv.hidden = request?.hidden ?? new Set();
-		readDeclared(ctx);
-		settleListed(inv);
-		env.changed(inv);
-	};
-
-	pi.on("session_start", (_event, ctx) => {
+	pi.on("session_start", () => {
 		setSkills(inv, loadedSkills(pi), false);
-		showPrompt(ctx);
+		syncContext(inv);
 	});
-	pi.on("turn_end", (_event, ctx) => readPrompt(ctx));
-	pi.on("session_tree", (_event, ctx) => showPrompt(ctx));
-
-	pi.on("before_agent_start", (event, ctx) => {
-		pending = event.systemPromptOptions as PromptOptions;
-		// Pi adds the resources extensions bring after session_start, so the prompt built then is
-		// stale; build it again here, just before the run that measures the real one.
-		if (inv.prompt?.origin !== "observed") showPrompt(ctx);
-	});
-
-	pi.on("agent_start", (_event, ctx) => {
-		const options = pending;
+	pi.on("before_agent_start", (event) => { pending = event.systemPromptOptions as PromptOptions; });
+	pi.on("agent_start", () => {
+		if (pending) setSkills(inv, pending.skills ?? [], true);
 		pending = undefined;
-		if (options) {
-			inv.hidden = new Set(options.hiddenTools ?? []);
-			setSkills(inv, options.skills ?? [], true);
-		}
-		// The run's options are settled by now, so this is the prompt its requests carry.
-		readPrompt(ctx);
+		syncContext(inv);
 	});
-}
-
-/** Whether the transcript holds a declaration change, which tells a request's tools from none at all. */
-function declaresTools(messages: readonly { role?: string; toolsAdded?: unknown; toolsRemoved?: unknown }[]): boolean {
-	return messages.some(
-		(message) => message.role === "system" && (Array.isArray(message.toolsAdded) || Array.isArray(message.toolsRemoved)),
-	);
-}
-
-/**
- * The last request this process measured in one session: the prompt it carried, the
- * declarations the run's loadout hid, and the leaf it was measured at. Pi keeps neither a
- * forced prompt nor a loadout's hidden names in the session, so a switch back to a session
- * can only be answered from here.
- */
-interface SentRequest {
-	prompt: PromptInventory;
-	hidden: ReadonlySet<string>;
-	leaf: string | null;
-}
-
-/** By session id: a session switch makes a new Inventory, the process and this stay. */
-const sentRequests = new Map<string, SentRequest>();
-/** Sessions remembered at most, oldest first, so a long run does not hold every prompt it saw. */
-const MAX_SENT_REQUESTS = 16;
-
-function remember(ctx: ExtensionContext, inv: Inventory): void {
-	if (!inv.prompt) return;
-	const id = ctx.sessionManager.getSessionId();
-	// Re-inserted so that the oldest entry is the one evicted.
-	sentRequests.delete(id);
-	sentRequests.set(id, { prompt: inv.prompt, hidden: inv.hidden, leaf: ctx.sessionManager.getLeafId() });
-	if (sentRequests.size > MAX_SENT_REQUESTS) sentRequests.delete(sentRequests.keys().next().value!);
-}
-
-/** The remembered request, if the view is still on the branch it was measured on. */
-function remembered(ctx: ExtensionContext): SentRequest | undefined {
-	const request = sentRequests.get(ctx.sessionManager.getSessionId());
-	if (!request) return undefined;
-	return ctx.sessionManager.getBranch().some((entry) => entry.id === request.leaf) ? request : undefined;
 }
 
 /** The skills Pi has loaded, as its slash commands list them. */

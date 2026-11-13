@@ -11,7 +11,7 @@ import { VITALS_PANEL, vitals } from "../features/vitals.ts";
 import { gaugeRatios } from "../state/usage.ts";
 import { framed, type SizedView } from "../screen/frame.ts";
 import { Lines } from "../screen/lines.ts";
-import { bar, compactNumber, elapsedText, originNote } from "./common.ts";
+import { alignedRow, bar, compactNumber, elapsedText, originNote } from "./common.ts";
 import { type Paint, PI_LOGO, PI_LOGO_SHADES, type Rgb, pixelArtWidth, renderPixelArt, shade, shadePalette } from "./pixel-art.ts";
 import { type CardInput, cardsWidth, centerLine, gaugeRow, statCards } from "./status-parts.ts";
 import { type PanelEnv, registerPanel } from "./registry.ts";
@@ -55,8 +55,8 @@ registerPanel(VITALS_PANEL, (env) => {
 	return panel;
 });
 
-registerPanel(CONTEXT_PANEL, (env) =>
-	framed(
+registerPanel(CONTEXT_PANEL, (env) => {
+	const panel = framed(
 		env.theme,
 		() => "CONTEXT",
 		new Lines(
@@ -65,7 +65,10 @@ registerPanel(CONTEXT_PANEL, (env) =>
 		),
 		"top",
 		() => env.focused(CONTEXT_PANEL),
-	));
+	);
+	panel.scroll?.setScrollbar("always");
+	return panel;
+});
 
 registerPanel(USAGE_PANEL, (env) =>
 	framed(
@@ -81,30 +84,42 @@ registerPanel(USAGE_PANEL, (env) =>
 
 function contextLines(env: PanelEnv, width: number): string[] {
 	const t = env.theme();
+	const data = contextData(env.state);
 	const usage = contextUsage(env.state);
+	const parts = data.contextParts;
+	const estimated = parts.reduce((sum, part) => sum + part.tokens, 0);
 	const lines: string[] = [];
-	const barWidth = Math.max(6, Math.min(40, width - 4));
+	const window = usage?.contextWindow;
 	if (usage) {
-		const tokens = usage.tokens === null ? "?" : compactNumber(usage.tokens);
-		const percent = usage.percent === null ? "--" : `${Math.round(usage.percent)}%`;
-		lines.push(` ${t.fg("text", `${tokens} / ${compactNumber(usage.contextWindow)}`)}  ${t.fg("accent", t.bold(percent))}`);
-		const ratio = (usage.percent ?? 0) / 100;
-		lines.push(` ${bar(t, ratio, barWidth, ratio > 0.85 ? "error" : ratio > 0.6 ? "warning" : "accent")}`);
+		const isEstimate = usage.tokens === null;
+		const count = isEstimate ? `≈${compactNumber(estimated)}` : compactNumber(usage.tokens!);
+		const percent = isEstimate
+			? (window && window > 0 ? Math.round(estimated / window * 100) : undefined)
+			: (usage.percent === null ? undefined : Math.round(usage.percent));
+		lines.push(t.fg("muted", isEstimate ? " ESTIMATE" : " PI ESTIMATE"));
+		lines.push(alignedRow("", t.fg("accent", t.bold(`${count}/${compactNumber(usage.contextWindow)} ${percent === undefined ? "--" : `${percent}%`}`)), width));
+		const ratio = (percent ?? 0) / 100;
+		const barWidth = Math.max(0, Math.min(40, width - 1));
+		if (barWidth) lines.push(` ${bar(t, ratio, barWidth, ratio > 0.85 ? "error" : ratio > 0.6 ? "warning" : "accent")}`);
 	} else {
-		lines.push(t.fg("dim", " -- no model --"));
+		lines.push(t.fg("dim", " USAGE UNKNOWN"));
 	}
-	const parts = contextData(env.state).contextParts;
+	if (data.captureWarning) lines.push(t.fg("warning", ` ${data.captureWarning}`));
+	const source = data.origin === "observed" ? "hook" : data.origin === "recorded" ? "log" : "live";
+	const heading = width >= 40 ? "CURRENT/NEXT · ESTIMATE" : "ESTIMATE";
+	const provenance = width >= 40 ? `SYSTEM${originNote(data.origin)}` : `SYS · ${source}`;
+	lines.push(t.fg("muted", heading), t.fg("dim", provenance), t.fg("dim", " Window %"));
 	if (!parts.length) {
-		lines.push("", t.fg("dim", " -- breakdown after the next request --"));
+		lines.push(t.fg("dim", " -- no estimated parts --"));
 		return lines;
 	}
-	const total = parts.reduce((sum, part) => sum + part.tokens, 0) || 1;
-	lines.push("", t.fg("muted", ` BREAKDOWN (estimated, chars/4)${originNote("observed")}`));
-	const partBar = Math.max(4, Math.min(20, width - 30));
 	for (const part of parts) {
-		const share = part.tokens / total;
-		const label = part.label.padEnd(13);
-		lines.push(` ${t.fg("text", label)}${bar(t, share, partBar)} ${t.fg("muted", `${compactNumber(part.tokens).padStart(6)} ${String(Math.round(share * 100)).padStart(3)}%`)}`);
+		const share = window && window > 0 ? part.tokens / window : undefined;
+		const right = `${compactNumber(part.tokens)} ${share === undefined ? "--" : `${Math.round(share * 100)}%`}`;
+		// Bars are optional: the count and Window % take precedence over label and bar.
+		const barWidth = Math.min(20, Math.max(0, width - visibleWidth(right) - 17));
+		const left = ` ${t.fg("text", part.label.padEnd(13))}${barWidth ? bar(t, share ?? 0, barWidth) : ""}`;
+		lines.push(alignedRow(left, t.fg("muted", right), width));
 	}
 	return lines;
 }

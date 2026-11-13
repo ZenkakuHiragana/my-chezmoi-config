@@ -4,7 +4,7 @@
  * text of the picked item. Enter or a click picks an item; on a namespace's heading,
  * it also lists the namespace's tools under it, or stops listing them.
  */
-import { truncateToWidth, visibleWidth, wrapTextWithAnsi } from "@earendil-works/pi-tui";
+import { wrapTextWithAnsi } from "@earendil-works/pi-tui";
 import {
 	bodiesVersion,
 	folds,
@@ -26,7 +26,7 @@ import {
 } from "../features/inv.ts";
 import { framed } from "../screen/frame.ts";
 import { Lines, type ThemeRef } from "../screen/lines.ts";
-import { compactNumber, ListLines, originNote, Selection, withCursor } from "./common.ts";
+import { alignedRow, compactNumber, ListLines, originNote, Selection, withCursor } from "./common.ts";
 import { type PanelEnv, type PanelHandle, registerPanel } from "./registry.ts";
 
 type Theme = ReturnType<ThemeRef>;
@@ -47,13 +47,14 @@ function listPanel(
 			selection,
 			(width) => {
 				selection.reset();
-				return withCursor(env, selection, id, produce(Math.max(1, width - 1)));
+				return withCursor(env, selection, id, produce(Math.max(0, width - 1)));
 			},
 			() => [...key(), selection.selectedKey, env.focused(id)],
 		),
 		"top",
 		() => env.focused(id),
 	);
+	panel.scroll?.setScrollbar("always");
 	selection.view = panel.scroll;
 	return { ...panel, list: selection };
 }
@@ -61,13 +62,6 @@ function listPanel(
 /** A panel of wrapped text. */
 function textPanel(env: PanelEnv, id: string, title: () => string, produce: (width: number) => string[], key: () => unknown[]): PanelHandle {
 	return framed(env.theme, title, new Lines(produce, key), "top", () => env.focused(id));
-}
-
-/** `left` cut to leave room for `right` at the right edge. */
-function row(left: string, right: string, width: number): string {
-	const room = Math.max(1, width - visibleWidth(right) - 1);
-	const shown = truncateToWidth(left, room);
-	return shown + " ".repeat(Math.max(1, width - visibleWidth(shown) - visibleWidth(right))) + right;
 }
 
 function wrap(text: string, width: number, color: (line: string) => string): string[] {
@@ -110,13 +104,13 @@ registerPanel("promptparts", (env) => {
 			const { part } = picks(env.state);
 			const lines: string[] = [];
 			selection.place(0, lines.length, 1);
-			lines.push(row(`${picked(t, part === undefined)}${t.fg("text", t.bold("WHOLE PROMPT"))}`, tokens(t, p.tokens), width));
+			lines.push(alignedRow(`${picked(t, part === undefined)}${t.fg("text", t.bold("WHOLE PROMPT"))}`, tokens(t, p.tokens), width));
 			p.parts.forEach((item, index) => {
 				selection.place(index + 1, lines.length, 1);
-				lines.push(row(`${picked(t, part === item.label)}${t.fg("text", item.label)}`, tokens(t, item.tokens), width));
+				lines.push(alignedRow(`${picked(t, part === item.label)}${t.fg("text", item.label)}`, tokens(t, item.tokens), width));
 			});
 			if (!p.parts.length) lines.push(t.fg("dim", " -- no part in this prompt --"));
-			else lines.push(row(t.fg("dim", " rest: outside the parts"), tokens(t, p.rest, "dim"), width));
+			else lines.push(alignedRow(t.fg("dim", " rest: outside the parts"), tokens(t, p.rest, "dim"), width));
 			return lines;
 		},
 		() => [version(env.state)],
@@ -270,14 +264,14 @@ registerPanel("toollist", (env) => {
 					const mark = t.fg("muted", expanded.has(group.name) ? "▾" : "▸");
 					const left = `${picked(t, toolGroup === group.name)}${mark} ${t.fg("text", t.bold(group.label))}  ${t.fg("dim", summary)}`;
 					const sum = activeTokens(members);
-					return row(left, sum ? tokens(t, sum) : t.fg("dim", "—"), width);
+					return alignedRow(left, sum ? tokens(t, sum) : t.fg("dim", "—"), width);
 				}
 				const member = item.tool;
 				const indent = item.nested ? "  " : "";
 				const dot = member.active ? t.fg("success", "●") : t.fg("dim", "○");
 				const name = member.active ? t.fg("toolTitle", member.name) : t.fg("dim", member.name);
 				const left = `${picked(t, tool === member.name)}${indent}${dot} ${name}  ${t.fg("dim", firstLine(member.description))}`;
-				return row(left, member.active ? tokens(t, member.tokens) : t.fg("dim", "—"), width);
+				return alignedRow(left, member.active ? tokens(t, member.tokens) : t.fg("dim", "—"), width);
 			});
 		},
 		() => {
@@ -404,13 +398,13 @@ registerPanel("skilllist", (env) => {
 			const cells = items.map(skillCells);
 			const reqWidth = Math.max(3, ...cells.map((cell) => cell.req.length));
 			const loadWidth = Math.max(4, ...cells.map((cell) => cell.load.length));
-			const lines = [row("", t.fg("dim", `${"LIST".padStart(reqWidth)}  ${"LOAD".padStart(loadWidth)}`), width)];
+			const lines = [alignedRow("", t.fg("dim", `${"LIST".padStart(reqWidth)}  ${"LOAD".padStart(loadWidth)}`), width)];
 			items.forEach((item, index) => {
 				selection.place(index, lines.length, 1);
 				const name = item.invocable === false ? t.fg("dim", item.name) : t.fg("toolTitle", item.name);
 				const { req, load } = cells[index]!;
 				const right = `${t.fg(item.listed ? "muted" : "dim", req.padStart(reqWidth))}  ${t.fg(item.bodyTokens !== undefined ? "muted" : "dim", load.padStart(loadWidth))}`;
-				lines.push(row(`${picked(t, skill === item.name)}${name}`, right, width));
+				lines.push(alignedRow(`${picked(t, skill === item.name)}${name}`, right, width));
 			});
 			return lines;
 		},

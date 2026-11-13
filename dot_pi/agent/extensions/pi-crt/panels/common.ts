@@ -1,7 +1,7 @@
 /**
  * Pieces the panels share, and the NO SIGNAL panel.
  */
-import { backgroundAnsi, colorToRgb, type ScrollView, type TuiMouseEvent, type TuiMouseEventResult } from "@earendil-works/pi-tui";
+import { backgroundAnsi, colorToRgb, truncateToWidth, visibleWidth, type ScrollView, type TuiMouseEvent, type TuiMouseEventResult } from "@earendil-works/pi-tui";
 import type { Origin } from "../features/inv.ts";
 import { Lines, type ThemeRef } from "../screen/lines.ts";
 import { noSignal } from "../screen/nosignal.ts";
@@ -52,7 +52,20 @@ export function compactNumber(value: number): string {
  * `unmeasured` for Pi's build: it is not a record of anything sent, and it may match it.
  */
 export function originNote(origin: Origin): string {
-	return `  · ${origin === "built" ? "unmeasured" : origin}`;
+	return `  · ${origin === "built" ? "unmeasured" : origin === "observed" ? "context hook" : origin}`;
+}
+
+/** Fit a single row, preserving the right-hand cells whenever they fit. */
+export function alignedRow(left: string, right: string, width: number): string {
+	width = Math.max(0, width);
+	left = left.replace(/[\t\r\n\f\v]+/g, " ");
+	right = right.replace(/[\t\r\n\f\v]+/g, " ");
+	if (!width) return "";
+	const rightWidth = visibleWidth(right);
+	if (rightWidth >= width) return truncateToWidth(right, width);
+	const leftWidth = Math.max(0, width - rightWidth - 1);
+	const shown = leftWidth ? truncateToWidth(left, leftWidth) : "";
+	return shown + " ".repeat(width - visibleWidth(shown) - rightWidth) + right;
 }
 
 /** The key before an item was selected. */

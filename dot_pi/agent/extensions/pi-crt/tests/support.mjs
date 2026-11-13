@@ -1,0 +1,43 @@
+import assert from 'node:assert/strict';
+import { stripVTControlCharacters } from 'node:util';
+import { readFileSync } from 'node:fs';
+import { homedir } from 'node:os';
+import { join, resolve } from 'node:path';
+import { fileURLToPath, pathToFileURL } from 'node:url';
+const install = join(homedir(), '.pi', 'agent', 'install');
+// Override for a non-managed Pi install. Use the same Pi packages as the host.
+const modules = process.env.PI_TEST_MODULES || join(install, 'releases', readFileSync(join(install, 'current-version'), 'utf8').trim(), 'node_modules');
+const { createJiti } = await import(pathToFileURL(join(modules, 'jiti/lib/jiti.mjs')).href);
+const alias = Object.fromEntries(['pi-ai', 'pi-tui', 'pi-agent-core', 'pi-coding-agent'].map(p => ['@earendil-works/' + p, join(modules, '@earendil-works', p, 'dist/index.js')]));
+export const jiti = createJiti(import.meta.url, { alias, interopDefault: true, fsCache: false });
+export const root = fileURLToPath(new URL('../', import.meta.url));
+export const load = path => jiti.import(join(root, path));
+export const ai = await jiti.import('@earendil-works/pi-ai');
+export const api = await jiti.import('@earendil-works/pi-coding-agent');
+export const tui = await jiti.import('@earendil-works/pi-tui');
+export const { renderLayoutFrame } = await import(pathToFileURL(join(modules, '@earendil-works/pi-tui/dist/layout.js')).href);
+const { getThemeByName } = await import(pathToFileURL(join(modules, '@earendil-works/pi-coding-agent/dist/modes/interactive/theme/theme.js')).href);
+export const theme = getThemeByName('dark');
+assert.ok(theme);
+export const plain = stripVTControlCharacters;
+export const user = (text, timestamp=1) => ({ role:'user',content:text,timestamp });
+export const assistant = (text, extra={}) => ({ role:'assistant',content:[{type:'text',text}],timestamp:2,provider:'p',api:'a',model:'m',stopReason:'stop',usage:{input:10,output:2,cacheRead:0,cacheWrite:0,totalTokens:12,cost:{input:0,output:0,cacheRead:0,cacheWrite:0,total:0}}, ...extra });
+export const tool = (name='call',description='description') => ({name,description,parameters:{type:'object',properties:{value:{type:'string'}}},exposure:'direct'});
+export const system = (content='BASE', tools=[]) => ({role:'system',content,timestamp:0,...(tools.length?{toolsAdded:tools}:{})});
+let sequence=0;
+export async function harness({messages=[system(),user('hello')], allTools=[], skills=[]}={}) {
+  const {createState}=await load('state/core.ts');
+  const context=await load('features/context.ts');
+  const inventory=await load('features/inv.ts');
+  const state=createState(), handlers=new Map();
+  let invalidations=0;
+  let entries=messages.map((message,i)=>({id:'e'+i,message})), id='test-'+sequence++, fallback='BASE', reported={tokens:20,contextWindow:1000,percent:2};
+  const pi={on:(name,fn)=>{handlers.set(name,[...(handlers.get(name)||[]),fn]);},getAllTools:()=>allTools,getActiveTools:()=>allTools.map(t=>t.name),getCommands:()=>skills.map(s=>({name:'skill:'+s.name,description:s.description,source:'skill',sourceInfo:{path:s.filePath}}))};
+  const ctx={hasUI:true,model:{provider:'p',api:'a',id:'m',contextWindow:1000},getSystemPrompt:()=>fallback,getContextUsage:()=>reported,sessionManager:{getSessionId:()=>id,getLeafId:()=>entries.at(-1)?.id??null,getBranch:()=>entries,buildSessionProjection:()=>({messages:entries.map(e=>e.message),entries:entries.map(e=>({sourceEntry:e,messages:[e.message]}))})}};
+  const env={state,context:()=>ctx,requestRender:()=>{},changed:d=>{d.version++;invalidations++;},shows:()=>true,onShownChange:()=>{}};
+  context.setupContext(pi,env); inventory.setupInventory(pi,env);
+  const emit=async(name,event={})=>{for(const f of handlers.get(name)||[])await f(event,ctx);};
+  await emit('session_start');
+  const panelEnv={state,theme:()=>theme,focused:()=>false,now:()=>0,cwd:()=>'',every:()=>0,redrawAt:()=>{}};
+  return {state,pi,ctx,context,inventory,panelEnv,emit,get invalidations(){return invalidations;},get entries(){return entries;},set entries(v){entries=v;},set fallback(v){fallback=v;},set reported(v){reported=v;},get sessionId(){return id;},set sessionId(v){id=v;},append(message){entries.push({id:'e'+entries.length,message});},async capture(request=entries.map(e=>e.message)){await emit('context_with_system',{messages:request});return context.contextData(state);}};
+}
