@@ -51,6 +51,7 @@ pi:
     tuiMode: fullscreen
     fullscreenScrollbar: auto
     hideThinkingBlock: true
+    shellCommandPrefix: 'export PATH="$HOME/.pi/agent/scripts:$PATH"'
     defaultTools:
       - bash
     codemode:

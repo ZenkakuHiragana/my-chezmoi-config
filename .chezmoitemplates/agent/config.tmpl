@@ -88,4 +88,8 @@ read_only: true
 ---
 
 {{ includeTemplate $bodyTemplate $root }}
+## 追加のコンテキスト
+
+- 一時フォルダは `/tmp/pi/` または `~/AppData/Local/Temp/pi/` 以下を使う。
+- 作業の記録には `./.pi/work/(task-name)/` 以下を使う。
 {{- end -}}
