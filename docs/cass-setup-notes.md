@@ -1,0 +1,25 @@
+- データの配置先を決める。指定がなければ各ツールの既定の場所を使い、以下の `<配置先>` に関する指定はすべて省く。
+- CASS v0.11.0 を入れる。
+  - 公式の `install.ps1` を `-Version v0.11.0 -EasyMode -Dest <配置先>\cass\bin` で実行する。
+- Ollama を入れる。
+- 配置先の環境変数をユーザー環境変数に設定する。
+  - `CASS_DATA_DIR=<配置先>\cass\data`
+  - `OLLAMA_MODELS=<配置先>\Models`
+  - 設定後に Ollama を起動し直す。
+- Ruri v3 310m Q8_0 をダウンロードする。
+  - `https://huggingface.co/Targoyle/ruri-v3-310m-GGUF/resolve/main/ruri-v3-310m-q8_0.gguf`
+- モデルを Ollama に登録する。
+  - `FROM <ダウンロードした gguf の絶対パス>` だけを書いた Modelfile を作る。
+  - `ollama create ruri-v3-310m:q8_0 -f <Modelfile>` を実行する。
+- CASS の外部埋め込みをユーザー環境変数に設定する。
+  - `CASS_SEMANTIC_EMBEDDER=external`
+  - `CASS_EXTERNAL_EMBEDDINGS=1`
+  - `CASS_EXTERNAL_EMBEDDING_URL=http://127.0.0.1:11434/v1/embeddings`
+  - `CASS_EXTERNAL_EMBEDDING_MODEL=ruri-v3-310m:q8_0`
+  - `CASS_EXTERNAL_EMBEDDING_DIMENSION=768`
+  - `CASS_EXTERNAL_EMBEDDING_TIMEOUT_MS=120000`
+- 環境変数を反映するため、ターミナルを開き直す。
+- 文字索引を作る。
+  - `cass index`
+- 意味索引を作る。中断したら同じコマンドを再実行する。
+  - `cass models backfill --tier quality --batch-conversations 8 --max-batches 10000`
