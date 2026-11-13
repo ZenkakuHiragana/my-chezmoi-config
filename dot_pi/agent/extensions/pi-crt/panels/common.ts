@@ -68,6 +68,15 @@ export function alignedRow(left: string, right: string, width: number): string {
 	return shown + " ".repeat(width - visibleWidth(shown) - rightWidth) + right;
 }
 
+/** Local text-counting method, not a claim about the full payload. */
+export function textCounterRows(id: string, width: number, theme: ReturnType<ThemeRef>): string[] {
+	const method = id === "chars4" ? "chars/4" : id;
+	const label = theme.fg("muted", " TEXT TOKENS");
+	const value = theme.fg("dim", method);
+	if (width >= 24) return [alignedRow(label, value, width)];
+	return [truncateToWidth(label, Math.max(0, width)), truncateToWidth(theme.fg("dim", ` ${method}`), Math.max(0, width))];
+}
+
 /** The key before an item was selected. */
 const NONE = Symbol("none");
 /** The key once the selected item left the list: nothing is selected. */

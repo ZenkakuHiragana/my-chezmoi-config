@@ -115,5 +115,5 @@ const rawTool={role:'toolResult',toolCallId:'id',toolName:'call',content:[{type:
 const redacted=captureRequest(after.ctx.sessionManager.buildSessionProjection(),[...after.entries.map(e=>e.message),rawTool],'BASE',after.ctx.sessionManager.getLeafId());
 assert.ok(!JSON.stringify(redacted).includes('RAW DETAILS IMAGE'));
 const retainedTool=redacted.conversation.find(e=>e.type==='added'&&e.contribution.parts.some(p=>p.label==='TOOL RESULTS')).contribution;
-assert.equal(retainedTool.parts.reduce((n,p)=>n+p.tokens,0),api.estimateTokens(rawTool));
+assert.equal(retainedTool.parts.reduce((n,p)=>n+p.tokens.chars4,0),api.estimateTokens(rawTool));
 console.log('known force, continuation and metadata assertions passed');

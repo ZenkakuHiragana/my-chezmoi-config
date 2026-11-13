@@ -8,6 +8,7 @@ import type { ExtensionAPI, ToolNamespace } from "@earendil-works/pi-coding-agen
 import { textTokens, toolTokens } from "../state/context.ts";
 import { type CrtState, sanitize, type Versioned } from "../state/core.ts";
 import type { FeatureEnv } from "./env.ts";
+import { countText, counted, type TokenCounts, type TextCounter } from "../state/tokenizers.ts";
 import { contextData, type ContextData } from "./context.ts";
 import type { ContextOrigin } from "../state/request-context.ts";
 
@@ -19,6 +20,7 @@ export interface PromptPart {
 }
 
 export interface PromptInventory {
+	counterId: TextCounter["id"];
 	/** The text the request carries, or the one Pi would build now. */
 	text: string;
 	tokens: number;
@@ -80,7 +82,7 @@ export interface SkillItem extends Versioned {
 	bodyError?: string;
 }
 
-type LoadedSkill = Omit<SkillItem, "listed" | "tokens">;
+type LoadedSkill = Omit<SkillItem, "listed" | "tokens" | "bodyTokens"> & { bodyCounts?: TokenCounts };
 
 /** Bytes read of each skill file. */
 const BODY_BYTES = 256 * 1024;
@@ -153,8 +155,8 @@ const NO_TOOLS: readonly ToolItem[] = [];
 
 /** Derive the prompt only when its text or provenance changes. */
 function promptView(inv: Inventory, current: Readonly<ContextData>): PromptInventory {
-	if (!inv.prompt || inv.prompt.text !== current.prompt || inv.prompt.origin !== current.origin) {
-		inv.prompt = measurePrompt(current.prompt, current.origin);
+	if (!inv.prompt || inv.prompt.text !== current.prompt || inv.prompt.origin !== current.origin || inv.prompt.counterId !== current.counter.id) {
+		inv.prompt = measurePrompt(current.prompt, current.origin, current.counter);
 	}
 	// Validate before a panel compares its version key, so a removed part cannot reappear selected.
 	if (inv.part !== undefined && !inv.prompt.parts.some((part) => part.label === inv.part)) {
@@ -172,13 +174,14 @@ export function prompt(state: CrtState): PromptInventory | undefined {
 export function skills(state: CrtState): { known: boolean; items: readonly SkillItem[] } {
 	const inv = inventories.get(state);
 	if (!inv) return { known: false, items: [] };
-	const view = promptView(inv, contextData(state));
+	const current = contextData(state);
+	const view = promptView(inv, current);
 	const cached = inv.skillView;
 	if (!cached || cached.prompt !== view || cached.loaded !== inv.skills ||
 		cached.version !== inv.version || cached.bodiesVersion !== inv.bodies.version) {
 		inv.skillView = {
 			prompt: view, loaded: inv.skills, version: inv.version, bodiesVersion: inv.bodies.version,
-			items: listedSkills(view, inv.skills),
+			items: listedSkills(view, inv.skills, current.counter),
 		};
 	}
 	return { known: inv.skillsKnown, items: inv.skillView!.items };
@@ -240,7 +243,7 @@ export function tools(state: CrtState): readonly ToolItem[] {
 		description: sanitize(said(tool).description ?? ""),
 		active: declaredNames.has(tool.name),
 		exposure: tool.exposure,
-		tokens: toolTokens({ name: tool.name, description: said(tool).description, parameters: said(tool).parameters }),
+		tokens: toolTokens({ name: tool.name, description: said(tool).description, parameters: said(tool).parameters }, current.counter),
 		origin,
 		parameters: said(tool).parameters,
 		guidelines: (tool.promptGuidelines ?? []).map(sanitize),
@@ -504,11 +507,11 @@ function fenceAfter(fence: string | undefined, line: string): string | undefined
 }
 
 /** The prompt a request carries, by the sections rendered into it. */
-function measurePrompt(text: string, origin: Origin): PromptInventory {
-	const tokens = textTokens(text);
+function measurePrompt(text: string, origin: Origin, counter: TextCounter): PromptInventory {
+	const tokens = textTokens(text, counter);
 	const sections = renderedSections(text);
 	/** Tokens up to `end`: a part costs the difference of two prefixes, so the parts and the rest add up to the whole. */
-	const prefix = (end: number) => textTokens(text.slice(0, end));
+	const prefix = (end: number) => textTokens(text.slice(0, end), counter);
 	const parts: PromptPart[] = [];
 	const add = (label: string, start: number, end: number) => {
 		const part = text.slice(start, end).trimEnd();
@@ -519,7 +522,7 @@ function measurePrompt(text: string, origin: Origin): PromptInventory {
 	add("PREAMBLE", 0, sections[0]?.start ?? text.length);
 	for (const section of sections) add(SECTION_LABELS[section.name] ?? `<${section.name}>`, section.start, section.end);
 	const counted = parts.reduce((sum, part) => sum + part.tokens, 0);
-	return { text, tokens, parts, rest: Math.max(0, tokens - counted), origin };
+	return { counterId: counter.id, text, tokens, parts, rest: Math.max(0, tokens - counted), origin };
 }
 
 /**
@@ -564,17 +567,18 @@ const SKILL_BLOCK_NAME = /<name>([^<]*)<\/name>/;
  * Derive listed status and block tokens from the sent prompt. Pi escapes the
  * names in its skill list; loaded metadata and body state remain independent.
  */
-function listedSkills(prompt: PromptInventory, skills: readonly LoadedSkill[]): SkillItem[] {
+function listedSkills(prompt: PromptInventory, skills: readonly LoadedSkill[], counter: TextCounter): SkillItem[] {
 	// A prompt no request carried cannot say what the list holds: a handler may keep it or remove it.
 	const list = prompt.origin !== "built" ? (prompt.parts.find((part) => part.label === SECTION_LABELS.skills)?.text ?? "") : undefined;
 	const blocks = new Map<string, number>();
 	for (const [block] of list?.matchAll(SKILL_BLOCK) ?? []) {
 		const name = SKILL_BLOCK_NAME.exec(block)?.[1];
-		if (name !== undefined) blocks.set(unescapeXml(name), textTokens(block));
+		if (name !== undefined) blocks.set(unescapeXml(name), textTokens(block, counter));
 	}
 	return skills.map((item) => {
 		const tokens = list === undefined ? undefined : (blocks.get(item.name) ?? 0);
-		return { ...item, listed: tokens === undefined ? undefined : tokens > 0, tokens: tokens ?? 0 };
+		const { bodyCounts, ...metadata } = item;
+		return { ...metadata, bodyTokens: bodyCounts && counted(bodyCounts, counter), listed: tokens === undefined ? undefined : tokens > 0, tokens: tokens ?? 0 };
 	});
 }
 
@@ -597,7 +601,7 @@ async function readBodies(inv: Inventory, items: LoadedSkill[]): Promise<void> {
 				item.bodyCut = bytesRead > BODY_BYTES;
 				const text = buffer.subarray(0, Math.min(bytesRead, BODY_BYTES)).toString("utf8");
 				item.body = sanitize(text).replace(/\t/g, "    ");
-				item.bodyTokens = textTokens(text);
+				item.bodyCounts = countText(text);
 			} finally {
 				await handle.close();
 			}

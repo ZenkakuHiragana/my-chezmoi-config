@@ -56,7 +56,7 @@ export default async function skills() {
         {component:panel.component, basis:width, grow:0, shrink:0, minSize:0},
         {component:{render:w => ['N'.repeat(w)], invalidate() {}}, basis:8, grow:0, shrink:0, minSize:0},
       ]) : panel.component;
-      return renderLayoutFrame(component, width + (split ? 8 : 0), 5, () => {}).lines.map(plain);
+      return renderLayoutFrame(component, width + (split ? 8 : 0), 8, () => {}).lines.map(plain);
     }
     function right(line, width, expected) {
       // Scrollbar occupies the final panel column; compare the entire fixed right suffix.
@@ -65,25 +65,25 @@ export default async function skills() {
     for (const split of [false,true]) for (const width of [16,30,60,100]) {
       const panel = make();
       let lines = frame(panel,width,split);
-      right(lines[2], width, `≈${listCount}  ${(`≈${loadCount}`).padStart(4)}`);
-      right(lines[3], width, `0  ${(`≈${loadCount}`).padStart(4)}`);
-      right(lines[4], width, `user  ${(`≈${loadCount}`).padStart(4)}`);
+      right(lines[1 + panel.list.offsets[0]], width, `≈${listCount}  ${(`≈${loadCount}`).padStart(4)}`);
+      right(lines[1 + panel.list.offsets[1]], width, `0  ${(`≈${loadCount}`).padStart(4)}`);
+      right(lines[1 + panel.list.offsets[2]], width, `user  ${(`≈${loadCount}`).padStart(4)}`);
       panel.scroll.scrollToEnd();
       lines = frame(panel,width,split);
       assert.ok(panel.scroll.scrollTop > 0, 'panel actually scrolled');
-      right(lines[4], width, `0  ${(`≈${loadCount}`).padStart(4)}`);
+      right(lines[lines.length - 1], width, `0  ${(`≈${loadCount}`).padStart(4)}`);
     }
     // Reuse the same panel and request projection across prompt changes.
     const cached = make();
-    right(frame(cached,30,false)[2], 30, `≈${listCount}  ${(`≈${loadCount}`).padStart(4)}`);
+    right(frame(cached,30,false)[1 + cached.list.offsets[0]], 30, `≈${listCount}  ${(`≈${loadCount}`).padStart(4)}`);
     await h.capture([system('Instructions without skill list.'), user('hello')]);
     items = h.inventory.skills(h.state).items;
     assert.equal(items[0].listed, false);
     assert.equal(items[0].tokens, 0);
-    right(frame(cached,30,false)[2], 30, `0  ${(`≈${loadCount}`).padStart(4)}`);
+    right(frame(cached,30,false)[1 + cached.list.offsets[0]], 30, `0  ${(`≈${loadCount}`).padStart(4)}`);
     await h.capture([system(prompt), user('hello')]);
     assert.equal(h.inventory.skills(h.state).items[0].tokens, listCount);
-    right(frame(cached,30,false)[2], 30, `≈${listCount}  ${(`≈${loadCount}`).padStart(4)}`);
+    right(frame(cached,30,false)[1 + cached.list.offsets[0]], 30, `≈${listCount}  ${(`≈${loadCount}`).padStart(4)}`);
     console.log('skills list/load and layout assertions passed');
   } finally {
     await rm(dir, {recursive:true, force:true});

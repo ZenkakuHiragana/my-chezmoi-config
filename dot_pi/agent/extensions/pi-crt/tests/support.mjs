@@ -1,16 +1,22 @@
 import assert from 'node:assert/strict';
 import { stripVTControlCharacters } from 'node:util';
-import { readFileSync } from 'node:fs';
+import { readFileSync, existsSync } from 'node:fs';
 import { homedir } from 'node:os';
 import { join, resolve } from 'node:path';
 import { fileURLToPath, pathToFileURL } from 'node:url';
 const install = join(homedir(), '.pi', 'agent', 'install');
 // Override for a non-managed Pi install. Use the same Pi packages as the host.
 const modules = process.env.PI_TEST_MODULES || join(install, 'releases', readFileSync(join(install, 'current-version'), 'utf8').trim(), 'node_modules');
+export const root = fileURLToPath(new URL('../', import.meta.url));
+const localDependencies = join(root,'node_modules');
+const dependencies = process.env.PI_CRT_TEST_MODULES || (existsSync(join(localDependencies,'gpt-tokenizer/package.json')) ? localDependencies : join(homedir(),'.pi/agent/extensions/pi-crt/node_modules'));
+const tokenizerManifest = join(dependencies,'gpt-tokenizer/package.json');
+assert.ok(existsSync(tokenizerManifest),'Install pi-crt dependencies or set PI_CRT_TEST_MODULES to a node_modules directory containing gpt-tokenizer');
+assert.equal(JSON.parse(readFileSync(tokenizerManifest,'utf8')).version,JSON.parse(readFileSync(join(root,'package.json'),'utf8')).dependencies['gpt-tokenizer'],'Use the pinned gpt-tokenizer version');
 const { createJiti } = await import(pathToFileURL(join(modules, 'jiti/lib/jiti.mjs')).href);
 const alias = Object.fromEntries(['pi-ai', 'pi-tui', 'pi-agent-core', 'pi-coding-agent'].map(p => ['@earendil-works/' + p, join(modules, '@earendil-works', p, 'dist/index.js')]));
+for(const subpath of ['encoding/o200k_base','GptEncoding','bpeRanks/o200k_base']) alias['gpt-tokenizer/'+subpath] = join(dependencies,'gpt-tokenizer/esm/'+subpath+'.js');
 export const jiti = createJiti(import.meta.url, { alias, interopDefault: true, fsCache: false });
-export const root = fileURLToPath(new URL('../', import.meta.url));
 export const load = path => jiti.import(join(root, path));
 export const ai = await jiti.import('@earendil-works/pi-ai');
 export const api = await jiti.import('@earendil-works/pi-coding-agent');

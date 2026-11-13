@@ -2,7 +2,7 @@
 import { contentText, declarationsEqual, getCurrentSystemMessage, getCurrentSystemPrompt, getSystemMessageText, type SystemMessage, type Tool } from "@earendil-works/pi-ai";
 import type { ContextWithSystemEvent, SessionProjection } from "@earendil-works/pi-coding-agent";
 import { diffConversation, diffSystemState, trimMatchedEnds } from "./context-diff.ts";
-import { messageContribution, type MessageContribution } from "./context.ts";
+import { messageContribution, type MessageContribution, type MessageSource } from "./context.ts";
 
 export type RequestMessage = ContextWithSystemEvent["messages"][number];
 export interface BaselineMessage { readonly entryId: string; readonly message: RequestMessage }
@@ -24,7 +24,7 @@ export interface RequestSnapshot {
 export interface CapturedContext { request: RequestSnapshot; hidden: ReadonlySet<string> }
 export type ContextOrigin = "built" | "recorded" | "observed";
 export interface ProjectedContext {
-	contributions: MessageContribution[];
+	sources: MessageSource[];
 	branchMessages: RequestMessage[];
 	prompt: string;
 	tools: Tool[];
@@ -108,14 +108,14 @@ export function projectContext(projection: SessionProjection, captured: Captured
 		const target = current.find((candidate) => candidate.entryId === change.entryId && candidate.message.role !== "system" && !replaced.has(candidate));
 		if (target) replaced.set(target, change.type === "deleted" ? undefined : change.contribution);
 	}
-	const contributions = current.flatMap((entry) => replaced.has(entry) ? (replaced.get(entry) ? [replaced.get(entry)!] : []) : [messageContribution(entry.message)]);
-	contributions.push(...additions);
+	const sources = current.flatMap((entry): MessageSource[] => replaced.has(entry) ? (replaced.get(entry) ? [{ contribution: replaced.get(entry)! }] : []) : [{ message: entry.message }]);
+	sources.push(...additions.map((contribution) => ({ contribution })));
 	const base = getCurrentSystemMessage(branchMessages);
 	const fresh = snapshot !== undefined && sameSystemState(snapshot.baselineSystem, base);
 	const system = fresh ? applySystemChanges(base, snapshot.systemChanges) : base;
 	const hidden = runHidden ?? (fresh ? captured!.hidden : new Set<string>());
 	return {
-		contributions, branchMessages,
+		sources, branchMessages,
 		prompt: fresh && snapshot.forcedPrompt !== undefined ? snapshot.forcedPrompt : system ? getSystemMessageText(system) : fallbackPrompt,
 		tools: (system?.toolsAdded ?? (system ? [] : fallbackTools)).filter((tool) => !hidden.has(tool.name)),
 		origin: fresh ? "observed" : base ? "recorded" : "built",

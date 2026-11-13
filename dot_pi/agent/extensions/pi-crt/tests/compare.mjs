@@ -7,8 +7,10 @@ const old=await import(pathToFileURL(resolve(process.argv[2],'tests/support.mjs'
 const model={provider:'p',api:'a',id:'m',contextWindow:1000};
 const observed=h=>{
  const d=h.context.contextData(h.state), p=h.inventory.prompt(h.state);
+ // Counter provenance is new metadata; numeric and selection behavior still compare exactly.
+ const {counterId: _counterId, ...legacyPrompt}=p??{};
  return {parts:d.contextParts,prompt:d.prompt,tools:d.tools,origin:d.origin,usage:d.reportedUsage,warning:d.captureWarning,
-  promptView:p,picks:h.inventory.picks(h.state),toolsView:h.inventory.tools(h.state)};
+  promptView:p?legacyPrompt:undefined,picks:h.inventory.picks(h.state),toolsView:h.inventory.tools(h.state)};
 };
 let checks=0;
 async function compareScenario(execute){

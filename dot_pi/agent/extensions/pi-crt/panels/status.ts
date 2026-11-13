@@ -11,7 +11,7 @@ import { VITALS_PANEL, vitals } from "../features/vitals.ts";
 import { gaugeRatios } from "../state/usage.ts";
 import { framed, type SizedView } from "../screen/frame.ts";
 import { Lines } from "../screen/lines.ts";
-import { alignedRow, bar, compactNumber, elapsedText, originNote } from "./common.ts";
+import { alignedRow, bar, compactNumber, elapsedText, originNote, textCounterRows } from "./common.ts";
 import { type Paint, PI_LOGO, PI_LOGO_SHADES, type Rgb, pixelArtWidth, renderPixelArt, shade, shadePalette } from "./pixel-art.ts";
 import { type CardInput, cardsWidth, centerLine, gaugeRow, statCards } from "./status-parts.ts";
 import { type PanelEnv, registerPanel } from "./registry.ts";
@@ -108,7 +108,7 @@ function contextLines(env: PanelEnv, width: number): string[] {
 	const source = data.origin === "observed" ? "hook" : data.origin === "recorded" ? "log" : "live";
 	const heading = width >= 40 ? "CURRENT/NEXT · ESTIMATE" : "ESTIMATE";
 	const provenance = width >= 40 ? `SYSTEM${originNote(data.origin)}` : `SYS · ${source}`;
-	lines.push(t.fg("muted", heading), t.fg("dim", provenance), t.fg("dim", " Window %"));
+	lines.push(t.fg("muted", heading), ...textCounterRows(data.counter.id, width, t), t.fg("dim", provenance), t.fg("dim", " Window %"));
 	if (!parts.length) {
 		lines.push(t.fg("dim", " -- no estimated parts --"));
 		return lines;

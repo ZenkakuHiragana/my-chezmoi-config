@@ -3,12 +3,14 @@ import type { Tool } from "@earendil-works/pi-ai";
 import type { ContextUsage, ExtensionAPI } from "@earendil-works/pi-coding-agent";
 import { type ContextPart, ContextMeter, nextRequestModel } from "../state/context.ts";
 import { prepareRequestCapture, projectContext, type ContextOrigin, type RequestSnapshot, type CapturedContext } from "../state/request-context.ts";
+import { chars4, counterForModel, type TextCounter } from "../state/tokenizers.ts";
 import type { CrtState, Versioned } from "../state/core.ts";
 import type { FeatureEnv } from "./env.ts";
 
 export const CONTEXT_PANEL = "context";
 export interface ContextData extends Versioned {
 	contextParts: readonly ContextPart[];
+	counter: TextCounter;
 	prompt: string;
 	tools: readonly Tool[];
 	/** Provenance of prompt/tool declarations only; messages may include independent hook edits. */
@@ -28,7 +30,7 @@ interface ContextFeature {
 	timer?: ReturnType<typeof setImmediate>;
 }
 const features = new WeakMap<CrtState, ContextFeature>();
-const NONE: Readonly<ContextData> = Object.freeze({ contextParts: [], prompt: "", tools: [], origin: "built", version: 0 });
+const NONE: Readonly<ContextData> = Object.freeze({ contextParts: [], counter: chars4, prompt: "", tools: [], origin: "built", version: 0 });
 /** Only system evidence survives a session switch, not request-only conversation or image bytes. */
 const remembered = new Map<string, CapturedContext>();
 const MAX_REMEMBERED = 16;
@@ -99,8 +101,10 @@ function read(feature: ContextFeature): void {
 	const run = feature.runLoadout;
 	const runApplies = run && (run.leafId === null || branch.has(run.leafId));
 	const current = projectContext(projection, snapshotApplies ? captured : undefined, fallbackPrompt, fallbackTools, runApplies ? run.hidden : undefined);
-	const contextParts = meter.measureContributions(current.contributions, current.prompt, current.tools, nextRequestModel(selected, current.branchMessages));
-	Object.assign(feature.data, { contextParts, prompt: current.prompt, tools: current.tools, origin: current.origin, reportedUsage: ctx.getContextUsage() });
+	const nextModel = nextRequestModel(selected, current.branchMessages);
+	const counter = counterForModel(nextModel);
+	const contextParts = meter.measureSources(current.sources, current.prompt, current.tools, nextModel);
+	Object.assign(feature.data, { contextParts, counter, prompt: current.prompt, tools: current.tools, origin: current.origin, reportedUsage: ctx.getContextUsage() });
 	feature.data.version++;
 	key[6] = current.origin === "built" ? fallbackPrompt : undefined;
 	key[7] = current.origin === "built" ? definitionKey() : undefined;

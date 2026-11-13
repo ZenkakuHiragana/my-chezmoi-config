@@ -5,6 +5,7 @@
  * it also lists the namespace's tools under it, or stops listing them.
  */
 import { wrapTextWithAnsi } from "@earendil-works/pi-tui";
+import { contextData } from "../features/context.ts";
 import {
 	bodiesVersion,
 	folds,
@@ -26,7 +27,7 @@ import {
 } from "../features/inv.ts";
 import { framed } from "../screen/frame.ts";
 import { Lines, type ThemeRef } from "../screen/lines.ts";
-import { alignedRow, compactNumber, ListLines, originNote, Selection, withCursor } from "./common.ts";
+import { alignedRow, compactNumber, ListLines, originNote, Selection, textCounterRows, withCursor } from "./common.ts";
 import { type PanelEnv, type PanelHandle, registerPanel } from "./registry.ts";
 
 type Theme = ReturnType<ThemeRef>;
@@ -100,9 +101,10 @@ registerPanel("promptparts", (env) => {
 		(width) => {
 			const t = env.theme();
 			const p = prompt(env.state);
-			if (!p) return [t.fg("dim", " -- no prompt in this session yet --")];
+			const info = textCounterRows(contextData(env.state).counter.id, width, t);
+			if (!p) return [...info, t.fg("dim", " -- no prompt in this session yet --")];
 			const { part } = picks(env.state);
-			const lines: string[] = [];
+			const lines: string[] = [...info];
 			selection.place(0, lines.length, 1);
 			lines.push(alignedRow(`${picked(t, part === undefined)}${t.fg("text", t.bold("WHOLE PROMPT"))}`, tokens(t, p.tokens), width));
 			p.parts.forEach((item, index) => {
@@ -252,11 +254,12 @@ registerPanel("toollist", (env) => {
 		(width) => {
 			const t = env.theme();
 			const rows = toolRows(env);
-			if (!rows.length) return [t.fg("dim", " -- no tools --")];
+			const info = textCounterRows(contextData(env.state).counter.id, width, t);
+			if (!rows.length) return [...info, t.fg("dim", " -- no tools --")];
 			const { tool, toolGroup } = picks(env.state);
 			const { expanded } = folds(env.state);
-			return rows.map((item, index) => {
-				selection.place(index, index, 1);
+			return [...info, ...rows.map((item, index) => {
+				selection.place(index, info.length + index, 1);
 				if (item.heading) {
 					const { group, tools: members } = item.heading;
 					const exposures = new Set(members.map((member) => member.exposure));
@@ -272,12 +275,12 @@ registerPanel("toollist", (env) => {
 				const name = member.active ? t.fg("toolTitle", member.name) : t.fg("dim", member.name);
 				const left = `${picked(t, tool === member.name)}${indent}${dot} ${name}  ${t.fg("dim", firstLine(member.description))}`;
 				return alignedRow(left, member.active ? tokens(t, member.tokens) : t.fg("dim", "—"), width);
-			});
+			})];
 		},
 		() => {
 			// tools() reads Pi's tool lists again, and gives a new version when they changed.
 			tools(env.state);
-			return [toolsVersion(env.state), folds(env.state).version];
+			return [toolsVersion(env.state), folds(env.state).version, contextData(env.state).version];
 		},
 	);
 });
@@ -391,14 +394,15 @@ registerPanel("skilllist", (env) => {
 		(width) => {
 			const t = env.theme();
 			const { known, items } = skills(env.state);
-			if (!known) return [t.fg("dim", " -- skills are read when the session starts --")];
-			if (!items.length) return [t.fg("dim", " -- no skills --")];
+			const info = textCounterRows(contextData(env.state).counter.id, width, t);
+			if (!known) return [...info, t.fg("dim", " -- skills are read when the session starts --")];
+			if (!items.length) return [...info, t.fg("dim", " -- no skills --")];
 			const { skill } = picks(env.state);
 			// Two right-aligned columns under a header: tokens the skill's entry adds to the prompt's list, and when loaded.
 			const cells = items.map(skillCells);
 			const reqWidth = Math.max(3, ...cells.map((cell) => cell.req.length));
 			const loadWidth = Math.max(4, ...cells.map((cell) => cell.load.length));
-			const lines = [alignedRow("", t.fg("dim", `${"LIST".padStart(reqWidth)}  ${"LOAD".padStart(loadWidth)}`), width)];
+			const lines = [...info, alignedRow("", t.fg("dim", `${"LIST".padStart(reqWidth)}  ${"LOAD".padStart(loadWidth)}`), width)];
 			items.forEach((item, index) => {
 				selection.place(index, lines.length, 1);
 				const name = item.invocable === false ? t.fg("dim", item.name) : t.fg("toolTitle", item.name);

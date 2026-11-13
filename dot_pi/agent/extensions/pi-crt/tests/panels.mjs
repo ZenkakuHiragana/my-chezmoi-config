@@ -23,7 +23,7 @@ export default async function panels() {
     return factory(h.panelEnv);
   };
   // Each target panel gets exactly width columns in both compositions.
-  function frame(panel, width, split, height = 5) {
+  function frame(panel, width, split, height = 8) {
     const component = split ? new tui.HStack([
       {component: panel.component, basis: width, grow: 0, shrink: 0, minSize: 0},
       {component: {render: w => ['N'.repeat(w)], invalidate() {}}, basis: 8, grow: 0, shrink: 0, minSize: 0},
@@ -49,7 +49,7 @@ export default async function panels() {
         const panel = make(id);
         panel.scroll.markScrollbarActivity();
         const lines = frame(panel, width, split);
-        const index = id === 'toollist' ? 1 : 2; // title, optionally the whole-prompt/header row
+        const index = 1 + panel.list.offsets[id === 'promptparts' ? 1 : 0]; // title + content offset
         const line = lines[index];
         const values = [expected[id]()].flat();
         for (const value of values) assert.ok(line.includes(value), `${id} ${width}/${split} loses ${value}: ${JSON.stringify(line)}`);
