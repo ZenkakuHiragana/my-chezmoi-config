@@ -125,10 +125,14 @@ if (Test-InteractiveShell) {
     }.ToString()).BeginInvoke()
 }
 
+# ~/.claude/skills と ~/.agents/skills を両方読んでしまうことへの対処
 $env:OPENCODE_DISABLE_CLAUDE_CODE=1
+
 # herdr のペインには SSH_CONNECTION / SSH_CLIENT が引き継がれないので、pi が手元へ OSC 52 を出すよう明示する。
 $env:PI_CLIPBOARD_OSC52 = "1"
-$env:BASIC_MEMORY_PI_TRUST_WORKSPACE=1
+
+# Ctrl-J が機能しなかったりクリップボードからの貼り付けが壊れたりするので
+$env:HERDR_WINDOWS_INPUT_PROBE="vt"
 
 function claude {
     & claude.exe --settings "$HOME/.claude/settings-chezmoi.json" --mcp-config="$HOME/.config/mcp/mcp.json" @args
