@@ -7,22 +7,15 @@ RustXNG 自身は `~/.config/rustxng/` のようなネイティブな設定パ�
 `SEARXNG_SETTINGS_PATH=/app/settings.toml` を設定している。
 つまり `settings.toml` はアプリの設定ではなく、コンテナにマウントするための入力である。
 
-## 起動
+## 起動・停止
 
 ```bash
 cd containers/rustxng
-docker rm -f rustxng 2>/dev/null
-MSYS_NO_PATHCONV=1 docker run -d --name rustxng \
-  -p 127.0.0.1:29483:29483 \
-  -v "$PWD/settings.toml:/app/settings.toml:ro" \
-  ghcr.io/sahenjp/rustxng:latest
+docker compose up -d
+docker compose down
 ```
 
-- コンテナ内の既定ポートはイメージ側の CMD が決める。`docker image inspect` で確認し、
-  起動例の `-p` と一致させる（不一致だと `curl` が空応答になる）。
-- Git Bash からは `-v` の `:/app/...` がパス変換されるので `MSYS_NO_PATHCONV=1` を付ける。
-- `-v` はコンテナ作成時に固定される。`settings.toml` を変えたら `docker restart` でよいが、
-  マウント元を変えたら `docker rm` して作り直す。
+`settings.toml` を変えたら `docker compose restart` で読み直す。
 
 ## 検索手段としての位置づけ
 

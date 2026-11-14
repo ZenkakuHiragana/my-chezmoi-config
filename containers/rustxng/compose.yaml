@@ -1,0 +1,11 @@
+name: rustxng
+
+services:
+  rustxng:
+    image: ghcr.io/sahenjp/rustxng:latest
+    container_name: rustxng
+    restart: unless-stopped
+    ports:
+      - "127.0.0.1:29483:29483"
+    volumes:
+      - ./settings.toml:/app/settings.toml:ro
