@@ -1,7 +1,7 @@
 """Offline tests for session.sh. Run with: python -m unittest scripts.test_session
 
 A fake Meilisearch (a local HTTP server) records each request and answers from a
-queue of prepared responses. bash and node are the real commands.
+queue or query-keyed map of prepared responses. bash and node are the real commands.
 """
 
 from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
@@ -42,6 +42,9 @@ def document(doc_id, question="問い", reply="答え", **fields):
 class FakeMeilisearch:
     def __init__(self):
         self.responses, self.requests = [], []
+        self.query_responses = {}
+        self.pagination_response = (200, {"maxTotalHits": 7})
+        self.lock = threading.Lock()
         fake = self
 
         class Handler(BaseHTTPRequestHandler):
@@ -49,8 +52,18 @@ class FakeMeilisearch:
                 length = int(self.headers.get("Content-Length") or 0)
                 body = json.loads(self.rfile.read(length)) if length else None
                 url = urlsplit(self.path)
-                fake.requests.append((self.command, unquote(url.path), parse_qs(url.query), body))
-                status, value = fake.responses.pop(0) if fake.responses else (500, {"message": "no response queued"})
+                with fake.lock:
+                    fake.requests.append((self.command, unquote(url.path), parse_qs(url.query), body))
+                    q = body.get("q") if isinstance(body, dict) else None
+                    if self.command == "GET" and url.path.endswith("/settings/pagination"):
+                        status, value = fake.pagination_response
+                    elif self.command == "POST" and q in fake.query_responses:
+                        status, value = fake.query_responses[q]
+                        if status == 200 and "hits" in value:
+                            offset, limit = body.get("offset", 0), body.get("limit", 20)
+                            value = {**value, "hits": value["hits"][offset:offset + limit]}
+                    else:
+                        status, value = fake.responses.pop(0) if fake.responses else (500, {"message": "no response queued"})
                 data = json.dumps(value, ensure_ascii=False).encode("utf-8")
                 self.send_response(status)
                 self.send_header("Content-Type", "application/json")
@@ -95,6 +108,12 @@ class SessionTest(unittest.TestCase):
         """Queue responses in request order: a JSON value (200) or (status, JSON value)."""
         self.fake.responses += [r if isinstance(r, tuple) else (200, r) for r in responses]
 
+    def respond_queries(self, **responses):
+        """Route parallel searches by query, not by HTTP arrival order."""
+        self.fake.query_responses = {
+            q: r if isinstance(r, tuple) else (200, r) for q, r in responses.items()
+        }
+
     def run_cli(self, *args, stdin="", env=None, command=None):
         argv = [self.bash, "-c", command] if command else [self.bash, SCRIPT.as_posix(), *args]
         result = subprocess.run(argv, env={**self.env, **(env or {})}, cwd=ROOT, input=stdin.encode("utf-8"),
@@ -103,6 +122,23 @@ class SessionTest(unittest.TestCase):
 
     def bodies(self):
         return [r[3] for r in self.fake.requests]
+
+    def assert_multi_requests(self, queries, max_hits=7, index="conversations"):
+        gets = [r for r in self.fake.requests if r[0] == "GET"]
+        posts = [r for r in self.fake.requests if r[0] == "POST"]
+        settings = [r for r in gets if r[1] == f"/indexes/{index}/settings/pagination"]
+        self.assertEqual(len(settings), 1)
+        self.assertCountEqual([r[3]["q"] for r in posts], queries)
+        for method, path, _, body in posts:
+            self.assertEqual((method, path), ("POST", f"/indexes/{index}/search"))
+            self.assertEqual((body["offset"], body["limit"]), (0, max_hits))
+        return gets, posts
+
+    def attribution(self, block):
+        lines = [line.strip().removeprefix("検索: ") for line in block
+                 if line.strip().startswith("検索: ")]
+        self.assertEqual(len(lines), 1, block)
+        return json.loads(lines[0])
 
     def test_help(self):
         for args in [("--help",), ("-h",), ("search", "--help"), ("show", "-h")]:
@@ -118,7 +154,7 @@ class SessionTest(unittest.TestCase):
         self.assertEqual(self.fake.requests, [])
 
     def test_usage_errors(self):
-        for args in [(), ("list",), ("search",), ("search", ""), ("search", "a", "b"), ("search", "q", "--source", "pi"),
+        for args in [(), ("list",), ("search",), ("search", ""), ("search", "q", "--source", "pi"),
                      ("search", "q", "--limit", "0"), ("search", "q", "--offset", "x"), ("search", "q", "--since", "2026-02-30"),
                      ("search", "q", "--limit"), ("search", "q", "--conversation", ""),
                      ("search", "q", "--conversation", "--since", "2026-01-01"), ("show", "--all"), ("toString",)]:
@@ -138,13 +174,13 @@ class SessionTest(unittest.TestCase):
         self.respond(found(hits))
         code, out, err = self.run_cli("search", "グラフィック カード", "--limit", "8", env={"PI_SESSION_ID": "now"})
         self.assertEqual((code, err), (0, ""))
-        self.assertEqual(out, "chatgpt_c1_m1  2026-11-13 00:00  chatgpt  「題名」  proj\n  Q: …一致 した\n  A: 返答の周辺…\n"
-                              "chatgpt_c3_m1  2026-11-13 00:00  chatgpt\n  Q: 問い\n  A: 答え\n"
-                              "pi_s1_e1  2026-11-13 01:00  pi  C:\\work\\repo\n  Q: 問い\n  A: 答え\n"
-                              "pi_s2_e2  2026-11-13 00:00  pi\n  Q: 問い\n  A: 答え\n"
-                              "pi_s3_x  日時不明  pi\n  Q: 問い\n  A: 答え\n"
-                              "pi_s4_x  日時不明  pi\n  Q: 問い\n  A: 答え\n"
-                              "pi_s5_m1  2026-11-13 00:00  pi\n  Q: 問い\n  A: 答え\n")
+        self.assertEqual(out, "chatgpt_c1_m1  [1]  2026-11-13 00:00  chatgpt  「題名」  proj\n  Q: …一致 した\n  A: 返答の周辺…\n"
+                              "chatgpt_c3_m1  [2]  2026-11-13 00:00  chatgpt\n  Q: 問い\n  A: 答え\n"
+                              "pi_s1_e1  [3]  2026-11-13 01:00  pi  C:\\work\\repo\n  Q: 問い\n  A: 答え\n"
+                              "pi_s2_e2  [4]  2026-11-13 00:00  pi\n  Q: 問い\n  A: 答え\n"
+                              "pi_s3_x  [5]  日時不明  pi\n  Q: 問い\n  A: 答え\n"
+                              "pi_s4_x  [6]  日時不明  pi\n  Q: 問い\n  A: 答え\n"
+                              "pi_s5_m1  [7]  2026-11-13 00:00  pi\n  Q: 問い\n  A: 答え\n")
         [(method, path, _, body)] = self.fake.requests
         self.assertEqual((method, path), ("POST", "/indexes/conversations/search"))
         self.assertEqual(body["q"], "グラフィック カード")
@@ -152,7 +188,7 @@ class SessionTest(unittest.TestCase):
         self.assertIn('conversation_id != "now"', body["filter"])
         self.assertEqual(body["distinct"], "conversation_id")
         self.assertEqual(body["hybrid"]["embedder"], "ruri")
-        self.assertTrue({"id", "source", "message_id", "timestamp", "title", "cwd", "project"}
+        self.assertTrue({"id", "source", "message_id", "conversation_id", "timestamp", "title", "cwd", "project"}
                         <= set(body["attributesToRetrieve"]))
         self.assertEqual(set(body["attributesToCrop"]), {"question:20", "reply:40"})
         self.assertEqual(body["cropMarker"], "…")
@@ -173,7 +209,7 @@ class SessionTest(unittest.TestCase):
                 code, out, err = self.run_cli("search", "q", "--limit", "1", "--offset", str(offset))
                 self.assertEqual(code, 0, err)
                 if expected:
-                    self.assertTrue(out.startswith(expected + "  "))
+                    self.assertTrue(out.startswith(expected + "  [1]  "))
                     self.assertEqual(err, "")
                 else:
                     self.assertEqual(out, "")
@@ -355,6 +391,215 @@ class SessionTest(unittest.TestCase):
         code, out, err = self.run_cli(command=f"bash '{script}' search q | bash '{script}' show")
         self.assertEqual((code, out), (0, ""))
         self.assertIn("該当するやり取りはありません", err)
+
+
+    def search_blocks(self, output):
+        """Split the public search format into header-led entries."""
+        blocks = []
+        for line in output.splitlines():
+            if line and not line[0].isspace():
+                blocks.append([line])
+            elif line and blocks:
+                blocks[-1].append(line)
+        return blocks
+
+    def test_multi_search_interleaves_filters_and_attribution(self):
+        # q1 and q2 have both common and distinct candidates.  The shared
+        # conversation must retain q1's first excerpt, even though q2 has a
+        # different interaction in the same conversation.
+        a = hit("pi_one_a", "a", conversation_id="one", question="first excerpt")
+        b = hit("pi_two_b", "b", conversation_id="two")
+        same = hit("pi_one_other", "other", conversation_id="one", question="later excerpt")
+        c = hit("pi_three_c", "c", conversation_id="three")
+        self.respond_queries(alpha=found([a, b]), beta=found([same, c]))
+        code, out, err = self.run_cli("search", "alpha", "beta", "--limit", "3",
+                                      "--since", "2026-11-13", "--until", "2026-11-13",
+                                      env={"PI_SESSION_ID": "current"})
+        self.assertEqual((code, err), (0, ""))
+        blocks = self.search_blocks(out)
+        self.assertEqual([b[0].split()[0] for b in blocks], [a["id"], b["id"], c["id"]])
+        for n, block in enumerate(blocks, 1):
+            self.assertEqual(block[0].split()[1], f"[{n}]")
+        text = ["\n".join(block) for block in blocks]
+        self.assertIn("first excerpt", text[0])
+        self.assertNotIn("later excerpt", out)
+        for block, names in zip(blocks, [["alpha", "beta"], ["alpha"], ["beta"]]):
+            self.assertEqual(self.attribution(block), names)
+        gets, posts = self.assert_multi_requests(["alpha", "beta"])
+        self.assertEqual(len(gets), 1)
+        for _, _, _, body in posts:
+            self.assertCountEqual(body["filter"], ["timestamp >= 1794528000000", "timestamp < 1794614400000",
+                                                    'conversation_id != "current"'])
+            self.assertEqual(body["distinct"], "conversation_id")
+            self.assertIn("conversation_id", body["attributesToRetrieve"])
+
+    def test_multi_search_bridge_offset_limit_and_candidate_bound(self):
+        # Each query has distinct conversations; the bridge joins a and b.
+        a = hit("pi_a_1", "m1", conversation_id="ca", question="representative")
+        b = hit("pi_b_2", "m2", conversation_id="cb")
+        bridge = hit("pi_a_2", "m2", conversation_id="ca")
+        u = hit("pi_u_3", "m3", conversation_id="cu")
+        self.respond_queries(alpha=found([a, u, b]), beta=found([b, bridge, u]))
+        for offset, limit, expected in [(0, 3, [a["id"], u["id"]]),
+                                        (1, 2, [u["id"]])]:
+            with self.subTest(offset=offset):
+                self.fake.requests.clear()
+                code, out, err = self.run_cli("search", "alpha", "beta", "--offset", str(offset),
+                                              "--limit", str(limit))
+                self.assertEqual((code, err), (0, ""))
+                blocks = self.search_blocks(out)
+                self.assertEqual([block[0].split()[0] for block in blocks], expected)
+                self.assertEqual([block[0].split()[1] for block in blocks],
+                                 [f"[{i}]" for i in range(1, len(blocks) + 1)])
+                if offset == 0:
+                    self.assertIn("representative", "\n".join(blocks[0]))
+                    self.assertEqual(self.attribution(blocks[0]), ["alpha", "beta"])
+                    self.assertEqual(self.attribution(blocks[1]), ["alpha", "beta"])
+                gets, _ = self.assert_multi_requests(["alpha", "beta"])
+                self.assertEqual(len(gets), 1)
+
+    def test_multi_bridge_does_not_skip_results_across_pages(self):
+        a = hit("pi_a_1", "m1", conversation_id="ca")
+        x = hit("pi_x_x", "mx", conversation_id="cx")
+        b = hit("pi_b_2", "m2", conversation_id="cb")
+        y = hit("pi_y_y", "my", conversation_id="cy")
+        bridge = hit("pi_a_2", "m2", conversation_id="ca")
+        self.respond_queries(alpha=found([a, x]), beta=found([b, y, bridge]))
+        self.fake.pagination_response = (200, {"maxTotalHits": 4})
+        for offset, expected in [(0, [a["id"], x["id"]]), (2, [y["id"]]), (4, [])]:
+            with self.subTest(offset=offset):
+                self.fake.requests.clear()
+                code, out, err = self.run_cli("search", "alpha", "beta", "--limit", "2", "--offset", str(offset))
+                self.assertEqual(code, 0, err)
+                self.assertEqual([block[0].split()[0] for block in self.search_blocks(out)], expected)
+                self.assertEqual(err, "" if expected else "session.sh: 取得できる検索結果はここまでです\n")
+                gets, _ = self.assert_multi_requests(["alpha", "beta"], max_hits=4)
+                self.assertEqual(len(gets), 1)
+
+    def test_multi_conversation_deduplicates_only_identical_ids(self):
+        a = hit(f"pi_{CONV}_a", "same", conversation_id=CONV)
+        b = hit(f"pi_{CONV}_b", "same", conversation_id=CONV)
+        c = hit(f"pi_{CONV}_c", "c", conversation_id=CONV)
+        self.respond({"conversation_id": CONV})
+        self.respond_queries(alpha=found([a, b]), beta=found([a, c]))
+        code, out, err = self.run_cli("search", "alpha", "beta", "--conversation", TARGET,
+                                      "--offset", "1", "--limit", "2")
+        self.assertEqual((code, err), (0, ""))
+        self.assertEqual([b[0].split()[0] for b in self.search_blocks(out)], [b["id"], c["id"]])
+        gets, posts = self.assert_multi_requests(["alpha", "beta"])
+        self.assertEqual(len(gets), 2)
+        self.assertIn(f"/indexes/conversations/documents/{TARGET}", [r[1] for r in gets])
+        for _, _, _, body in posts:
+            self.assertEqual(body["filter"], [f'conversation_id = "{CONV}"'])
+            self.assertNotIn("distinct", body)
+
+    def test_multi_failure_is_atomic_and_duplicate_queries_fetch_once(self):
+        a = hit("pi_a_1", "m1", conversation_id="a")
+        self.respond_queries(alpha=found([a]), beta=(500, {"message": "broken beta"}))
+        code, out, err = self.run_cli("search", "alpha", "beta")
+        self.assertEqual((code, out), (1, ""))
+        self.assertIn("broken beta", err)
+        self.assert_multi_requests(["alpha", "beta"])
+        self.fake.requests.clear()
+        self.respond_queries(alpha=found([a]), beta=found([]))
+        code, out, err = self.run_cli("search", "alpha", "beta", "alpha")
+        self.assertEqual((code, err), (0, ""))
+        self.assertEqual([b[0].split()[0] for b in self.search_blocks(out)], [a["id"]])
+        self.assert_multi_requests(["alpha", "beta"])
+
+    def test_repeated_identical_query_is_fetched_once_and_pipe_is_literal(self):
+        a = hit("pi_a_1", "m1", conversation_id="a")
+        self.respond_queries(**{"alpha|beta": found([a])})
+        code, out, err = self.run_cli("search", "alpha|beta", "alpha|beta")
+        self.assertEqual((code, err), (0, ""))
+        self.assertEqual([b[0].split()[0] for b in self.search_blocks(out)], [a["id"]])
+        self.assertEqual([(r[0], r[1], r[3]["q"]) for r in self.fake.requests],
+                         [("POST", "/indexes/conversations/search", "alpha|beta")])
+
+    def test_multi_pagination_settings_failure_is_atomic(self):
+        self.fake.pagination_response = (500, {"message": "settings unavailable"})
+        self.respond_queries(alpha=found([hit("pi_a_1", "m1")]), beta=found([]))
+        code, out, err = self.run_cli("search", "alpha", "beta")
+        self.assertEqual((code, out), (1, ""))
+        self.assertIn("settings unavailable", err)
+        self.assertEqual([(r[0], r[1]) for r in self.fake.requests],
+                         [("GET", "/indexes/conversations/settings/pagination")])
+
+    def test_multi_empty_page_reports_end(self):
+        a = hit("pi_a_1", "m1", conversation_id="a")
+        copy = hit("pi_b_1", "m1", conversation_id="b")
+        self.respond_queries(alpha=found([a]), beta=found([copy]))
+        code, out, err = self.run_cli("search", "alpha", "beta", "--offset", "2", "--limit", "1")
+        self.assertEqual((code, out, err), (0, "", "session.sh: 取得できる検索結果はここまでです\n"))
+        self.assert_multi_requests(["alpha", "beta"])
+        self.fake.requests.clear()
+        self.respond_queries(alpha=found([]), beta=found([]))
+        code, out, err = self.run_cli("search", "alpha", "beta")
+        self.assertEqual((code, out, err), (0, "", "session.sh: 該当するやり取りはありません\n"))
+        self.assert_multi_requests(["alpha", "beta"])
+
+    def test_multi_empty_query_is_usage_error_without_http(self):
+        for args in [("search", "", "q"), ("search", "q", "", "--conversation", TARGET),
+                     ("search", "", "", "--conversation", TARGET)]:
+            with self.subTest(args=args):
+                code, out, _ = self.run_cli(*args)
+                self.assertEqual((code, out), (2, ""))
+        self.assertEqual(self.fake.requests, [])
+
+    def test_pick_old_new_and_id_lists_in_requested_order(self):
+        inputs = [
+            "pi_a  [99]  metadata\r\n  Q: ignored\r\n  検索: [alpha]\r\n\r\npi_b  [8]  metadata\n  A: ignored\npi_c  [5]  metadata",
+            "pi_a  metadata\r\n  Q: ignored\r\n\r\npi_b  metadata\n  A: ignored\npi_c  metadata",
+            "pi_a\r\n\r\npi_b\npi_c",
+        ]
+        for text in inputs:
+            with self.subTest(text=text):
+                self.fake.requests.clear()
+                self.respond(document("pi_c"), document("pi_a"))
+                code, out, err = self.run_cli("show", "--full", "--pick", "3,1,3", stdin=text)
+                self.assertEqual((code, err), (0, ""))
+                self.assertEqual([r[1] for r in self.fake.requests],
+                                 ["/indexes/conversations/documents/pi_c", "/indexes/conversations/documents/pi_a"])
+                self.assertLess(out.index("===== pi_c"), out.index("===== pi_a"))
+                self.assertEqual(out.count("===== "), 2)
+
+    def test_pick_errors_validate_everything_before_http(self):
+        for value in ["", "0", "-1", "1,", ",1", "1,,2", "1, 2", "1.0", "abc", "1,4", "4,1"]:
+            with self.subTest(value=value):
+                code, out, _ = self.run_cli("show", "--pick", value, stdin="pi_a\npi_b\npi_c\n")
+                self.assertEqual((code, out), (2, ""))
+                self.assertEqual(self.fake.requests, [])
+        for args, text in [(("show", "--pick", "1"), ""),
+                           (("show", "--pick", "1", "pi_a"), "pi_b\n")]:
+            with self.subTest(args=args):
+                code, out, _ = self.run_cli(*args, stdin=text)
+                self.assertEqual((code, out), (2, ""))
+                self.assertEqual(self.fake.requests, [])
+
+    def test_pick_continues_after_show_failure(self):
+        self.respond((404, {"message": "missing"}), document("pi_b"))
+        code, out, err = self.run_cli("show", "--pick", "1,2", stdin="pi_a\npi_b\n")
+        self.assertEqual(code, 1)
+        self.assertIn("missing", err)
+        self.assertIn("===== pi_b", out)
+        self.assertEqual([r[1] for r in self.fake.requests],
+                         ["/indexes/conversations/documents/pi_a", "/indexes/conversations/documents/pi_b"])
+
+    def test_search_pipe_to_show_all_and_pick(self):
+        script = SCRIPT.as_posix()
+        self.respond(found([hit("pi_a", "a"), hit("pi_b", "b")]), document("pi_a"), document("pi_b"))
+        code, out, err = self.run_cli(command=f"bash '{script}' search q | bash '{script}' show")
+        self.assertEqual((code, err), (0, ""))
+        self.assertIn("===== pi_a", out)
+        self.assertIn("===== pi_b", out)
+        self.fake.requests.clear()
+        self.respond(found([hit("pi_a", "a"), hit("pi_b", "b")]), document("pi_b"))
+        code, out, err = self.run_cli(command=f"bash '{script}' search q | bash '{script}' show --pick 2")
+        self.assertEqual((code, err), (0, ""))
+        self.assertNotIn("===== pi_a", out)
+        self.assertIn("===== pi_b", out)
+        self.assertEqual([r[1] for r in self.fake.requests if r[0] == "GET"],
+                         ["/indexes/conversations/documents/pi_b"])
 
 
 if __name__ == "__main__":
