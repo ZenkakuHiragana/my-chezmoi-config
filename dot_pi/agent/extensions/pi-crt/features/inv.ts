@@ -4,7 +4,7 @@
  * loaded skill metadata and bounded background reads of skill bodies.
  */
 import { open } from "node:fs/promises";
-import type { ExtensionAPI, ToolNamespace } from "@earendil-works/pi-coding-agent";
+import { stripFrontmatter, type ExtensionAPI, type ToolNamespace } from "@earendil-works/pi-coding-agent";
 import { textTokens, toolTokens } from "../state/context.ts";
 import { type CrtState, sanitize, type Versioned } from "../state/core.ts";
 import type { FeatureEnv } from "./env.ts";
@@ -600,7 +600,7 @@ async function readBodies(inv: Inventory, items: LoadedSkill[]): Promise<void> {
 				const { bytesRead } = await handle.read(buffer, 0, buffer.length, 0);
 				item.bodyCut = bytesRead > BODY_BYTES;
 				const text = buffer.subarray(0, Math.min(bytesRead, BODY_BYTES)).toString("utf8");
-				item.body = sanitize(text).replace(/\t/g, "    ");
+				item.body = sanitize(skillBodyPreview(text)).replace(/\t/g, "    ");
 				item.bodyCounts = countText(text);
 			} finally {
 				await handle.close();
@@ -611,4 +611,12 @@ async function readBodies(inv: Inventory, items: LoadedSkill[]): Promise<void> {
 		item.version++;
 		inv.env.changed(inv.bodies);
 	}
+}
+
+/** SDK extraction accepts any newline + --- prefix; never let that consume body text. */
+function skillBodyPreview(text: string): string {
+	const normalized = text.replace(/^\uFEFF/, "").replace(/\r\n?/g, "\n");
+	const end = normalized.indexOf("\n---", 3);
+	if (!/^---[ \t]*\n/.test(normalized) || end < 0 || !/^---[ \t]*(?:\n|$)/.test(normalized.slice(end + 1))) return text;
+	try { return stripFrontmatter(text); } catch { return text; }
 }

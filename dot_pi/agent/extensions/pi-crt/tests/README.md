@@ -26,10 +26,11 @@ live terminal, provider tokenization or an actual extension loadout.
 Capture observes pi-crt's `context_with_system` handler, as pi-context-view's
 Usage capture does. Later context handlers and provider payload serialization
 can still differ; this is not a final-provider-payload inspector.
-The SYSTEM/SYS origin describes only prompt/tool declaration evidence, not
-every conversation edit. The compact origins are `hook` (that capture), `log` (session replay),
-and `live` (Pi's current unmeasured fallback). The separate Pi estimate is also
-an estimate: a non-null API value is not necessarily provider-reported usage.
+Prompt/tool origin metadata describes declaration evidence, not every conversation
+edit. CONTEXT no longer displays a SYSTEM/SYS origin row; normal observed inventory
+titles also omit it. Recorded and live-fallback INV titles retain existing notes.
+The separate Pi estimate is also an estimate: a non-null API value is not
+necessarily provider-reported usage.
 
 Observed run options distinguish explicit force (including empty/equal text)
 from known no-force, and are retained through retry until `agent_settled`.
@@ -75,9 +76,10 @@ Claude IDs without a version of 3 or later, use the original per-message
 not a legacy-GPT compatibility table. Virtual routing uses the latest successful
 recorded physical model before choosing a method.
 
-CONTEXT and the PROMPT/TOOLS/SKILLS lists show `TEXT TOKENS` and the method.
-The top `PI ESTIMATE` remains Pi's own estimate; the local method applies to the
-current/next-context breakdown and inventory, not that separate number. Images
+CONTEXT and the PROMPT/TOOLS/SKILLS lists show a right-aligned `TOKENIZER: <method>`
+(or just the method in narrow panels). The top context number still uses Pi's own
+estimate when available, otherwise a marked `≈` local-sum fallback. The local
+method applies to the breakdown and inventory, not the separate Pi number. Images
 still use Pi's heuristic, and same-model reported reasoning can set a lower bound.
 Tool definitions still use the shared display-counting representation rather
 than a claim to reproduce provider-native tool serialization.
@@ -128,3 +130,26 @@ This avoids repeatedly tokenizing unchanged history without retaining its words.
 `tokenizer-runtime.mjs` checks encoder isolation, the absence of input-word cache
 entries, bounded memo hits/eviction, and no native BPE on ordinary non-GPT history
 in an isolated subprocess. These are retained-state checks, not secure heap erasure.
+
+
+## Context display and skill previews
+
+The top capacity bar and numeric reading share a row. BREAKDOWN bars use a separate
+linear token axis: round the largest part upward to a 1/2/5 power-of-ten limit.
+Its 0 and upper limit are shown above the bars. The right percent column continues
+to use the model capacity stated in its `of <window>` header; it is not the bar's
+percentage. At an axis threshold all bars can rescale. When bars do not fit, their
+axis is omitted too; right-aligned numeric columns take priority.
+
+Skill previews omit valid YAML frontmatter using Pi's existing parser. Invalid
+YAML falls back to the original preview. LOAD still counts the original bounded
+UTF-8 text, including frontmatter, not what remains visible. Existing file errors
+and truncation warnings are unchanged. `context-layout.mjs` checks inline usage,
+columns, eighth-cell scale differences and threshold changes; `skill-preview.mjs`
+checks frontmatter, malformed input, raw LOAD and source-deletion model switches.
+
+The tokenizer belongs to the BREAKDOWN heading, sharing its row when it fits.
+In narrow context panels each part label precedes its numeric row rather than
+becoming an unidentifiable ellipsis. INV method rows remain single-row.
+Frontmatter removal requires standalone opening and closing marker lines; invalid
+or incomplete framing keeps the original preview, as do YAML parse exceptions.

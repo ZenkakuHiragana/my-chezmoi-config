@@ -32,7 +32,7 @@ function barParts(ratio: number, width: number): { filled: string; part: string;
 	return { filled: "█".repeat(full), part, empty: width - full - (part ? 1 : 0) };
 }
 
-export function bar(theme: ReturnType<ThemeRef>, ratio: number, width: number, color: "accent" | "warning" | "error" | "text" = "accent"): string {
+export function bar(theme: ReturnType<ThemeRef>, ratio: number, width: number, color: "accent" | "warning" | "error" | "text" | "muted" = "accent"): string {
 	const { filled, part, empty } = barParts(ratio, width);
 	const rgb = colorToRgb(theme.colors.borderMuted);
 	const track = backgroundAnsi({ kind: "rgb", r: rgb.r, g: rgb.g, b: rgb.b }, theme.getColorMode());
@@ -48,11 +48,12 @@ export function compactNumber(value: number): string {
 
 /**
  * How a panel says where its figures came from, the same words everywhere so that a panel
- * showing an old request, or none measured at all, says so instead of leaving it implied.
+ * using recorded or live fallback content can retain those existing notes.
+ * Observed request content is the normal case and needs no internal hook label.
  * `unmeasured` for Pi's build: it is not a record of anything sent, and it may match it.
  */
 export function originNote(origin: Origin): string {
-	return `  · ${origin === "built" ? "unmeasured" : origin === "observed" ? "context hook" : origin}`;
+	return origin === "observed" ? "" : `  · ${origin === "built" ? "unmeasured" : origin}`;
 }
 
 /** Fit a single row, preserving the right-hand cells whenever they fit. */
@@ -69,12 +70,14 @@ export function alignedRow(left: string, right: string, width: number): string {
 }
 
 /** Local text-counting method, not a claim about the full payload. */
-export function textCounterRows(id: string, width: number, theme: ReturnType<ThemeRef>): string[] {
+export function textCounterRows(id: string, width: number, theme: ReturnType<ThemeRef>, heading = ""): string[] {
 	const method = id === "chars4" ? "chars/4" : id;
-	const label = theme.fg("muted", " TEXT TOKENS");
-	const value = theme.fg("dim", method);
-	if (width >= 24) return [alignedRow(label, value, width)];
-	return [truncateToWidth(label, Math.max(0, width)), truncateToWidth(theme.fg("dim", ` ${method}`), Math.max(0, width))];
+	const value = theme.fg("dim", width >= 24 ? `TOKENIZER: ${method}` : method);
+	const label = heading ? theme.fg("muted", ` ${heading}`) : "";
+	if (heading && visibleWidth(label) + visibleWidth(value) + 1 > width) {
+		return [alignedRow(label, "", width), alignedRow("", value, width)];
+	}
+	return [alignedRow(label, value, width)];
 }
 
 /** The key before an item was selected. */

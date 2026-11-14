@@ -68,7 +68,7 @@ export default async function () {
     assert.equal(prompt.parts.reduce((n,p)=>n+p.tokens,0)+prompt.rest,prompt.tokens);assert.ok(prompt.parts.every(p=>p.tokens>=0));
     assert.equal(p.TOOLS,f.tool[k]);assert.equal(h.inventory.tools(h.state).filter(t=>t.active).reduce((n,t)=>n+t.tokens,0),p.TOOLS);
     const current=h.inventory.skills(h.state).items[0];assert.equal(current.tokens,f.skillBlock[k]);assert.equal(current.bodyTokens,f.skillRaw[k]);assert.equal(current.bodyError,undefined);
-    if(k==='chars4') assert.equal(chars4.count(current.body),18); // A preview recount would be wrong (raw=17).
+    if(k==='chars4') assert.equal(chars4.count(current.body),8); // Header-free preview recount would still be wrong (raw=17).
     const version=data.version;for(let i=0;i<5;i++){assert.equal(h.context.contextData(h.state).version,version);assert.equal(h.inventory.prompt(h.state),prompt);}
    }
    for(const mismatch of [{...G,provider:'other'},{...G,api:'other'},{...G,id:'gpt-other'}]) {await select(h,mismatch);assert.equal(parts(h).THINKING??0,0);}

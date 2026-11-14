@@ -8,5 +8,7 @@ await (await import('./tokenizers.mjs')).default();
 await (await import('./tokenizer-runtime.mjs')).default();
 await (await import('./tokenizer-panels.mjs')).default();
 await (await import('./panels.mjs')).default();
+await (await import('./context-layout.mjs')).default();
 await (await import('./skills.mjs')).default();
+await (await import('./skill-preview.mjs')).default();
 console.log('panel layout assertions passed');

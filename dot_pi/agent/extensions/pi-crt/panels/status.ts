@@ -11,7 +11,7 @@ import { VITALS_PANEL, vitals } from "../features/vitals.ts";
 import { gaugeRatios } from "../state/usage.ts";
 import { framed, type SizedView } from "../screen/frame.ts";
 import { Lines } from "../screen/lines.ts";
-import { alignedRow, bar, compactNumber, elapsedText, originNote, textCounterRows } from "./common.ts";
+import { alignedRow, bar, compactNumber, elapsedText, textCounterRows } from "./common.ts";
 import { type Paint, PI_LOGO, PI_LOGO_SHADES, type Rgb, pixelArtWidth, renderPixelArt, shade, shadePalette } from "./pixel-art.ts";
 import { type CardInput, cardsWidth, centerLine, gaugeRow, statCards } from "./status-parts.ts";
 import { type PanelEnv, registerPanel } from "./registry.ts";
@@ -96,32 +96,62 @@ function contextLines(env: PanelEnv, width: number): string[] {
 		const percent = isEstimate
 			? (window && window > 0 ? Math.round(estimated / window * 100) : undefined)
 			: (usage.percent === null ? undefined : Math.round(usage.percent));
-		lines.push(t.fg("muted", isEstimate ? " ESTIMATE" : " PI ESTIMATE"));
-		lines.push(alignedRow("", t.fg("accent", t.bold(`${count}/${compactNumber(usage.contextWindow)} ${percent === undefined ? "--" : `${percent}%`}`)), width));
+		const right = `${count}/${compactNumber(usage.contextWindow)} ${percent === undefined ? "--" : `${percent}%`}`;
 		const ratio = (percent ?? 0) / 100;
-		const barWidth = Math.max(0, Math.min(40, width - 1));
-		if (barWidth) lines.push(` ${bar(t, ratio, barWidth, ratio > 0.85 ? "error" : ratio > 0.6 ? "warning" : "accent")}`);
+		const barWidth = Math.max(0, Math.min(40, width - visibleWidth(right) - 2));
+		const left = barWidth ? ` ${bar(t, ratio, barWidth, ratio > 0.85 ? "error" : ratio > 0.6 ? "warning" : "accent")}` : "";
+		lines.push(alignedRow(left, t.fg("accent", t.bold(right)), width));
 	} else {
 		lines.push(t.fg("dim", " USAGE UNKNOWN"));
 	}
 	if (data.captureWarning) lines.push(t.fg("warning", ` ${data.captureWarning}`));
-	const source = data.origin === "observed" ? "hook" : data.origin === "recorded" ? "log" : "live";
-	const heading = width >= 40 ? "CURRENT/NEXT · ESTIMATE" : "ESTIMATE";
-	const provenance = width >= 40 ? `SYSTEM${originNote(data.origin)}` : `SYS · ${source}`;
-	lines.push(t.fg("muted", heading), ...textCounterRows(data.counter.id, width, t), t.fg("dim", provenance), t.fg("dim", " Window %"));
+	lines.push(...textCounterRows(data.counter.id, width, t, "BREAKDOWN"));
+
+	// The bars compare quantities; the right-hand percentages still use capacity.
+	const values = parts.map((part) => ({
+		part,
+		count: compactNumber(part.tokens),
+		percent: window && window > 0 ? `${Math.round(part.tokens / window * 100)}%` : "--",
+	}));
+	const percentHeading = `of ${window && window > 0 ? compactNumber(window) : "?"}`;
+	const countWidth = Math.max(4, ...values.map((value) => value.count.length));
+	const percentWidth = Math.max(percentHeading.length, ...values.map((value) => value.percent.length));
+	const columns = (count: string, percent: string) => `${count.padStart(countWidth)} ${percent.padStart(percentWidth)}`;
+	const rightWidth = countWidth + 1 + percentWidth;
+	const stacked = width < rightWidth + 15;
+	const maximum = parts.reduce((max, part) => Math.max(max, part.tokens), 0);
+	const limit = contextBarLimit(maximum);
+	const limitText = compactNumber(limit);
+	const available = Math.min(20, Math.max(0, width - rightWidth - 15));
+	const barWidth = maximum > 0 && available >= visibleWidth(limitText) + 2 ? available : 0;
+	const label = (name: string) => ` ${name.padEnd(13)}`;
+	const axis = barWidth ? `0${" ".repeat(barWidth - 1 - visibleWidth(limitText))}${limitText}` : "";
+	lines.push(alignedRow(t.fg("muted", barWidth ? label("") + axis : ""), t.fg("dim", columns("≈tok", percentHeading)), width));
 	if (!parts.length) {
 		lines.push(t.fg("dim", " -- no estimated parts --"));
 		return lines;
 	}
-	for (const part of parts) {
-		const share = window && window > 0 ? part.tokens / window : undefined;
-		const right = `${compactNumber(part.tokens)} ${share === undefined ? "--" : `${Math.round(share * 100)}%`}`;
-		// Bars are optional: the count and Window % take precedence over label and bar.
-		const barWidth = Math.min(20, Math.max(0, width - visibleWidth(right) - 17));
-		const left = ` ${t.fg("text", part.label.padEnd(13))}${barWidth ? bar(t, share ?? 0, barWidth) : ""}`;
-		lines.push(alignedRow(left, t.fg("muted", right), width));
+	for (const { part, count, percent } of values) {
+		const right = t.fg("muted", columns(count, percent));
+		if (stacked) {
+			lines.push(alignedRow(t.fg("text", ` ${part.label}`), "", width), alignedRow("", right, width));
+		} else {
+			const left = t.fg("text", label(part.label)) + (barWidth ? bar(t, part.tokens / limit, barWidth, "muted") : "");
+			lines.push(alignedRow(left, right, width));
+		}
 	}
 	return lines;
+}
+
+/** Derived per reading: keep the axis stable until a 1-2-5 threshold is crossed. */
+function contextBarLimit(maximum: number): number {
+	if (maximum <= 0) return 1;
+	const unit = 10 ** Math.floor(Math.log10(maximum));
+	for (const factor of [1, 2, 5, 10]) {
+		const limit = factor * unit;
+		if (Number.isFinite(limit) && limit >= maximum) return limit;
+	}
+	return maximum;
 }
 
 function usageLines(env: PanelEnv, width: number): string[] {

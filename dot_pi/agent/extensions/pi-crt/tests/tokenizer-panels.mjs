@@ -22,14 +22,15 @@ for (const width of [16,30,60,100]) for (const split of [false,true]) {
   for (const id of ids) {
    const panel=panels[id]; panel.scroll.scrollToStart(); panel.scroll.markScrollbarActivity();
    const lines=frame(panel,width,split), text=lines.join('\n');
-   assert.ok(text.includes('TEXT TOKENS'),`${id} label ${width}`);
+   if(width>=30) assert.ok(text.includes('TOKENIZER: '+method),`${id} contiguous method ${width}`);
+   assert.doesNotMatch(text,/TEXT TOKENS|ESTIMATE|CURRENT\/NEXT|Window %|context hook/);
    assert.ok(text.includes(method),`${id} method ${method} ${width}: ${text}`);
    assert.match(text,/[┃│]/,`${id} scrollbar`);
-   if(id==='context') {const heading=lines.findIndex(l=>l.includes('CURRENT/NEXT')||l.trim()==='ESTIMATE'); assert.ok(lines.findIndex(l=>l.includes('TEXT TOKENS'))>heading,'local method belongs below the local estimate heading'); assert.match(text,/PI ESTIMATE/);assert.match(text,/Window %/);assert.match(text,width>=40?/SYSTEM.*recorded/:/SYS · log/);}
+   if(id==='context') {assert.match(text,/of 1\.0k/);assert.equal(h.context.contextData(h.state).origin,'recorded');}
    else {
     const sel=panel.list; const count=id==='promptparts'?2:12;
     for(const i of [0,count-1]) {
-      const expectedOffset=(width<30?2:1)+(id==='skilllist'?1:0)+i;
+      const expectedOffset=1+(id==='skilllist'?1:0)+i;
       const offset=sel.offsets[i]; assert.equal(offset,expectedOffset,`${id} actual item row ${i}`);
       if(width>=30) {
        const label=id==='toollist'?tools[i].name:id==='skilllist'?skills[i].name:i===0?'WHOLE PROMPT':h.inventory.prompt(h.state).parts[0].label;
@@ -55,7 +56,7 @@ h.reported={tokens:null,contextWindow:1000,percent:null}; await h.emit('turn_end
 const data=h.context.contextData(h.state); data.contextParts=[{label:'SYSTEM',tokens:100},{label:'USER',tokens:100}]; data.version++;
 for(const width of [16,30,60,100]) for(const split of [false,true]) {
  panels.context.scroll.scrollToStart(); const text=frame(panels.context,width,split).join('\n');
- assert.match(text,/ESTIMATE/); assert.doesNotMatch(text,/PI ESTIMATE/); assert.match(text,/≈200/); assert.match(text,/100 10%/); assert.doesNotMatch(text,/100 50%/); assert.match(text,/Window %/); assert.match(text,width>=40?/SYSTEM.*recorded/:/SYS · log/);
+ assert.doesNotMatch(text,/ESTIMATE|CURRENT\/NEXT|Window %|context hook/); assert.match(text,/≈200/); assert.match(text,/100\s+10%/); assert.doesNotMatch(text,/100\s+50%/); assert.match(text,/of 1\.0k/); assert.equal(data.origin,'recorded');
 }
 
 }

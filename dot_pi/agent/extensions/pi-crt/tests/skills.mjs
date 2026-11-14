@@ -36,7 +36,7 @@ export default async function skills() {
       await delay(10);
     }
     let items = h.inventory.skills(h.state).items;
-    assert.ok(items.every(item => item.body === body && item.bodyTokens === loadCount && !item.bodyError));
+    assert.ok(items.every(item => item.body === 'Read this UTF-8 text: café.' && item.bodyTokens === loadCount && !item.bodyError));
     assert.equal(items[0].listed, true);
     assert.equal(items[0].tokens, listCount);
     assert.equal(items[1].listed, false);

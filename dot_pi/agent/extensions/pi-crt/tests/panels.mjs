@@ -83,15 +83,14 @@ export default async function panels() {
       const lines = frame(panel, width, split, 10);
       const text = lines.join('\n');
       assert.match(text, /≈200/, 'null report is a marked estimate');
-      assert.match(text, /100 10%/, 'part share is of the window');
-      assert.doesNotMatch(text, /100 50%/, 'part share is not of the sum');
+      assert.match(text, /100\s+10%/, 'part share is of the window');
+      assert.doesNotMatch(text, /100\s+50%/, 'part share is not of the sum');
       assert.match(text, /[┃│]/, 'context scrollbar is visible');
-      assert.match(text, /ESTIMATE/, 'estimated meaning survives narrow layout');
-      assert.match(text, /Window %/, 'percentage denominator label survives narrow layout');
-      assert.match(text, width >= 40 ? /SYSTEM.*recorded/ : /SYS · log/, 'system source survives narrow layout');
+      assert.doesNotMatch(text, /ESTIMATE|CURRENT\/NEXT|Window %|context hook/);
+      assert.match(text, /of 1\.0k/, 'percentage denominator stays over the numeric column');
       if (width >= 60) {
-        assert.match(text, /CURRENT\/NEXT · ESTIMATE/);
-        assert.match(text, /Window %/);
+        assert.match(text, /BREAKDOWN/);
+        assert.match(text, /≈tok/);
       }
     }
     for (let width = 1; width <= 15; width++) frame(PANELS.get('context')(meter.panelEnv), width, split, 10);
@@ -99,7 +98,7 @@ export default async function panels() {
   meter.reported = {tokens: 123, contextWindow: 1000, percent: 12.3};
   await meter.emit('turn_end');
   let lines = frame(PANELS.get('context')(meter.panelEnv), 60, false, 10).join('\n');
-  assert.match(lines, /PI ESTIMATE/);
+  assert.doesNotMatch(lines, /PI ESTIMATE/);
   assert.match(lines, /123\/1.0k 12%/);
   // The actual Pi API can return a pure chars/4 estimate without any assistant usage.
   const msgs=[system('s'.repeat(400)),user('x'.repeat(400))];
@@ -108,7 +107,7 @@ export default async function panels() {
   assert.equal(actual.tokens,200);
   meter.reported=actual;await meter.emit('turn_end');
   lines=frame(PANELS.get('context')(meter.panelEnv),16,false,12).join(String.fromCharCode(10));
-  assert.match(lines,/PI ESTIMATE/);assert.doesNotMatch(lines,/REPORTED/);
+  assert.doesNotMatch(lines,/PI ESTIMATE/);assert.doesNotMatch(lines,/REPORTED/);
   meter.ctx.model={provider:'router',api:'pi-virtual',id:'route',contextWindow:0};
   meter.reported=undefined;await meter.emit('model_select');
   lines=frame(PANELS.get('context')(meter.panelEnv),30,false,12).join(String.fromCharCode(10));
@@ -145,7 +144,8 @@ export default async function panels() {
   await mixed.emit('turn_end');
   assert.equal(mixed.context.contextData(mixed.state).contextParts.find(p => p.label === 'USER').tokens, 100);
   const mixedText=frame(PANELS.get('context')(mixed.panelEnv),30,false,12).join(' ');
-  assert.match(mixedText,/SYS · log/);
+  assert.equal(mixed.context.contextData(mixed.state).origin,'recorded');
+  assert.doesNotMatch(mixedText,/context hook|SYS ·/);
   const onlySystem = await harness();
   await onlySystem.capture([...onlySystem.entries.map(e => e.message), user('x'.repeat(400),9)]);
   await onlySystem.emit('session_shutdown');
@@ -153,6 +153,7 @@ export default async function panels() {
   restored.sessionId=onlySystem.sessionId;await restored.emit('session_start');
   assert.equal(restored.context.contextData(restored.state).contextParts.find(p => p.label === 'USER').tokens, 2);
   const restoredText=frame(PANELS.get('context')(restored.panelEnv),30,false,12).join(' ');
-  assert.match(restoredText,/SYS · hook/);
+  assert.equal(restored.context.contextData(restored.state).origin,'observed');
+  assert.doesNotMatch(restoredText,/context hook|SYS ·/);
 
 }
