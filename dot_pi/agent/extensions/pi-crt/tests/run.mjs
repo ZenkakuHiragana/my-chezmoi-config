@@ -3,6 +3,7 @@ await import('./regressions.mjs');
 await (await import('./behavior.mjs')).default();
 await (await import('./contribution-contract.mjs')).default();
 await (await import('./retention.mjs')).default();
+await (await import('./ctok.mjs')).default();
 await (await import('./tokenizers.mjs')).default();
 await (await import('./tokenizer-runtime.mjs')).default();
 await (await import('./tokenizer-panels.mjs')).default();

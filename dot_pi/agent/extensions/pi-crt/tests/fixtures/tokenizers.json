@@ -18,68 +18,107 @@
     "edited": {
       "text": "日本語の差し替え本文です。",
       "chars4": 4,
-      "o200k_base": 10
+      "o200k_base": 10,
+      "ctok_v3": 13,
+      "ctok_v4.7": 13,
+      "ctok_v4.8": 12
     },
     "initial": {
       "text": "古いユーザー入力です。",
       "chars4": 3,
-      "o200k_base": 7
+      "o200k_base": 7,
+      "ctok_v3": 11,
+      "ctok_v4.7": 11,
+      "ctok_v4.8": 10
     },
     "reply": {
       "text": "追加の応答だよ。",
       "chars4": 2,
-      "o200k_base": 7
+      "o200k_base": 7,
+      "ctok_v3": 10,
+      "ctok_v4.7": 10,
+      "ctok_v4.8": 9
     },
     "thinking": {
       "text": "考え中です。",
       "chars4": 2,
-      "o200k_base": 5
+      "o200k_base": 5,
+      "ctok_v3": 6,
+      "ctok_v4.7": 6,
+      "ctok_v4.8": 5
     },
     "skillBlock": {
       "text": "  <skill>\n    <name>alpha</name>\n    <description>日本語の説明</description>\n    <location>/fixture/alpha/SKILL.md</location>\n  </skill>",
       "chars4": 33,
-      "o200k_base": 41
+      "o200k_base": 41,
+      "ctok_v3": 48,
+      "ctok_v4.7": 59,
+      "ctok_v4.8": 59
     },
     "skillRaw": {
       "text": "---\nname: alpha\ndescription: 日本語の説明\n---\n\n# 説明\n\tコード\t表示\n\u001b[31m赤い文字\u001b[0m\n",
       "chars4": 17,
-      "o200k_base": 35
+      "o200k_base": 35,
+      "ctok_v3": 41,
+      "ctok_v4.7": 44,
+      "ctok_v4.8": 43
     },
     "prompt": {
       "text": "前置きです。\n\n<skills>\n  <skill>\n    <name>alpha</name>\n    <description>日本語の説明</description>\n    <location>/fixture/alpha/SKILL.md</location>\n  </skill>\n</skills>\n\n<cwd>\n/home/demo\n</cwd>",
       "chars4": 46,
-      "o200k_base": 62
+      "o200k_base": 62,
+      "ctok_v3": 78,
+      "ctok_v4.7": 94,
+      "ctok_v4.8": 93
     },
     "tool": {
       "text": "lookup: 日本語の説明\n{\"type\":\"object\",\"properties\":{\"value\":{\"type\":\"string\"}}}",
       "chars4": 19,
-      "o200k_base": 21
+      "o200k_base": 21,
+      "ctok_v3": 26,
+      "ctok_v4.7": 36,
+      "ctok_v4.8": 36
     },
     "empty": {
       "text": "",
       "chars4": 0,
-      "o200k_base": 0
+      "o200k_base": 0,
+      "ctok_v3": 0,
+      "ctok_v4.7": 0,
+      "ctok_v4.8": 0
     },
     "literalSpecial": {
       "text": "<|endoftext|> <|im_start|> 日本語 😀",
       "chars4": 9,
-      "o200k_base": 16
+      "o200k_base": 16,
+      "ctok_v3": 21,
+      "ctok_v4.7": 22,
+      "ctok_v4.8": 22
     },
     "english": {
       "text": "hello world",
       "chars4": 3,
-      "o200k_base": 2
+      "o200k_base": 2,
+      "ctok_v3": 2,
+      "ctok_v4.7": 3,
+      "ctok_v4.8": 3
     },
     "splitLeft": {
       "text": "a",
       "chars4": 1,
-      "o200k_base": 1
+      "o200k_base": 1,
+      "ctok_v3": 1,
+      "ctok_v4.7": 1,
+      "ctok_v4.8": 1
     },
     "splitRight": {
       "text": "b",
       "chars4": 1,
-      "o200k_base": 1
+      "o200k_base": 1,
+      "ctok_v3": 1,
+      "ctok_v4.7": 1,
+      "ctok_v4.8": 1
     }
   },
-  "provenance": "Constructed fixtures, ordinary-text counts from official Python tiktoken 0.14.0 o200k_base. chars4 uses JS UTF16 length. Not private session contents."
+  "provenance": "Constructed fixtures, ordinary-text counts from official Python tiktoken 0.14.0 o200k_base and ctok 1.4.0 (Python, token_count minus the family message_overhead; empty text is 0). chars4 uses JS UTF16 length. Not private session contents."
 }

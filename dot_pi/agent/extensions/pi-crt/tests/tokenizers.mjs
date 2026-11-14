@@ -10,6 +10,8 @@ const oracle=JSON.parse(readFileSync(new URL('./fixtures/tokenizers.json',import
 const f=oracle.texts;
 const G={provider:'p',api:'a',id:'gpt-6.1-sol',contextWindow:1000};
 const C={provider:'p',api:'a',id:'claude-test',contextWindow:1000};
+const K={provider:'anthropic',api:'anthropic-messages',id:'claude-opus-5-5',contextWindow:1000};
+const methodOf=model=>model.id===G.id?'o200k_base':model.id===K.id?'ctok_v4.8':'chars4';
 const select=async(h,model)=>{h.ctx.model={...model};await h.emit('model_select');};
 const parts=h=>Object.fromEntries(h.context.contextData(h.state).contextParts.map(p=>[p.label,p.tokens]));
 
@@ -20,7 +22,9 @@ export default async function () {
  for(const id of ['gpt-6.1-sol','gpt-5-codex','chatgpt-4o','o3','o4-mini','openai/gpt-6.1-sol','vendor/o3']) assert.equal(counterForModel({...G,id}).id,'o200k_base');
  for(const id of ['claude-test','deepseek-v4.1-flash','glm-4.5','unknown']) assert.equal(counterForModel({...G,id}).id,'chars4');
  assert.equal(counterForModel(undefined).id,'chars4');
- for(const x of Object.values(f)) for(const counter of TEXT_COUNTERS) assert.equal(counted(countText(x.text),counter),x[counter.id]);
+ // Claude model IDs route by version as ctok does; an ID without a readable version 3 or later stays on chars4.
+ for(const [id,method] of [['claude-opus-5-5','ctok_v4.8'],['anthropic/claude-haiku-5.5','ctok_v4.8'],['claude-fable-5-2','ctok_v4.8'],['au.anthropic.claude-opus-4-8','ctok_v4.8'],['chat:anthropic/claude-opus-5.5-fast','ctok_v4.8'],['us.anthropic.claude-opus-4-7','ctok_v4.7'],['anthropic/claude-opus-4.7:batch','ctok_v4.7'],['anthropic.claude-opus-4-6-v1','ctok_v3'],['claude-sonnet-4-5-20250929','ctok_v3'],['claude-sonnet-4-20250514','ctok_v3'],['claude-3-5-haiku','ctok_v3'],['claude-3-opus-20240229','ctok_v3'],['claude-4.7','ctok_v4.7'],['anthropic/claude-3.5','ctok_v3'],['claude-2.1','chars4'],['claude-instant-1.2','chars4'],['claude-code-20250219','chars4'],['claude','chars4']]) assert.equal(counterForModel({...G,id}).id,method,id);
+ for(const [name,x] of Object.entries(f)) for(const counter of TEXT_COUNTERS) assert.equal(counted(countText(x.text),counter),x[counter.id],name+' '+counter.id);
  assert.equal(counterForModel(G).count('ab'),1); // BPE is not additive over arbitrary slices.
  const multi=user('');multi.content=[{type:'text',text:'a'},{type:'text',text:'b'}];
  assert.equal(new ContextMeter().measure([multi],'',[],G).find(p=>p.label==='USER').tokens,1);
@@ -29,12 +33,13 @@ export default async function () {
  const imageContribution=messageContribution(image);
  assert.equal(imageContribution.parts[0].tokens.chars4,imageTokens+3);
  assert.equal(imageContribution.parts[0].tokens.o200k_base,imageTokens+2);
+ assert.equal(imageContribution.parts[0].tokens['ctok_v4.8'],imageTokens+f.english['ctok_v4.8']);
  assert.ok(!JSON.stringify(imageContribution).includes('PRIVATE_IMAGE_BYTES'));
  for(const m of [{role:'bashExecution',command:'echo hi',output:'日本語',excludeFromContext:false,exitCode:0,cancelled:false,truncated:false,timestamp:1},{role:'compactionSummary',summary:'日本語の要約',tokensBefore:100,timestamp:1}]) {
   const converted=api.convertToLlm([m])[0],value=messageContribution(m).parts[0].tokens;
   assert.equal(value.chars4,api.estimateTokens(converted));
   const text=typeof converted.content==='string'?converted.content:converted.content.filter(b=>b.type==='text').map(b=>b.text).join('');
-  assert.equal(value.o200k_base,countText(text).o200k_base);
+  for(const counter of TEXT_COUNTERS.filter(c=>c.id!=='chars4')) assert.equal(value[counter.id],countText(text)[counter.id]);
  }
 
  const temp=join(tmpdir(),'pi');await mkdir(temp,{recursive:true});const dir=await mkdtemp(join(temp,'crt-tokenizers-'));
@@ -43,7 +48,7 @@ export default async function () {
   const skill={name:'alpha',description:'日本語の説明',filePath:path};
   const thought=assistant('',{provider:G.provider,api:G.api,model:G.id,content:[{type:'thinking',thinking:f.thinking.text}],usage:{reasoning:9}});
   // Capture under each initial backend. Request removes DELETE and changes the old user.
-  for(const initial of [G,C]) {
+  for(const initial of [G,C,K]) {
    const h=await harness({messages:[system(f.prompt.text,[oracle.tool]),user(f.initial.text),assistant('DELETE')],allTools:[oracle.tool]});h.fallback=f.prompt.text;
    await select(h,initial);
    await h.emit('before_agent_start',{systemPromptOptions:{skills:[skill]}});await h.emit('agent_start');
@@ -54,9 +59,9 @@ export default async function () {
    await rm(path);
    await h.capture([system(f.prompt.text,[oracle.tool]),user(f.edited.text),thought]);
    h.append(assistant(f.reply.text,{provider:G.provider,api:G.api,model:G.id}));await h.emit('turn_end');
-   for(const selected of [initial,initial===G?C:G,initial]) {
+   for(const selected of [initial,...[G,C,K].filter(m=>m!==initial),initial]) {
     await select(h,selected);const data=h.context.contextData(h.state),k=data.counter.id,p=parts(h),prompt=h.inventory.prompt(h.state);
-    assert.equal(k,selected.id===G.id?'o200k_base':'chars4');
+    assert.equal(k,methodOf(selected));
     assert.equal(p.USER,f.edited[k]);assert.equal(p.ASSISTANT,f.reply[k]);
     assert.equal(p.THINKING??0,selected.id===G.id?9:0);
     assert.equal(p.SYSTEM,f.prompt[k]);assert.equal(prompt.tokens,p.SYSTEM);assert.equal(prompt.counterId,k);
@@ -69,7 +74,7 @@ export default async function () {
    for(const mismatch of [{...G,provider:'other'},{...G,api:'other'},{...G,id:'gpt-other'}]) {await select(h,mismatch);assert.equal(parts(h).THINKING??0,0);}
    await select(h,G);assert.equal(parts(h).THINKING,9);
    await h.emit('session_shutdown');
-   if(initial===G) await writeFile(path,f.skillRaw.text,'utf8');
+   if(initial!==K) await writeFile(path,f.skillRaw.text,'utf8');
   }
  } finally {await rm(dir,{recursive:true,force:true});}
 

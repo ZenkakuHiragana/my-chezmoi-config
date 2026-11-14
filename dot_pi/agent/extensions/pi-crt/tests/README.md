@@ -65,8 +65,13 @@ specification expectations; it is not itself proof that either side is correct.
 ## Local text-counting methods
 
 Recent GPT-like model IDs (`gpt-`, `chatgpt-`, `o` followed by digits, including
-vendor-prefixed IDs) use `o200k_base`. Other or unknown models use the original
-per-message `ceil(UTF-16 length / 4)` rule. This deliberately coarse policy is
+vendor-prefixed IDs) use `o200k_base`. Claude model IDs with a readable version
+(`claude-opus-5-5`, `anthropic/claude-sonnet-4.6`, `claude-3-5-haiku`, after any
+`/`, `.` or `:` prefix; an 8-digit date is not a version) use the ctok family that
+version routes to, as ctok's own routing does: 3.0 to 4.6 `ctok_v3`, 4.7
+`ctok_v4.7`, 4.8 and later `ctok_v4.8`. Other or unknown models, including
+Claude IDs without a version of 3 or later, use the original per-message
+`ceil(UTF-16 length / 4)` rule. This deliberately coarse policy is
 not a legacy-GPT compatibility table. Virtual routing uses the latest successful
 recorded physical model before choosing a method.
 
@@ -77,9 +82,29 @@ still use Pi's heuristic, and same-model reported reasoning can set a lower boun
 Tool definitions still use the shared display-counting representation rather
 than a claim to reproduce provider-native tool serialization.
 
+The ctok counters (`state/ctok.ts`, a port of ctok 1.4.0) count text as ctok
+reconstructs Claude's `count_tokens`: the tokens it costs as one user message,
+without the measured message frame, and 0 for empty text. Like ctok they predict
+counts, not Anthropic's token boundaries, and they inherit ctok's documented gaps
+(for example Opus 5's free trailing ASCII whitespace). The vocabularies are ctok's
+release files, unchanged, in `vendor/ctok/`; a family's file is read and indexed
+the first time that family counts, and `countText` counts every family. Unicode
+properties come from the running JavaScript engine except canonical combining
+classes, embedded from Python's `unicodedata` 16.0.0; characters assigned after
+ctok's measurements can count differently.
+
+`ctok.mjs` checks the vendored files against ctok's release hashes, the version
+routing, and ctok's recorded `count_tokens` fixtures for the held-out MultiPL-E
+and Rosetta Code samples, which v3 and v4.7 must reproduce exactly. Against ctok's
+own (Python) counts it checks v4.8 on those samples, frame-sensitive strings,
+ctok's own test strings, and long inputs: the joined MultiPL-E documents and long
+runs of newlines and of combining marks, which must not take quadratic time. To
+update ctok, replace the vocabulary files and these fixtures from one release and
+port its rule changes; a family added to `CTOK_FAMILIES` gets its counter.
+
 `tokenizers.mjs` uses constructed fixtures with fixed ordinary-text BPE counts
-from official Python `tiktoken` 0.14.0. It checks GPT/fallback capture and model
-switches in both directions, virtual routing, literal special-token-like input,
+from official Python `tiktoken` 0.14.0 and ctok counts from Python ctok 1.4.0. It checks GPT/Claude/fallback capture and model
+switches in every order, virtual routing, literal special-token-like input,
 shared inventory counts, and raw skill LOAD after source deletion. Numeric
 conversation contributions contain all startup methods; no request-only text is
 retained for later retokenization. Skill LOAD selects the counts made from the
@@ -96,7 +121,8 @@ The live canonical history remains owned by Pi and is measured with only the
 selected method. Request-only edits still receive every startup method before
 their raw payload is discarded. pi-crt owns its BPE encoder and disables its
 raw-word merge cache without changing another extension's shared encoder.
-A bounded 1024-entry memo stores SHA-256 keys of exact UTF-16 input and numeric
+Each counter but chars/4 has a bounded 8192-entry memo, above the distinct texts of a
+long branch, that stores SHA-256 keys of exact UTF-16 input and numeric
 counts only. Changed input recomputes; cache eviction can also cause recomputation.
 This avoids repeatedly tokenizing unchanged history without retaining its words.
 `tokenizer-runtime.mjs` checks encoder isolation, the absence of input-word cache

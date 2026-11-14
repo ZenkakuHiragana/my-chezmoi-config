@@ -22,7 +22,7 @@ async function worker() {
  assert.equal(core.mergeCache,undefined);assert.equal(core.bytePairStringRankEncoder.size,dictSize,'no user strings added to the vocabulary/cache map');
  assert.equal(sharedCore.mergeCacheSize,7);assert.equal(sharedCore.mergeCache.size,sharedSize,'another extension encoder remains untouched');assert.deepEqual([...sharedCore.mergeCache],sharedEntries);
  const counter=counters.counterForModel({provider:'p',api:'a',id:'gpt-test'}),first='CACHEBOUND_FIRST_uniquevalue';
- counter.count(first);for(let i=0;i<1025;i++)counter.count('CACHEBOUND_uniquevalue_'+i);
+ counter.count(first);for(let i=0;i<8193;i++)counter.count('CACHEBOUND_uniquevalue_'+i);
  const beforeEvicted=nativeCalls;counter.count(first);assert.equal(nativeCalls,beforeEvicted+1,'bounded memo evicts old entries');
  const body="const result = JSON.stringify({name: 'value', count: 123});\n".repeat(710);
  const h=await harness({messages:[system(),...Array.from({length:80},(_,i)=>user(body+i))]});

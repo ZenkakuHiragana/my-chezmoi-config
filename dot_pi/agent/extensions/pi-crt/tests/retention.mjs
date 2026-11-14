@@ -14,8 +14,8 @@ export default async function () {
     if (edit.type==='deleted') continue;
     const c=edit.contribution;
     assert.deepEqual(Object.keys(c).sort(),c.thinking?['parts','thinking']:['parts']);
-    for (const p of c.parts) {assert.deepEqual(Object.keys(p).sort(),['label','tokens']);assert.equal(typeof p.label,'string');assert.ok(Object.keys(p.tokens).sort().join(',')==='chars4,o200k_base'&&Object.values(p.tokens).every(Number.isFinite));}
-    if(c.thinking){assert.deepEqual(Object.keys(c.thinking).sort(),['model','tokens']);assert.deepEqual(c.thinking.model,{provider:'p',api:'a',id:'m'});assert.ok(Object.keys(c.thinking.tokens).sort().join(',')==='chars4,o200k_base'&&Object.values(c.thinking.tokens).every(Number.isFinite));}
+    for (const p of c.parts) {assert.deepEqual(Object.keys(p).sort(),['label','tokens']);assert.equal(typeof p.label,'string');assert.ok(Object.keys(p.tokens).sort().join(',')==='chars4,ctok_v3,ctok_v4.7,ctok_v4.8,o200k_base'&&Object.values(p.tokens).every(Number.isFinite));}
+    if(c.thinking){assert.deepEqual(Object.keys(c.thinking).sort(),['model','tokens']);assert.deepEqual(c.thinking.model,{provider:'p',api:'a',id:'m'});assert.ok(Object.keys(c.thinking.tokens).sort().join(',')==='chars4,ctok_v3,ctok_v4.7,ctok_v4.8,o200k_base'&&Object.values(c.thinking.tokens).every(Number.isFinite));}
   }
   const toolContribution=snapshot.conversation.find(e=>e.contribution?.parts.some(p=>p.label==='TOOL RESULTS')).contribution;
   assert.equal(toolContribution.parts.reduce((n,p)=>n+p.tokens.chars4,0),api.estimateTokens(messages[3]));

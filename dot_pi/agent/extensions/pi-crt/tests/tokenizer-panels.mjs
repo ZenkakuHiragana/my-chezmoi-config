@@ -17,7 +17,7 @@ function frame(panel,width,split,height=30) {
  return lines.map(plain);
 }
 for (const width of [16,30,60,100]) for (const split of [false,true]) {
- for (const [model,method] of [['gpt-4o','o200k_base'],['other','chars/4'],['gpt-4o','o200k_base']]) {
+ for (const [model,method] of [['gpt-4o','o200k_base'],['other','chars/4'],['claude-opus-5-5','ctok_v4.8'],['gpt-4o','o200k_base']]) {
   h.ctx.model.id=model; await h.emit('model_select');
   for (const id of ids) {
    const panel=panels[id]; panel.scroll.scrollToStart(); panel.scroll.markScrollbarActivity();
