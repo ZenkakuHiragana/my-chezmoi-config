@@ -42,6 +42,9 @@ show [--full] [ID ...]
   session.sh search '検索語' --limit 1 | session.sh show
 
 -h, --help            この説明を表示する。サブコマンドの直後でも指定できる。
+
+環境変数:
+  MEILISEARCH_EMBEDDER  検索に使う埋め込み設定名（既定: ruri）。
 `;
 const origin = (process.env.MEILISEARCH_URL || "http://127.0.0.1:7700").replace(/\/+$/, "");
 const indexUrl = origin + "/indexes/" + (process.env.MEILISEARCH_INDEX || "conversations");
@@ -116,7 +119,7 @@ async function search(options, args) {
         offset: options.conversation ? offset : 0, filter,
         attributesToRetrieve: ["id", "source", "message_id", "timestamp", "title", "cwd", "project"],
         attributesToCrop: ["question:20", "reply:40"], cropMarker: "…",
-        ...(query ? { hybrid: { embedder: "ruri", semanticRatio: 0.5 } } : { sort: ["timestamp:asc"] }),
+        ...(query ? { hybrid: { embedder: process.env.MEILISEARCH_EMBEDDER || "ruri", semanticRatio: 0.5 } } : { sort: ["timestamp:asc"] }),
         ...(options.conversation ? {} : { distinct: "conversation_id" }),
     });
 

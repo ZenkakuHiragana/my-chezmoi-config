@@ -1,8 +1,8 @@
 #!/usr/bin/env python3
 """Pi と ChatGPT の会話を Meilisearch の1つのインデックスへ送る共通部品。
 
-文書の形、インデックス設定、送信と報告をここで決める。会話ログの読み方は
-import_pi_meilisearch.py と import_chatgpt_meilisearch.py が持つ。
+インデックス設定、送信と報告をここで決める。会話ログの読取りと文書化は
+各 importer と chatgpt_export.py が担当する。
 """
 
 from __future__ import annotations
@@ -11,6 +11,8 @@ import argparse
 from dataclasses import dataclass, field
 from http.client import HTTPException
 import json
+import os
+from pathlib import Path
 import sys
 import time
 from typing import Iterable
@@ -21,40 +23,55 @@ DEFAULT_MEILI_URL = 'http://127.0.0.1:7700'
 DEFAULT_INDEX = 'conversations'
 # Meilisearch runs in Docker, so the host's Ollama is reached through host.docker.internal.
 DEFAULT_EMBEDDER_URL = 'http://host.docker.internal:11434/api/embed'
-EMBEDDING_MODEL = 'ruri-v3-310m:q8_0'
-EMBEDDING_DIMENSIONS = 768
-# Only the head of each field is embedded. Measured with Ruri v3, code and symbol-heavy
-# text took about 0.50-0.54 tokens per character, so 14,000 characters in total come
-# to about 7,600 tokens, under the 8,192-token context. Denser text (base64 and the
-# like) can still exceed it; that conversation's task then fails as a whole. The
-# question gets its own share so that a long reply cannot push it out entirely.
-EMBEDDING_REPLY_CHARS = 12000
-EMBEDDING_QUESTION_CHARS = 2000
+DEFAULT_EMBEDDING_CONFIG = Path(__file__).with_name('embedding-model.json')
 
 
-def make_settings(embedder_url: str) -> dict:
-    """Index settings. This code is the source of truth; each run applies it."""
+def load_embedding_config(path: Path) -> dict:
+    """Read the complete user-supplied model profile before contacting Meilisearch."""
+    try:
+        profile = json.loads(path.read_text(encoding='utf-8'))
+        if not isinstance(profile, dict):
+            raise ValueError('JSON オブジェクトが必要')
+        for key in ('model', 'query_prefix', 'document_prefix'):
+            if not isinstance(profile.get(key), str) or (key == 'model' and not profile[key]):
+                raise ValueError(f'{key} は文字列が必要')
+        for key in ('dimensions', 'reply_chars', 'question_chars'):
+            if type(profile.get(key)) is not int or profile[key] <= 0:
+                raise ValueError(f'{key} は正の整数が必要')
+        return profile
+    except (OSError, UnicodeError, ValueError) as error:
+        raise ValueError(f'埋め込み設定 {path}: {error}') from None
+
+
+def make_settings(embedder_url: str, profile: dict | None = None) -> dict:
+    """Index settings. Each run applies the selected profile."""
+    if profile is None:
+        profile = load_embedding_config(DEFAULT_EMBEDDING_CONFIG)
+
+    def literal_prefix(text: str) -> str:
+        return text.replace('{', "{{ '{' }}")
+
     return {
         'searchableAttributes': ['question', 'reply', 'title'],
         'filterableAttributes': ['source', 'cwd', 'conversation_id', 'project', 'timestamp'],
         'sortableAttributes': ['timestamp'],
         'localizedAttributes': [{'locales': ['jpn', 'eng'], 'attributePatterns': ['question', 'reply', 'title']}],
         'embedders': {
-            'ruri': {
+            (os.environ.get('MEILISEARCH_EMBEDDER') or 'ruri'): {
                 # Fragments (experimental "multimodal") let documents and queries carry
-                # different Ruri v3 prefixes; documentTemplate cannot prefix queries.
+                # different model prefixes; documentTemplate cannot prefix queries.
                 'source': 'rest',
                 'url': embedder_url,
-                'dimensions': EMBEDDING_DIMENSIONS,
-                'request': {'model': EMBEDDING_MODEL, 'input': ['{{fragment}}', '{{..}}']},
+                'dimensions': profile['dimensions'],
+                'request': {'model': profile['model'], 'input': ['{{fragment}}', '{{..}}']},
                 'response': {'embeddings': ['{{embedding}}', '{{..}}']},
                 'indexingFragments': {
                     'doc': {
-                        'value': f'検索文書: {{{{ doc.reply | truncate: {EMBEDDING_REPLY_CHARS} }}}}'
-                                 f'\n\n{{{{ doc.question | truncate: {EMBEDDING_QUESTION_CHARS} }}}}',
+                        'value': f"{literal_prefix(profile['document_prefix'])}{{{{ doc.reply | truncate: {profile['reply_chars']} }}}}"
+                                 f"\n\n{{{{ doc.question | truncate: {profile['question_chars']} }}}}",
                     },
                 },
-                'searchFragments': {'query': {'value': '検索クエリ: {{q}}'}},
+                'searchFragments': {'query': {'value': literal_prefix(profile['query_prefix']) + '{{q}}'}},
             },
         },
     }
@@ -121,7 +138,7 @@ class MeilisearchClient:
             time.sleep(self.poll_seconds)
 
 
-def prepare_index(client: MeilisearchClient, index: str, embedder_url: str) -> None:
+def prepare_index(client: MeilisearchClient, index: str, settings: dict) -> None:
     def run_task(what: str, method: str, path: str, body: object) -> None:
         task_uid = client.enqueue(method, path, body)
         print(f'wait {what} task={task_uid}', flush=True)
@@ -137,7 +154,7 @@ def prepare_index(client: MeilisearchClient, index: str, embedder_url: str) -> N
         if error.status != 404:
             raise
         run_task(f'create index {index}', 'POST', '/indexes', {'uid': index, 'primaryKey': 'id'})
-    run_task(f'settings {index}', 'PATCH', f'/indexes/{index}/settings', make_settings(embedder_url))
+    run_task(f'settings {index}', 'PATCH', f'/indexes/{index}/settings', settings)
 
 
 @dataclass
@@ -158,6 +175,7 @@ def add_common_args(parser: argparse.ArgumentParser) -> None:
     parser.add_argument('--meili-url', default=DEFAULT_MEILI_URL, help=f'Meilisearch の URL（既定 {DEFAULT_MEILI_URL}）')
     parser.add_argument('--index', default=DEFAULT_INDEX, help=f'インデックス名（既定 {DEFAULT_INDEX}）')
     parser.add_argument('--embedder-url', default=DEFAULT_EMBEDDER_URL, help=f'Meilisearch から見た Ollama の埋め込み API（既定 {DEFAULT_EMBEDDER_URL}）')
+    parser.add_argument('--embedding-config', type=Path, default=DEFAULT_EMBEDDING_CONFIG, help='埋め込みモデル設定 JSON')
     parser.add_argument('--dry-run', action='store_true', help='Meilisearch へ接続せず、変換だけを行う')
 
 
@@ -183,12 +201,20 @@ def run(args: argparse.Namespace, batches: Iterable[Batch], client: MeilisearchC
         where = label if task_uid is None else f'{label} task={task_uid}'
         print(f'failed {where}: {error}', file=sys.stderr, flush=True)
 
+    if not args.dry_run:
+        try:
+            profile = load_embedding_config(args.embedding_config)
+        except ValueError as error:
+            failed('embedding-config', str(error))
+            print(json.dumps(summary, ensure_ascii=True), flush=True)
+            return 1
+
     code = 0
     current = 'prepare'  # what was in progress, for the abort message
     try:
         if not args.dry_run:
             client = client or MeilisearchClient(args.meili_url)
-            prepare_index(client, args.index, args.embedder_url)
+            prepare_index(client, args.index, make_settings(args.embedder_url, profile))
         for batch in batches:
             if batch.skipped:
                 summary['skipped'] += 1

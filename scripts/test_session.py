@@ -88,7 +88,7 @@ class SessionTest(unittest.TestCase):
     def setUp(self):
         self.fake = FakeMeilisearch()
         self.addCleanup(self.fake.close)
-        self.env = {k: v for k, v in os.environ.items() if k not in ("PI_SESSION_ID", "MEILISEARCH_INDEX")}
+        self.env = {k: v for k, v in os.environ.items() if k not in ("PI_SESSION_ID", "MEILISEARCH_INDEX", "MEILISEARCH_EMBEDDER")}
         self.env.update(MEILISEARCH_URL=self.fake.url, TZ="UTC")
 
     def respond(self, *responses):

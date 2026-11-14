@@ -17,6 +17,7 @@ from unittest.mock import patch
 from urllib.error import URLError
 import zipfile
 
+import chatgpt_export as reader
 import import_chatgpt_meilisearch as chatgpt
 import import_pi_meilisearch as pi
 import meilisearch_conversations as common
@@ -24,7 +25,7 @@ import meilisearch_conversations as common
 
 class TemporaryTestCase(unittest.TestCase):
     def setUp(self):
-        work = Path('.opencode/work/meilisearch-import/tests')
+        work = Path(os.environ['LOCALAPPDATA']) / 'Temp' / 'pi' if os.name == 'nt' else Path('/tmp/pi')
         work.mkdir(parents=True, exist_ok=True)
         self.temporary = tempfile.TemporaryDirectory(dir=work)
         self.addCleanup(self.temporary.cleanup)
@@ -313,6 +314,20 @@ class ChatGPTTests(TemporaryTestCase):
         self.assertNotIn('source_member', first)
         self.assertNotIn('project', first)
 
+    def test_malformed_conversation_fails_only_itself(self):
+        malformed = conversation('conv-3')
+        malformed['mapping']['a1']['message']['metadata'] = None
+        self.write_folder(self.root / 'a', malformed)
+        self.write_folder(self.root / 'b', conversation('conv-4'))
+        result = list(chatgpt.batches([self.root / 'a', self.root / 'b']))
+        self.assertIsNotNone(result[0].error)
+        self.assertEqual(result[1].documents[0]['conversation_id'], 'conv-4')
+
+    def test_missing_mapping_is_a_failure(self):
+        self.write_folder(self.root / 'a', {'conversation_id': 'conv-5', 'mapping': None})
+        [batch] = list(chatgpt.batches([self.root / 'a']))
+        self.assertIsNotNone(batch.error)
+
     def test_zip_and_folder_select_newest_export_and_continue_after_broken_member(self):
         folder = self.root / 'folder'
         self.write_folder(folder, conversation(title='古い', update_time=100.0))
@@ -331,70 +346,6 @@ class ChatGPTTests(TemporaryTestCase):
         self.assertEqual(imported['conv-1']['source_path'], str(archive.resolve()))
         self.assertIn('conv-2', imported)
 
-    def test_branch_falls_back_to_latest_leaf_and_accepts_array_mapping(self):
-        # currentBranch() in the extractor userscript falls back to the newest leaf and accepts arrays.
-        conv = conversation()
-        del conv['current_node']
-        conv['mapping']['other']['message']['create_time'] = 1790000001.0  # newest leaf
-        documents = chatgpt.convert_conversation(conv, chatgpt.Origin('x'))
-        self.assertEqual(documents[0]['reply'], '回答その1\n\n回答その2\n部品の文字\n\n選ばれていない枝')
-        array_form = conversation()
-        array_form['mapping'] = list(array_form['mapping'].values())
-        self.assertEqual(chatgpt.convert_conversation(array_form, chatgpt.Origin('x')),
-                         chatgpt.convert_conversation(conversation(), chatgpt.Origin('x')))
-
-    def test_malformed_conversation_fails_only_itself(self):
-        malformed = conversation('conv-3')
-        malformed['mapping']['a1']['message']['metadata'] = None
-        self.write_folder(self.root / 'a', malformed)
-        self.write_folder(self.root / 'b', conversation('conv-4'))
-        result = list(chatgpt.batches([self.root / 'a', self.root / 'b']))
-        self.assertIsNotNone(result[0].error)
-        self.assertEqual(result[1].documents[0]['conversation_id'], 'conv-4')
-
-    def test_duplicate_selection_falls_back_to_create_time_then_export_time_then_order(self):
-        def write(folder, **times):
-            conv = conversation(title=folder)
-            conv.pop('update_time')
-            conv.update(times)
-            self.write_folder(self.root / folder, conv)
-            return self.root / folder
-
-        def chosen(*folders):
-            [batch] = list(chatgpt.batches(list(folders)))
-            return batch.documents[0]['title']
-
-        self.assertEqual(chosen(write('a', update_time=100.0), write('b', create_time=200.0)), 'b')
-        self.assertEqual(chosen(write('c', update_time=0, create_time=300.0), write('d', update_time=250.0)), 'c')
-        self.assertEqual(chosen(write('e', update_time=100.0, __local_exported_at=1.0), write('f', update_time=100.0, __local_exported_at=2.0)), 'f')
-        self.assertEqual(chosen(write('g', update_time=100.0), write('h', update_time=100.0)), 'g')
-        self.assertEqual(chosen(write('i', update_time='NaN', create_time=400.0), write('j', update_time=350.0)), 'i')
-        same_input = self.root / 'same'
-        for name in ('b-second', 'a-first'):
-            conv = conversation(title=name)
-            path = same_input / name / 'conversation.json'
-            path.parent.mkdir(parents=True)
-            path.write_text(json.dumps(conv, ensure_ascii=False), encoding='utf-8')
-        self.assertEqual(chosen(same_input), 'a-first')  # tie inside one input: path order
-
-    def test_current_node_missing_from_mapping_falls_back_to_latest_leaf(self):
-        conv = conversation()
-        conv['current_node'] = 'gone'
-        conv['mapping']['other']['message']['create_time'] = 1790000001.0
-        self.assertEqual(chatgpt.current_branch(conv)[-1]['id'], 'other')
-
-    def test_latest_leaf_uses_numeric_create_time_like_the_userscript(self):
-        conv = conversation()
-        del conv['current_node']
-        conv['mapping']['u3']['message']['create_time'] = '100'
-        conv['mapping']['other']['message']['create_time'] = '200'  # Number('200') > Number('100')
-        self.assertEqual(chatgpt.current_branch(conv)[-1]['id'], 'other')
-
-    def test_missing_mapping_is_a_failure(self):
-        self.write_folder(self.root / 'a', {'conversation_id': 'conv-5', 'mapping': None})
-        [batch] = list(chatgpt.batches([self.root / 'a']))
-        self.assertIsNotNone(batch.error)
-
     def test_unreadable_archive_or_folder_does_not_stop_other_inputs(self):
         archive = self.write_zip(self.root / 'backup.zip', {'c/conversation.json': json.dumps(conversation('conv-6'))})
         self.write_folder(self.root / 'folder', conversation('conv-7'))
@@ -405,7 +356,7 @@ class ChatGPTTests(TemporaryTestCase):
                 raise RuntimeError('encrypted')
             return real_zipfile(path, *args, **kwargs)
 
-        with patch.object(chatgpt.zipfile, 'ZipFile', broken_zip):
+        with patch.object(reader.zipfile, 'ZipFile', broken_zip):
             result = list(chatgpt.batches([archive, self.root / 'folder']))
         self.assertIsNotNone(result[0].error)
         self.assertEqual(result[1].documents[0]['conversation_id'], 'conv-7')
@@ -424,13 +375,13 @@ class ChatGPTTests(TemporaryTestCase):
         self.assertEqual(batch.documents[0]['conversation_id'], 'conv-6')
         self.assertNotIn('project', batch.documents[0])
 
-        real_walk = chatgpt.os.walk
+        real_walk = reader.os.walk
 
         def walk(top, onerror=None):
             onerror(PermissionError(13, 'denied', str(Path(top) / 'locked')))
             return real_walk(top, onerror=onerror)
 
-        with patch.object(chatgpt.os, 'walk', walk):
+        with patch.object(reader.os, 'walk', walk):
             result = list(chatgpt.batches([self.root / 'folder']))
         self.assertIn('locked', result[0].label)
         self.assertEqual(result[1].documents[0]['conversation_id'], 'conv-7')
@@ -488,7 +439,7 @@ class FakeClient(common.MeilisearchClient):
 
 
 def args(dry_run=False):
-    return argparse.Namespace(meili_url='http://fake', index='conversations', embedder_url='http://embed', dry_run=dry_run)
+    return argparse.Namespace(meili_url='http://fake', index='conversations', embedder_url='http://embed', embedding_config=common.DEFAULT_EMBEDDING_CONFIG, dry_run=dry_run)
 
 
 def run_quietly(*a, **k):
@@ -620,7 +571,7 @@ class RunTests(unittest.TestCase):
         self.assertEqual(client.calls.count(('POST', '/indexes/conversations/documents')), 1)
 
     def test_converted_documents_are_sent_unchanged(self):
-        work = Path('.opencode/work/meilisearch-import/tests')
+        work = Path(os.environ['LOCALAPPDATA']) / 'Temp' / 'pi' if os.name == 'nt' else Path('/tmp/pi')
         work.mkdir(parents=True, exist_ok=True)
         with tempfile.TemporaryDirectory(dir=work) as temporary:
             session = Path(temporary) / 'sessions' / 'work' / 's.jsonl'
@@ -650,7 +601,9 @@ class RunTests(unittest.TestCase):
         self.assertEqual(summary['documents'], 4)
 
     def test_settings_contract(self):
-        settings = common.make_settings('http://embed')
+        with patch.dict(os.environ):
+            os.environ.pop('MEILISEARCH_EMBEDDER', None)
+            settings = common.make_settings('http://embed')
         self.assertEqual(set(settings['searchableAttributes']), {'question', 'reply', 'title'})
         self.assertTrue({'source', 'cwd', 'conversation_id', 'project', 'timestamp'} <= set(settings['filterableAttributes']))
         self.assertIn('timestamp', settings['sortableAttributes'])
@@ -663,6 +616,108 @@ class RunTests(unittest.TestCase):
         self.assertEqual(embedder['searchFragments'], {'query': {'value': '検索クエリ: {{q}}'}})
         self.assertEqual(embedder['indexingFragments'], {'doc': {
             'value': '検索文書: {{ doc.reply | truncate: 12000 }}\n\n{{ doc.question | truncate: 2000 }}'}})
+
+
+class EmbeddingProfileTests(TemporaryTestCase):
+    def test_profile_drives_both_importers_and_url_is_independent(self):
+        profile = {'model': 'other', 'dimensions': 123, 'query_prefix': '', 'document_prefix': '',
+                   'reply_chars': 23, 'question_chars': 17}
+        path = self.root / 'model.json'
+        path.write_text(json.dumps(profile), encoding='utf-8')
+        chat = self.root / 'chat' / 'conversation.json'
+        chat.parent.mkdir()
+        chat.write_text(json.dumps(conversation()), encoding='utf-8')
+        session = self.root / 'sessions' / 'work' / 's.jsonl'
+        write_jsonl(session, PI_SESSION)
+        clients = []
+        def client(url):
+            instance = FakeClient(index_exists=True)
+            clients.append(instance)
+            return instance
+        with patch.dict(os.environ, {'MEILISEARCH_EMBEDDER': 'custom'}), patch.object(common, 'MeilisearchClient', client), redirect_stdout(io.StringIO()):
+            self.assertEqual(chatgpt.main([str(chat.parent), '--embedding-config', str(path), '--embedder-url', 'http://one']), 0)
+            with patch.object(pi, 'SESSIONS_ROOT', session.parent.parent):
+                self.assertEqual(pi.main(['--embedding-config', str(path), '--embedder-url', 'http://two']), 0)
+        first, second = [next(body for target, body in c.bodies if target.endswith('/settings'))['embedders']['custom'] for c in clients]
+        self.assertEqual(first['request']['model'], 'other')
+        self.assertEqual(first['dimensions'], 123)
+        self.assertEqual(first['searchFragments']['query']['value'], '{{q}}')
+        self.assertEqual(first['indexingFragments']['doc']['value'], '{{ doc.reply | truncate: 23 }}' + chr(10)*2 + '{{ doc.question | truncate: 17 }}')
+        self.assertEqual((first.pop('url'), second.pop('url')), ('http://one', 'http://two'))
+        self.assertEqual(first, second)
+
+    def test_both_cli_reject_missing_profile_before_client(self):
+        path = self.root / 'missing.json'
+        for run_main, input_args in ((pi.main, []), (chatgpt.main, [str(self.root)])):
+            with patch.object(common, 'MeilisearchClient', side_effect=AssertionError('network client created')), redirect_stdout(io.StringIO()) as out, redirect_stderr(io.StringIO()):
+                code = run_main(input_args + ['--embedding-config', str(path)])
+            self.assertEqual(code, 1)
+            self.assertEqual(json.loads(out.getvalue().splitlines()[-1])['failed'][0]['label'], 'embedding-config')
+
+    def test_nonempty_prefixes_and_empty_alias(self):
+        profile = {'model': 'x', 'dimensions': 11, 'query_prefix': 'query> ', 'document_prefix': 'doc> ',
+                   'reply_chars': 3, 'question_chars': 4}
+        with patch.dict(os.environ, {'MEILISEARCH_EMBEDDER': ''}):
+            embedder = common.make_settings('http://url', profile)['embedders']['ruri']
+        self.assertEqual(embedder['searchFragments']['query']['value'], 'query> {{q}}')
+        self.assertEqual(embedder['indexingFragments']['doc']['value'],
+                         'doc> {{ doc.reply | truncate: 3 }}' + chr(10)*2 + '{{ doc.question | truncate: 4 }}')
+
+    def test_prefixes_are_literal_text_in_both_fragments(self):
+        profile = json.loads(common.DEFAULT_EMBEDDING_CONFIG.read_text(encoding='utf-8'))
+        profile.update(document_prefix='{{ doc.question }}', query_prefix='{% raw %}')
+        settings = common.make_settings('http://embed', profile)
+        [embedder] = settings['embedders'].values()
+        self.assertEqual(embedder['searchFragments']['query']['value'],
+                         "{{ '{' }}% raw %}{{q}}")
+        self.assertEqual(embedder['indexingFragments']['doc']['value'],
+                         "{{ '{' }}{{ '{' }} doc.question }}{{ doc.reply | truncate: 12000 }}"
+                         + chr(10)*2 + "{{ doc.question | truncate: 2000 }}")
+        self.assertEqual(profile['document_prefix'], '{{ doc.question }}')
+
+    def test_dry_run_does_not_read_model_settings(self):
+        path = self.root / 'missing.json'
+        for exists in (False, True):
+            if exists:
+                path.write_text('not JSON', encoding='utf-8')
+            options = args(True)
+            options.embedding_config = path
+            client = FakeClient(unreachable=True)
+            code, summary, _ = run_quietly(options, [common.Batch('sample', [{'id': 'one'}])], client)
+            self.assertEqual((code, summary['documents'], summary['failed']), (0, 1, []))
+            self.assertEqual(client.calls, [])
+
+    def test_both_cli_dry_run_without_a_model_file(self):
+        root = self.root / 'sessions'
+        session = root / 'work' / 'sample.jsonl'
+        write_jsonl(session, PI_SESSION)
+        folder = self.root / 'chat'
+        folder.mkdir()
+        (folder / 'conversation.json').write_text(json.dumps(conversation()), encoding='utf-8')
+        for run_main, input_args, expected in ((pi.main, [str(session)], 2),
+                                               (chatgpt.main, [str(folder)], 2)):  # u1/u2 have replies; u3 is unanswered.
+            with patch.object(pi, 'SESSIONS_ROOT', root), patch.object(common, 'MeilisearchClient',
+                    side_effect=AssertionError('network client created')), redirect_stdout(io.StringIO()) as out, redirect_stderr(io.StringIO()) as err:
+                code = run_main(input_args + ['--dry-run', '--embedding-config', str(self.root / 'missing.json')])
+            self.assertEqual(code, 0, err.getvalue())
+            summary = json.loads(out.getvalue().splitlines()[-1])
+            self.assertEqual((summary['conversations'], summary['documents']), (1, expected))
+
+    def test_invalid_profile_fails_before_any_communication(self):
+        profile = json.loads(common.DEFAULT_EMBEDDING_CONFIG.read_text(encoding='utf-8'))
+        path = self.root / 'bad.json'
+        variants = ['{', '{}', json.dumps({**profile, 'model': ''}), json.dumps({**profile, 'dimensions': True}),
+                    json.dumps({**profile, 'query_prefix': None}), json.dumps({**profile, 'reply_chars': 0})]
+        for data in variants:
+            path.write_text(data, encoding='utf-8')
+            client = FakeClient()
+            options = args(False)
+            options.embedding_config = path
+            code, summary, error = run_quietly(options, [common.Batch('x', [{'id':'x'}])], client)
+            self.assertEqual(code, 1)
+            self.assertEqual(client.calls, [])
+            self.assertEqual(summary['failed'][0]['label'], 'embedding-config')
+
 
 
 class HttpClientTests(unittest.TestCase):

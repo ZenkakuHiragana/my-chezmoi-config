@@ -408,9 +408,18 @@
     return (
       s
         .slice(0, 110)
+        .replace(/[\uD800-\uDBFF]$/g, '')
         .replace(/[. -]+$/g, '') ||
       fallback
     );
+  }
+
+  function assetKeys(a) {
+    return [
+      a.fileId && `id:${a.fileId}`,
+      a.url && `url:${a.url}`,
+      a.filename && `name:${a.filename}`,
+    ].filter(Boolean);
   }
 
   function assetFrom(x) {
@@ -462,7 +471,7 @@
     );
 
     return {
-      key: fileId || url || filename,
+      key: assetKeys({fileId, url, filename})[0],
       fileId,
       url,
       filename,
@@ -478,16 +487,17 @@
     function add(a) {
       if (!a?.key) return;
 
-      const aliases = [
-        a.key,
-        a.fileId,
-        a.url,
-        a.filename,
-      ].filter(Boolean);
+      const aliases = assetKeys(a);
 
       let existing = aliases
         .map(k => found.get(k))
-        .find(Boolean);
+        .find(candidate => {
+          if (!candidate) return false;
+          if (candidate.fileId && a.fileId) return candidate.fileId === a.fileId;
+          if (candidate.url && a.url) return candidate.url === a.url;
+          if ((candidate.fileId || candidate.url) && (a.fileId || a.url)) return false;
+          return true;
+        });
 
       if (!existing) {
         existing = {
@@ -502,6 +512,7 @@
 
       if (!existing.fileId && a.fileId) existing.fileId = a.fileId;
       if (!existing.url && a.url) existing.url = a.url;
+      existing.key = assetKeys(existing)[0];
 
       existing.image = existing.image || a.image;
 
@@ -641,8 +652,6 @@
   }
 
   function uniqueName(name, used) {
-    name = safeName(name);
-
     if (!used.has(name)) {
       used.add(name);
       return name;
@@ -694,8 +703,7 @@
         const used = a.image ? usedImages : usedFiles;
         const dir = a.image ? 'images' : 'files';
 
-        let filename = uniqueName(a.filename, used);
-        filename = ensureExt(filename, blob, a);
+        const filename = uniqueName(ensureExt(a.filename, blob, a), used);
 
         folder
           .folder(dir)
@@ -802,12 +810,18 @@
   }
 
   function folderName(conv) {
-    const id = String(conv?.conversation_id || 'conversation')
-      .split('-')
-      .pop()
-      .slice(-12);
-
-    return safeName(`${conv?.title || 'Untitled'}_${id}`);
+    const id = String(conv?.conversation_id || 'conversation');
+    let title = safeName(conv?.title || 'Untitled')
+      .slice(0, 110 - id.length - 1)
+      .replace(/[\uD800-\uDBFF]$/g, '')
+      .replace(/[. -]+$/g, '');
+    const encoder = new TextEncoder();
+    while (title && encoder.encode(`${title}_${id}`).length > 255) {
+      const chars = Array.from(title);
+      chars.pop();
+      title = chars.join('').replace(/[. -]+$/g, '');
+    }
+    return `${title}_${id}`;
   }
 
   function backupManifest(data = {}) {
@@ -1075,14 +1089,14 @@
     );
   }
 
-  function addConversationJsonToImport(result, conv, currentProjectId, sourceName) {
+  function addConversationJsonToImport(result, conv, currentProjectId, sourceName, manifestProjectId = null) {
     const id = conv?.conversation_id || conv?.id || '';
     if (!id) {
       result.invalid++;
       return;
     }
 
-    const projectId = projectIdFromConversationJson(conv);
+    const projectId = projectIdFromConversationJson(conv) || manifestProjectId;
 
     if (projectId === currentProjectId) {
       result.matched.add(id);
@@ -1117,19 +1131,7 @@
         data?.schema === 'chatgpt-local-backup/v1' &&
         Array.isArray(data?.conversationIds)
       ) {
-        if (data.projectId === currentProjectId) {
-          data.conversationIds.filter(Boolean).forEach(id => result.matched.add(id));
-        } else if (data.projectId) {
-          result.manifestProjectMismatches++;
-        } else {
-          data.conversationIds.filter(Boolean).forEach(id => {
-            result.unknownProject.push({
-              id,
-              sourceName: file.name,
-              title: '',
-            });
-          });
-        }
+        result.manifestOnly++;
         return;
       }
 
@@ -1144,42 +1146,26 @@
 
     const zip = await JSZip.loadAsync(file);
 
-    // v0.4+ archives carry a compact manifest. Read it first.
+    // Manifests provide project metadata only for actual descendant conversations.
+    const manifests = [];
     const manifestEntries = Object.values(zip.files)
       .filter(entry => !entry.dir && /(^|\/)backup-manifest\.json$/i.test(entry.name));
 
     for (const entry of manifestEntries) {
       try {
         const manifest = JSON.parse(await entry.async('string'));
-        if (
-          manifest?.schema === 'chatgpt-local-backup/v1' &&
-          Array.isArray(manifest?.conversationIds)
-        ) {
-          if (manifest.projectId === currentProjectId) {
-            manifest.conversationIds
-              .filter(Boolean)
-              .forEach(id => result.matched.add(id));
-          } else if (manifest.projectId) {
-            result.manifestProjectMismatches++;
-          } else {
-            manifest.conversationIds.filter(Boolean).forEach(id => {
-              result.unknownProject.push({
-                id,
-                sourceName: `${file.name}:${entry.name}`,
-                title: '',
-              });
-            });
-          }
+        if (manifest?.schema === 'chatgpt-local-backup/v1' &&
+            Array.isArray(manifest?.conversationIds)) {
+          manifests.push({
+            folder: entry.name.slice(0, entry.name.lastIndexOf('/') + 1),
+            manifest,
+          });
         }
       } catch (e) {
         console.warn('[ChatGPT Local Backup] manifest parse failed:', entry.name, e);
       }
     }
 
-    // Legacy archives (v0.2/v0.3) have no manifest. Scan the raw
-    // conversation.json files. This also makes restoration reflect the files
-    // that actually exist in a partial export: conversations that failed with
-    // 429 and only appear in EXPORT_ERRORS.txt are NOT marked as acquired.
     const conversationEntries = Object.values(zip.files)
       .filter(entry => !entry.dir && /(^|\/)conversation\.json$/i.test(entry.name));
 
@@ -1192,11 +1178,17 @@
 
       try {
         const conv = JSON.parse(await entry.async('string'));
+        const id = conv?.conversation_id || conv?.id || '';
+        const nearest = manifests
+          .filter(({ folder, manifest }) => entry.name.startsWith(folder) &&
+            manifest.conversationIds.includes(id))
+          .sort((a, b) => b.folder.length - a.folder.length)[0];
         addConversationJsonToImport(
           result,
           conv,
           currentProjectId,
-          `${file.name}:${entry.name}`
+          `${file.name}:${entry.name}`,
+          nearest?.manifest.projectId || null
         );
       } catch (e) {
         result.invalid++;
@@ -1231,6 +1223,7 @@
       unknownProject: [],
       mismatched: [],
       manifestProjectMismatches: 0,
+      manifestOnly: 0,
       invalid: 0,
     };
 
@@ -1263,6 +1256,11 @@
       if (includeUnknown) {
         unknownIds.forEach(id => result.matched.add(id));
       }
+    }
+
+    if (result.matched.size === 0 && result.manifestOnly) {
+      alert('既取得 0件。manifest単独では復元できません。実際のconversation.jsonを含むZIPまたは会話JSONが必要です。');
+      return;
     }
 
     if (result.matched.size === 0) {

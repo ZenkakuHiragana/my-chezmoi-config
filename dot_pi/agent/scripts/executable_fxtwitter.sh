@@ -41,7 +41,7 @@ quotes はその投稿を引用した投稿の一覧。user-posts は記事専�
 quotes/user-posts=20。既定値は明示されない限り送信しない。
 投稿、ログイン、その他の書き込みはできない。
 
-依存: Bash, curl, jq, mktemp, mkdir, cat, rm。ヘルプに通信は不要。
+依存: Bash, curl, Node.js, mktemp, mkdir, cat, rm。ヘルプに通信は不要。
 終了コード: 0 成功、2 使用法エラー、1 依存・通信・API・出力等の失敗。
 失敗時は stderr に診断し、API エラー本文は出力しない。
 出力中や出力後の後始末が失敗した場合、stdout に本文が残り得る。
@@ -154,7 +154,7 @@ fail() {
     printf 'fxtwitter.sh: %s: HTTP %s: %s\n' "$operation" "$http_status" "$1" >&2
     exit 1
 }
-for dependency in curl jq mktemp mkdir cat rm; do
+for dependency in curl node mktemp mkdir cat rm; do
     command -v "$dependency" >/dev/null 2>&1 || fail "依存コマンドがありません: $dependency"
 done
 
@@ -190,7 +190,9 @@ fi
 [ "$curl_result" -eq 0 ] || fail "通信に失敗しました (curl 終了コード: $curl_result)"
 [ "$http_status" != '未取得' ] || fail 'HTTP status を取得できませんでした'
 [[ $http_status == 2[0-9][0-9] ]] || fail 'API が HTTP エラーを返しました'
-# -s は複数 JSON 値を一度に読み、正確に一つのオブジェクトであることを確認する。
-jq -s -e 'length == 1 and (.[0] | type == "object" and (.code | type == "number" and . >= 200 and . < 300))' \
-    "$temp_dir/body" >/dev/null 2>&1 || fail 'JSON 応答または API code が不正です'
+# JSON.parse は余分な JSON 値を含まない一つの JSON を要求する。
+node -e 'const fs = require("fs");
+const value = JSON.parse(fs.readFileSync(0, "utf8"));
+if (value === null || typeof value !== "object" || Array.isArray(value) ||
+    typeof value.code !== "number" || !(value.code >= 200 && value.code < 300)) process.exit(1);' < "$temp_dir/body" >/dev/null 2>&1 || fail 'JSON 応答または API code が不正です'
 cat -- "$temp_dir/body" 2>/dev/null || fail '標準出力への書き込みに失敗しました'

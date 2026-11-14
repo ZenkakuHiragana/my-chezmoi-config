@@ -1,3 +1,5 @@
+#Requires -Version 7.0
+
 <#
 .SYNOPSIS
 Manages RedirectionGuard for the Windows OpenSSH server.
@@ -170,6 +172,9 @@ if ($Action -eq "Disable") {
     if ($null -ne $current -and $null -eq $backup) {
         if ($PSCmdlet.ShouldProcess("$registryPath\$backupValueName", "Save the current $valueName value")) {
             New-ItemProperty -LiteralPath $registryPath -Name $backupValueName -PropertyType Binary -Value $current | Out-Null
+        }
+        elseif (-not $WhatIfPreference) {
+            return
         }
     }
 

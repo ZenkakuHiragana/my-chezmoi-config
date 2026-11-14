@@ -1,0 +1,8 @@
+{
+  "model": "ruri-v3-310m:q8_0",
+  "dimensions": 768,
+  "query_prefix": "検索クエリ: ",
+  "document_prefix": "検索文書: ",
+  "reply_chars": 12000,
+  "question_chars": 2000
+}

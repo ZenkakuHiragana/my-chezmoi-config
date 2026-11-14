@@ -1,7 +1,7 @@
 """Offline contract tests for fxtwitter.sh. Run with: python -m unittest scripts.test_fxtwitter
 
 The fake curl implements the standard curl options needed to capture a GET and
-provide a response, not any private convention of the script under test. jq is
+provide a response, not any private convention of the script under test. Node is
 never replaced. No request can reach the network through the fake curl.
 """
 
@@ -20,7 +20,7 @@ SCRIPT = ROOT / "dot_pi/agent/scripts/executable_fxtwitter.sh"
 ID = "1234567890123456789"
 BODY = '{ "code": 200, "results": [], "cursor": {"top": null, "bottom": null}, "extra": "保持" }\n'
 
-# Keep this executable named curl on PATH. The log is NUL-delimited so even
+# The log is NUL-delimited so even
 # whitespace, quotes and newlines in a query argument are preserved exactly.
 FAKE_CURL = r'''#!/usr/bin/env bash
 printf '%s\0' "$@" >> "$FAKE_CURL_LOG"
@@ -71,8 +71,8 @@ class FxTwitterTest(unittest.TestCase):
     @classmethod
     def setUpClass(cls):
         cls.bash = shutil.which("bash")
-        if not cls.bash or not shutil.which("jq"):
-            raise unittest.SkipTest("bash and real jq are required")
+        if not cls.bash or not shutil.which("node"):
+            raise unittest.SkipTest("bash and real Node.js are required")
 
     def setUp(self):
         self.tmp = tempfile.TemporaryDirectory(prefix="fxtwitter-test-", dir=temp_root())
@@ -81,6 +81,10 @@ class FxTwitterTest(unittest.TestCase):
         self.curl = self.dir / "curl"
         self.curl.write_text(FAKE_CURL, encoding="utf-8", newline="\n")
         self.curl.chmod(0o755)
+        self.bash_env = self.dir / "bash-env"
+        self.bash_env.write_text(
+            'curl() { bash "$FAKE_CURL_SCRIPT" "$@"; }' + chr(10),
+            encoding="utf-8", newline=chr(10))
         self.rm_log = self.dir / "rm-args"
         real_rm = shutil.which("rm")
         real_mkdir = shutil.which("mkdir")
@@ -99,6 +103,8 @@ class FxTwitterTest(unittest.TestCase):
         self.env = os.environ.copy()
         self.env.update({
             "PATH": str(self.dir) + os.pathsep + self.env.get("PATH", ""),
+            "BASH_ENV": self.bash_env.as_posix(),
+            "FAKE_CURL_SCRIPT": self.curl.as_posix(),
             "FAKE_CURL_LOG": self.log.as_posix(),
             "FAKE_RM_LOG": self.rm_log.as_posix(),
             "FAKE_CURL_BODY": self.body.as_posix(),
@@ -183,6 +189,24 @@ class FxTwitterTest(unittest.TestCase):
         if status is not None:
             self.assertIn(str(status).encode(), result.stderr)
         self.assertTrue(result.stderr)
+
+    def test_node_without_jq_uses_fake_curl(self):
+        # Only directories required by the real dependencies and fixtures.
+        dirs = [str(self.dir)]
+        for name in ("bash", "node", "mktemp", "mkdir", "cat", "rm"):
+            executable = shutil.which(name)
+            if not executable:
+                self.skipTest(f"{name} is required")
+            directory = str(Path(executable).parent)
+            if directory not in dirs:
+                dirs.append(directory)
+        path = os.pathsep.join(dirs)
+        if shutil.which("jq", path=path):
+            self.skipTest("jq shares a directory with a required dependency")
+        self.env["PATH"] = path
+        result = self.run_cli("get", ID)
+        self.assert_success(result)
+        self.assertEqual(self.request(), (f"/2/status/{ID}", []))
 
     def test_help_write_failure(self):
         fake = self.dir / "cat"
@@ -305,7 +329,7 @@ class FxTwitterTest(unittest.TestCase):
         self.assertEqual(result.stderr, b"")
         self.assertEqual(self.curl_args(), [])
         help_text = result.stdout.decode("utf-8").lower()
-        for word in ("search", "get", "replies", "quotes", "user-posts", "cursor", "json", "curl", "jq"):
+        for word in ("search", "get", "replies", "quotes", "user-posts", "cursor", "json", "curl", "node"):
             self.assertIn(word, help_text)
 
     def test_http_and_curl_failures_do_not_leak_response_or_query(self):
