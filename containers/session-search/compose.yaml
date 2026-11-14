@@ -7,7 +7,10 @@ services:
     restart: unless-stopped
     ports:
       - "127.0.0.1:7700:7700"
+    environment:
+      MEILI_CONFIG_FILE_PATH: /etc/meilisearch/config.toml
     volumes:
+      - ./meilisearch-config.toml:/etc/meilisearch/config.toml:ro
       - ${MEILISEARCH_DATA_DIR:?.env に MEILISEARCH_DATA_DIR を設定する}:/meili_data
 
   # Meilisearch の埋め込み設定は http://host.docker.internal:11434 を呼ぶ。

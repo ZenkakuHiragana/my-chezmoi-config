@@ -7,6 +7,7 @@
 | ファイル | git | 中身 |
 | --- | --- | --- |
 | `compose.yaml` | 追跡 | サービス定義。絶対パスを含まない |
+| `meilisearch-config.toml` | 追跡 | Meilisearch 本体の設定。compose がマウントする |
 | `Modelfile` | 追跡 | Ruri の登録内容。重みは Hugging Face から取得する |
 | `.env.example` | 追跡 | ローカル設定の雛形（値なし） |
 | `.env` | **無視** | compose 補間用。変数名は `.env.example` を参照 |
@@ -39,7 +40,7 @@ Meilisearch の `rest` 埋め込みは、`url`・`request`・`response` を変�
 CPU では数時間以上かかるので、接続先は `http://host.docker.internal:11434/api/embed` のまま使う。
 
 - この compose が Ollama を `127.0.0.1:11434` に公開するので、Meilisearch からはホスト経由で届く。
-- 届く先のアドレス（`host.docker.internal`）は `config.toml` の `experimental_allowed_ip_networks` で許可しておく。
+- 届く先のアドレス（`host.docker.internal`）は `meilisearch-config.toml` の `experimental_allowed_ip_networks` で許可している。
 
 ## 別の PC の GPU を借りる
 

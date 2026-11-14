@@ -1,0 +1,7 @@
+# Meilisearch instance options. compose.yaml mounts this file and points MEILI_CONFIG_FILE_PATH at it.
+# db_path and http_addr are left to the Docker image defaults (./data.ms and MEILI_HTTP_ADDR=0.0.0.0:7700).
+env = "development"
+# Meilisearch sends usage telemetry unless this is set.
+no_analytics = true
+# Allow the embedder to reach Ollama on the Docker host (host.docker.internal).
+experimental_allowed_ip_networks = ["192.168.0.0/16"]
