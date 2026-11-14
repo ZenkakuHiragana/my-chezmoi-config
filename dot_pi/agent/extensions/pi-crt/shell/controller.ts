@@ -62,6 +62,7 @@ import { noSignal } from "../screen/nosignal.ts";
 import { TabBar } from "../screen/tabbar.ts";
 import { type CrtState, createState, type Versioned } from "../state/core.ts";
 import { crtEditor } from "./editor.ts";
+import { terminalForeground, themeText } from "./foreground.ts";
 
 const BASE = Symbol.for("pi-crt.base-root");
 /**
@@ -234,6 +235,36 @@ export function createShell(pi: ExtensionAPI): Shell {
 		},
 	};
 	const panelCache = new Map<string, PanelHandle>();
+	/** The terminal's default foreground, kept at the theme's text colour (shell/foreground.ts). */
+	const foreground = terminalForeground();
+	let followQueued = false;
+	/**
+	 * Called on every frame the editor draws (from watchRoot): keep the terminal's
+	 * default foreground at the theme's text colour. It is set while the frame is
+	 * drawn, so that it reaches the terminal ahead of the frame's text, and again once
+	 * the frame is out, because pi-tui counts a full redraw only after it has drawn
+	 * the components.
+	 *
+	 * Not while a selector has the editor's place: a theme previewed in /settings
+	 * leaves the colour as it was, and the colour follows when the editor is back.
+	 * herdr sends again only the rows Pi draws again, so a colour set during the
+	 * preview would show on some rows and not on others.
+	 */
+	const followTheme = (ui: TUI) => {
+		const follow = () => {
+			if (!ctxRef) return;
+			const text = themeText(theme());
+			if (text) foreground.follow(ui.terminal, text, ui.fullRedraws);
+			else foreground.release(false);
+		};
+		follow();
+		if (followQueued) return;
+		followQueued = true;
+		setImmediate(() => {
+			followQueued = false;
+			follow();
+		});
+	};
 	/** Pi's renderer lookup for each tool, past pi-crt's own resolver. */
 	const nextRenderers = new Map<string, () => ToolRenderers | undefined>();
 
@@ -511,8 +542,12 @@ export function createShell(pi: ExtensionAPI): Shell {
 		tui.requestRender();
 	};
 
-	/** Called on every frame from the editor: keep the tabs mounted across mode switches. */
+	/**
+	 * Called on every frame from the editor: keep the terminal's default foreground at
+	 * the theme's text colour, and the tabs mounted across mode switches.
+	 */
 	const watchRoot = () => {
+		if (tui) followTheme(tui);
 		// `tui` follows Pi's current renderer. Switching to fullscreen mounts Pi's own
 		// root again; put the tabs back, or attach for the first time when the
 		// session started in regular mode.
@@ -636,6 +671,8 @@ export function createShell(pi: ExtensionAPI): Shell {
 		if (event.reason !== "quit" && tabsShown) carried[CARRY_TABS_SHOWN] = true;
 		screenHost.preview(undefined);
 		stopTimer();
+		// On quit, Pi exits next.
+		foreground.release(event.reason === "quit");
 		if (ctxRef?.mode === "tui" && ctxRef.hasUI && editor) {
 			ctxRef.ui.setEditorComponent(undefined);
 			ctxRef.ui.setWorkingVisible(true);
