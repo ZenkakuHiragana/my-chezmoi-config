@@ -18,4 +18,6 @@ containers/**
 {{- else if eq .chezmoi.os "linux" }}
 AppData/
 Documents/
+.local/bin/*.ps1
+.local/bin/*.psm1
 {{- end }}
