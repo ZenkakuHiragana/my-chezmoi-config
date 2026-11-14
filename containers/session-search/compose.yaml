@@ -1,0 +1,28 @@
+name: session-search
+
+services:
+  meilisearch:
+    image: getmeili/meilisearch:v1.56.2
+    container_name: meilisearch
+    restart: unless-stopped
+    ports:
+      - "127.0.0.1:7700:7700"
+    volumes:
+      - ${MEILISEARCH_DATA_DIR:?.env に MEILISEARCH_DATA_DIR を設定する}:/meili_data
+
+  # Meilisearch の埋め込み設定は http://host.docker.internal:11434 を呼ぶ。
+  # ホストへ公開したこのポート経由で届くので、url を変えずに済む（README 参照）。
+  ollama:
+    image: ollama/ollama
+    container_name: ollama
+    restart: unless-stopped
+    ports:
+      - "127.0.0.1:11434:11434"
+    environment:
+      OLLAMA_KEEP_ALIVE: "-1"
+    volumes:
+      - ollama:/root/.ollama
+      - ./Modelfile:/Modelfile:ro
+
+volumes:
+  ollama:
