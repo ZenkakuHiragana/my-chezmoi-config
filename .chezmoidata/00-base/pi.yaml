@@ -54,7 +54,6 @@ pi:
     shellCommandPrefix: 'export PATH="$HOME/.pi/agent/scripts:$PATH"'
     defaultTools:
       - bash
-      - read
     codemode:
       mode: only
     packages:

@@ -121,10 +121,11 @@ args=(
     --system-prompt "$(body "$def")"
     # 追記を空で指定して、親と共通の追記用プロンプトを Pi に読ませない。
     --append-system-prompt ""
-    # 子のメモリを減らすため、権限の検査を行う pi-tool-filter と、Git Bash にコマンドを正しく渡す pi-fix-git-bash 以外の拡張と MCP を読み込まない。
+    # 子のメモリを減らすため、権限の検査を行う pi-tool-filter、Git Bash にコマンドを正しく渡す pi-fix-git-bash、画像を読む pi-image-read 以外の拡張と MCP を読み込まない。
     --no-extensions
     --extension "$HOME/.pi/agent/extensions/pi-tool-filter/index.ts"
     --extension "$HOME/.pi/agent/extensions/pi-fix-git-bash.ts"
+    --extension "$HOME/.pi/agent/extensions/pi-image-read.ts"
     --no-mcp
 )
 # read_only は edit と write のツールを外すだけで、bash による書き込みは防がない。
