@@ -120,7 +120,8 @@ args=(
     --append-system-prompt ""
     # 子のメモリを減らすため、権限の検査を行う pi-tool-filter、Git Bash にコマンドを正しく渡す pi-fix-git-bash、画像を読む pi-image-read 以外の拡張と MCP を読み込まない。
     --no-extensions
-    --extension "$HOME/.pi/agent/extensions/pi-tool-filter/index.ts"
+    # pi-tool-filter は Pi が settings.json の packages から git で入れたものを読む（親と同じファイル）。
+    --extension "$HOME/.pi/agent/git/github.com/ZenkakuHiragana/pi-tool-filter/index.ts"
     --extension "$HOME/.pi/agent/extensions/pi-fix-git-bash.ts"
     --extension "$HOME/.pi/agent/extensions/pi-image-read.ts"
     --no-mcp
