@@ -20,7 +20,7 @@
  * one node has no `size`; it takes the rest. A sized node shrinks when the
  * screen is too small for it. `size` is the starting share: moving a boundary
  * with the mouse (a row's rule, or in a column the title of the part below it)
- * changes the share until pi-crt is loaded again.
+ * changes the share until pie-boy is loaded again.
  * Each panel can appear at most once per layout node tree (`wide` and `narrow`
  * may both use it).
  *

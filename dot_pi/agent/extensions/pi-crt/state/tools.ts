@@ -1,6 +1,6 @@
 /**
  * The tool calls and the thinking text, as TOOL, TOOL LOG and THINKING show them.
- * features/tools.ts keeps one ToolData per pi-crt instance and feeds it Pi's events.
+ * features/tools.ts keeps one ToolData per pie-boy instance and feeds it Pi's events.
  *
  * Work that grows with the session is not repeated on every frame: the thinking
  * text keeps only its tail, the tool lists keep their last MAX_TOOLS calls, the

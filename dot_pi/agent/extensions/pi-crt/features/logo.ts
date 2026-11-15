@@ -4,7 +4,7 @@ import { join } from "node:path";
 import { fileURLToPath } from "node:url";
 import type { ExtensionAPI } from "@earendil-works/pi-coding-agent";
 import { allocateImageId, getCapabilities, getCellDimensions, renderImage } from "@earendil-works/pi-tui";
-import { type CrtState, sanitize, type Versioned } from "../state/core.ts";
+import { type PieBoyState, sanitize, type Versioned } from "../state/core.ts";
 import type { FeatureEnv } from "./env.ts";
 
 /** The extension's folder, next to index.ts, where logo.* is put. */
@@ -55,13 +55,13 @@ export type LogoScene = (typeof SCENES)[number];
 /** A logo.* file in the extension's folder: logo.png, logo.jpg, logo.webp, …, or logo-<scene>.* for one scene. */
 const LOGO_FILE = new RegExp(`^logo(?:-(${SCENES.join("|")}))?\\..+$`, "i");
 
-/** Each pi-crt instance's logo, by its CrtState (see FeatureEnv). */
-const features = new WeakMap<CrtState, { data: LogoData; env: FeatureEnv }>();
+/** Each pie-boy instance's logo, by its PieBoyState (see FeatureEnv). */
+const features = new WeakMap<PieBoyState, { data: LogoData; env: FeatureEnv }>();
 
 /** Before setupLogo: no logo.*. Never changed. */
 const NONE: Readonly<LogoData> = Object.freeze({ version: 0, art: new Map(), scenes: new Map(), errors: new Map() });
 
-export function logoData(state: CrtState): Readonly<LogoData> {
+export function logoData(state: PieBoyState): Readonly<LogoData> {
   return features.get(state)?.data ?? NONE;
 }
 
@@ -159,7 +159,7 @@ function reason(error: unknown): string {
  * logo. None when neither is there. The colours are applied by the panel, from the theme.
  * `elapsed` is the time into the scene: its animation starts with the first frame.
  */
-export function logoArt(state: CrtState, width: number, scene: LogoScene = "standby", elapsed = 0): LogoCell[][] | undefined {
+export function logoArt(state: PieBoyState, width: number, scene: LogoScene = "standby", elapsed = 0): LogoCell[][] | undefined {
   const feature = features.get(state);
   if (!feature) return undefined;
   const { data, env } = feature;
@@ -185,7 +185,7 @@ export function logoArt(state: CrtState, width: number, scene: LogoScene = "stan
  * panel draws logoArt then), when there is no logo.*, or when it cannot be made.
  * `elapsed` is the time into the scene, as for logoArt.
  */
-export function logoPicture(state: CrtState, width: number, accent: readonly [number, number, number], scene: LogoScene = "standby", elapsed = 0): LogoPicture | undefined {
+export function logoPicture(state: PieBoyState, width: number, accent: readonly [number, number, number], scene: LogoScene = "standby", elapsed = 0): LogoPicture | undefined {
   if (getCapabilities().images !== "kitty") return undefined;
   const feature = features.get(state);
   if (!feature) return undefined;
@@ -222,7 +222,7 @@ export function logoPicture(state: CrtState, width: number, accent: readonly [nu
   }
 }
 
-export function logoError(state: CrtState, scene: LogoScene): string | undefined {
+export function logoError(state: PieBoyState, scene: LogoScene): string | undefined {
   const data = logoData(state);
   // logo.*'s error only where logo.* would be shown.
   return data.errors.get(scene) ?? (data.scenes.has(scene) ? undefined : data.error);
@@ -248,7 +248,7 @@ function frameAt(data: Readonly<LogoData>, scene: LogoScene, elapsed: number): {
 }
 
 /** The visible picture's identity and its next change, `elapsed` ms into the scene, for scheduling and caching. */
-export function logoFrameTime(state: CrtState, scene: LogoScene, elapsed: number): { key?: string; next?: number } {
+export function logoFrameTime(state: PieBoyState, scene: LogoScene, elapsed: number): { key?: string; next?: number } {
   const { frame, next } = frameAt(logoData(state), scene, elapsed);
   return { key: frame?.key, next };
 }

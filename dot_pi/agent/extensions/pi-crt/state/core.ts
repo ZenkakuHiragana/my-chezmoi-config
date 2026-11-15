@@ -1,5 +1,5 @@
 /**
- * What the shell and several features share about the running pi-crt instance.
+ * What the shell and several features share about the running pie-boy instance.
  * Each feature keeps its own data in its own file, keyed by this object (see
  * features/env.ts).
  */
@@ -12,14 +12,14 @@ export interface Versioned {
   version: number;
 }
 
-export interface CrtState extends Versioned {
+export interface PieBoyState extends Versioned {
   agentRunning: boolean;
   agentStartedAt?: number;
   /** The agent finished while no page with the transcript was shown. */
   termAttention: boolean;
 }
 
-export function createState(): CrtState {
+export function createState(): PieBoyState {
   return { agentRunning: false, termAttention: false, version: 0 };
 }
 

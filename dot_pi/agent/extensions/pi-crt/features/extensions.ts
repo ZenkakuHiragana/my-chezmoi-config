@@ -13,7 +13,7 @@
  */
 import { DefaultPackageManager, getAgentDir, SettingsManager } from "@earendil-works/pi-coding-agent";
 import type { ExtensionAPI } from "@earendil-works/pi-coding-agent";
-import { type CrtState, sanitize, type Versioned } from "../state/core.ts";
+import { type PieBoyState, sanitize, type Versioned } from "../state/core.ts";
 import type { FeatureEnv } from "./env.ts";
 
 export interface ExtensionItem {
@@ -40,18 +40,18 @@ interface ExtensionFeature {
   data: ExtensionData;
 }
 
-/** Each pi-crt instance's extensions, by its CrtState (see FeatureEnv). */
-const features = new WeakMap<CrtState, ExtensionFeature>();
+/** Each pie-boy instance's extensions, by its PieBoyState (see FeatureEnv). */
+const features = new WeakMap<PieBoyState, ExtensionFeature>();
 
 /** Before setupExtensions: nothing read. Never changed. */
 const NONE: Readonly<ExtensionData> = Object.freeze({ version: 0, items: [], loading: false, stale: false });
 
-export function extensions(state: CrtState): Readonly<ExtensionData> {
+export function extensions(state: PieBoyState): Readonly<ExtensionData> {
   return features.get(state)?.data ?? NONE;
 }
 
 /** Read the list again when it is stale. Called while the panel is drawn. */
-export function refreshExtensions(state: CrtState): void {
+export function refreshExtensions(state: PieBoyState): void {
   const feature = features.get(state);
   if (!feature) return;
   const { data, env } = feature;

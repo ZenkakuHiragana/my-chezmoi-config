@@ -9,7 +9,7 @@
  * reads the history again; the other reads keep it.
  */
 import type { ExtensionAPI } from "@earendil-works/pi-coding-agent";
-import { type CrtState, sanitize } from "../state/core.ts";
+import { type PieBoyState, sanitize } from "../state/core.ts";
 import { type GitData, pickGitFile as pick, readGit, readLineCounts, setGit } from "../state/git.ts";
 import type { FeatureEnv } from "./env.ts";
 import { VITALS_PANEL } from "./vitals.ts";
@@ -25,19 +25,19 @@ const EDIT_TOOLS = new Set(["edit", "write", "bash"]);
 /** How often a shown git panel re-reads git, so that edits made outside Pi show up. */
 const GIT_REFRESH_MS = 5000;
 
-/** Each pi-crt instance's git data, by its CrtState (see FeatureEnv). */
-const collected = new WeakMap<CrtState, GitData>();
+/** Each pie-boy instance's git data, by its PieBoyState (see FeatureEnv). */
+const collected = new WeakMap<PieBoyState, GitData>();
 
 /** Before setupGit: nothing read. Never changed. */
 const NONE: Readonly<GitData> = Object.freeze({ git: { files: [], diff: [] }, version: 0 });
 
 /** The last snapshot, the picked file and the line counts. */
-export function gitData(state: CrtState): Readonly<GitData> {
+export function gitData(state: PieBoyState): Readonly<GitData> {
   return collected.get(state) ?? NONE;
 }
 
 /** Show the diff of one file (by its gitPath), or of every file (`undefined`). */
-export function pickGitFile(state: CrtState, gitPath: string | undefined): void {
+export function pickGitFile(state: PieBoyState, gitPath: string | undefined): void {
   const data = collected.get(state);
   if (data) pick(data, gitPath);
 }

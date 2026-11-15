@@ -6,7 +6,7 @@
 import { open } from "node:fs/promises";
 import { stripFrontmatter, type ExtensionAPI, type ToolNamespace } from "@earendil-works/pi-coding-agent";
 import { textTokens, toolTokens } from "../state/context.ts";
-import { type CrtState, sanitize, type Versioned } from "../state/core.ts";
+import { type PieBoyState, sanitize, type Versioned } from "../state/core.ts";
 import type { FeatureEnv } from "./env.ts";
 import { countText, counted, type TokenCounts, type TextCounter } from "../state/tokenizers.ts";
 import { contextData, type ContextData } from "./context.ts";
@@ -108,7 +108,7 @@ interface PromptOptions {
   skills?: GivenSkill[];
 }
 
-/** One pi-crt instance's inventory. */
+/** One pie-boy instance's inventory. */
 interface Inventory {
   pi: ExtensionAPI;
   env: FeatureEnv;
@@ -147,8 +147,8 @@ export interface Folds extends Versioned {
   expanded: ReadonlySet<string>;
 }
 
-/** Each pi-crt instance's inventory, by its CrtState (see FeatureEnv). */
-const inventories = new WeakMap<CrtState, Inventory>();
+/** Each pie-boy instance's inventory, by its PieBoyState (see FeatureEnv). */
+const inventories = new WeakMap<PieBoyState, Inventory>();
 
 /** The tools before setupInventory. */
 const NO_TOOLS: readonly ToolItem[] = [];
@@ -166,12 +166,12 @@ function promptView(inv: Inventory, current: Readonly<ContextData>): PromptInven
   return inv.prompt;
 }
 
-export function prompt(state: CrtState): PromptInventory | undefined {
+export function prompt(state: PieBoyState): PromptInventory | undefined {
   const inv = inventories.get(state);
   return inv ? promptView(inv, contextData(state)) : undefined;
 }
 
-export function skills(state: CrtState): { known: boolean; items: readonly SkillItem[] } {
+export function skills(state: PieBoyState): { known: boolean; items: readonly SkillItem[] } {
   const inv = inventories.get(state);
   if (!inv) return { known: false, items: [] };
   const current = contextData(state);
@@ -206,7 +206,7 @@ export function skills(state: CrtState): { known: boolean; items: readonly Skill
  * only those the request declared are active: a loadout may hide declarations that
  * stay registered. Before a run has declared any, the registered definitions stand in.
  */
-export function tools(state: CrtState): readonly ToolItem[] {
+export function tools(state: PieBoyState): readonly ToolItem[] {
   const inv = inventories.get(state);
   if (!inv) return NO_TOOLS;
   const current = contextData(state);
@@ -335,7 +335,7 @@ function toolGroups(all: readonly { exposure: string }[], fields: readonly (Name
 }
 
 /** Changes whenever the prompt, the skills or the picked part or skill change. */
-export function version(state: CrtState): number {
+export function version(state: PieBoyState): number {
   const inv = inventories.get(state);
   if (!inv) return 0;
   const current = contextData(state);
@@ -344,17 +344,17 @@ export function version(state: CrtState): number {
 }
 
 /** Changes whenever a skill file has been read. */
-export function bodiesVersion(state: CrtState): number {
+export function bodiesVersion(state: PieBoyState): number {
   return inventories.get(state)?.bodies.version ?? 0;
 }
 
 /** Changes whenever the tools or the picked tool or namespace change; read it after tools(). */
-export function toolsVersion(state: CrtState): number {
+export function toolsVersion(state: PieBoyState): number {
   tools(state);
   return inventories.get(state)?.toolList.version ?? 0;
 }
 
-export function picks(state: CrtState): { part?: string; tool?: string; toolGroup?: string; skill?: string } {
+export function picks(state: PieBoyState): { part?: string; tool?: string; toolGroup?: string; skill?: string } {
   const inv = inventories.get(state);
   return inv ? { part: inv.part, tool: inv.toolList.tool, toolGroup: inv.toolList.toolGroup, skill: inv.skill } : {};
 }
@@ -362,7 +362,7 @@ export function picks(state: CrtState): { part?: string; tool?: string; toolGrou
 /** No namespace expanded, before setupInventory. Never changed. */
 const NO_FOLDS: Readonly<Folds> = Object.freeze({ expanded: new Set<string>(), version: 0 });
 
-export function folds(state: CrtState): Readonly<Folds> {
+export function folds(state: PieBoyState): Readonly<Folds> {
   return inventories.get(state)?.folds ?? NO_FOLDS;
 }
 
@@ -372,14 +372,14 @@ export function toolListed(folds: Readonly<Folds>, tool: ToolItem): boolean {
 }
 
 /** Show one part of the prompt by its label, or the whole prompt (none). */
-export function pickPart(state: CrtState, label: string | undefined): void {
+export function pickPart(state: PieBoyState, label: string | undefined): void {
   const inv = inventories.get(state);
   if (!inv || inv.part === label) return;
   inv.part = label;
   inv.env.changed(inv);
 }
 
-export function pickTool(state: CrtState, name: string | undefined): void {
+export function pickTool(state: PieBoyState, name: string | undefined): void {
   const inv = inventories.get(state);
   if (!inv || (inv.toolList.tool === name && inv.toolList.toolGroup === undefined)) return;
   inv.toolList.tool = name;
@@ -388,7 +388,7 @@ export function pickTool(state: CrtState, name: string | undefined): void {
 }
 
 /** Pick a namespace of tools by its name. */
-export function pickToolGroup(state: CrtState, name: string | undefined): void {
+export function pickToolGroup(state: PieBoyState, name: string | undefined): void {
   const inv = inventories.get(state);
   if (!inv || (inv.toolList.toolGroup === name && inv.toolList.tool === undefined)) return;
   inv.toolList.toolGroup = name;
@@ -397,7 +397,7 @@ export function pickToolGroup(state: CrtState, name: string | undefined): void {
 }
 
 /** List a namespace's tools under its heading, or stop listing them. */
-export function toggleToolGroup(state: CrtState, name: string): void {
+export function toggleToolGroup(state: PieBoyState, name: string): void {
   const inv = inventories.get(state);
   if (!inv) return;
   const expanded = new Set(inv.folds.expanded);
@@ -406,7 +406,7 @@ export function toggleToolGroup(state: CrtState, name: string): void {
   inv.env.changed(inv.folds);
 }
 
-export function pickSkill(state: CrtState, name: string | undefined): void {
+export function pickSkill(state: PieBoyState, name: string | undefined): void {
   const inv = inventories.get(state);
   if (!inv || inv.skill === name) return;
   inv.skill = name;

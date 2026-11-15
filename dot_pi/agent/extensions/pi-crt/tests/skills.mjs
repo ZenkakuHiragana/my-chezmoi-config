@@ -8,7 +8,7 @@ import { harness, load, tui, renderLayoutFrame, plain, system, user } from './su
 export default async function skills() {
   const temp = join(tmpdir(), 'pi');
   await mkdir(temp, {recursive:true});
-  const dir = await mkdtemp(join(temp, 'crt-skills-'));
+  const dir = await mkdtemp(join(temp, 'pie-boy-skills-'));
   try {
     const filePath = join(dir, 'SKILL.md');
     const body = '---\nname: example\ndescription: A real skill\n---\n\nRead this UTF-8 text: café.\n';

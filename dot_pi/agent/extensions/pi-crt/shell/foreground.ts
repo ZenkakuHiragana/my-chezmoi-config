@@ -1,5 +1,5 @@
 /**
- * The terminal's default foreground, set to the theme's text colour while pi-crt
+ * The terminal's default foreground, set to the theme's text colour while pie-boy
  * runs (OSC 10), and given back when it stops (OSC 110).
  *
  * Pi draws some text with no colour of its own: the assistant's answers (its

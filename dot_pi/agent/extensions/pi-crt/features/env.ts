@@ -8,7 +8,7 @@
  * calls index.ts again for every session it creates, including subagent sessions
  * that run in the same process (core/extensions/loader.js, extensionCache). A
  * module-level variable is therefore shared by all those sessions. A feature
- * keeps its data per pi-crt instance, in a WeakMap keyed by `env.state`, which
+ * keeps its data per pie-boy instance, in a WeakMap keyed by `env.state`, which
  * its panels reach as `PanelEnv.state`. RADIO is the exception: its radio outlives
  * the instance, so that a session switch does not stop the music (radio.ts, RADIO).
  *
@@ -21,11 +21,11 @@
  * key must change; do not key on now itself.
  */
 import type { ExtensionContext } from "@earendil-works/pi-coding-agent";
-import type { CrtState, Versioned } from "../state/core.ts";
+import type { PieBoyState, Versioned } from "../state/core.ts";
 
 export interface FeatureEnv {
   /** The state the panels share. */
-  state: CrtState;
+  state: PieBoyState;
   /** Pi's context of the current session; undefined before session_start and after shutdown. */
   context(): ExtensionContext | undefined;
   /** Ask Pi to draw the screen again. */

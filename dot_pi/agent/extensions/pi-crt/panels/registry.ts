@@ -7,11 +7,11 @@ import type { Keybinding, TUI } from "@earendil-works/pi-tui";
 import type { ToolRenderers } from "@earendil-works/pi-coding-agent";
 import type { Framed } from "../screen/frame.ts";
 import type { ThemeRef } from "../screen/lines.ts";
-import type { CrtState } from "../state/core.ts";
+import type { PieBoyState } from "../state/core.ts";
 
 export interface PanelEnv {
   theme: ThemeRef;
-  state: CrtState;
+  state: PieBoyState;
   now: () => number;
   every: (ms: number) => number;
   redrawAt: (at: number) => void;
@@ -20,7 +20,7 @@ export interface PanelEnv {
   /** Select a panel and give it the keys. */
   focusPanel: (id: string) => void;
   tui: () => TUI | undefined;
-  /** Renderers Pi would use for a tool if pi-crt did not hide it from the transcript. */
+  /** Renderers Pi would use for a tool if pie-boy did not hide it from the transcript. */
   renderersFor: (toolName: string) => ToolRenderers | undefined;
   cwd: () => string;
 }

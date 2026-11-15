@@ -7,7 +7,7 @@
  * row tint derived from the theme, emphasis on the changed middle of paired
  * lines, syntax highlighting, and a fallback when the panes would be too narrow.
  *
- * Changed for pi-crt:
+ * Changed for pie-boy:
  * - The input is one file's section of git's unified diff. Line numbers come
  *   from the `@@ -a,b +c,d @@` hunk headers (pi-tidy reads the numbers that pi's
  *   edit diff writes on every line).

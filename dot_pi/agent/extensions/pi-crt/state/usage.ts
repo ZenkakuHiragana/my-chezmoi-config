@@ -92,7 +92,7 @@ const QUOTA_BIN = fileURLToPath(new URL("../node_modules/quota-axi/dist/bin/quot
  * temporary folder is the user's own on Windows and macOS; on Linux it is the shared
  * /tmp, where another user could make this folder first.
  */
-const QUOTA_HOME = join(tmpdir(), "pi-crt-quota-axi");
+const QUOTA_HOME = join(tmpdir(), "pie-boy-quota-axi");
 /** A reading that takes longer is given up. */
 const QUOTA_TIMEOUT_MS = 60_000;
 /**

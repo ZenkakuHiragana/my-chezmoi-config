@@ -42,7 +42,7 @@ export default async function () {
     for(const counter of TEXT_COUNTERS.filter(c=>c.id!=='chars4')) assert.equal(value[counter.id],countText(text)[counter.id]);
   }
 
-  const temp=join(tmpdir(),'pi');await mkdir(temp,{recursive:true});const dir=await mkdtemp(join(temp,'crt-tokenizers-'));
+  const temp=join(tmpdir(),'pi');await mkdir(temp,{recursive:true});const dir=await mkdtemp(join(temp,'pie-boy-tokenizers-'));
   try {
     const path=join(dir,'SKILL.md');await writeFile(path,f.skillRaw.text,'utf8');
     const skill={name:'alpha',description:'日本語の説明',filePath:path};

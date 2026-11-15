@@ -12,14 +12,16 @@
  * another volume, while a track plays queues the PCM not yet played again, so the
  * track goes on.
  *
- * Stations come from radio.json next to index.ts and are read again whenever the
- * file changes. A station with `playlist` plays that playlist shuffled, shuffling
+ * Stations come from pie-boy/radio.json in Pi's agent directory (stationsFile) and
+ * are read again whenever the file changes. No file is an empty list, not an error;
+ * adding a station then makes it. npm's postinstall (scripts/postinstall.mjs) puts
+ * radio.default.json there when the file is missing. A station with `playlist` plays that playlist shuffled, shuffling
  * again after each pass; one with `query` plays the YouTube Music radio of the
  * first song the query finds. On the SEARCH page a song found plays its radio, and
  * a YouTube playlist found plays like a playlist station; RADIO adds a playlist to
  * radio.json and removes a station from it by writing the file.
  *
- * The process has one radio, which the pi-crt instance on screen shows. A session
+ * The process has one radio, which the pie-boy instance on screen shows. A session
  * switch (/new, /resume, /fork) hands it to the next session's instance, still
  * playing; /reload and quit end it, so that a reload starts its new code with a new
  * radio. A switch that fails after the shutdown brings no next instance: the radio
@@ -33,16 +35,16 @@
  * at QUEUE_LOW.
  *
  * The four packages (@distube/ytdl-core, @discordjs/opus, prism-media and @kmamal/sdl) are
- * loaded on first use, so that pi-crt's other tabs still load when they are missing
+ * loaded on first use, so that pie-boy's other tabs still load when they are missing
  * or fail to load (a failed npm install, a Node.js version they do not support);
  * RADIO then shows why.
  */
-import { readFileSync, unwatchFile, watchFile, writeFileSync } from "node:fs";
-import { fileURLToPath } from "node:url";
-import type { ExtensionAPI } from "@earendil-works/pi-coding-agent";
+import { mkdirSync, readFileSync, unwatchFile, watchFile, writeFileSync } from "node:fs";
+import { dirname, join } from "node:path";
+import { type ExtensionAPI, getAgentDir } from "@earendil-works/pi-coding-agent";
 import type { Ytdl } from "@distube/ytdl-core";
 import type { Sdl } from "@kmamal/sdl";
-import { type CrtState, sanitize } from "../state/core.ts";
+import { type PieBoyState, sanitize } from "../state/core.ts";
 import type { FeatureEnv } from "./env.ts";
 
 /**
@@ -52,8 +54,33 @@ import type { FeatureEnv } from "./env.ts";
 export const NOW_PLAYING_PANEL = "nowplaying";
 export const RADIO_OUTPUT_PANEL = "radiooutput";
 
-/** The station list. */
-export const STATIONS_FILE = fileURLToPath(new URL("../radio.json", import.meta.url));
+/**
+ * The station list in Pi's agent directory. scripts/postinstall.mjs puts the first
+ * one at the same place; change both together.
+ */
+export function stationsFile(agentDir: string = getAgentDir()): string {
+  return join(agentDir, "pie-boy", "radio.json");
+}
+
+/** The text of the station list; undefined when the file does not exist (an empty list). Other errors are thrown. */
+export function readStationsText(file: string): string | undefined {
+  try {
+    return readFileSync(file, "utf8");
+  } catch (error) {
+    if ((error as NodeJS.ErrnoException).code === "ENOENT") return undefined;
+    throw error;
+  }
+}
+
+/**
+ * Write the station list, making its folder first. With `create`, the file is
+ * expected not to exist and writing fails if it does, so that a list made meanwhile
+ * (by chezmoi or the postinstall) is not overwritten by one edited from nothing.
+ */
+export function writeStationsText(file: string, text: string, create: boolean): void {
+  mkdirSync(dirname(file), { recursive: true });
+  writeFileSync(file, text, { flag: create ? "wx" : "w" });
+}
 
 /** YouTube's Opus audio: 48 kHz stereo. */
 const SAMPLE_RATE = 48_000;
@@ -177,7 +204,7 @@ export interface RadioData {
   outputs: OutputsData;
 }
 
-interface RadioControl {
+export interface RadioControl {
   data: RadioData;
   playStation(index: number): void;
   playSong(track: Track): void;
@@ -268,20 +295,20 @@ function atVolume(pcm: Buffer, volume: number): Buffer {
 
 /**
  * The process's radio, from the first session on screen until /reload or quit.
- * Unlike the other features' data (see FeatureEnv), it outlives the pi-crt
+ * Unlike the other features' data (see FeatureEnv), it outlives the pie-boy
  * instance that made it, so that a session switch does not stop the music. It is
  * kept on globalThis, not in a module variable, because the instance after a switch
  * may run these modules evaluated again: Pi evaluates an extension's modules again
  * whenever a session, a subagent's included, is made in another working directory
  * than the last one (core/extensions/loader.js, extensionCache).
  */
-const RADIO = Symbol.for("pi-crt.radio");
+const RADIO = Symbol.for("pie-boy.radio");
 const shared = globalThis as { [RADIO]?: RadioControl };
 
 /* ------------------------------------------------------------ for the panels */
 
-/** The radio by the CrtState of the pi-crt instance that shows it (see FeatureEnv). */
-const radios = new WeakMap<CrtState, RadioControl>();
+/** The radio by the PieBoyState of the pie-boy instance that shows it (see FeatureEnv). */
+const radios = new WeakMap<PieBoyState, RadioControl>();
 
 const NONE: RadioData = Object.freeze({
   version: 0,
@@ -296,7 +323,7 @@ const NONE: RadioData = Object.freeze({
   outputs: { devices: [], loading: false },
 }) as RadioData;
 
-export function radioData(state: CrtState): Readonly<RadioData> {
+export function radioData(state: PieBoyState): Readonly<RadioData> {
   return radios.get(state)?.data ?? NONE;
 }
 
@@ -363,7 +390,7 @@ export function heardLevels(data: Readonly<RadioData>, now: number, stepLevels: 
 }
 
 /** Play a station, or stop it when it is the one playing. */
-export function toggleStation(state: CrtState, index: number): void {
+export function toggleStation(state: PieBoyState, index: number): void {
   const radio = radios.get(state);
   const station = radio?.data.stations[index];
   if (!radio || !station) return;
@@ -372,7 +399,7 @@ export function toggleStation(state: CrtState, index: number): void {
 }
 
 /** Play the radio of a song, or stop it when it is the one playing. */
-export function toggleSong(state: CrtState, track: Track): void {
+export function toggleSong(state: PieBoyState, track: Track): void {
   const radio = radios.get(state);
   if (!radio) return;
   if (playsSong(radio.data, track)) radio.stop();
@@ -380,7 +407,7 @@ export function toggleSong(state: CrtState, track: Track): void {
 }
 
 /** Play a playlist found on SEARCH, or stop it when it is the one playing. */
-export function togglePlaylist(state: CrtState, playlist: Playlist): void {
+export function togglePlaylist(state: PieBoyState, playlist: Playlist): void {
   const radio = radios.get(state);
   if (!radio) return;
   if (playsPlaylist(radio.data, playlist)) radio.stop();
@@ -388,27 +415,27 @@ export function togglePlaylist(state: CrtState, playlist: Playlist): void {
 }
 
 /** Add a playlist found on SEARCH to radio.json, unless a station plays it already. */
-export function addPlaylist(state: CrtState, playlist: Playlist): void {
+export function addPlaylist(state: PieBoyState, playlist: Playlist): void {
   radios.get(state)?.addPlaylist(playlist);
 }
 
 /** Remove the station at `index` of the list from radio.json. */
-export function removeStation(state: CrtState, index: number): void {
+export function removeStation(state: PieBoyState, index: number): void {
   const radio = radios.get(state);
   const station = radio?.data.stations[index];
   if (radio && station) radio.removeStation(station);
 }
 
-export function nextTrack(state: CrtState): void {
+export function nextTrack(state: PieBoyState): void {
   radios.get(state)?.next();
 }
 
-export function changeVolume(state: CrtState, delta: number): void {
+export function changeVolume(state: PieBoyState, delta: number): void {
   const radio = radios.get(state);
   if (radio) radio.setVolume(radio.data.volume + delta);
 }
 
-export function searchSongs(state: CrtState, query: string): void {
+export function searchSongs(state: PieBoyState, query: string): void {
   radios.get(state)?.search(query);
 }
 
@@ -418,7 +445,7 @@ export function playsOn(device: OutputDevice): boolean {
 }
 
 /** Play on `device` from now on, moving the track playing to it. */
-export function pickOutput(state: CrtState, device: OutputDevice): void {
+export function pickOutput(state: PieBoyState, device: OutputDevice): void {
   radios.get(state)?.pickOutput(device);
 }
 
@@ -493,9 +520,11 @@ function messageOf(error: unknown): string {
   return sanitize(error instanceof Error ? error.message : String(error));
 }
 
-/** A new radio, idle, reading radio.json and watching it until it is disposed. */
-function createRadio(): RadioControl {
-  /** The env of the pi-crt instance that shows the radio; undefined between two sessions and after dispose. */
+/** A new radio, idle, reading radio.json and watching it until it is disposed. Exported for the tests. */
+export function createRadio(): RadioControl {
+  /** The station list this radio reads, edits and watches. */
+  const file = stationsFile();
+  /** The env of the pie-boy instance that shows the radio; undefined between two sessions and after dispose. */
   let env: FeatureEnv | undefined;
   const data: RadioData = {
     version: 0,
@@ -991,7 +1020,7 @@ function createRadio(): RadioControl {
   const readStations = () => {
     let text: string;
     try {
-      text = readFileSync(STATIONS_FILE, "utf8");
+      text = readStationsText(file) ?? "[]";
     } catch (error) {
       data.stationsError = `radio.json: ${messageOf(error)}`;
       changed();
@@ -1029,13 +1058,14 @@ function createRadio(): RadioControl {
    */
   const editStations = (edit: (stations: Station[], items: unknown[]) => boolean): boolean => {
     try {
-      const text = readFileSync(STATIONS_FILE, "utf8");
+      const read = readStationsText(file);
+      const text = read ?? "[]";
       // The entries as parseStations keeps them: a file written goes without the others.
       const entries = parseEntries(text);
       const first = firstOfEach(entries);
       const stations = entries.filter((_, index) => first[index]);
       const items = (JSON.parse(text) as unknown[]).filter((_, index) => first[index]);
-      if (edit(stations, items)) writeFileSync(STATIONS_FILE, `${JSON.stringify(items, null, 2)}\n`);
+      if (edit(stations, items)) writeStationsText(file, `${JSON.stringify(items, null, 2)}\n`, read === undefined);
       data.saveError = undefined;
     } catch (error) {
       data.saveError = `radio.json: ${messageOf(error)}`;
@@ -1077,7 +1107,7 @@ function createRadio(): RadioControl {
 
   const onFileChange = () => readStations();
   readStations();
-  watchFile(STATIONS_FILE, { interval: 1000, persistent: false }, onFileChange);
+  watchFile(file, { interval: 1000, persistent: false }, onFileChange);
 
   return {
     data,
@@ -1106,7 +1136,7 @@ function createRadio(): RadioControl {
     dispose: () => {
       // The screen first, so that stopping does not draw on a screen that is gone.
       env = undefined;
-      unwatchFile(STATIONS_FILE, onFileChange);
+      unwatchFile(file, onFileChange);
       searchAbort?.abort();
       halt();
     },
@@ -1114,7 +1144,7 @@ function createRadio(): RadioControl {
 }
 
 /**
- * RADIO for one pi-crt instance. The instance on screen shows the process's radio
+ * RADIO for one pie-boy instance. The instance on screen shows the process's radio
  * (see RADIO) from its session_start, making it when there is none. At its shutdown
  * a session switch hands the radio on, still playing, to the next session's
  * instance; /reload and quit dispose of it. A subagent's session never shows it, so

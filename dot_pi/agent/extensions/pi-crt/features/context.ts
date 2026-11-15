@@ -4,7 +4,7 @@ import type { ContextUsage, ExtensionAPI } from "@earendil-works/pi-coding-agent
 import { type ContextPart, ContextMeter, nextRequestModel } from "../state/context.ts";
 import { prepareRequestCapture, projectContext, type ContextOrigin, type RequestSnapshot, type CapturedContext } from "../state/request-context.ts";
 import { chars4, counterForModel, type TextCounter } from "../state/tokenizers.ts";
-import type { CrtState, Versioned } from "../state/core.ts";
+import type { PieBoyState, Versioned } from "../state/core.ts";
 import type { FeatureEnv } from "./env.ts";
 
 export const CONTEXT_PANEL = "context";
@@ -29,7 +29,7 @@ interface ContextFeature {
   pending?: { build: () => RequestSnapshot; sessionId: string; hidden: ReadonlySet<string> };
   timer?: ReturnType<typeof setImmediate>;
 }
-const features = new WeakMap<CrtState, ContextFeature>();
+const features = new WeakMap<PieBoyState, ContextFeature>();
 const NONE: Readonly<ContextData> = Object.freeze({ contextParts: [], counter: chars4, prompt: "", tools: [], origin: "built", version: 0 });
 /** Only system evidence survives a session switch, not request-only conversation or image bytes. */
 const remembered = new Map<string, CapturedContext>();
@@ -65,14 +65,14 @@ function finishPending(feature: ContextFeature): void {
   invalidate(feature);
 }
 
-export function contextData(state: CrtState): Readonly<ContextData> {
+export function contextData(state: PieBoyState): Readonly<ContextData> {
   const feature = features.get(state);
   if (!feature) return NONE;
   finishPending(feature);
   read(feature);
   return feature.data;
 }
-export function contextUsage(state: CrtState): ContextUsage | undefined {
+export function contextUsage(state: PieBoyState): ContextUsage | undefined {
   return contextData(state).reportedUsage;
 }
 

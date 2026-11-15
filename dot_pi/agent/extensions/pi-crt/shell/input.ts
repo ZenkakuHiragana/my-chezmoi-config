@@ -9,7 +9,7 @@ import type { Shell } from "./controller.ts";
 /**
  * Pi's keys that a panel never takes, even one whose `key` would use them: Esc
  * interrupts the agent, and ctrl+c clears or quits. Other keys a panel has no use
- * for, pi-crt's shortcuts among them, reach Pi anyway (onInput).
+ * for, pie-boy's shortcuts among them, reach Pi anyway (onInput).
  */
 const PASS_THROUGH: KeyId[] = ["escape", "ctrl+c"];
 
@@ -188,28 +188,28 @@ export function setupInput(pi: ExtensionAPI, shell: Shell): void {
 
   tabs.slice(0, 9).forEach((tab, index) => {
     pi.registerShortcut(`alt+${index + 1}` as "alt+1", {
-      description: `pi-crt: show the ${tab.label} tab`,
+      description: `pie-boy: show the ${tab.label} tab`,
       handler: () => shell.selectTab(index),
     });
   });
   pi.registerShortcut("alt+j", {
-    description: "pi-crt: next tab",
+    description: "pie-boy: next tab",
     handler: () => shell.stepTab(1),
   });
   pi.registerShortcut("alt+k", {
-    description: "pi-crt: previous tab",
+    description: "pie-boy: previous tab",
     handler: () => shell.stepTab(-1),
   });
   pi.registerShortcut("alt+h", {
-    description: "pi-crt: previous inner tab",
+    description: "pie-boy: previous inner tab",
     handler: () => shell.stepPage(-1),
   });
   pi.registerShortcut("alt+l", {
-    description: "pi-crt: next inner tab",
+    description: "pie-boy: next inner tab",
     handler: () => shell.stepPage(1),
   });
   pi.registerShortcut("alt+o", {
-    description: "pi-crt: switch the keys between editor and panels",
+    description: "pie-boy: switch the keys between editor and panels",
     handler: () => {
       if (!shell.tabsShown()) return;
       shell.setPanelMode(!shell.panelMode());

@@ -2,19 +2,20 @@ import assert from 'node:assert/strict';
 import { mkdir, mkdtemp, readFile, rm, writeFile } from 'node:fs/promises';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
+import { fileURLToPath } from 'node:url';
 import { load, root, theme, themeDir, themes } from './support.mjs';
 
-/** Which themes leave the text colour to the terminal (pi-crt then does not set it). */
+/** Which themes leave the text colour to the terminal (pie-boy then does not set it). */
 async function textOwnership(themeText) {
   assert.ok(themeText(theme), 'dark has a text colour');
-  const pipboy = themes.loadThemeFromPath(join(root, '../../themes/pipboy-bright.json'), 'truecolor');
+  const pipboy = themes.loadThemeFromPath(fileURLToPath(new URL('../themes/pipboy-bright.json', import.meta.url)), 'truecolor');
   assert.deepEqual(themeText(pipboy), { kind: 'rgb', r: 0x1b, g: 0xff, b: 0x80 });
   // A theme with "" as its text colour.
   const dark = JSON.parse(await readFile(join(themeDir, 'dark.json'), 'utf8'));
   dark.name = 'default-text';
   dark.colors.text = '';
   await mkdir(join(tmpdir(), 'pi'), { recursive: true });
-  const dir = await mkdtemp(join(tmpdir(), 'pi', 'crt-theme-'));
+  const dir = await mkdtemp(join(tmpdir(), 'pi', 'pie-boy-theme-'));
   try {
     const path = join(dir, 'default-text.json');
     await writeFile(path, JSON.stringify(dark), 'utf8');
@@ -22,7 +23,7 @@ async function textOwnership(themeText) {
   } finally {
     await rm(dir, { recursive: true, force: true });
   }
-  // The system theme on a terminal that reports a bright foreground (the colour pi-crt
+  // The system theme on a terminal that reports a bright foreground (the colour pie-boy
   // set for pipboy-bright): body text is the terminal's own, so it is not set.
   themes.setTerminalColors({ foreground: { r: 0x1b, g: 0xff, b: 0x80 }, background: { r: 0x02, g: 0x0c, b: 0x06 } });
   assert.equal(themeText(themes.getThemeByName('system')), undefined);

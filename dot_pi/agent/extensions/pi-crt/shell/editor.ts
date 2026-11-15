@@ -1,5 +1,5 @@
 /**
- * The editor's top border as pi-crt's status line: WORKING with a spinner and the
+ * The editor's top border as pie-boy's status line: WORKING with a spinner and the
  * elapsed time while the agent runs, STANDBY otherwise, and in panel mode the
  * selected panel and the key hints after it. For a second after typed text was
  * ignored, `ALT+O TO TYPE` takes the place of the panel's name and blinks, as a tab
@@ -11,7 +11,7 @@
  * (setWorkingVisible) so that WORKING is not shown twice; this editor does not
  * embed status, so Pi shows its other indicators (retry, compaction, branch
  * summary) in the line above the editor. Another extension that sets an editor
- * replaces this one, and pi-crt then leaves the keys to Pi.
+ * replaces this one, and pie-boy then leaves the keys to Pi.
  */
 import { renderFakeCursor, truncateToWidth, visibleWidth, type TuiMouseEvent, type TuiMouseEventResult } from "@earendil-works/pi-tui";
 import { CustomEditor, keyHint } from "@earendil-works/pi-coding-agent";
@@ -57,7 +57,7 @@ function borderLabel(shell: Shell, width: number): string {
  * Marks the line renderBottomBorder draws, for render to find and remove: an APC
  * sequence, which takes no cell and which typed text cannot contain.
  */
-const BOTTOM_MARK = "\x1b_pi-crt:bottom\x07";
+const BOTTOM_MARK = "\x1b_pie-boy:bottom\x07";
 
 /**
  * The line of an empty editor while a panel has the keys: the cursor, then hatching
@@ -78,15 +78,15 @@ function emptyLine(paddingX: number, width: number): string {
 }
 
 /**
- * Pi's editor with pi-crt's border. `onRender` runs on every frame (the shell keeps
+ * Pi's editor with pie-boy's border. `onRender` runs on every frame (the shell keeps
  * its screen mounted across mode switches from there).
  */
-export function crtEditor(shell: Shell, onRender: () => void, ...args: EditorArgs): CustomEditor {
-  class CrtEditor extends CustomEditor {
+export function pieBoyEditor(shell: Shell, onRender: () => void, ...args: EditorArgs): CustomEditor {
+  class PieBoyEditor extends CustomEditor {
     /**
      * Pi's full screen takes its viewport keys (PageUp / PageDown and the rest) ahead
      * of extensions, for the first scrolling panel it finds, unless the focused
-     * component captures them. They are left to pi-crt (shell/input.ts) whenever it
+     * component captures them. They are left to pie-boy (shell/input.ts) whenever it
      * scrolls a panel other than the transcript; Pi's keys to the previous and next
      * prompt then do nothing. Editor captures them itself while its autocomplete
      * menu is open.
@@ -155,5 +155,5 @@ export function crtEditor(shell: Shell, onRender: () => void, ...args: EditorArg
       return `${this.borderColor("── ")}${label}${this.borderColor(` ${"─".repeat(Math.max(0, fill))}${more}${"─".repeat(tail)}`)}`;
     }
   }
-  return new CrtEditor(...args);
+  return new PieBoyEditor(...args);
 }

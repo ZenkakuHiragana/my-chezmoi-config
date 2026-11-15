@@ -3,17 +3,17 @@
 From the repository root:
 
 ```sh
-node dot_pi/agent/extensions/pi-crt/tests/run.mjs
+node tests/run.mjs
 ```
 
 The tests use the host Pi packages through its TypeScript loader dependency
-(jiti), without loading pi-crt's optional native/audio dependencies. By default
+(jiti), without loading pie-boy's optional native/audio dependencies. By default
 these are read from Pi's managed install at `~/.pi/agent/install/`. For another
 installation, set `PI_TEST_MODULES` to its `node_modules` directory (containing
 `jiti` and `@earendil-works/pi-*`). Tests also need the pinned `gpt-tokenizer`
 dependency: a local extension `node_modules` is preferred, then the deployed
-`~/.pi/agent/extensions/pi-crt/node_modules`. For an isolated dependency install,
-set `PI_CRT_TEST_MODULES` to its `node_modules` directory. The loader checks the
+`~/.pi/agent/extensions/pie-boy/node_modules`. For an isolated dependency install,
+set `PIE_BOY_TEST_MODULES` to its `node_modules` directory. The loader checks the
 version against this extension's manifest. No network or model request is made.
 
 Context tests cover current-branch replay, request edits and forced prompts,
@@ -23,7 +23,7 @@ Panel tests render the registered panels using Pi's layout engine, including
 split layouts, narrow widths and visible scrollbars. They do not exercise a
 live terminal, provider tokenization or an actual extension loadout.
 
-Capture observes pi-crt's `context_with_system` handler, as pi-context-view's
+Capture observes pie-boy's `context_with_system` handler, as pi-context-view's
 Usage capture does. Later context handlers and provider payload serialization
 can still differ; this is not a final-provider-payload inspector.
 Prompt/tool origin metadata describes declaration evidence, not every conversation
@@ -55,8 +55,11 @@ For an additional old/new observable comparison, supply an archived baseline
 extension directory (including its tests/support.mjs):
 
 ```sh
-node dot_pi/agent/extensions/pi-crt/tests/compare.mjs BASELINE_EXTENSION_DIRECTORY
+node tests/compare.mjs BASELINE_EXTENSION_DIRECTORY
 ```
+
+A baseline from before the rename to pie-boy reads `PI_CRT_TEST_MODULES` instead of
+`PIE_BOY_TEST_MODULES`; set both when its tokenizer dependency is not installed.
 
 This checks 191 checkpoints including prompt, declarations, origin, ordered
 parts, INV rows and picks (new counter-provenance metadata is excluded). Equality with a baseline supplements the independent
@@ -121,7 +124,7 @@ boundaries and prompt-part attribution rather than assuming BPE additivity.
 
 The live canonical history remains owned by Pi and is measured with only the
 selected method. Request-only edits still receive every startup method before
-their raw payload is discarded. pi-crt owns its BPE encoder and disables its
+their raw payload is discarded. pie-boy owns its BPE encoder and disables its
 raw-word merge cache without changing another extension's shared encoder.
 Each counter but chars/4 has a bounded 8192-entry memo, above the distinct texts of a
 long branch, that stores SHA-256 keys of exact UTF-16 input and numeric

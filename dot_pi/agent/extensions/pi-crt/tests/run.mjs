@@ -12,4 +12,5 @@ await (await import('./context-layout.mjs')).default();
 await (await import('./skills.mjs')).default();
 await (await import('./skill-preview.mjs')).default();
 await (await import('./foreground.mjs')).default();
+await (await import('./radio-stations.mjs')).default();
 console.log('panel layout assertions passed');

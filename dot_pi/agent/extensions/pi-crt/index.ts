@@ -1,5 +1,5 @@
 /**
- * pi-crt: a tabbed, CRT-style screen for Pi's fullscreen TUI.
+ * pie-boy: a tabbed, CRT-style screen for Pi's fullscreen TUI.
  *
  * Where things are:
  *

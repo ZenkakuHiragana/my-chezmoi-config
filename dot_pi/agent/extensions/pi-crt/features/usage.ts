@@ -8,7 +8,7 @@
  * expiring OAuth token, which Pi saves as it does for a request.
  */
 import { type ExtensionAPI, type ExtensionContext, getAgentDir } from "@earendil-works/pi-coding-agent";
-import { type CrtState, sanitize, type Versioned } from "../state/core.ts";
+import { type PieBoyState, sanitize, type Versioned } from "../state/core.ts";
 import { quotaProvider, type QuotaReading, readQuota } from "../state/usage.ts";
 import type { FeatureEnv } from "./env.ts";
 import { VITALS_PANEL } from "./vitals.ts";
@@ -29,14 +29,14 @@ export interface UsageData extends Versioned {
   at?: number;
 }
 
-/** Each pi-crt instance's usage data, by its CrtState (see FeatureEnv). */
-const collected = new WeakMap<CrtState, UsageData>();
+/** Each pie-boy instance's usage data, by its PieBoyState (see FeatureEnv). */
+const collected = new WeakMap<PieBoyState, UsageData>();
 
 /** Before setupUsage: nothing read. Never changed. */
 const NONE: Readonly<UsageData> = Object.freeze({ version: 0 });
 
 /** The allowance last read for the current model's provider. */
-export function usageData(state: CrtState): Readonly<UsageData> {
+export function usageData(state: PieBoyState): Readonly<UsageData> {
   return collected.get(state) ?? NONE;
 }
 

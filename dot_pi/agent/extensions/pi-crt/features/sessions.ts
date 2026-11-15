@@ -23,7 +23,7 @@
  *
  * Opening a session switches pi to it. switchSession() is only on the context a
  * command receives, not on the one a panel or shortcut gets, so the panel sends the
- * command `/crt-session <path>` through sendUserMessage(); pi runs an extension command
+ * command `/pie-boy-session <path>` through sendUserMessage(); pi runs an extension command
  * before anything reaches the model.
  */
 
@@ -39,7 +39,7 @@ import {
   type SessionInfoEntry,
   type SessionMessageEntry,
 } from "@earendil-works/pi-coding-agent";
-import { type CrtState, sanitize } from "../state/core.ts";
+import { type PieBoyState, sanitize } from "../state/core.ts";
 import type { FeatureEnv } from "./env.ts";
 
 /** One session as the panel shows it. */
@@ -58,7 +58,7 @@ export interface SessionItem {
 }
 
 /** Name of the command that switches to a session. */
-const COMMAND = "crt-session";
+const COMMAND = "pie-boy-session";
 /** Sessions listed at most. */
 const MAX_SESSIONS = 200;
 /** Files read at the same time. */
@@ -131,14 +131,14 @@ interface SessionFeature {
   files: Map<string, ScannedFile>;
 }
 
-/** Each pi-crt instance's sessions, by its CrtState (see FeatureEnv). */
-const features = new WeakMap<CrtState, SessionFeature>();
+/** Each pie-boy instance's sessions, by its PieBoyState (see FeatureEnv). */
+const features = new WeakMap<PieBoyState, SessionFeature>();
 
 /** Before setupSessions: nothing read. Never changed. */
 const NONE: Readonly<SessionList> = Object.freeze({ sessions: [], version: 0, loading: false, stale: false });
 
 /** The sessions read so far. */
-export function sessions(state: CrtState): Readonly<SessionList> {
+export function sessions(state: PieBoyState): Readonly<SessionList> {
   return features.get(state)?.data ?? NONE;
 }
 
@@ -146,7 +146,7 @@ export function sessions(state: CrtState): Readonly<SessionList> {
  * Read the list again when it is stale. Called while the panel is drawn, so the sessions
  * are only read while someone looks at them.
  */
-export function refreshSessions(state: CrtState): void {
+export function refreshSessions(state: PieBoyState): void {
   const feature = features.get(state);
   if (!feature) return;
   const { data, env } = feature;
@@ -403,7 +403,7 @@ function samePath(a: string, b: string): boolean {
 }
 
 /** Switch to a session. Does nothing for the session already in progress. */
-export function openSession(state: CrtState, session: SessionItem): void {
+export function openSession(state: PieBoyState, session: SessionItem): void {
   const pi = features.get(state)?.pi;
   if (!pi || session.active) return;
   // Without the command, the text would go to the model as a message.

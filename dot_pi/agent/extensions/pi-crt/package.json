@@ -1,7 +1,10 @@
 {
-  "name": "pi-crt",
+  "name": "pie-boy",
   "private": true,
   "type": "module",
+  "scripts": {
+    "postinstall": "node scripts/postinstall.mjs"
+  },
   "dependencies": {
     "@discordjs/opus": "0.11.0",
     "@distube/ytdl-core": "5.2.0",
@@ -16,6 +19,7 @@
     "@kmamal/sdl@0.11.13": true
   },
   "pi": {
-    "extensions": ["./index.ts"]
+    "extensions": ["./index.ts"],
+    "themes": ["./themes/*.json"]
   }
 }

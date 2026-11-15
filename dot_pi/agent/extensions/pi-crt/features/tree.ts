@@ -8,12 +8,12 @@
  * Jumping works like /tree: pi asks whether to summarize the branch being left, then
  * moves; with /tree's setting to skip that question (branchSummary.skipPrompt), it
  * moves without a summary. navigateTree() is only on the context a command receives,
- * so the panel sends the command `/crt-tree <entry id>` through sendUserMessage(); pi
+ * so the panel sends the command `/pie-boy-tree <entry id>` through sendUserMessage(); pi
  * runs an extension command before anything reaches the model.
  */
 
 import { copyToClipboard, type ExtensionAPI, type SessionTreeNode } from "@earendil-works/pi-coding-agent";
-import type { CrtState } from "../state/core.ts";
+import type { PieBoyState } from "../state/core.ts";
 import type { FeatureEnv } from "./env.ts";
 
 /** /tree's filters, as its treeFilterMode setting names them. */
@@ -22,7 +22,7 @@ export type TreeFilterMode = NonNullable<ReturnType<ExtensionAPI["getSettings"]>
 /** The id of the TREE panel, which is drawn again when the tree changes. */
 export const TREE_PANEL = "tree";
 /** Name of the command that jumps to an entry. */
-const COMMAND = "crt-tree";
+const COMMAND = "pie-boy-tree";
 /** Choices of the summary question, as /tree words them. */
 const NO_SUMMARY = "No summary";
 const SUMMARIZE = "Summarize";
@@ -37,12 +37,12 @@ interface TreeState {
   /** The copy no longer matches the session. */
   stale: boolean;
   /**
-   * The user or custom message pi-crt jumped to, until pi moves otherwise: the jump put
+   * The user or custom message pie-boy jumped to, until pi moves otherwise: the jump put
    * pi before it, at its parent, which is also where any other child of the parent
    * starts. Pi does not record which child was picked; TREE shows HERE on it.
    */
   before?: { entryId: string; leafId: string | null };
-  /** pi-crt's own jump is under way: the session_tree it causes keeps `before`. */
+  /** pie-boy's own jump is under way: the session_tree it causes keeps `before`. */
   jumping: boolean;
 }
 
@@ -52,8 +52,8 @@ interface TreeFeature {
   data: TreeState;
 }
 
-/** Each pi-crt instance's tree, by its CrtState (see FeatureEnv). */
-const features = new WeakMap<CrtState, TreeFeature>();
+/** Each pie-boy instance's tree, by its PieBoyState (see FeatureEnv). */
+const features = new WeakMap<PieBoyState, TreeFeature>();
 
 /**
  * Whether a jump to an entry puts pi before it rather than after it: Pi's navigateTree
@@ -64,13 +64,13 @@ export function jumpsBefore(entry: SessionTreeNode["entry"]): boolean {
 }
 
 /** The user or custom message pi is before after jumping to it, if pi has not moved since. */
-export function jumpedBefore(state: CrtState): string | undefined {
+export function jumpedBefore(state: PieBoyState): string | undefined {
   const data = features.get(state)?.data;
   return data?.before && data.before.leafId === data.leafId ? data.before.entryId : undefined;
 }
 
 /** The tree, read again first when it is stale. Called while the panel is drawn. */
-export function sessionTree(state: CrtState): Readonly<TreeState> {
+export function sessionTree(state: PieBoyState): Readonly<TreeState> {
   const feature = features.get(state);
   if (!feature) return { tree: [], leafId: null, version: 0, stale: true, jumping: false };
   const { data } = feature;
@@ -87,7 +87,7 @@ export function sessionTree(state: CrtState): Readonly<TreeState> {
 }
 
 /** The filter /tree starts with (the treeFilterMode setting). */
-export function initialFilter(state: CrtState): TreeFilterMode {
+export function initialFilter(state: PieBoyState): TreeFilterMode {
   return features.get(state)?.pi.getSettings().treeFilterMode ?? "default";
 }
 
@@ -95,7 +95,7 @@ export function initialFilter(state: CrtState): TreeFilterMode {
  * Whether an entry's label can be changed now. Pi appends the change as an entry
  * after the one it is at, so not while the agent is adding its own; says why not.
  */
-export function canLabel(state: CrtState): boolean {
+export function canLabel(state: PieBoyState): boolean {
   const feature = features.get(state);
   if (!feature) return false;
   if (!feature.env.state.agentRunning) return true;
@@ -104,7 +104,7 @@ export function canLabel(state: CrtState): boolean {
 }
 
 /** Set an entry's label, or remove it when `label` is empty, as /tree's label key does. */
-export function setEntryLabel(state: CrtState, entryId: string, label: string): void {
+export function setEntryLabel(state: PieBoyState, entryId: string, label: string): void {
   const feature = features.get(state);
   if (!feature || !canLabel(state)) return;
   const { data } = feature;
@@ -119,7 +119,7 @@ export function setEntryLabel(state: CrtState, entryId: string, label: string): 
 }
 
 /** Put an entry's text on the clipboard, as /tree's copy key does; says how it went. */
-export function copyEntry(state: CrtState, text: string | undefined): void {
+export function copyEntry(state: PieBoyState, text: string | undefined): void {
   const ui = features.get(state)?.env.context()?.ui;
   if (!ui) return;
   if (!text?.trim()) {
@@ -133,7 +133,7 @@ export function copyEntry(state: CrtState, text: string | undefined): void {
 }
 
 /** Jump to an entry, as choosing it in /tree does. */
-export function jumpTo(state: CrtState, entryId: string): void {
+export function jumpTo(state: PieBoyState, entryId: string): void {
   const pi = features.get(state)?.pi;
   if (!pi) return;
   // Without the command, the text would go to the model as a message.
@@ -149,7 +149,7 @@ export function setupTree(pi: ExtensionAPI, env: FeatureEnv): void {
     data.stale = true;
     if (env.shows(TREE_PANEL)) env.requestRender();
   };
-  // Any move but pi-crt's own jump ends what that jump recorded.
+  // Any move but pie-boy's own jump ends what that jump recorded.
   const moved = (): void => {
     if (!data.jumping) data.before = undefined;
     markStale();

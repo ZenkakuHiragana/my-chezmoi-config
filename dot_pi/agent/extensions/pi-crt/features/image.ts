@@ -1,7 +1,7 @@
 /**
  * Images in the transcript.
  *
- * pi-crt hides tool results from the transcript (they belong to TOOL LOG), which takes
+ * pie-boy hides tool results from the transcript (they belong to TOOL LOG), which takes
  * the images a tool returns with them. Instead the assistant writes an image link in its
  * own reply, and this feature draws it: every markdown body pi is about to render has its
  * standalone image links replaced by terminal image lines.

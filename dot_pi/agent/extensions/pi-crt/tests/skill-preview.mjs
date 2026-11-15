@@ -8,7 +8,7 @@ import { harness, load, renderLayoutFrame, plain } from './support.mjs';
 export default async function skillPreview() {
   const temp = join(tmpdir(), 'pi');
   await mkdir(temp, {recursive:true});
-  const dir = await mkdtemp(join(temp, 'crt-preview-'));
+  const dir = await mkdtemp(join(temp, 'pie-boy-preview-'));
   try {
     const fixtures = [
       {name:'valid', description:'説明は一度だけ', raw:'\ufeff---\r\nname: valid\r\ndescription: 説明は一度だけ\r\n---\r\n\r\n日本語の本文\r\n', body:'日本語の本文'},

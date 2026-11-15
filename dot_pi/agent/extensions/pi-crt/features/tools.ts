@@ -5,7 +5,7 @@
  * conversation after a resume, a new session or a tree jump.
  */
 import type { ExtensionAPI } from "@earendil-works/pi-coding-agent";
-import type { CrtState } from "../state/core.ts";
+import type { PieBoyState } from "../state/core.ts";
 import { sanitize } from "../state/core.ts";
 import {
   appendThinking,
@@ -22,14 +22,14 @@ import {
 } from "../state/tools.ts";
 import type { FeatureEnv } from "./env.ts";
 
-/** Each pi-crt instance's tool data, by its CrtState (see FeatureEnv). */
-const collected = new WeakMap<CrtState, ToolData>();
+/** Each pie-boy instance's tool data, by its PieBoyState (see FeatureEnv). */
+const collected = new WeakMap<PieBoyState, ToolData>();
 
 /** Before setupTools: no calls. Never changed. */
 const NONE: Readonly<ToolData> = Object.freeze(createToolData());
 
 /** The tool calls and thinking text collected so far. */
-export function toolData(state: CrtState): Readonly<ToolData> {
+export function toolData(state: PieBoyState): Readonly<ToolData> {
   return collected.get(state) ?? NONE;
 }
 

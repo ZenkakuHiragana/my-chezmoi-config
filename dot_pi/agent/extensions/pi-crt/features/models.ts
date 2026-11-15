@@ -4,7 +4,7 @@
  * The list is either the session's scoped models (`enabledModels`, or `--models`) or
  * every model with authentication, as Pi's /model shows them. It starts the way /model
  * does: scoped when the session has scoped models, else all; the `s` key switches
- * between the two. pi-crt does not change the scope; /scoped-models does.
+ * between the two. pie-boy does not change the scope; /scoped-models does.
  *
  * Pi gives no event when the available or scoped models change, so models() reads
  * them again while the panel draws, and gives a new version when they changed.
@@ -15,7 +15,7 @@
  */
 import { type Api, getSupportedThinkingLevels, type Model } from "@earendil-works/pi-ai";
 import type { ExtensionAPI } from "@earendil-works/pi-coding-agent";
-import { type CrtState, sanitize, type Versioned } from "../state/core.ts";
+import { type PieBoyState, sanitize, type Versioned } from "../state/core.ts";
 import type { FeatureEnv } from "./env.ts";
 
 export interface ModelItem {
@@ -71,8 +71,8 @@ interface ModelFeature {
   data: ModelData;
 }
 
-/** Each pi-crt instance's models, by its CrtState (see FeatureEnv). */
-const features = new WeakMap<CrtState, ModelFeature>();
+/** Each pie-boy instance's models, by its PieBoyState (see FeatureEnv). */
+const features = new WeakMap<PieBoyState, ModelFeature>();
 
 /** Before setupModels: nothing read. Never changed. */
 const NONE: Readonly<ModelData> = Object.freeze({ version: 0, available: [], scoped: [], read: NOTHING_READ });
@@ -106,7 +106,7 @@ function itemOf(model: Model<Api>): ModelItem {
  * objects until the scope is set again, so a scoped model is taken from the available
  * ones when they have it, as Pi takes the scoped models it cycles through.
  */
-export function models(state: CrtState): Readonly<ModelData> {
+export function models(state: PieBoyState): Readonly<ModelData> {
   const feature = features.get(state);
   if (!feature) return NONE;
   const { pi, env, data } = feature;
@@ -149,7 +149,7 @@ export function shownModels(data: Readonly<ModelData>): readonly ModelItem[] {
 }
 
 /** Show the scoped models instead of all, or all instead of the scoped ones. */
-export function toggleModelFilter(state: CrtState): void {
+export function toggleModelFilter(state: PieBoyState): void {
   const feature = features.get(state);
   if (!feature) return;
   const { data, env } = feature;
@@ -159,7 +159,7 @@ export function toggleModelFilter(state: CrtState): void {
 }
 
 /** Show a model beside the list. */
-export function pickModel(state: CrtState, key: string | undefined): void {
+export function pickModel(state: PieBoyState, key: string | undefined): void {
   const feature = features.get(state);
   if (!feature || feature.data.picked === key) return;
   feature.data.picked = key;
@@ -167,7 +167,7 @@ export function pickModel(state: CrtState, key: string | undefined): void {
 }
 
 /** Switch the session to a model. Does nothing for the model in use. */
-export function switchModel(state: CrtState, item: ModelItem): void {
+export function switchModel(state: PieBoyState, item: ModelItem): void {
   const feature = features.get(state);
   if (!feature) return;
   const { pi, env, data } = feature;

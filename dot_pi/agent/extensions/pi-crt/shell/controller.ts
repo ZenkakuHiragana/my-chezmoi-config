@@ -60,11 +60,11 @@ import { framed } from "../screen/frame.ts";
 import { buildArrangement, type BuiltArrangement, type Guide, type PageDef, type ScreenHost, type TabDef } from "../screen/layout.ts";
 import { noSignal } from "../screen/nosignal.ts";
 import { TabBar } from "../screen/tabbar.ts";
-import { type CrtState, createState, type Versioned } from "../state/core.ts";
-import { crtEditor } from "./editor.ts";
+import { type PieBoyState, createState, type Versioned } from "../state/core.ts";
+import { pieBoyEditor } from "./editor.ts";
 import { terminalForeground, themeText } from "./foreground.ts";
 
-const BASE = Symbol.for("pi-crt.base-root");
+const BASE = Symbol.for("pie-boy.base-root");
 /**
  * Set by an instance that shuts down while its tabs are on screen, for /reload
  * or a session switch (/new, /resume, /fork). Pi then draws the transcript with
@@ -78,7 +78,7 @@ const BASE = Symbol.for("pi-crt.base-root");
  * starts in the TUI, so only that instance takes it (takeCarry), when it first
  * does either; a subagent session started in between leaves it alone.
  */
-const CARRY_TABS_SHOWN = Symbol.for("pi-crt.carry-tabs-shown");
+const CARRY_TABS_SHOWN = Symbol.for("pie-boy.carry-tabs-shown");
 const carried = globalThis as { [CARRY_TABS_SHOWN]?: boolean };
 /** How long the editor border says how to type after typed text was ignored. */
 const IGNORED_MS = 1000;
@@ -97,14 +97,14 @@ const HIDDEN: ToolRenderers = {
 
 type RootWithBase = Component & { [BASE]?: Component };
 
-/** The root the fullscreen TUI shows now: its private `layoutRoot` field, the one place pi-crt reads it. */
+/** The root the fullscreen TUI shows now: its private `layoutRoot` field, the one place pie-boy reads it. */
 function piRoot(tui: ViewportTUI): RootWithBase | undefined {
   return (tui as unknown as { layoutRoot?: RootWithBase }).layoutRoot;
 }
 
 /**
  * The chat blocks of the transcript: the last child of the document in the
- * transcript ScrollView's private `child` field, the one place pi-crt reads it
+ * transcript ScrollView's private `child` field, the one place pie-boy reads it
  * (interactive-mode.js puts the header, the loaded resources and the chat there,
  * in that order). Undefined when the shape does not match.
  */
@@ -121,7 +121,7 @@ const pagesOf = (tab: TabDef): PageDef[] =>
 
 /** What the keys (shell/input.ts) and the editor border (shell/editor.ts) use of the shell. */
 export interface Shell {
-  readonly state: CrtState;
+  readonly state: PieBoyState;
   /** What the features in features/ get. */
   readonly features: FeatureEnv;
   theme(): Theme;
@@ -265,7 +265,7 @@ export function createShell(pi: ExtensionAPI): Shell {
       follow();
     });
   };
-  /** Pi's renderer lookup for each tool, past pi-crt's own resolver. */
+  /** Pi's renderer lookup for each tool, past pie-boy's own resolver. */
   const nextRenderers = new Map<string, () => ToolRenderers | undefined>();
 
   const theme = () => ctxRef!.ui.theme;
@@ -511,7 +511,7 @@ export function createShell(pi: ExtensionAPI): Shell {
       setTabsShown(false);
       if (!warnedShape) {
         warnedShape = true;
-        ctxRef?.ui.notify("pi-crt: Pi's fullscreen layout has an unexpected shape; tabs are disabled", "warning");
+        ctxRef?.ui.notify("pie-boy: Pi's fullscreen layout has an unexpected shape; tabs are disabled", "warning");
       }
       return;
     }
@@ -661,7 +661,7 @@ export function createShell(pi: ExtensionAPI): Shell {
     ctx.ui.setWorkingVisible(false);
     ctx.ui.setEditorComponent((tuiArg, editorTheme, keybindings) => {
       tui = tuiArg;
-      editor = crtEditor(shell, watchRoot, tuiArg, editorTheme, keybindings);
+      editor = pieBoyEditor(shell, watchRoot, tuiArg, editorTheme, keybindings);
       attach();
       return editor;
     });

@@ -1,5 +1,5 @@
 /**
- * MAP's TREE and LOCATION panels: the session tree, drawn by pi-crt from
+ * MAP's TREE and LOCATION panels: the session tree, drawn by pie-boy from
  * sessionManager.getTree(), and a preview of the selected row.
  *
  * A row stands for its first entry: Enter jumps there, the label key labels it and
@@ -29,7 +29,7 @@
  * go to the previous and next fork, . back to HERE.
  * /tree's keys, as the user has them bound: its filter keys switch among ALL TALK,
  * LABELED and EVERYTHING (the filter starts from /tree's treeFilterMode setting, ALL
- * TALK for a filter pi-crt does not have), its label key (shift+l) sets or removes the
+ * TALK for a filter pie-boy does not have), its label key (shift+l) sets or removes the
  * label in a field on the bottom line, and its copy key (ctrl+x) copies. ? shows these
  * keys under the rows, in the panel, until it is pressed again, so they can be tried
  * with the tree in view.
@@ -61,7 +61,7 @@ import { contextUsage } from "../features/context.ts";
 import { canLabel, copyEntry, initialFilter, jumpedBefore, jumpsBefore, jumpTo, sessionTree, setEntryLabel, TREE_PANEL, type TreeFilterMode } from "../features/tree.ts";
 import { framed, type SizedView } from "../screen/frame.ts";
 import { Lines } from "../screen/lines.ts";
-import { type CrtState, sanitize } from "../state/core.ts";
+import { type PieBoyState, sanitize } from "../state/core.ts";
 import { bar, compactNumber } from "./common.ts";
 import { type ListControl, type PanelEnv, registerPanel, VIEWPORT_KEYS } from "./registry.ts";
 
@@ -165,8 +165,8 @@ interface Selected {
   contextWindow?: number;
 }
 
-/** Each pi-crt instance's TREE view, by its CrtState, for LOCATION. */
-const views = new WeakMap<CrtState, TreeView>();
+/** Each pie-boy instance's TREE view, by its PieBoyState, for LOCATION. */
+const views = new WeakMap<PieBoyState, TreeView>();
 
 registerPanel(TREE_PANEL, (env) => {
   const view = new TreeView(env);

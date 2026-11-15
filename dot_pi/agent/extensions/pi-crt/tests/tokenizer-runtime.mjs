@@ -12,7 +12,7 @@ async function worker() {
   const create=GptEncoding.getEncodingApi;const owned=[];let nativeCalls=0;
   GptEncoding.getEncodingApi=function(...args){const instance=create.apply(this,args);owned.push(instance);const count=instance.countTokens;instance.countTokens=(...args)=>{nativeCalls++;return count(...args);};return instance;};
   const counters=await load('state/tokenizers.ts');
-  assert.equal(owned.length,1,'pi-crt owns an encoder instead of changing the shared default');
+  assert.equal(owned.length,1,'pie-boy owns an encoder instead of changing the shared default');
   assert.notEqual(owned[0],shared);const core=owned[0].bytePairEncodingCoreProcessor,dictSize=core.bytePairStringRankEncoder.size;
   assert.equal(core.mergeCacheSize,0);assert.equal(core.mergeCache,undefined);
   const secret='SECRETEXAMPLEqwertyFOOxyzabc';

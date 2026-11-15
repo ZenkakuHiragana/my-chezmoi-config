@@ -21,7 +21,7 @@
  */
 
 import type { ExtensionAPI, ExtensionContext } from "@earendil-works/pi-coding-agent";
-import type { CrtState, Versioned } from "../state/core.ts";
+import type { PieBoyState, Versioned } from "../state/core.ts";
 import type { FeatureEnv } from "./env.ts";
 
 /** The id of STATUS, the panel with the numbers and the DIFF card (features/git.ts asks whether it is shown). */
@@ -62,14 +62,14 @@ interface VitalsFeature {
   scheduled: boolean;
 }
 
-/** Each pi-crt instance's numbers, by its CrtState (see FeatureEnv). */
-const features = new WeakMap<CrtState, VitalsFeature>();
+/** Each pie-boy instance's numbers, by its PieBoyState (see FeatureEnv). */
+const features = new WeakMap<PieBoyState, VitalsFeature>();
 
 /** Before setupVitals: nothing counted. Never changed. */
 const NONE: Readonly<Vitals> = Object.freeze({ cost: 0, responses: 0, history: [], version: 0 });
 
 /** The numbers read so far; drawing them reads the session again when it changed. */
-export function vitals(state: CrtState): Readonly<Vitals> {
+export function vitals(state: PieBoyState): Readonly<Vitals> {
   const feature = features.get(state);
   if (!feature) return NONE;
   const ctx = feature.env.context();

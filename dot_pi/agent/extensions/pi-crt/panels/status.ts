@@ -283,7 +283,7 @@ function logoScene(env: PanelEnv): LogoScene {
 /** How long a scene drawn from an image stays at least, so that quick tool calls do not flicker it. */
 const MIN_SCENE_MS = 600;
 
-/** The scene each pi-crt instance shows, and when it started (see sceneTime). */
+/** The scene each pie-boy instance shows, and when it started (see sceneTime). */
 const sceneStarts = new WeakMap<object, { key: string; scene: LogoScene; since: number }>();
 
 /**

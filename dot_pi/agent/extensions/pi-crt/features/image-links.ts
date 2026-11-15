@@ -7,7 +7,7 @@
  * skips wrapping and background fills for them. So a markdown transformer can swap a
  * link for the image lines themselves and pi draws them.
  *
- * This module holds no pi-crt state and calls no pi API: reading the file and encoding
+ * This module holds no pie-boy state and calls no pi API: reading the file and encoding
  * the image are passed in, which keeps the rewriting testable on its own.
  */
 
