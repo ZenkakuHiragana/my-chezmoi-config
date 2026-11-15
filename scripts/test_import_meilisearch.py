@@ -1,4 +1,4 @@
-"""Pi・ChatGPT の会話を Meilisearch へ取り込むスクリプトの検査。外部サーバーには接続しない。"""
+"""ChatGPT の会話を Meilisearch へ取り込むスクリプトの検査。外部サーバーには接続しない。"""
 
 import argparse
 from contextlib import redirect_stderr, redirect_stdout
@@ -19,7 +19,6 @@ import zipfile
 
 import chatgpt_export as reader
 import import_chatgpt_meilisearch as chatgpt
-import import_pi_meilisearch as pi
 import meilisearch_conversations as common
 
 
@@ -30,228 +29,6 @@ class TemporaryTestCase(unittest.TestCase):
         self.temporary = tempfile.TemporaryDirectory(dir=work)
         self.addCleanup(self.temporary.cleanup)
         self.root = Path(self.temporary.name)
-
-
-def write_jsonl(path, entries):
-    path.parent.mkdir(parents=True, exist_ok=True)
-    path.write_text(''.join(json.dumps(e, ensure_ascii=False) + '\n' for e in entries), encoding='utf-8')
-
-
-def message(entry_id, parent, role, content, timestamp='2026-11-13T00:00:00.000Z'):
-    return {'type': 'message', 'id': entry_id, 'parentId': parent, 'timestamp': timestamp, 'message': {'role': role, 'content': content}}
-
-
-PI_SESSION = [
-    {'type': 'session', 'version': 3, 'id': 'session-1', 'timestamp': '2026-11-13T00:00:00.000Z', 'cwd': 'C:\\Work\\repo'},
-    {'type': 'model_change', 'id': 'm1', 'parentId': None},
-    message('u1', 'm1', 'user', [{'type': 'text', 'text': '最初の質問'}], '2026-11-13T01:02:03.456Z'),
-    {'type': 'custom_message', 'id': 'c1', 'parentId': 'u1', 'customType': 'hindsight', 'content': '差し込まれた記憶'},
-    message('a1', 'c1', 'assistant', [{'type': 'thinking', 'thinking': '考え中'}, {'type': 'text', 'text': '確認するね'},
-                                      {'type': 'toolCall', 'name': 'bash', 'arguments': {'command': 'ls'}}]),
-    message('t1', 'a1', 'toolResult', [{'type': 'text', 'text': 'ツールの出力'}]),
-    message('a2', 't1', 'assistant', [{'type': 'text', 'text': '結論です'}]),
-    message('a3', 'u1', 'assistant', [{'type': 'text', 'text': '別の枝の返答'}]),
-    {'type': 'session_info', 'id': 'i1', 'parentId': 'a2', 'name': '古い名前'},
-    {'type': 'session_info', 'id': 'i2', 'parentId': 'i1', 'name': 'セッション名'},
-    message('u2', 'i2', 'user', '二つ目の質問'),
-    message('a4', 'u2', 'assistant', [{'type': 'thinking', 'thinking': '思考だけ'}]),
-    message('u3', 'a4', 'user', [{'type': 'text', 'text': '三つ目'}]),
-    message('a5', 'u3', 'assistant', [{'type': 'text', 'text': '三つ目への返答'}]),
-]
-
-
-class PiTests(TemporaryTestCase):
-    def setUp(self):
-        super().setUp()
-        self.sessions = self.root / 'sessions'
-        self.session = self.sessions / '--C--Work-repo--' / '2026-11-13_session-1.jsonl'
-        write_jsonl(self.session, PI_SESSION)
-        self.nested = self.sessions / '--C--Work-repo--' / '2026-11-13_session-1' / 'sub-1' / 'run-0' / 'session.jsonl'
-        write_jsonl(self.nested, [{'type': 'session', 'id': 'sub-1', 'cwd': 'C:\\Work\\repo'},
-                                  {'type': 'session_info', 'id': 'x', 'parentId': None, 'name': 'subagent-general-fast-1'},
-                                  message('su', 'x', 'user', 'サブエージェントへの依頼'), message('sa', 'su', 'assistant', 'サブエージェントの返答')])
-        self.artifact = self.sessions / '--C--Work-repo--' / 'subagent-artifacts' / 'sub-2_transcript.jsonl'
-        write_jsonl(self.artifact, [message('su', None, 'user', '成果物')])
-        self.headerless = self.sessions / '--C--Work-repo--' / 'no-header.jsonl'
-        write_jsonl(self.headerless, [message('u', None, 'user', '見出しなし')])
-
-    def test_default_scan_reads_only_top_level_sessions(self):
-        found = [(path.name, error) for path, error in pi.iter_session_files([], self.sessions)]
-        self.assertEqual(found, [('2026-11-13_session-1.jsonl', None), ('no-header.jsonl', None)])
-
-    def test_explicit_subagent_session_is_rejected(self):
-        [(path, error)] = list(pi.iter_session_files([self.nested], self.sessions))
-        self.assertIsNotNone(error)
-        [(path, error)] = list(pi.iter_session_files([self.session], self.sessions))
-        self.assertIsNone(error)
-
-    def test_turns_join_assistant_text_and_drop_everything_else(self):
-        documents = pi.convert_session(self.session)
-        self.assertEqual([d['message_id'] for d in documents], ['u1', 'u3'])
-        first = documents[0]
-        self.assertEqual(first['question'], '最初の質問')
-        self.assertEqual(first['reply'], '確認するね\n\n結論です\n\n別の枝の返答')
-        self.assertEqual(first['id'], 'pi_session-1_u1')
-        self.assertEqual(first['timestamp'], 1794531723456)  # calendar.timegm((2026, 11, 13, 1, 2, 3)) * 1000 + 456
-        self.assertEqual(first['cwd'], 'C:\\Work\\repo')
-        self.assertEqual(first['title'], 'セッション名')
-        self.assertEqual(first['source'], 'pi')
-        self.assertEqual(first['conversation_id'], 'session-1')
-        self.assertEqual(first['source_path'], str(self.session.resolve()))
-        for text in ('考え中', 'ツールの出力', '差し込まれた記憶', 'ls'):
-            self.assertNotIn(text, first['reply'])
-
-    def test_headerless_file_is_skipped(self):
-        self.assertIsNone(pi.convert_session(self.headerless))
-
-    def test_partial_last_line_is_ignored(self):
-        with self.session.open('a', encoding='utf-8') as file:
-            file.write('{"type": "message", "id": "u9"')
-        self.assertEqual(len(pi.convert_session(self.session)), 2)
-
-    def test_broken_middle_line_fails_only_that_session(self):
-        broken = self.sessions / '--C--Work-repo--' / '2026-11-12_broken.jsonl'
-        lines = [json.dumps(e, ensure_ascii=False) for e in PI_SESSION]
-        broken.write_text('\n'.join(lines[:3] + ['{not json'] + lines[3:]) + '\n', encoding='utf-8')
-        result = {Path(b.label).name: b for b in pi.batches([], self.sessions)}
-        self.assertIn('4 行目', result['2026-11-12_broken.jsonl'].error)
-        self.assertEqual(len(result['2026-11-13_session-1.jsonl'].documents), 2)
-
-    def test_malformed_entry_fails_only_that_session(self):
-        malformed = self.sessions / '--C--Work-repo--' / '2026-11-12_malformed.jsonl'
-        write_jsonl(malformed, [PI_SESSION[0], message('u', None, 'user', '質問'), {'type': 'message', 'id': ['not', 'hashable'], 'parentId': 'u'}])
-        result = {Path(b.label).name: b for b in pi.batches([], self.sessions)}
-        self.assertIsNotNone(result['2026-11-12_malformed.jsonl'].error)
-        self.assertEqual(len(result['2026-11-13_session-1.jsonl'].documents), 2)
-
-    def test_missing_sessions_folder_is_a_failure(self):
-        [batch] = list(pi.batches([], self.root / 'missing'))
-        self.assertIsNotNone(batch.error)
-
-    def test_last_line_cut_inside_a_character_is_ignored(self):
-        with self.session.open('ab') as file:
-            file.write('{"type": "message", "text": "日本'.encode('utf-8')[:-1])
-        self.assertEqual(len(pi.convert_session(self.session)), 2)
-
-    def test_complete_line_with_invalid_utf8_is_a_failure(self):
-        with self.session.open('ab') as file:
-            file.write(b'{"type": "message", "text": "\xff"}\n')
-        with self.assertRaises(ValueError):
-            pi.convert_session(self.session)
-
-    def test_type_check_errors_become_undetermined(self):
-        class Entry:
-            def is_dir(self):
-                raise PermissionError('denied')
-
-        self.assertIsNone(pi.is_dir(Entry()))
-
-    def test_explicit_non_jsonl_file_is_rejected(self):
-        other = self.session.with_suffix('.txt')
-        other.write_text('x', encoding='utf-8')
-        [(path, error)] = list(pi.iter_session_files([other], self.sessions))
-        self.assertIsNotNone(error)
-
-    def test_command_process_exit_code(self):
-        home = self.root / 'home'
-        session = home / '.pi' / 'agent' / 'sessions' / 'work' / 's.jsonl'
-        write_jsonl(session, PI_SESSION)
-        script = Path(__file__).resolve().parent / 'import_pi_meilisearch.py'
-        env = {**os.environ, 'USERPROFILE': str(home), 'HOME': str(home)}
-
-        def run_command(*arguments):
-            # --meili-url uses the reserved .invalid domain, so even a broken --dry-run cannot reach a real server.
-            result = subprocess.run([sys.executable, '-B', str(script), *arguments, '--dry-run', '--meili-url', 'http://meilisearch.invalid'],
-                                    capture_output=True, env=env)
-            return result.returncode, json.loads(result.stdout.decode('utf-8', 'replace').splitlines()[-1])
-
-        code, summary = run_command()
-        self.assertEqual((code, summary['documents'], summary['failed']), (0, 2, []))
-        code, summary = run_command(str(session), str(self.nested))  # the nested subagent session is rejected
-        self.assertEqual((code, summary['documents'], len(summary['failed'])), (1, 2, 1))
-
-    def test_complete_but_broken_last_line_is_a_failure(self):
-        with self.session.open('a', encoding='utf-8') as file:
-            file.write('{broken}\n')
-        with self.assertRaises(ValueError):
-            pi.convert_session(self.session)
-
-    def test_unreadable_work_folder_is_reported(self):
-        other = self.sessions / '--D--other--'
-        write_jsonl(other / 's.jsonl', PI_SESSION)
-        real_scandir = pi.os.scandir
-
-        def scandir(path):
-            if Path(path) == other:
-                raise PermissionError('denied')
-            return real_scandir(path)
-
-        with patch.object(pi.os, 'scandir', scandir):
-            result = list(pi.batches([], self.sessions))
-        self.assertEqual([b.label for b in result if b.error], [str(other)])
-        self.assertTrue(any(b.documents for b in result))
-
-    def test_unreadable_sessions_folder_is_reported(self):
-        def scandir(path):
-            raise PermissionError('denied')
-
-        with patch.object(pi.os, 'scandir', scandir):
-            [batch] = list(pi.batches([], self.sessions))
-        self.assertIn('フォルダを読めない', batch.error)
-
-    def test_undeterminable_entry_does_not_stop_the_scan(self):
-        real_is_dir = pi.is_dir
-
-        def is_dir(entry):
-            return None if entry.name == '--C--Work-repo--' else real_is_dir(entry)
-
-        other = self.sessions / '--D--other--'
-        write_jsonl(other / 's.jsonl', PI_SESSION)
-        with patch.object(pi, 'is_dir', is_dir):
-            names = [Path(b.label).name for b in pi.batches([], self.sessions) if b.documents]
-        self.assertEqual(names, ['2026-11-13_session-1.jsonl', 's.jsonl'])  # both folders are still read
-
-        def is_dir_for_files(entry):
-            return None if entry.name.endswith('.jsonl') else real_is_dir(entry)
-
-        with patch.object(pi, 'is_dir', is_dir_for_files):
-            names = [Path(b.label).name for b in pi.batches([], self.sessions) if b.documents]
-        self.assertEqual(names, ['2026-11-13_session-1.jsonl', 's.jsonl'])  # undeterminable files are still read
-
-    def test_unresolvable_argument_does_not_stop_the_others(self):
-        real_resolve = Path.resolve
-
-        def resolve(path, *args, **kwargs):
-            if path.name == 'locked.jsonl':
-                raise PermissionError('denied')
-            return real_resolve(path, *args, **kwargs)
-
-        with patch.object(Path, 'resolve', resolve):
-            result = list(pi.batches([self.sessions / 'x' / 'locked.jsonl', self.session], self.sessions))
-        self.assertIsNotNone(result[0].error)
-        self.assertEqual(len(result[1].documents), 2)
-
-    def test_forked_session_keeps_its_own_ids(self):
-        # A fork copies its parent's entries; each session keeps its own ids (documented duplicate).
-        fork = self.sessions / '--C--Work-repo--' / '2026-11-14_fork.jsonl'
-        write_jsonl(fork, [{**PI_SESSION[0], 'id': 'session-2', 'parentSession': str(self.session)}] + PI_SESSION[1:])
-        original, copied = pi.convert_session(self.session), pi.convert_session(fork)
-        self.assertEqual([d['id'] for d in copied], ['pi_session-2_u1', 'pi_session-2_u3'])
-        self.assertEqual([d['reply'] for d in copied], [d['reply'] for d in original])
-
-    def test_reply_follows_parent_not_file_order(self):
-        session = self.sessions / '--C--Work-repo--' / 'order.jsonl'
-        write_jsonl(session, [PI_SESSION[0], message('A', None, 'user', 'A の質問'), message('B', 'A', 'user', 'B の質問'),
-                              message('rb', 'B', 'assistant', 'B への返答'), message('ra', 'A', 'assistant', 'A への返答')])
-        documents = {d['message_id']: d['reply'] for d in pi.convert_session(session)}
-        self.assertEqual(documents, {'A': 'A への返答', 'B': 'B への返答'})
-
-    def test_batches_report_rejected_and_skipped_files(self):
-        result = list(pi.batches([self.session, self.nested, self.headerless], self.sessions))
-        self.assertEqual(len(result[0].documents), 2)
-        self.assertIsNotNone(result[1].error)
-        self.assertIsNone(result[2].error)  # top-level location is accepted, then skipped for lacking a header
-        self.assertTrue(result[2].skipped)
 
 
 def node(node_id, parent, role=None, text=None, **extra):
@@ -395,13 +172,12 @@ class ChatGPTTests(TemporaryTestCase):
 class FakeClient(common.MeilisearchClient):
     """Fake Meilisearch. Each task reports 'enqueued' and 'processing' before finishing."""
 
-    def __init__(self, fail_documents=(), index_exists=False, unreachable=False, status_error_for=None, cut_off_for=None):
+    def __init__(self, fail_documents=(), unreachable=False, status_error_for=None, cut_off_for=None):
         super().__init__('http://fake', poll_seconds=0)
         self.calls = []
         self.bodies = []
         self.finished = {}  # task uid -> index in calls of the GET that reported the final state
         self.fail_documents = set(fail_documents)
-        self.index_exists = index_exists
         self.unreachable = unreachable
         self.status_error_for = status_error_for
         self.cut_off_for = cut_off_for
@@ -425,21 +201,15 @@ class FakeClient(common.MeilisearchClient):
             if len(states) == 1:
                 self.finished.setdefault(uid, len(self.calls) - 1)
             return states.pop(0) if len(states) > 1 else states[0]
-        if method == 'GET' and path.startswith('/indexes/'):
-            if not self.index_exists:
-                raise common.MeiliError('HTTP 404: not found', 404)
-            return {}
-        if method == 'PATCH' and path == '/experimental-features':
-            return {}
         uid = len(self.tasks)
-        failed = path.endswith('/documents') and any(d['id'] in self.fail_documents for d in body)
+        failed = '/documents' in path and any(d['id'] in self.fail_documents for d in body)
         final = {'status': 'failed', 'error': {'message': 'embedding failed'}} if failed else {'status': 'succeeded'}
         self.tasks[uid] = [{'status': 'enqueued'}, {'status': 'processing'}, final]
         return {'taskUid': uid}
 
 
 def args(dry_run=False):
-    return argparse.Namespace(meili_url='http://fake', index='conversations', embedder_url='http://embed', embedding_config=common.DEFAULT_EMBEDDING_CONFIG, dry_run=dry_run)
+    return argparse.Namespace(meili_url='http://fake', index='conversations', dry_run=dry_run)
 
 
 def run_quietly(*a, **k):
@@ -454,7 +224,7 @@ class RunTests(unittest.TestCase):
         return [common.Batch('one', [{'id': 'a'}]), common.Batch('two', [{'id': 'bad'}]), common.Batch('three', error='読めない'),
                 common.Batch('four', skipped=True), common.Batch('five', [{'id': 'c'}, {'id': 'd'}])]
 
-    def test_prepares_index_then_sends_each_conversation_and_reports_failures(self):
+    def test_sends_each_conversation_and_reports_failures(self):
         client = FakeClient(fail_documents={'bad'})
         code, summary, err = run_quietly(args(), self.batches(), client)
         self.assertEqual(code, 1)
@@ -462,21 +232,17 @@ class RunTests(unittest.TestCase):
         self.assertEqual(summary['documents'], 3)
         self.assertEqual(summary['skipped'], 1)
         self.assertEqual([f['label'] for f in summary['failed']], ['two', 'three'])
-        self.assertEqual(summary['failed'][0]['task'], 3)  # tasks: 0 index, 1 settings, 2 'one', 3 'two', 4 'five'
+        self.assertEqual(summary['failed'][0]['task'], 1)  # tasks: 0 'one', 1 'two', 2 'five'
         self.assertIn('embedding failed', err)
+        # Only documents are written; the index settings belong to the compose service.
         writes = [c for c in client.calls if c[0] != 'GET']
-        self.assertEqual(writes[:3], [('PATCH', '/experimental-features'), ('POST', '/indexes'), ('PATCH', '/indexes/conversations/settings')])
-        self.assertIn(('/indexes', {'uid': 'conversations', 'primaryKey': 'id'}), client.bodies)
-        self.assertEqual(writes[3:], [('POST', '/indexes/conversations/documents')] * 3)
+        self.assertEqual(writes, [('POST', '/indexes/conversations/documents?primaryKey=id')] * 3)
         # Every task is polled until it finishes before the next write is sent, the last one too.
         write_positions = [i for i, call in enumerate(client.calls) if call[0] != 'GET']
-        for task_uid, position in zip(range(5), write_positions[2:]):
+        for task_uid, position in zip(range(3), write_positions[1:]):
             self.assertLess(client.finished[task_uid], position)
-        self.assertIn(4, client.finished)
-        self.assertIn(('/experimental-features', {'multimodal': True}), client.bodies)
-        self.assertEqual(client.calls.count(('GET', '/tasks/3')), 3)
-        # The settings actually sent are the ones make_settings() builds.
-        self.assertIn(('/indexes/conversations/settings', common.make_settings('http://embed')), client.bodies)
+        self.assertIn(2, client.finished)
+        self.assertEqual(client.calls.count(('GET', '/tasks/1')), 3)
 
     def test_unencodable_document_fails_only_its_conversation(self):
         batches = [common.Batch('bad', [{'id': 'a', 'question': '\ud800'}]), common.Batch('good', [{'id': 'b'}])]
@@ -490,42 +256,26 @@ class RunTests(unittest.TestCase):
         real_request = client.request
 
         def request(method, path, body=None):
-            if path.endswith('/documents') and body[0]['id'] == 'bad':
+            if '/documents' in path and body[0]['id'] == 'bad':
                 raise common.MeiliError('HTTP 400: invalid document id', 400)
-            if path.endswith('/documents') and body[0]['id'] == 'slow':
+            if '/documents' in path and body[0]['id'] == 'slow':
                 raise common.MeiliError('HTTP 504: gateway timeout', 504)
             return real_request(method, path, body)
 
         client.request = request
-        batches = [common.Batch('bad', [{'id': 'bad'}]), common.Batch('good', [{'id': 'a'}]),
-                   common.Batch('slow', [{'id': 'slow'}]), common.Batch('after', [{'id': 'b'}])]
+        batches = [
+            common.Batch('bad', [{'id': 'bad'}]), common.Batch('good', [{'id': 'a'}]),
+            common.Batch('slow', [{'id': 'slow'}]), common.Batch('after', [{'id': 'b'}])]
         code, summary, err = run_quietly(args(), batches, client)
         self.assertEqual(code, 2)
         self.assertEqual([f['label'] for f in summary['failed']], ['bad'])
         self.assertEqual(summary['conversations'], 1)
         self.assertIn('aborted during slow', err)
 
-    def test_failed_preparation_aborts_before_sending(self):
-        for failing_path, label in (('/indexes', 'create index conversations task=0'), ('/indexes/conversations/settings', 'settings conversations task=1')):
-            client = FakeClient()
-            real_request = client.request
-
-            def request(method, path, body=None, client=client, real_request=real_request, failing_path=failing_path):
-                response = real_request(method, path, body)
-                if path == failing_path and method != 'GET':
-                    client.tasks[response['taskUid']] = [{'status': 'failed', 'error': {'message': 'rejected'}}]
-                return response
-
-            client.request = request
-            code, summary, err = run_quietly(args(), self.batches(), client)
-            self.assertEqual(code, 2)
-            self.assertIn(label, err)
-            self.assertNotIn(('POST', '/indexes/conversations/documents'), client.calls)
-
     def test_task_response_without_uid_aborts_and_odd_error_is_reported(self):
         client = FakeClient()
         real_request = client.request
-        client.request = lambda method, path, body=None: {} if path.endswith('/documents') else real_request(method, path, body)
+        client.request = lambda method, path, body=None: {} if '/documents' in path else real_request(method, path, body)
         code, _, err = run_quietly(args(), self.batches(), client)
         self.assertEqual(code, 2)
         self.assertIn('taskUid', err)
@@ -535,14 +285,14 @@ class RunTests(unittest.TestCase):
 
         def request(method, path, body=None):
             response = real_request2(method, path, body)
-            if path == '/tasks/3':
+            if path == '/tasks/1':
                 return {'status': 'failed', 'error': 'unexpected'}
             return response
 
         client.request = request
         code, summary, _ = run_quietly(args(), self.batches(), client)
         self.assertEqual(code, 1)
-        self.assertEqual(summary['failed'][0], {'label': 'two', 'error': 'unexpected', 'task': 3})
+        self.assertEqual(summary['failed'][0], {'label': 'two', 'error': 'unexpected', 'task': 1})
 
     def test_unexpected_task_response_aborts(self):
         for response in ({'status': 'unknown'}, {}, ['not', 'a', 'task']):
@@ -550,43 +300,25 @@ class RunTests(unittest.TestCase):
             real_request = client.request
 
             def request(method, path, body=None, response=response):
-                return response if path == '/tasks/2' else real_request(method, path, body)
+                return response if path == '/tasks/0' else real_request(method, path, body)
 
             client.request = request
             code, _, err = run_quietly(args(), self.batches(), client)
             self.assertEqual(code, 2, response)
-            self.assertIn('one task=2', err)
+            self.assertIn('one task=0', err)
 
     def test_cut_off_response_aborts(self):
-        code, summary, err = run_quietly(args(), self.batches(), FakeClient(cut_off_for=2))
+        code, summary, err = run_quietly(args(), self.batches(), FakeClient(cut_off_for=0))
         self.assertEqual(code, 2)
-        self.assertIn('one task=2', err)
+        self.assertIn('one task=0', err)
 
     def test_unknown_task_outcome_aborts_instead_of_moving_on(self):
-        client = FakeClient(status_error_for=2)
+        client = FakeClient(status_error_for=0)
         code, summary, err = run_quietly(args(), self.batches(), client)
         self.assertEqual(code, 2)
         self.assertEqual(summary['failed'], [])
-        self.assertIn('one task=2', err)
-        self.assertEqual(client.calls.count(('POST', '/indexes/conversations/documents')), 1)
-
-    def test_converted_documents_are_sent_unchanged(self):
-        work = Path(os.environ['LOCALAPPDATA']) / 'Temp' / 'pi' if os.name == 'nt' else Path('/tmp/pi')
-        work.mkdir(parents=True, exist_ok=True)
-        with tempfile.TemporaryDirectory(dir=work) as temporary:
-            session = Path(temporary) / 'sessions' / 'work' / 's.jsonl'
-            write_jsonl(session, PI_SESSION)
-            expected = pi.convert_session(session)
-            client = FakeClient()
-            code, summary, _ = run_quietly(args(), pi.batches([], session.parent.parent), client)
-        self.assertEqual(code, 0)
-        self.assertEqual([body for path, body in client.bodies if path.endswith('/documents')], [expected])
-
-    def test_existing_index_is_not_recreated(self):
-        client = FakeClient(index_exists=True)
-        code, _, _ = run_quietly(args(), [common.Batch('one', [{'id': 'a'}])], client)
-        self.assertEqual(code, 0)
-        self.assertNotIn(('POST', '/indexes'), client.calls)
+        self.assertIn('one task=0', err)
+        self.assertEqual(client.calls.count(('POST', '/indexes/conversations/documents?primaryKey=id')), 1)
 
     def test_unreachable_meilisearch_aborts_before_sending(self):
         code, summary, err = run_quietly(args(), self.batches(), FakeClient(unreachable=True))
@@ -600,124 +332,29 @@ class RunTests(unittest.TestCase):
         self.assertEqual(code, 1)  # the unreadable batch is still a failure
         self.assertEqual(summary['documents'], 4)
 
+class SettingsFileTests(unittest.TestCase):
+    """The index settings the compose service applies. Changing the embedder re-embeds every document."""
+
     def test_settings_contract(self):
-        with patch.dict(os.environ):
-            os.environ.pop('MEILISEARCH_EMBEDDER', None)
-            settings = common.make_settings('http://embed')
-        self.assertEqual(set(settings['searchableAttributes']), {'question', 'reply', 'title'})
+        path = Path(__file__).resolve().parents[1] / 'containers' / 'session-search' / 'meilisearch-settings.json'
+        settings = json.loads(path.read_text(encoding='utf-8'))
+        # Any other setting (displayedAttributes, for example) would change what session.sh receives.
+        self.assertEqual(set(settings), {'searchableAttributes', 'filterableAttributes', 'sortableAttributes', 'localizedAttributes', 'embedders'})
+        self.assertEqual(settings['searchableAttributes'], ['question', 'reply', 'title'])  # the order ranks matches
         self.assertTrue({'source', 'cwd', 'conversation_id', 'project', 'timestamp'} <= set(settings['filterableAttributes']))
         self.assertIn('timestamp', settings['sortableAttributes'])
+        self.assertEqual(settings['localizedAttributes'], [{'locales': ['jpn', 'eng'], 'attributePatterns': ['question', 'reply', 'title']}])
+        self.assertEqual(list(settings['embedders']), ['ruri'])
         embedder = settings['embedders']['ruri']
+        self.assertEqual(set(embedder), {'source', 'url', 'dimensions', 'request', 'response', 'indexingFragments', 'searchFragments'})
         self.assertEqual(embedder['source'], 'rest')
-        self.assertEqual(embedder['url'], 'http://embed')
+        self.assertEqual(embedder['url'], 'http://host.docker.internal:11434/api/embed')
         self.assertEqual(embedder['dimensions'], 768)
         self.assertEqual(embedder['request'], {'model': 'ruri-v3-310m:q8_0', 'input': ['{{fragment}}', '{{..}}']})
         self.assertEqual(embedder['response'], {'embeddings': ['{{embedding}}', '{{..}}']})
         self.assertEqual(embedder['searchFragments'], {'query': {'value': '検索クエリ: {{q}}'}})
         self.assertEqual(embedder['indexingFragments'], {'doc': {
             'value': '検索文書: {{ doc.reply | truncate: 12000 }}\n\n{{ doc.question | truncate: 2000 }}'}})
-
-
-class EmbeddingProfileTests(TemporaryTestCase):
-    def test_profile_drives_both_importers_and_url_is_independent(self):
-        profile = {'model': 'other', 'dimensions': 123, 'query_prefix': '', 'document_prefix': '',
-                   'reply_chars': 23, 'question_chars': 17}
-        path = self.root / 'model.json'
-        path.write_text(json.dumps(profile), encoding='utf-8')
-        chat = self.root / 'chat' / 'conversation.json'
-        chat.parent.mkdir()
-        chat.write_text(json.dumps(conversation()), encoding='utf-8')
-        session = self.root / 'sessions' / 'work' / 's.jsonl'
-        write_jsonl(session, PI_SESSION)
-        clients = []
-        def client(url):
-            instance = FakeClient(index_exists=True)
-            clients.append(instance)
-            return instance
-        with patch.dict(os.environ, {'MEILISEARCH_EMBEDDER': 'custom'}), patch.object(common, 'MeilisearchClient', client), redirect_stdout(io.StringIO()):
-            self.assertEqual(chatgpt.main([str(chat.parent), '--embedding-config', str(path), '--embedder-url', 'http://one']), 0)
-            with patch.object(pi, 'SESSIONS_ROOT', session.parent.parent):
-                self.assertEqual(pi.main(['--embedding-config', str(path), '--embedder-url', 'http://two']), 0)
-        first, second = [next(body for target, body in c.bodies if target.endswith('/settings'))['embedders']['custom'] for c in clients]
-        self.assertEqual(first['request']['model'], 'other')
-        self.assertEqual(first['dimensions'], 123)
-        self.assertEqual(first['searchFragments']['query']['value'], '{{q}}')
-        self.assertEqual(first['indexingFragments']['doc']['value'], '{{ doc.reply | truncate: 23 }}' + chr(10)*2 + '{{ doc.question | truncate: 17 }}')
-        self.assertEqual((first.pop('url'), second.pop('url')), ('http://one', 'http://two'))
-        self.assertEqual(first, second)
-
-    def test_both_cli_reject_missing_profile_before_client(self):
-        path = self.root / 'missing.json'
-        for run_main, input_args in ((pi.main, []), (chatgpt.main, [str(self.root)])):
-            with patch.object(common, 'MeilisearchClient', side_effect=AssertionError('network client created')), redirect_stdout(io.StringIO()) as out, redirect_stderr(io.StringIO()):
-                code = run_main(input_args + ['--embedding-config', str(path)])
-            self.assertEqual(code, 1)
-            self.assertEqual(json.loads(out.getvalue().splitlines()[-1])['failed'][0]['label'], 'embedding-config')
-
-    def test_nonempty_prefixes_and_empty_alias(self):
-        profile = {'model': 'x', 'dimensions': 11, 'query_prefix': 'query> ', 'document_prefix': 'doc> ',
-                   'reply_chars': 3, 'question_chars': 4}
-        with patch.dict(os.environ, {'MEILISEARCH_EMBEDDER': ''}):
-            embedder = common.make_settings('http://url', profile)['embedders']['ruri']
-        self.assertEqual(embedder['searchFragments']['query']['value'], 'query> {{q}}')
-        self.assertEqual(embedder['indexingFragments']['doc']['value'],
-                         'doc> {{ doc.reply | truncate: 3 }}' + chr(10)*2 + '{{ doc.question | truncate: 4 }}')
-
-    def test_prefixes_are_literal_text_in_both_fragments(self):
-        profile = json.loads(common.DEFAULT_EMBEDDING_CONFIG.read_text(encoding='utf-8'))
-        profile.update(document_prefix='{{ doc.question }}', query_prefix='{% raw %}')
-        settings = common.make_settings('http://embed', profile)
-        [embedder] = settings['embedders'].values()
-        self.assertEqual(embedder['searchFragments']['query']['value'],
-                         "{{ '{' }}% raw %}{{q}}")
-        self.assertEqual(embedder['indexingFragments']['doc']['value'],
-                         "{{ '{' }}{{ '{' }} doc.question }}{{ doc.reply | truncate: 12000 }}"
-                         + chr(10)*2 + "{{ doc.question | truncate: 2000 }}")
-        self.assertEqual(profile['document_prefix'], '{{ doc.question }}')
-
-    def test_dry_run_does_not_read_model_settings(self):
-        path = self.root / 'missing.json'
-        for exists in (False, True):
-            if exists:
-                path.write_text('not JSON', encoding='utf-8')
-            options = args(True)
-            options.embedding_config = path
-            client = FakeClient(unreachable=True)
-            code, summary, _ = run_quietly(options, [common.Batch('sample', [{'id': 'one'}])], client)
-            self.assertEqual((code, summary['documents'], summary['failed']), (0, 1, []))
-            self.assertEqual(client.calls, [])
-
-    def test_both_cli_dry_run_without_a_model_file(self):
-        root = self.root / 'sessions'
-        session = root / 'work' / 'sample.jsonl'
-        write_jsonl(session, PI_SESSION)
-        folder = self.root / 'chat'
-        folder.mkdir()
-        (folder / 'conversation.json').write_text(json.dumps(conversation()), encoding='utf-8')
-        for run_main, input_args, expected in ((pi.main, [str(session)], 2),
-                                               (chatgpt.main, [str(folder)], 2)):  # u1/u2 have replies; u3 is unanswered.
-            with patch.object(pi, 'SESSIONS_ROOT', root), patch.object(common, 'MeilisearchClient',
-                    side_effect=AssertionError('network client created')), redirect_stdout(io.StringIO()) as out, redirect_stderr(io.StringIO()) as err:
-                code = run_main(input_args + ['--dry-run', '--embedding-config', str(self.root / 'missing.json')])
-            self.assertEqual(code, 0, err.getvalue())
-            summary = json.loads(out.getvalue().splitlines()[-1])
-            self.assertEqual((summary['conversations'], summary['documents']), (1, expected))
-
-    def test_invalid_profile_fails_before_any_communication(self):
-        profile = json.loads(common.DEFAULT_EMBEDDING_CONFIG.read_text(encoding='utf-8'))
-        path = self.root / 'bad.json'
-        variants = ['{', '{}', json.dumps({**profile, 'model': ''}), json.dumps({**profile, 'dimensions': True}),
-                    json.dumps({**profile, 'query_prefix': None}), json.dumps({**profile, 'reply_chars': 0})]
-        for data in variants:
-            path.write_text(data, encoding='utf-8')
-            client = FakeClient()
-            options = args(False)
-            options.embedding_config = path
-            code, summary, error = run_quietly(options, [common.Batch('x', [{'id':'x'}])], client)
-            self.assertEqual(code, 1)
-            self.assertEqual(client.calls, [])
-            self.assertEqual(summary['failed'][0]['label'], 'embedding-config')
-
 
 
 class HttpClientTests(unittest.TestCase):
@@ -731,11 +368,6 @@ class HttpClientTests(unittest.TestCase):
                 length = int(self.headers['Content-Length'])
                 received.append((self.command, self.path, self.headers['Content-Type'], json.loads(self.rfile.read(length).decode('utf-8'))))
                 self.reply(202, {'taskUid': 7})
-
-            def do_PATCH(self):
-                length = int(self.headers['Content-Length'])
-                received.append((self.command, self.path, self.headers['Content-Type'], json.loads(self.rfile.read(length).decode('utf-8'))))
-                self.reply(202, {'taskUid': 8})
 
             def do_GET(self):
                 received.append((self.command, self.path, None, None))
@@ -777,10 +409,6 @@ class HttpClientTests(unittest.TestCase):
         with self.assertRaises(common.MeiliError):
             self.client.request('GET', '/garbage')
 
-    def test_patch_is_sent_as_patch(self):
-        self.assertEqual(self.client.request('PATCH', '/indexes/conversations/settings', {'sortableAttributes': ['timestamp']}), {'taskUid': 8})
-        self.assertEqual(self.received, [('PATCH', '/indexes/conversations/settings', 'application/json', {'sortableAttributes': ['timestamp']})])
-
     def test_http_error_and_failed_task_are_distinguished(self):
         with self.assertRaises(common.MeiliError) as raised:
             self.client.request('GET', '/indexes/missing')
@@ -792,15 +420,6 @@ class HttpClientTests(unittest.TestCase):
 
 
 class CommandLineTests(TemporaryTestCase):
-    def test_pi_command_reads_the_sessions_folder(self):
-        sessions = self.root / 'sessions'
-        write_jsonl(sessions / 'work' / 's.jsonl', PI_SESSION)
-        out = io.StringIO()
-        with patch.object(pi, 'SESSIONS_ROOT', sessions), redirect_stdout(out):
-            code = pi.main(['--dry-run'])
-        self.assertEqual(code, 0)
-        self.assertEqual(json.loads(out.getvalue().splitlines()[-1])['documents'], 2)
-
     def test_command_process_survives_legacy_console_encoding(self):
         # The label contains '·', which cp932 cannot encode (a real conversation folder name).
         folder = self.root / 'in' / '枝分かれ · スキル_1'
@@ -838,19 +457,31 @@ class CommandLineTests(TemporaryTestCase):
         clients = []
 
         def make_client(url):
-            clients.append(FakeClient(index_exists=True))
+            clients.append(FakeClient())
             clients[-1].url = url
             return clients[-1]
 
         out = io.StringIO()
         with patch.object(common, 'MeilisearchClient', make_client), redirect_stdout(out):
-            code = chatgpt.main([str(self.root / 'folder'), '--meili-url', 'http://meili', '--index', 'other', '--embedder-url', 'http://e'])
+            code = chatgpt.main([str(self.root / 'folder'), '--meili-url', 'http://meili', '--index', 'other'])
         self.assertEqual(code, 0)
         [client] = clients
         self.assertEqual(client.url, 'http://meili')
-        sent = [(path, body) for path, body in client.bodies if path.endswith('/documents')]
-        self.assertEqual(sent, [('/indexes/other/documents', chatgpt.convert_conversation(conversation(), chatgpt.Origin(str((folder / 'conversation.json').resolve()))))])
-        self.assertIn(('/indexes/other/settings', common.make_settings('http://e')), client.bodies)
+        sent = [(path, body) for path, body in client.bodies if '/documents' in path]
+        self.assertEqual(sent, [('/indexes/other/documents?primaryKey=id', chatgpt.convert_conversation(conversation(), chatgpt.Origin(str((folder / 'conversation.json').resolve()))))])
+        self.assertEqual([c for c in client.calls if c[0] != 'GET'], [('POST', '/indexes/other/documents?primaryKey=id')])
+
+    def test_connection_defaults_come_from_the_shared_environment(self):
+        parser = argparse.ArgumentParser()
+        with patch.dict(os.environ, {'MEILISEARCH_URL': 'http://shared', 'MEILISEARCH_INDEX': 'shared-index'}):
+            common.add_common_args(parser)
+        options = parser.parse_args([])
+        self.assertEqual((options.meili_url, options.index), ('http://shared', 'shared-index'))
+        with patch.dict(os.environ, {'MEILISEARCH_URL': '', 'MEILISEARCH_INDEX': ''}):
+            parser = argparse.ArgumentParser()
+            common.add_common_args(parser)
+        options = parser.parse_args([])
+        self.assertEqual((options.meili_url, options.index), (common.DEFAULT_MEILI_URL, common.DEFAULT_INDEX))
 
 
 if __name__ == '__main__':

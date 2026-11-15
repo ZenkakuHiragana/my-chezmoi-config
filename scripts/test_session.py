@@ -21,8 +21,9 @@ SCRIPT = ROOT / "dot_pi/agent/scripts/executable_session.sh"
 CONV = "01a149fd-cca5-760f-b33a-e1ce473155c1"
 TARGET = f"pi_{CONV}_5d77358b"
 DAY = 1794528000000  # 2026-11-13 00:00 UTC
-SHOW_FIELDS = {"id", "source", "message_id", "timestamp", "title", "cwd", "project", "question", "reply",
-               "source_path", "source_member"}
+SHOW_FIELDS = {
+    "id", "source", "message_id", "timestamp", "title", "cwd", "project", "question", "reply",
+    "source_path", "source_member"}
 
 
 def hit(doc_id, message_id, timestamp=DAY, question="問い", reply="答え", **fields):
@@ -44,6 +45,8 @@ class FakeMeilisearch:
         self.responses, self.requests = [], []
         self.query_responses = {}
         self.pagination_response = (200, {"maxTotalHits": 7})
+        self.embedders_response = (200, {"ruri": {"source": "rest"}})
+        self.embedder_requests = []
         self.lock = threading.Lock()
         fake = self
 
@@ -53,9 +56,15 @@ class FakeMeilisearch:
                 body = json.loads(self.rfile.read(length)) if length else None
                 url = urlsplit(self.path)
                 with fake.lock:
-                    fake.requests.append((self.command, unquote(url.path), parse_qs(url.query), body))
                     q = body.get("q") if isinstance(body, dict) else None
-                    if self.command == "GET" and url.path.endswith("/settings/pagination"):
+                    if self.command == "GET" and url.path.endswith("/settings/embedders"):
+                        # 埋め込み設定の読み取りは、検索の要求とは別に記録する
+                        fake.embedder_requests.append(unquote(url.path))
+                    else:
+                        fake.requests.append((self.command, unquote(url.path), parse_qs(url.query), body))
+                    if self.command == "GET" and url.path.endswith("/settings/embedders"):
+                        status, value = fake.embedders_response
+                    elif self.command == "GET" and url.path.endswith("/settings/pagination"):
                         status, value = fake.pagination_response
                     elif self.command == "POST" and q in fake.query_responses:
                         status, value = fake.query_responses[q]
@@ -101,7 +110,7 @@ class SessionTest(unittest.TestCase):
     def setUp(self):
         self.fake = FakeMeilisearch()
         self.addCleanup(self.fake.close)
-        self.env = {k: v for k, v in os.environ.items() if k not in ("PI_SESSION_ID", "MEILISEARCH_INDEX", "MEILISEARCH_EMBEDDER")}
+        self.env = {k: v for k, v in os.environ.items() if k not in ("PI_SESSION_ID", "MEILISEARCH_INDEX")}
         self.env.update(MEILISEARCH_URL=self.fake.url, TZ="UTC")
 
     def respond(self, *responses):
@@ -135,8 +144,9 @@ class SessionTest(unittest.TestCase):
         return gets, posts
 
     def attribution(self, block):
-        lines = [line.strip().removeprefix("検索: ") for line in block
-                 if line.strip().startswith("検索: ")]
+        lines = [
+            line.strip().removeprefix("検索: ") for line in block
+            if line.strip().startswith("検索: ")]
         self.assertEqual(len(lines), 1, block)
         return json.loads(lines[0])
 
@@ -154,10 +164,11 @@ class SessionTest(unittest.TestCase):
         self.assertEqual(self.fake.requests, [])
 
     def test_usage_errors(self):
-        for args in [(), ("list",), ("search",), ("search", ""), ("search", "q", "--source", "pi"),
-                     ("search", "q", "--limit", "0"), ("search", "q", "--offset", "x"), ("search", "q", "--since", "2026-02-30"),
-                     ("search", "q", "--limit"), ("search", "q", "--conversation", ""),
-                     ("search", "q", "--conversation", "--since", "2026-01-01"), ("show", "--all"), ("toString",)]:
+        for args in [
+            (), ("list",), ("search",), ("search", ""), ("search", "q", "--source", "pi"),
+            ("search", "q", "--limit", "0"), ("search", "q", "--offset", "x"), ("search", "q", "--since", "2026-02-30"),
+            ("search", "q", "--limit"), ("search", "q", "--conversation", ""),
+            ("search", "q", "--conversation", "--since", "2026-01-01"), ("show", "--all"), ("toString",)]:
             with self.subTest(args=args):
                 code, out, err = self.run_cli(*args)
                 self.assertEqual((code, out), (2, ""), err)
@@ -174,13 +185,15 @@ class SessionTest(unittest.TestCase):
         self.respond(found(hits))
         code, out, err = self.run_cli("search", "グラフィック カード", "--limit", "8", env={"PI_SESSION_ID": "now"})
         self.assertEqual((code, err), (0, ""))
-        self.assertEqual(out, "chatgpt_c1_m1  [1]  2026-11-13 00:00  chatgpt  「題名」  proj\n  Q: …一致 した\n  A: 返答の周辺…\n"
-                              "chatgpt_c3_m1  [2]  2026-11-13 00:00  chatgpt\n  Q: 問い\n  A: 答え\n"
-                              "pi_s1_e1  [3]  2026-11-13 01:00  pi  C:\\work\\repo\n  Q: 問い\n  A: 答え\n"
-                              "pi_s2_e2  [4]  2026-11-13 00:00  pi\n  Q: 問い\n  A: 答え\n"
-                              "pi_s3_x  [5]  日時不明  pi\n  Q: 問い\n  A: 答え\n"
-                              "pi_s4_x  [6]  日時不明  pi\n  Q: 問い\n  A: 答え\n"
-                              "pi_s5_m1  [7]  2026-11-13 00:00  pi\n  Q: 問い\n  A: 答え\n")
+        self.assertEqual(
+            out,
+            "chatgpt_c1_m1  [1]  2026-11-13 00:00  chatgpt  「題名」  proj\n  Q: …一致 した\n  A: 返答の周辺…\n"
+            "chatgpt_c3_m1  [2]  2026-11-13 00:00  chatgpt\n  Q: 問い\n  A: 答え\n"
+            "pi_s1_e1  [3]  2026-11-13 01:00  pi  C:\\work\\repo\n  Q: 問い\n  A: 答え\n"
+            "pi_s2_e2  [4]  2026-11-13 00:00  pi\n  Q: 問い\n  A: 答え\n"
+            "pi_s3_x  [5]  日時不明  pi\n  Q: 問い\n  A: 答え\n"
+            "pi_s4_x  [6]  日時不明  pi\n  Q: 問い\n  A: 答え\n"
+            "pi_s5_m1  [7]  2026-11-13 00:00  pi\n  Q: 問い\n  A: 答え\n")
         [(method, path, _, body)] = self.fake.requests
         self.assertEqual((method, path), ("POST", "/indexes/conversations/search"))
         self.assertEqual(body["q"], "グラフィック カード")
@@ -199,10 +212,11 @@ class SessionTest(unittest.TestCase):
         first = hit("pi_first_m", "m")
         copy = hit("pi_fork_m", "m")
         other = hit("pi_next_n", "n")
-        for offset, candidates, expected in [(0, [first], "pi_first_m"),
-                                             (1, [first, copy], None),
-                                             (2, [first, copy, other], "pi_next_n"),
-                                             (3, [first, copy, other], None)]:
+        for offset, candidates, expected in [
+            (0, [first], "pi_first_m"),
+            (1, [first, copy], None),
+            (2, [first, copy, other], "pi_next_n"),
+            (3, [first, copy, other], None)]:
             with self.subTest(offset=offset):
                 self.fake.requests.clear()
                 self.respond(found(candidates))
@@ -219,8 +233,9 @@ class SessionTest(unittest.TestCase):
 
         missing_time = hit("pi_missing_m", "m")
         del missing_time["timestamp"]
-        for other in [hit("chatgpt_other_m", "m"), hit("pi_later_m", "m", timestamp=DAY + 1),
-                      hit("pi_unknown_m", "m", timestamp=None), missing_time]:
+        for other in [
+            hit("chatgpt_other_m", "m"), hit("pi_later_m", "m", timestamp=DAY + 1),
+            hit("pi_unknown_m", "m", timestamp=None), missing_time]:
             with self.subTest(id=other["id"]):
                 self.fake.requests.clear()
                 self.respond(found([first, other]))
@@ -230,8 +245,9 @@ class SessionTest(unittest.TestCase):
 
     def test_period_limit_and_offset(self):
         self.respond(found([]))
-        code, out, err = self.run_cli("search", "q", "--since", "2026-11-13", "--until", "2026-11-13", "--limit", "7",
-                                      "--offset", "10", env={"TZ": "Asia/Tokyo"})
+        code, out, err = self.run_cli(
+            "search", "q", "--since", "2026-11-13", "--until", "2026-11-13", "--limit", "7",
+            "--offset", "10", env={"TZ": "Asia/Tokyo"})
         self.assertEqual((code, out, err), (0, "", "session.sh: 取得できる検索結果はここまでです\n"))
         [body] = self.bodies()
         # the whole local day of 2026-11-13 in Tokyo; no PI_SESSION_ID, so nothing is excluded
@@ -286,11 +302,13 @@ class SessionTest(unittest.TestCase):
         self.assertEqual(self.fake.requests[0][1], "/indexes/archive/search")
 
     def test_conversation_listing(self):
-        self.respond({"conversation_id": CONV},
-                     found([hit(f"pi_{CONV}_a", "a"), hit(f"pi_{CONV}_b", "a")]))
-        code, out, err = self.run_cli("search", "", "--conversation", TARGET, "--limit", "2", "--offset", "2",
-                                      "--since", "2026-11-13", "--until", "2026-11-13",
-                                      env={"PI_SESSION_ID": CONV})
+        self.respond(
+            {"conversation_id": CONV},
+            found([hit(f"pi_{CONV}_a", "a"), hit(f"pi_{CONV}_b", "a")]))
+        code, out, err = self.run_cli(
+            "search", "", "--conversation", TARGET, "--limit", "2", "--offset", "2",
+            "--since", "2026-11-13", "--until", "2026-11-13",
+            env={"PI_SESSION_ID": CONV})
         self.assertEqual((code, err), (0, ""))
         self.assertIn(f"pi_{CONV}_a", out)
         self.assertIn(f"pi_{CONV}_b", out)  # same-message copies remain
@@ -301,8 +319,9 @@ class SessionTest(unittest.TestCase):
         body = listing[3]
         self.assertEqual(body["q"], "")
         self.assertEqual((body["limit"], body["offset"]), (2, 2))
-        self.assertCountEqual(body["filter"], [f'conversation_id = "{CONV}"',
-                              "timestamp >= 1794528000000", "timestamp < 1794614400000"])
+        self.assertCountEqual(
+            body["filter"],
+            [f'conversation_id = "{CONV}"', "timestamp >= 1794528000000", "timestamp < 1794614400000"])
         self.assertEqual(body["sort"], ["timestamp:asc"])
         self.assertNotIn("distinct", body)
 
@@ -334,8 +353,9 @@ class SessionTest(unittest.TestCase):
         self.assertEqual((code, out, err), (1, "", f"session.sh: Meilisearch に接続できません: {url}\n"))
 
     def test_show(self):
-        self.respond(document("chatgpt_c_m", question="い" * 2003, reply="一行目\n\n" + "あ" * 4000,
-                              source_member="p/c/conversation.json", title="題"))
+        self.respond(document(
+            "chatgpt_c_m", question="い" * 2003, reply="一行目\n\n" + "あ" * 4000,
+            source_member="p/c/conversation.json", title="題"))
         code, out, err = self.run_cli("show", "chatgpt_c_m")
         self.assertEqual((code, err), (0, ""))
         self.assertEqual(out, "\n".join([
@@ -356,15 +376,17 @@ class SessionTest(unittest.TestCase):
         self.assertTrue(out.endswith("--- A\n" + "😀" * 4000 + "\n…（以下 1 字を省略。全文は --full）\n"))
 
     def test_show_reads_ids_from_search_output(self):
-        search_output = ("pi_s_a  2026-11-13 00:00  pi  C:\\w\r\n  Q: pi_fake\n  A: chatgpt_fake\n"
-                         "chatgpt_c_b  2026-11-13 00:00  chatgpt\n  Q: x\n  A: y")  # CRLF and no final newline
+        search_output = (
+            "pi_s_a  2026-11-13 00:00  pi  C:\\w\r\n  Q: pi_fake\n  A: chatgpt_fake\n"
+            "chatgpt_c_b  2026-11-13 00:00  chatgpt\n  Q: x\n  A: y")  # CRLF and no final newline
         self.respond((404, {"message": "Document `pi_s_a` not found."}), document("chatgpt_c_b"))
         code, out, err = self.run_cli("show", stdin=search_output)
         self.assertEqual(code, 1)  # one ID could not be read; the other is still shown
         self.assertTrue(out.startswith("===== chatgpt_c_b  "))
         self.assertEqual(err, "session.sh: pi_s_a: HTTP 404: Document `pi_s_a` not found.\n")
-        self.assertEqual([r[1] for r in self.fake.requests],
-                         ["/indexes/conversations/documents/pi_s_a", "/indexes/conversations/documents/chatgpt_c_b"])
+        self.assertEqual(
+            [r[1] for r in self.fake.requests],
+            ["/indexes/conversations/documents/pi_s_a", "/indexes/conversations/documents/chatgpt_c_b"])
         code, out, err = self.run_cli("show", stdin="")
         self.assertEqual((code, out, err), (0, "", ""))
 
@@ -374,8 +396,9 @@ class SessionTest(unittest.TestCase):
         self.assertEqual((code, err), (0, ""))
         self.assertIn("===== archive_a_m ", out)
         self.assertIn("===== archive_b_m ", out)
-        self.assertEqual([r[1] for r in self.fake.requests],
-                         ["/indexes/conversations/documents/archive_a_m", "/indexes/conversations/documents/archive_b_m"])
+        self.assertEqual(
+            [r[1] for r in self.fake.requests],
+            ["/indexes/conversations/documents/archive_a_m", "/indexes/conversations/documents/archive_b_m"])
 
     def test_pipe_from_search_to_show(self):
         script = SCRIPT.as_posix()
@@ -412,9 +435,10 @@ class SessionTest(unittest.TestCase):
         same = hit("pi_one_other", "other", conversation_id="one", question="later excerpt")
         c = hit("pi_three_c", "c", conversation_id="three")
         self.respond_queries(alpha=found([a, b]), beta=found([same, c]))
-        code, out, err = self.run_cli("search", "alpha", "beta", "--limit", "3",
-                                      "--since", "2026-11-13", "--until", "2026-11-13",
-                                      env={"PI_SESSION_ID": "current"})
+        code, out, err = self.run_cli(
+            "search", "alpha", "beta", "--limit", "3",
+            "--since", "2026-11-13", "--until", "2026-11-13",
+            env={"PI_SESSION_ID": "current"})
         self.assertEqual((code, err), (0, ""))
         blocks = self.search_blocks(out)
         self.assertEqual([b[0].split()[0] for b in blocks], [a["id"], b["id"], c["id"]])
@@ -444,13 +468,15 @@ class SessionTest(unittest.TestCase):
                                         (1, 2, [u["id"]])]:
             with self.subTest(offset=offset):
                 self.fake.requests.clear()
-                code, out, err = self.run_cli("search", "alpha", "beta", "--offset", str(offset),
-                                              "--limit", str(limit))
+                code, out, err = self.run_cli(
+                    "search", "alpha", "beta", "--offset", str(offset),
+                    "--limit", str(limit))
                 self.assertEqual((code, err), (0, ""))
                 blocks = self.search_blocks(out)
                 self.assertEqual([block[0].split()[0] for block in blocks], expected)
-                self.assertEqual([block[0].split()[1] for block in blocks],
-                                 [f"[{i}]" for i in range(1, len(blocks) + 1)])
+                self.assertEqual(
+                    [block[0].split()[1] for block in blocks],
+                    [f"[{i}]" for i in range(1, len(blocks) + 1)])
                 if offset == 0:
                     self.assertIn("representative", "\n".join(blocks[0]))
                     self.assertEqual(self.attribution(blocks[0]), ["alpha", "beta"])
@@ -482,8 +508,9 @@ class SessionTest(unittest.TestCase):
         c = hit(f"pi_{CONV}_c", "c", conversation_id=CONV)
         self.respond({"conversation_id": CONV})
         self.respond_queries(alpha=found([a, b]), beta=found([a, c]))
-        code, out, err = self.run_cli("search", "alpha", "beta", "--conversation", TARGET,
-                                      "--offset", "1", "--limit", "2")
+        code, out, err = self.run_cli(
+            "search", "alpha", "beta", "--conversation", TARGET,
+            "--offset", "1", "--limit", "2")
         self.assertEqual((code, err), (0, ""))
         self.assertEqual([b[0].split()[0] for b in self.search_blocks(out)], [b["id"], c["id"]])
         gets, posts = self.assert_multi_requests(["alpha", "beta"])
@@ -513,8 +540,9 @@ class SessionTest(unittest.TestCase):
         code, out, err = self.run_cli("search", "alpha|beta", "alpha|beta")
         self.assertEqual((code, err), (0, ""))
         self.assertEqual([b[0].split()[0] for b in self.search_blocks(out)], [a["id"]])
-        self.assertEqual([(r[0], r[1], r[3]["q"]) for r in self.fake.requests],
-                         [("POST", "/indexes/conversations/search", "alpha|beta")])
+        self.assertEqual(
+            [(r[0], r[1], r[3]["q"]) for r in self.fake.requests],
+            [("POST", "/indexes/conversations/search", "alpha|beta")])
 
     def test_multi_pagination_settings_failure_is_atomic(self):
         self.fake.pagination_response = (500, {"message": "settings unavailable"})
@@ -522,8 +550,9 @@ class SessionTest(unittest.TestCase):
         code, out, err = self.run_cli("search", "alpha", "beta")
         self.assertEqual((code, out), (1, ""))
         self.assertIn("settings unavailable", err)
-        self.assertEqual([(r[0], r[1]) for r in self.fake.requests],
-                         [("GET", "/indexes/conversations/settings/pagination")])
+        self.assertEqual(
+            [(r[0], r[1]) for r in self.fake.requests],
+            [("GET", "/indexes/conversations/settings/pagination")])
 
     def test_multi_empty_page_reports_end(self):
         a = hit("pi_a_1", "m1", conversation_id="a")
@@ -539,8 +568,9 @@ class SessionTest(unittest.TestCase):
         self.assert_multi_requests(["alpha", "beta"])
 
     def test_multi_empty_query_is_usage_error_without_http(self):
-        for args in [("search", "", "q"), ("search", "q", "", "--conversation", TARGET),
-                     ("search", "", "", "--conversation", TARGET)]:
+        for args in [
+            ("search", "", "q"), ("search", "q", "", "--conversation", TARGET),
+            ("search", "", "", "--conversation", TARGET)]:
             with self.subTest(args=args):
                 code, out, _ = self.run_cli(*args)
                 self.assertEqual((code, out), (2, ""))
@@ -558,8 +588,9 @@ class SessionTest(unittest.TestCase):
                 self.respond(document("pi_c"), document("pi_a"))
                 code, out, err = self.run_cli("show", "--full", "--pick", "3,1,3", stdin=text)
                 self.assertEqual((code, err), (0, ""))
-                self.assertEqual([r[1] for r in self.fake.requests],
-                                 ["/indexes/conversations/documents/pi_c", "/indexes/conversations/documents/pi_a"])
+                self.assertEqual(
+                    [r[1] for r in self.fake.requests],
+                    ["/indexes/conversations/documents/pi_c", "/indexes/conversations/documents/pi_a"])
                 self.assertLess(out.index("===== pi_c"), out.index("===== pi_a"))
                 self.assertEqual(out.count("===== "), 2)
 
@@ -569,8 +600,9 @@ class SessionTest(unittest.TestCase):
                 code, out, _ = self.run_cli("show", "--pick", value, stdin="pi_a\npi_b\npi_c\n")
                 self.assertEqual((code, out), (2, ""))
                 self.assertEqual(self.fake.requests, [])
-        for args, text in [(("show", "--pick", "1"), ""),
-                           (("show", "--pick", "1", "pi_a"), "pi_b\n")]:
+        for args, text in [
+            (("show", "--pick", "1"), ""),
+            (("show", "--pick", "1", "pi_a"), "pi_b\n")]:
             with self.subTest(args=args):
                 code, out, _ = self.run_cli(*args, stdin=text)
                 self.assertEqual((code, out), (2, ""))
@@ -582,8 +614,9 @@ class SessionTest(unittest.TestCase):
         self.assertEqual(code, 1)
         self.assertIn("missing", err)
         self.assertIn("===== pi_b", out)
-        self.assertEqual([r[1] for r in self.fake.requests],
-                         ["/indexes/conversations/documents/pi_a", "/indexes/conversations/documents/pi_b"])
+        self.assertEqual(
+            [r[1] for r in self.fake.requests],
+            ["/indexes/conversations/documents/pi_a", "/indexes/conversations/documents/pi_b"])
 
     def test_search_pipe_to_show_all_and_pick(self):
         script = SCRIPT.as_posix()
@@ -598,8 +631,9 @@ class SessionTest(unittest.TestCase):
         self.assertEqual((code, err), (0, ""))
         self.assertNotIn("===== pi_a", out)
         self.assertIn("===== pi_b", out)
-        self.assertEqual([r[1] for r in self.fake.requests if r[0] == "GET"],
-                         ["/indexes/conversations/documents/pi_b"])
+        self.assertEqual(
+            [r[1] for r in self.fake.requests if r[0] == "GET"],
+            ["/indexes/conversations/documents/pi_b"])
 
 
 if __name__ == "__main__":

@@ -2,7 +2,7 @@ name: session-search
 
 services:
   meilisearch:
-    image: getmeili/meilisearch:v1.56.2
+    image: &meilisearch-image getmeili/meilisearch:v1.56.2
     container_name: meilisearch
     restart: unless-stopped
     ports:
@@ -12,6 +12,20 @@ services:
     volumes:
       - ./meilisearch-config.toml:/etc/meilisearch/config.toml:ro
       - ${MEILISEARCH_DATA_DIR:?.env に MEILISEARCH_DATA_DIR を設定する}:/meili_data
+
+  # 会話索引の設定（meilisearch-settings.json）を当てて終わる。docker compose up のたびに動く。
+  # 設定が同じなら埋め込みは作り直されない（README 参照）。curl と sh があるので同じイメージを使う。
+  meilisearch-settings:
+    image: *meilisearch-image
+    restart: "no"
+    depends_on:
+      - meilisearch
+    entrypoint: ["/bin/sh", "/apply-settings.sh"]
+    environment:
+      INDEX: ${MEILISEARCH_INDEX:-conversations}
+    volumes:
+      - ./apply-settings.sh:/apply-settings.sh:ro
+      - ./meilisearch-settings.json:/settings.json:ro
 
   # Meilisearch の埋め込み設定は http://host.docker.internal:11434 を呼ぶ。
   # ホストへ公開したこのポート経由で届くので、url を変えずに済む（README 参照）。

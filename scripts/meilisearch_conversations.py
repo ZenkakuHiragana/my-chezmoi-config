@@ -1,8 +1,9 @@
 #!/usr/bin/env python3
-"""Pi と ChatGPT の会話を Meilisearch の1つのインデックスへ送る共通部品。
+"""ChatGPT の会話を Meilisearch の会話インデックスへ送る部品。
 
-インデックス設定、送信と報告をここで決める。会話ログの読取りと文書化は
-各 importer と chatgpt_export.py が担当する。
+送信と報告をここで決める。会話の読取りと文書化は import_chatgpt_meilisearch.py と
+chatgpt_export.py が担当する。インデックスの設定は containers/session-search/ の compose が当てる。
+Pi のセッションは拡張 pi-session-index が同じインデックスへ送る。
 """
 
 from __future__ import annotations
@@ -12,7 +13,6 @@ from dataclasses import dataclass, field
 from http.client import HTTPException
 import json
 import os
-from pathlib import Path
 import sys
 import time
 from typing import Iterable
@@ -21,60 +21,6 @@ from urllib.request import Request, urlopen
 
 DEFAULT_MEILI_URL = 'http://127.0.0.1:7700'
 DEFAULT_INDEX = 'conversations'
-# Meilisearch runs in Docker, so the host's Ollama is reached through host.docker.internal.
-DEFAULT_EMBEDDER_URL = 'http://host.docker.internal:11434/api/embed'
-DEFAULT_EMBEDDING_CONFIG = Path(__file__).with_name('embedding-model.json')
-
-
-def load_embedding_config(path: Path) -> dict:
-    """Read the complete user-supplied model profile before contacting Meilisearch."""
-    try:
-        profile = json.loads(path.read_text(encoding='utf-8'))
-        if not isinstance(profile, dict):
-            raise ValueError('JSON オブジェクトが必要')
-        for key in ('model', 'query_prefix', 'document_prefix'):
-            if not isinstance(profile.get(key), str) or (key == 'model' and not profile[key]):
-                raise ValueError(f'{key} は文字列が必要')
-        for key in ('dimensions', 'reply_chars', 'question_chars'):
-            if type(profile.get(key)) is not int or profile[key] <= 0:
-                raise ValueError(f'{key} は正の整数が必要')
-        return profile
-    except (OSError, UnicodeError, ValueError) as error:
-        raise ValueError(f'埋め込み設定 {path}: {error}') from None
-
-
-def make_settings(embedder_url: str, profile: dict | None = None) -> dict:
-    """Index settings. Each run applies the selected profile."""
-    if profile is None:
-        profile = load_embedding_config(DEFAULT_EMBEDDING_CONFIG)
-
-    def literal_prefix(text: str) -> str:
-        return text.replace('{', "{{ '{' }}")
-
-    return {
-        'searchableAttributes': ['question', 'reply', 'title'],
-        'filterableAttributes': ['source', 'cwd', 'conversation_id', 'project', 'timestamp'],
-        'sortableAttributes': ['timestamp'],
-        'localizedAttributes': [{'locales': ['jpn', 'eng'], 'attributePatterns': ['question', 'reply', 'title']}],
-        'embedders': {
-            (os.environ.get('MEILISEARCH_EMBEDDER') or 'ruri'): {
-                # Fragments (experimental "multimodal") let documents and queries carry
-                # different model prefixes; documentTemplate cannot prefix queries.
-                'source': 'rest',
-                'url': embedder_url,
-                'dimensions': profile['dimensions'],
-                'request': {'model': profile['model'], 'input': ['{{fragment}}', '{{..}}']},
-                'response': {'embeddings': ['{{embedding}}', '{{..}}']},
-                'indexingFragments': {
-                    'doc': {
-                        'value': f"{literal_prefix(profile['document_prefix'])}{{{{ doc.reply | truncate: {profile['reply_chars']} }}}}"
-                                 f"\n\n{{{{ doc.question | truncate: {profile['question_chars']} }}}}",
-                    },
-                },
-                'searchFragments': {'query': {'value': literal_prefix(profile['query_prefix']) + '{{q}}'}},
-            },
-        },
-    }
 
 
 class MeiliError(Exception):
@@ -138,25 +84,6 @@ class MeilisearchClient:
             time.sleep(self.poll_seconds)
 
 
-def prepare_index(client: MeilisearchClient, index: str, settings: dict) -> None:
-    def run_task(what: str, method: str, path: str, body: object) -> None:
-        task_uid = client.enqueue(method, path, body)
-        print(f'wait {what} task={task_uid}', flush=True)
-        try:
-            client.wait_task(task_uid)
-        except MeiliError as error:
-            raise MeiliError(f'{what} task={task_uid}: {error}', error.status) from None
-
-    client.request('PATCH', '/experimental-features', {'multimodal': True})
-    try:
-        client.request('GET', f'/indexes/{index}')
-    except MeiliError as error:
-        if error.status != 404:
-            raise
-        run_task(f'create index {index}', 'POST', '/indexes', {'uid': index, 'primaryKey': 'id'})
-    run_task(f'settings {index}', 'PATCH', f'/indexes/{index}/settings', settings)
-
-
 @dataclass
 class Batch:
     """One conversation to import: its documents, or why it could not be read."""
@@ -172,10 +99,11 @@ CONNECTION_ERRORS = (URLError, ConnectionError, TimeoutError, HTTPException)
 
 
 def add_common_args(parser: argparse.ArgumentParser) -> None:
-    parser.add_argument('--meili-url', default=DEFAULT_MEILI_URL, help=f'Meilisearch の URL（既定 {DEFAULT_MEILI_URL}）')
-    parser.add_argument('--index', default=DEFAULT_INDEX, help=f'インデックス名（既定 {DEFAULT_INDEX}）')
-    parser.add_argument('--embedder-url', default=DEFAULT_EMBEDDER_URL, help=f'Meilisearch から見た Ollama の埋め込み API（既定 {DEFAULT_EMBEDDER_URL}）')
-    parser.add_argument('--embedding-config', type=Path, default=DEFAULT_EMBEDDING_CONFIG, help='埋め込みモデル設定 JSON')
+    # 既定の接続先は session.sh と拡張 pi-session-index と同じ環境変数で決める。
+    parser.add_argument('--meili-url', default=os.environ.get('MEILISEARCH_URL') or DEFAULT_MEILI_URL,
+                        help=f'Meilisearch の URL（既定は環境変数 MEILISEARCH_URL、なければ {DEFAULT_MEILI_URL}）')
+    parser.add_argument('--index', default=os.environ.get('MEILISEARCH_INDEX') or DEFAULT_INDEX,
+                        help=f'インデックス名（既定は環境変数 MEILISEARCH_INDEX、なければ {DEFAULT_INDEX}）')
     parser.add_argument('--dry-run', action='store_true', help='Meilisearch へ接続せず、変換だけを行う')
 
 
@@ -183,7 +111,7 @@ def run(args: argparse.Namespace, batches: Iterable[Batch], client: MeilisearchC
     """Import every batch and print a summary. Returns the process exit code.
 
     0: no conversation failed. 1: at least one conversation failed (others may have
-    been imported). 2: aborted because Meilisearch could not be prepared or reached, or
+    been imported). 2: aborted because Meilisearch could not be reached, or
     it became unknown whether a batch was accepted or how its task ended.
     With --dry-run nothing is sent, and "converted" lines replace "ok" lines.
     """
@@ -201,20 +129,11 @@ def run(args: argparse.Namespace, batches: Iterable[Batch], client: MeilisearchC
         where = label if task_uid is None else f'{label} task={task_uid}'
         print(f'failed {where}: {error}', file=sys.stderr, flush=True)
 
-    if not args.dry_run:
-        try:
-            profile = load_embedding_config(args.embedding_config)
-        except ValueError as error:
-            failed('embedding-config', str(error))
-            print(json.dumps(summary, ensure_ascii=True), flush=True)
-            return 1
-
     code = 0
-    current = 'prepare'  # what was in progress, for the abort message
+    current = 'start'  # what was in progress, for the abort message
     try:
         if not args.dry_run:
             client = client or MeilisearchClient(args.meili_url)
-            prepare_index(client, args.index, make_settings(args.embedder_url, profile))
         for batch in batches:
             if batch.skipped:
                 summary['skipped'] += 1
@@ -225,7 +144,9 @@ def run(args: argparse.Namespace, batches: Iterable[Batch], client: MeilisearchC
             if batch.documents and not args.dry_run:
                 current = batch.label
                 try:
-                    task_uid = client.enqueue('POST', f'/indexes/{args.index}/documents', batch.documents)
+                    # The primary key only applies while the index has none; inference would fail
+                    # because three fields (id, conversation_id, message_id) contain "id".
+                    task_uid = client.enqueue('POST', f'/indexes/{args.index}/documents?primaryKey=id', batch.documents)
                 except UnicodeError as error:  # not sent at all
                     failed(batch.label, f'{type(error).__name__}: {error}')
                     continue

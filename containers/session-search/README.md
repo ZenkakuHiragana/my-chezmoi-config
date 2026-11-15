@@ -8,6 +8,8 @@
 | --- | --- | --- |
 | `compose.yaml` | 追跡 | サービス定義。絶対パスを含まない |
 | `meilisearch-config.toml` | 追跡 | Meilisearch 本体の設定。compose がマウントする |
+| `meilisearch-settings.json` | 追跡 | 会話インデックスの設定（検索項目と埋め込み）の正本 |
+| `apply-settings.sh` | 追跡 | `meilisearch-settings` サービスが実行する、設定を当てるスクリプト |
 | `Modelfile` | 追跡 | Ruri の登録内容。重みは Hugging Face から取得する |
 | `.env.example` | 追跡 | ローカル設定の雛形（値なし） |
 | `.env` | **無視** | compose 補間用。変数名は `.env.example` を参照 |
@@ -22,6 +24,8 @@ docker compose up -d
 docker compose down            # -v を付けると Ollama に登録したモデルが消える
 ```
 
+`docker compose up` のたびに、サービス `meilisearch-settings` が `meilisearch-settings.json` をインデックス（環境変数 `MEILISEARCH_INDEX`、既定 `conversations`）に当てて終わる。インデックスがなければ作る。`.env` に書いた `MEILISEARCH_INDEX` は compose にだけ効く。結果は `docker compose logs meilisearch-settings` で見られる。会話の取り込みは `scripts/import_meilisearch.md` を参照。
+
 ## モデルの登録（初回だけ）
 
 ```bash
@@ -31,8 +35,10 @@ MSYS_NO_PATHCONV=1 docker compose exec ollama ollama create ruri-v3-310m:q8_0 -f
 Git Bash からは `/Modelfile` がパス変換されるので `MSYS_NO_PATHCONV=1` を付ける。
 
 重み（約340MB）は `Modelfile` の `FROM` に従って Hugging Face から自動で取得する。
-モデル名は Meilisearch の埋め込み設定（`request.model`）と一致させる。
+モデル名は `meilisearch-settings.json` の埋め込み設定（`request.model`）と一致させる。
 登録したモデルは名前付きボリューム `session-search_ollama` に残る。
+
+モデルを登録する前に `docker compose up` すると、インデックスに文書があれば `meilisearch-settings` は埋め込みに失敗して終わる。登録した後に `docker compose up meilisearch-settings` で当て直す。
 
 ## 埋め込み設定を変えないこと
 

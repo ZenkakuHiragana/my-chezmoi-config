@@ -1,0 +1,60 @@
+{
+  "searchableAttributes": [
+    "question",
+    "reply",
+    "title"
+  ],
+  "filterableAttributes": [
+    "source",
+    "cwd",
+    "conversation_id",
+    "project",
+    "timestamp"
+  ],
+  "sortableAttributes": [
+    "timestamp"
+  ],
+  "localizedAttributes": [
+    {
+      "locales": [
+        "jpn",
+        "eng"
+      ],
+      "attributePatterns": [
+        "question",
+        "reply",
+        "title"
+      ]
+    }
+  ],
+  "embedders": {
+    "ruri": {
+      "source": "rest",
+      "url": "http://host.docker.internal:11434/api/embed",
+      "dimensions": 768,
+      "request": {
+        "model": "ruri-v3-310m:q8_0",
+        "input": [
+          "{{fragment}}",
+          "{{..}}"
+        ]
+      },
+      "response": {
+        "embeddings": [
+          "{{embedding}}",
+          "{{..}}"
+        ]
+      },
+      "indexingFragments": {
+        "doc": {
+          "value": "検索文書: {{ doc.reply | truncate: 12000 }}\n\n{{ doc.question | truncate: 2000 }}"
+        }
+      },
+      "searchFragments": {
+        "query": {
+          "value": "検索クエリ: {{q}}"
+        }
+      }
+    }
+  }
+}

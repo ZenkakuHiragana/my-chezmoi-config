@@ -57,7 +57,9 @@ show [--full] [--pick N,N,...] [ID ...]
 -h, --help            この説明を表示する。サブコマンドの直後でも指定できる。
 
 環境変数:
-  MEILISEARCH_EMBEDDER  検索に使う埋め込み設定名（既定: ruri）。
+  MEILISEARCH_URL    Meilisearch の URL（既定: http://127.0.0.1:7700）。
+  MEILISEARCH_INDEX  インデックス名（既定: conversations）。
+  意味検索に使う埋め込み設定は、インデックスの設定から読む。
 `;
 const origin = (process.env.MEILISEARCH_URL || "http://127.0.0.1:7700").replace(/\/+$/, "");
 const indexUrl = origin + "/indexes/" + (process.env.MEILISEARCH_INDEX || "conversations");
@@ -82,6 +84,14 @@ async function request(method, path, body) {
     const value = await response.json();
     if (!response.ok) throw new Error("HTTP " + response.status + ": " + oneLine(value.message));
     return value;
+}
+
+// 意味検索に使う埋め込み設定の名前。設定の正本は containers/session-search/meilisearch-settings.json。
+async function embedderName() {
+    const names = Object.keys((await request("GET", "/settings/embedders")) ?? {});
+    if (names.length !== 1) throw new Error("インデックスの埋め込み設定が"
+        + (names.length ? "複数あり、どれを使うか決められません: " + names.join(", ") : "ありません"));
+    return names[0];
 }
 
 function header(doc, position) {
@@ -178,6 +188,7 @@ async function search(options, args) {
     }
     // ページによって候補集合を変えると、後から見つかるコピーで先行位置がずれる。
     // 複数検索はサービスの取得可能範囲を固定して統合し、最後にページを切る。
+    const embedder = queries.some(Boolean) ? await embedderName() : undefined;
     const candidateLimit = multiple ? (await request("GET", "/settings/pagination")).maxTotalHits
         : options.conversation ? limit : offset + limit;
     // 全検索が成功するまで出力しない。単一会話検索のサーバー側ページ送りは維持する。
@@ -186,7 +197,7 @@ async function search(options, args) {
         offset: options.conversation && !multiple ? offset : 0, filter,
         attributesToRetrieve: ["id", "conversation_id", "source", "message_id", "timestamp", "title", "cwd", "project"],
         attributesToCrop: ["question:20", "reply:40"], cropMarker: "…",
-        ...(query ? { hybrid: { embedder: process.env.MEILISEARCH_EMBEDDER || "ruri", semanticRatio: 0.5 } } : { sort: ["timestamp:asc"] }),
+        ...(query ? { hybrid: { embedder, semanticRatio: 0.5 } } : { sort: ["timestamp:asc"] }),
         ...(options.conversation ? {} : { distinct: "conversation_id" }),
     })));
 
