@@ -38,10 +38,8 @@ chezmoi の管理下にあるファイルはユーザーホームディレクト
 - `./dot_claude/`、`./dot_codex/`、`./dot_omp/`、`./dot_pi/`、`./dot_copilot/`、`./dot_config/opencode/` には AI ハーネス実行環境ごとの設定項目がある。
   - 共通する概念を設定する場合は `./.chezmoidata/` 以下のデータに集約するか `./.chezmoitemplates/` 以下の共通ファイルに書き、設定ファイル本体はそれらの設定の参照とする。
 - `./.claude/`, `./.codex/`, `./.omp/`, `./.pi/`, `./.copilot/`, `./.opencode/` にはこのリポジトリでのみ作用する AI ハーネス実行環境ごとのプロジェクトローカル設定や一時ファイルがある。
-  - `./.opencode/work/` には作業用の一時ファイルがある。
+  - `./.pi/work/` には作業用の一時ファイルがある。
   - `./.opencode/local-failure-logs/` には過去の失敗の記録が蓄積される。
-- `run_onchange_*` は、`chezmoi apply` を実行した後に自動的に実行されるスクリプトファイルである。
-  - 形式を変換して AI ハーネス実行環境ごとの設定に合わせる、自作拡張機能の依存関係を同期するなど、単なるファイルの配置だけでは得られない同期結果を得るために使う。
 - `./packages/` にはパッケージマネージャで一括インストールしたいパッケージの一覧がある。
 - `./scripts/` には chezmoi の機能だけでは実現しにくい環境設定用スクリプトがある。
 - `./tools/knowledge-finder/` は、情報源の利用方法を案内する knowledge-finder MCP サーバーの実装である。
