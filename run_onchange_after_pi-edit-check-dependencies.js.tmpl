@@ -1,0 +1,46 @@
+#!/usr/bin/env node
+"use strict";
+
+const { execFileSync } = require("node:child_process");
+const { homedir } = require("node:os");
+const { join } = require("node:path");
+
+// Rendered manifests make dependency changes retrigger this chezmoi hook.
+const dependencyManifest = {{ include "dot_pi/agent/extensions/pi-edit-check/package.json" | toJson }};
+const dependencyLock = {{ include "dot_pi/agent/extensions/pi-edit-check/package-lock.json" | toJson }};
+if (!dependencyManifest || !dependencyLock) {
+  throw new Error("pi-edit-check dependency manifests are empty");
+}
+
+const extensionDir = join(homedir(), ".pi", "agent", "extensions", "pi-edit-check");
+const npm = process.platform === "win32" ? "npm.cmd" : "npm";
+function runNpm(npmArgs) {
+  const command = process.platform === "win32" ? process.env.ComSpec ?? "cmd.exe" : npm;
+  const commandArgs = process.platform === "win32" ? ["/d", "/s", "/c", npm, ...npmArgs] : npmArgs;
+  execFileSync(command, commandArgs, {
+    cwd: extensionDir,
+    stdio: "inherit",
+  });
+}
+
+// Same procedure as run_onchange_after_pi-tool-filter-dependencies.js.tmpl:
+// check that package.json and the lock file agree, then replace only the packages
+// that differ from the lock file without rewriting it.
+runNpm(["ci", "--dry-run", "--no-audit", "--no-fund"]);
+try {
+  runNpm(["install", "--no-save", "--omit=dev", "--no-audit", "--no-fund"]);
+} catch (error) {
+  console.error("pi-edit-check: could not update the dependencies. If Pi is running with this extension, close it and run chezmoi apply again.");
+  throw error;
+}
+
+// The wrapper may exit successfully without a working binary; require a version.
+const output = execFileSync(process.execPath, [join(extensionDir, "node_modules", "editorconfig-checker", "dist", "index.js"), "-version"], {
+  cwd: extensionDir,
+  encoding: "utf8",
+  stdio: ["ignore", "pipe", "inherit"],
+});
+process.stdout.write(output);
+if (!output.split(/\r?\n/).some((line) => /^v/.test(line))) {
+  throw new Error("pi-edit-check: editorconfig-checker did not print its version");
+}

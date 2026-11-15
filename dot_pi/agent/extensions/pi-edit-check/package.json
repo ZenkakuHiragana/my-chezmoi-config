@@ -1,0 +1,11 @@
+{
+  "name": "pi-edit-check",
+  "private": true,
+  "type": "module",
+  "dependencies": {
+    "editorconfig-checker": "7.0.0"
+  },
+  "pi": {
+    "extensions": ["./index.ts"]
+  }
+}
