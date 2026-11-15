@@ -33,6 +33,7 @@ description: このリポジトリでプロンプトやスキルを編集する�
 
 - 目的と問題の分析: `references/problem-analysis/fundamental-problem-map.md`
 - AI 委任全体の妥当性に関する判断軸: `references/quality-principles.md`
+- 本文を Python 風に書くスキルの書き方: `references/python-style.md`。本文を Python 風に書いたスキルを作成・編集するとき、自然文のスキルをこの形へ変換するときは、これに従う。
 
 ## 作業前の確認項目
 
