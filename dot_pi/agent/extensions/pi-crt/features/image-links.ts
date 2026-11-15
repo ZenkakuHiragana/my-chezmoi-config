@@ -19,16 +19,16 @@ import { fileURLToPath } from "node:url";
  * A link to any other file is left as a link.
  */
 const IMAGE_TYPES: ReadonlyMap<string, string> = new Map([
-	["png", "image/png"],
-	["jpg", "image/jpeg"],
-	["jpeg", "image/jpeg"],
-	["gif", "image/gif"],
-	["webp", "image/webp"],
+  ["png", "image/png"],
+  ["jpg", "image/jpeg"],
+  ["jpeg", "image/jpeg"],
+  ["gif", "image/gif"],
+  ["webp", "image/webp"],
 ]);
 
 /** The MIME type of an image file, from its extension; undefined for other files. */
 export function imageType(path: string): string | undefined {
-	return IMAGE_TYPES.get(path.slice(path.lastIndexOf(".") + 1).toLowerCase());
+  return IMAGE_TYPES.get(path.slice(path.lastIndexOf(".") + 1).toLowerCase());
 }
 
 /**
@@ -39,7 +39,7 @@ export function imageType(path: string): string | undefined {
  * sit inside a line of prose. Links inside prose stay as they are.
  */
 const STANDALONE_IMAGE_RE =
-	/^[ \t]*!\[([^\]]*)\]\([ \t]*(<[^>\n]*>|[^()\s]+)(?:[ \t]+"[^"\n]*"|[ \t]+'[^'\n]*')?[ \t]*\)[ \t]*$/;
+  /^[ \t]*!\[([^\]]*)\]\([ \t]*(<[^>\n]*>|[^()\s]+)(?:[ \t]+"[^"\n]*"|[ \t]+'[^'\n]*')?[ \t]*\)[ \t]*$/;
 
 /**
  * Zero-width space. Pi re-parses the transformed body as markdown, and markdown drops
@@ -53,15 +53,15 @@ const ZERO_WIDTH = "\u200b";
 const FENCE_RE = /^[ \t]*(```+|~~~+)/;
 
 export interface ImageLinkOptions {
-	/** Columns available for the image. */
-	width: number;
-	/** Directory relative paths resolve against. */
-	cwd: string;
-	/**
-	 * Renders a local image as terminal lines, or undefined when it cannot. The caller
-	 * caches: a streaming reply runs the transformer again on every update.
-	 */
-	renderImage: (path: string, width: number) => string[] | undefined;
+  /** Columns available for the image. */
+  width: number;
+  /** Directory relative paths resolve against. */
+  cwd: string;
+  /**
+   * Renders a local image as terminal lines, or undefined when it cannot. The caller
+   * caches: a streaming reply runs the transformer again on every update.
+   */
+  renderImage: (path: string, width: number) => string[] | undefined;
 }
 
 /**
@@ -69,43 +69,43 @@ export interface ImageLinkOptions {
  * (a remote or data URL, or a file that is not an image).
  */
 export function localImageTarget(target: string, cwd: string): string | undefined {
-	let text = target.trim();
-	if (text.startsWith("<") && text.endsWith(">")) text = text.slice(1, -1).trim();
-	if (text === "") return undefined;
-	// A windows drive letter looks like a URL scheme, so it is checked first.
-	const windowsDrive = /^[a-zA-Z]:[\\/]/.test(text);
-	// data: and anything fetched over the network cannot be read within the transformer.
-	if (!windowsDrive && /^[a-z][a-z0-9+.-]*:/i.test(text) && !/^file:/i.test(text)) return undefined;
-	let path: string;
-	if (!windowsDrive && /^file:/i.test(text)) {
-		try {
-			path = fileUrlToPath(text);
-		} catch {
-			return undefined;
-		}
-	} else {
-		path = decodePercent(text);
-	}
-	if (path === "") return undefined;
-	if (imageType(path) === undefined) return undefined;
-	return isAbsolute(path) ? path : resolve(cwd, path);
+  let text = target.trim();
+  if (text.startsWith("<") && text.endsWith(">")) text = text.slice(1, -1).trim();
+  if (text === "") return undefined;
+  // A windows drive letter looks like a URL scheme, so it is checked first.
+  const windowsDrive = /^[a-zA-Z]:[\\/]/.test(text);
+  // data: and anything fetched over the network cannot be read within the transformer.
+  if (!windowsDrive && /^[a-z][a-z0-9+.-]*:/i.test(text) && !/^file:/i.test(text)) return undefined;
+  let path: string;
+  if (!windowsDrive && /^file:/i.test(text)) {
+    try {
+      path = fileUrlToPath(text);
+    } catch {
+      return undefined;
+    }
+  } else {
+    path = decodePercent(text);
+  }
+  if (path === "") return undefined;
+  if (imageType(path) === undefined) return undefined;
+  return isAbsolute(path) ? path : resolve(cwd, path);
 }
 
 /** A file:// URL as a local path. A file on another host is not read: the URL parser makes `localhost` no host. */
 function fileUrlToPath(text: string): string {
-	const url = new URL(text);
-	if (url.hostname !== "") throw new Error("remote file url");
-	return fileURLToPath(url);
+  const url = new URL(text);
+  if (url.hostname !== "") throw new Error("remote file url");
+  return fileURLToPath(url);
 }
 
 /** Percent-decoded text, or the text itself when it does not decode. */
 function decodePercent(text: string): string {
-	if (!text.includes("%")) return text;
-	try {
-		return decodeURIComponent(text);
-	} catch {
-		return text;
-	}
+  if (!text.includes("%")) return text;
+  try {
+    return decodeURIComponent(text);
+  } catch {
+    return text;
+  }
 }
 
 /**
@@ -115,32 +115,32 @@ function decodePercent(text: string): string {
  * is left alone, so pi renders it as before and its alt text still shows.
  */
 export function replaceImageLinks(markdown: string, options: ImageLinkOptions): string {
-	if (!markdown.includes("![")) return markdown;
-	const lines = markdown.split("\n");
-	let fence: string | undefined;
-	let changed = false;
-	for (let index = 0; index < lines.length; index++) {
-		const line = lines[index]!;
-		const hasCr = line.endsWith("\r");
-		const body = hasCr ? line.slice(0, -1) : line;
-		const fenceMatch = FENCE_RE.exec(body);
-		if (fenceMatch) {
-			const marker = fenceMatch[1]!;
-			if (fence === undefined) fence = marker[0];
-			else if (marker[0] === fence) fence = undefined;
-			continue;
-		}
-		if (fence !== undefined) continue;
-		const match = STANDALONE_IMAGE_RE.exec(body);
-		if (!match) continue;
-		const path = localImageTarget(match[2]!, options.cwd);
-		if (path === undefined) continue;
-		const rendered = options.renderImage(path, options.width);
-		if (rendered === undefined || rendered.length === 0) continue;
-		lines[index] = imageBlock(rendered) + (hasCr ? "\r" : "");
-		changed = true;
-	}
-	return changed ? lines.join("\n") : markdown;
+  if (!markdown.includes("![")) return markdown;
+  const lines = markdown.split("\n");
+  let fence: string | undefined;
+  let changed = false;
+  for (let index = 0; index < lines.length; index++) {
+    const line = lines[index]!;
+    const hasCr = line.endsWith("\r");
+    const body = hasCr ? line.slice(0, -1) : line;
+    const fenceMatch = FENCE_RE.exec(body);
+    if (fenceMatch) {
+      const marker = fenceMatch[1]!;
+      if (fence === undefined) fence = marker[0];
+      else if (marker[0] === fence) fence = undefined;
+      continue;
+    }
+    if (fence !== undefined) continue;
+    const match = STANDALONE_IMAGE_RE.exec(body);
+    if (!match) continue;
+    const path = localImageTarget(match[2]!, options.cwd);
+    if (path === undefined) continue;
+    const rendered = options.renderImage(path, options.width);
+    if (rendered === undefined || rendered.length === 0) continue;
+    lines[index] = imageBlock(rendered) + (hasCr ? "\r" : "");
+    changed = true;
+  }
+  return changed ? lines.join("\n") : markdown;
 }
 
 /**
@@ -153,8 +153,8 @@ export function replaceImageLinks(markdown: string, options: ImageLinkOptions): 
  * paragraph there is no blank line either.
  */
 function imageBlock(rendered: readonly string[]): string {
-	const first = rendered[0]!;
-	if (rendered.length <= 1) return first;
-	const fillers = Math.max(1, rendered.length - 2);
-	return `${first}\n\n${Array.from({ length: fillers }, () => ZERO_WIDTH).join("  \n")}`;
+  const first = rendered[0]!;
+  if (rendered.length <= 1) return first;
+  const fillers = Math.max(1, rendered.length - 2);
+  return `${first}\n\n${Array.from({ length: fillers }, () => ZERO_WIDTH).join("  \n")}`;
 }

@@ -88,9 +88,10 @@ def origins_in(path: Path) -> Iterator[Origin | ReadFailure]:
     resolved = path.resolve()
     if resolved.is_dir():
         unreadable: list[OSError] = []
-        files = sorted(Path(folder) / 'conversation.json'
-                       for folder, _, names in os.walk(resolved, onerror=unreadable.append)
-                       if 'conversation.json' in names)
+        files = sorted(
+            Path(folder) / 'conversation.json'
+            for folder, _, names in os.walk(resolved, onerror=unreadable.append)
+            if 'conversation.json' in names)
         for error in unreadable:  # rglob() would skip these folders silently
             yield ReadFailure(str(error.filename or path), error=f'フォルダを読めない ({error})')
         if not files and not unreadable:

@@ -35,20 +35,20 @@ import { createShell } from "./shell/controller.ts";
 import { setupInput } from "./shell/input.ts";
 
 export default function (pi: ExtensionAPI) {
-	const shell = createShell(pi);
-	setupInput(pi, shell);
-	const env = shell.features;
-	setupTools(pi, env);
-	setupGit(pi, env);
-	setupContext(pi, env);
-	setupUsage(pi, env);
-	setupVitals(pi, env);
-	setupLogo(pi, env);
-	setupImages(pi, env);
-	setupSessions(pi, env);
-	setupModels(pi, env);
-	setupExtensions(pi, env);
-	setupTree(pi, env);
-	setupInventory(pi, env);
-	setupRadio(pi, env);
+  const shell = createShell(pi);
+  setupInput(pi, shell);
+  const env = shell.features;
+  setupTools(pi, env);
+  setupGit(pi, env);
+  setupContext(pi, env);
+  setupUsage(pi, env);
+  setupVitals(pi, env);
+  setupLogo(pi, env);
+  setupImages(pi, env);
+  setupSessions(pi, env);
+  setupModels(pi, env);
+  setupExtensions(pi, env);
+  setupTree(pi, env);
+  setupInventory(pi, env);
+  setupRadio(pi, env);
 }

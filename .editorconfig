@@ -2,6 +2,23 @@
 end_of_line = lf
 insert_final_newline = true
 indent_style = space
+indent_size = 2
+charset = utf-8
 
 [*.lua]
 indent_size = 2
+
+[*.py]
+indent_size = 4
+
+# リストの続きの字下げは記号の幅で決まるので、幅を決めない。
+[*.md]
+indent_size = unset
+
+# Apache License 2.0 の原文のコピーなので、原本のまま置く。
+[.chezmoitemplates/nvim/LICENSE]
+end_of_line = unset
+insert_final_newline = unset
+indent_style = unset
+indent_size = unset
+charset = unset

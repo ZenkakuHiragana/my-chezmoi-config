@@ -32,10 +32,10 @@ import { sanitize } from "./core.ts";
 
 /** How quota-axi is asked about one of Pi's providers. */
 export interface QuotaProvider {
-	/** quota-axi's id (`--provider`). */
-	id: string;
-	/** The variable quota-axi reads the key from before Pi's auth.json, if any; it gets Pi's key. */
-	keyEnv?: string;
+  /** quota-axi's id (`--provider`). */
+  id: string;
+  /** The variable quota-axi reads the key from before Pi's auth.json, if any; it gets Pi's key. */
+  keyEnv?: string;
 }
 
 /**
@@ -44,46 +44,46 @@ export interface QuotaProvider {
  * only). A provider not listed is not asked about.
  */
 const QUOTA_PROVIDERS: Readonly<Record<string, QuotaProvider>> = {
-	anthropic: { id: "claude", keyEnv: "CLAUDE_CODE_OAUTH_TOKEN" },
-	"openai-codex": { id: "codex" },
-	"kimi-coding": { id: "kimi" },
-	zai: { id: "zai" },
-	"opencode-go": { id: "opencode-go" },
-	xai: { id: "grok" },
-	minimax: { id: "minimax", keyEnv: "MINIMAX_API_KEY" },
-	deepseek: { id: "deepseek", keyEnv: "DEEPSEEK_API_KEY" },
-	openrouter: { id: "openrouter", keyEnv: "OPENROUTER_API_KEY" },
+  anthropic: { id: "claude", keyEnv: "CLAUDE_CODE_OAUTH_TOKEN" },
+  "openai-codex": { id: "codex" },
+  "kimi-coding": { id: "kimi" },
+  zai: { id: "zai" },
+  "opencode-go": { id: "opencode-go" },
+  xai: { id: "grok" },
+  minimax: { id: "minimax", keyEnv: "MINIMAX_API_KEY" },
+  deepseek: { id: "deepseek", keyEnv: "DEEPSEEK_API_KEY" },
+  openrouter: { id: "openrouter", keyEnv: "OPENROUTER_API_KEY" },
 };
 
 /** The quota-axi id for one of Pi's providers, or undefined when it is not asked about. */
 export function quotaProvider(piProvider: string): QuotaProvider | undefined {
-	return Object.hasOwn(QUOTA_PROVIDERS, piProvider) ? QUOTA_PROVIDERS[piProvider] : undefined;
+  return Object.hasOwn(QUOTA_PROVIDERS, piProvider) ? QUOTA_PROVIDERS[piProvider] : undefined;
 }
 
 /** One window of a provider's allowance. */
 export interface QuotaWindow {
-	label: string;
-	/** quota-axi's kind: session, weekly, monthly, model, credits or unknown. */
-	kind: string;
-	/** Share of the limit used, 0..1; undefined when the window has no percentage (credits). */
-	ratio?: number;
-	/** The window's length in seconds, when quota-axi reports one. */
-	windowSeconds?: number;
-	/** When the window resets, in milliseconds since the epoch. */
-	resetAt?: number;
-	/** Set when `ratio` is a share of that window, not an allowance of its own. */
-	shareOf?: string;
+  label: string;
+  /** quota-axi's kind: session, weekly, monthly, model, credits or unknown. */
+  kind: string;
+  /** Share of the limit used, 0..1; undefined when the window has no percentage (credits). */
+  ratio?: number;
+  /** The window's length in seconds, when quota-axi reports one. */
+  windowSeconds?: number;
+  /** When the window resets, in milliseconds since the epoch. */
+  resetAt?: number;
+  /** Set when `ratio` is a share of that window, not an allowance of its own. */
+  shareOf?: string;
 }
 
 /** What quota-axi reported for one provider. */
 export interface QuotaReading {
-	windows: QuotaWindow[];
-	/** quota-axi's state.status: fresh, stale, unavailable, auth_required, rate_limited or error. */
-	status: string;
-	/** quota-axi's reason when the status is not fresh. */
-	error?: string;
-	/** quota-axi found no sign-in for the provider. */
-	notSetUp: boolean;
+  windows: QuotaWindow[];
+  /** quota-axi's state.status: fresh, stale, unavailable, auth_required, rate_limited or error. */
+  status: string;
+  /** quota-axi's reason when the status is not fresh. */
+  error?: string;
+  /** quota-axi found no sign-in for the provider. */
+  notSetUp: boolean;
 }
 
 const QUOTA_BIN = fileURLToPath(new URL("../node_modules/quota-axi/dist/bin/quota-axi.js", import.meta.url));
@@ -100,8 +100,8 @@ const QUOTA_TIMEOUT_MS = 60_000;
  * reach the network (proxies, certificates), and nothing that names a sign-in.
  */
 const QUOTA_ENV = new Set([
-	"PATH", "PATHEXT", "SYSTEMROOT", "WINDIR", "COMSPEC", "TEMP", "TMP", "TMPDIR", "LANG", "TZ",
-	"HTTP_PROXY", "HTTPS_PROXY", "NO_PROXY", "ALL_PROXY", "NODE_EXTRA_CA_CERTS", "SSL_CERT_FILE", "SSL_CERT_DIR",
+  "PATH", "PATHEXT", "SYSTEMROOT", "WINDIR", "COMSPEC", "TEMP", "TMP", "TMPDIR", "LANG", "TZ",
+  "HTTP_PROXY", "HTTPS_PROXY", "NO_PROXY", "ALL_PROXY", "NODE_EXTRA_CA_CERTS", "SSL_CERT_FILE", "SSL_CERT_DIR",
 ]);
 
 /**
@@ -110,46 +110,46 @@ const QUOTA_ENV = new Set([
  * is Pi's agent folder.
  */
 export function readQuota(
-	provider: QuotaProvider,
-	key: string | undefined,
-	agentDir: string,
-	signal: AbortSignal,
+  provider: QuotaProvider,
+  key: string | undefined,
+  agentDir: string,
+  signal: AbortSignal,
 ): Promise<{ reading?: QuotaReading; error?: string }> {
-	const env: NodeJS.ProcessEnv = {
-		...Object.fromEntries(Object.entries(process.env).filter(([name]) => QUOTA_ENV.has(name.toUpperCase()))),
-		HOME: QUOTA_HOME,
-		USERPROFILE: QUOTA_HOME,
-		APPDATA: join(QUOTA_HOME, "AppData", "Roaming"),
-		LOCALAPPDATA: join(QUOTA_HOME, "AppData", "Local"),
-		XDG_CONFIG_HOME: join(QUOTA_HOME, ".config"),
-		XDG_DATA_HOME: join(QUOTA_HOME, ".local", "share"),
-		XDG_CACHE_HOME: join(QUOTA_HOME, ".cache"),
-		PI_CODING_AGENT_DIR: agentDir,
-		// OpenCode Go is read from Pi's auth.json only when asked to.
-		QUOTA_AXI_OPENCODE_GO_PI_AUTH: "1",
-		...(provider.keyEnv && key ? { [provider.keyEnv]: key } : {}),
-	};
-	return new Promise((resolve) => {
-		execFile(
-			process.execPath,
-			[QUOTA_BIN, "--provider", provider.id, "--json", "--full", "--no-credential-refresh"],
-			{ env, signal, timeout: QUOTA_TIMEOUT_MS, windowsHide: true, maxBuffer: 4 * 1024 * 1024 },
-			(error, stdout, stderr) => {
-				// quota-axi exits with 1 when the provider failed, and still prints its report.
-				try {
-					resolve({ reading: parseQuota(stdout) });
-				} catch {
-					const reason = firstLine(String(stderr)) || firstLine(String(stdout)) || (error ? firstLine(error.message) : "no output");
-					resolve({ error: `quota-axi: ${reason}` });
-				}
-			},
-		);
-	});
+  const env: NodeJS.ProcessEnv = {
+    ...Object.fromEntries(Object.entries(process.env).filter(([name]) => QUOTA_ENV.has(name.toUpperCase()))),
+    HOME: QUOTA_HOME,
+    USERPROFILE: QUOTA_HOME,
+    APPDATA: join(QUOTA_HOME, "AppData", "Roaming"),
+    LOCALAPPDATA: join(QUOTA_HOME, "AppData", "Local"),
+    XDG_CONFIG_HOME: join(QUOTA_HOME, ".config"),
+    XDG_DATA_HOME: join(QUOTA_HOME, ".local", "share"),
+    XDG_CACHE_HOME: join(QUOTA_HOME, ".cache"),
+    PI_CODING_AGENT_DIR: agentDir,
+    // OpenCode Go is read from Pi's auth.json only when asked to.
+    QUOTA_AXI_OPENCODE_GO_PI_AUTH: "1",
+    ...(provider.keyEnv && key ? { [provider.keyEnv]: key } : {}),
+  };
+  return new Promise((resolve) => {
+    execFile(
+      process.execPath,
+      [QUOTA_BIN, "--provider", provider.id, "--json", "--full", "--no-credential-refresh"],
+      { env, signal, timeout: QUOTA_TIMEOUT_MS, windowsHide: true, maxBuffer: 4 * 1024 * 1024 },
+      (error, stdout, stderr) => {
+        // quota-axi exits with 1 when the provider failed, and still prints its report.
+        try {
+          resolve({ reading: parseQuota(stdout) });
+        } catch {
+          const reason = firstLine(String(stderr)) || firstLine(String(stdout)) || (error ? firstLine(error.message) : "no output");
+          resolve({ error: `quota-axi: ${reason}` });
+        }
+      },
+    );
+  });
 }
 
 type RecordValue = Record<string, unknown>;
 const record = (value: unknown): RecordValue | undefined =>
-	typeof value === "object" && value !== null && !Array.isArray(value) ? value as RecordValue : undefined;
+  typeof value === "object" && value !== null && !Array.isArray(value) ? value as RecordValue : undefined;
 const finite = (value: unknown): value is number => typeof value === "number" && Number.isFinite(value);
 /** A string from the report on one line: no control characters, line breaks and tabs as spaces. */
 const text = (value: unknown): string | undefined => (typeof value === "string" ? sanitize(value.replace(/[\r\n\t]+/g, " ")) : undefined);
@@ -162,33 +162,33 @@ const firstLine = (value: string): string => sanitize(value.trim().split(/\r?\n/
  * writes schema 5, or 6 when it reports account keys; both have this shape.
  */
 export function parseQuota(stdout: string): QuotaReading {
-	const report = record(JSON.parse(stdout));
-	if (report?.schemaVersion !== 5 && report?.schemaVersion !== 6) throw new Error("not a quota-axi report this version knows");
-	const provider = record(Array.isArray(report.providers) ? report.providers[0] : undefined);
-	if (!provider) throw new Error("quota-axi reported no provider");
-	const state = record(provider.state);
-	const windows = (Array.isArray(provider.windows) ? provider.windows : []).flatMap((value): QuotaWindow[] => {
-		const window = record(value);
-		const label = text(window?.label) || text(window?.id);
-		if (!window || !label) return [];
-		// --full reports percentUsed too; either one gives the same share.
-		const used = finite(window.percentUsed) ? window.percentUsed : finite(window.percentRemaining) ? 100 - window.percentRemaining : undefined;
-		const resetAt = typeof window.resetsAt === "string" ? Date.parse(window.resetsAt) : Number.NaN;
-		return [{
-			label,
-			kind: text(window.kind) ?? "unknown",
-			ratio: used === undefined ? undefined : Math.max(0, Math.min(1, used / 100)),
-			windowSeconds: finite(window.windowSeconds) && window.windowSeconds > 0 ? window.windowSeconds : undefined,
-			resetAt: Number.isFinite(resetAt) ? resetAt : undefined,
-			shareOf: text(window.shareOf),
-		}];
-	});
-	return {
-		windows,
-		status: text(state?.status) ?? "unknown",
-		error: text(state?.error),
-		notSetUp: provider.notSetUp === true,
-	};
+  const report = record(JSON.parse(stdout));
+  if (report?.schemaVersion !== 5 && report?.schemaVersion !== 6) throw new Error("not a quota-axi report this version knows");
+  const provider = record(Array.isArray(report.providers) ? report.providers[0] : undefined);
+  if (!provider) throw new Error("quota-axi reported no provider");
+  const state = record(provider.state);
+  const windows = (Array.isArray(provider.windows) ? provider.windows : []).flatMap((value): QuotaWindow[] => {
+    const window = record(value);
+    const label = text(window?.label) || text(window?.id);
+    if (!window || !label) return [];
+    // --full reports percentUsed too; either one gives the same share.
+    const used = finite(window.percentUsed) ? window.percentUsed : finite(window.percentRemaining) ? 100 - window.percentRemaining : undefined;
+    const resetAt = typeof window.resetsAt === "string" ? Date.parse(window.resetsAt) : Number.NaN;
+    return [{
+      label,
+      kind: text(window.kind) ?? "unknown",
+      ratio: used === undefined ? undefined : Math.max(0, Math.min(1, used / 100)),
+      windowSeconds: finite(window.windowSeconds) && window.windowSeconds > 0 ? window.windowSeconds : undefined,
+      resetAt: Number.isFinite(resetAt) ? resetAt : undefined,
+      shareOf: text(window.shareOf),
+    }];
+  });
+  return {
+    windows,
+    status: text(state?.status) ?? "unknown",
+    error: text(state?.error),
+    notSetUp: provider.notSetUp === true,
+  };
 }
 
 /** The length quota-axi measures a five-hour allowance at. */
@@ -201,8 +201,8 @@ const FIVE_HOURS_SECONDS = 18_000;
  * vendor calls "rolling", which comes as kind "unknown" and is measured at 18,000 s.
  */
 export function gaugeRatios(windows: readonly QuotaWindow[]): { fiveHour?: number; weekly?: number } {
-	const own = (window: QuotaWindow) => window.shareOf === undefined;
-	const byLength = windows.find((window) => own(window) && window.windowSeconds === FIVE_HOURS_SECONDS);
-	const byKind = (kind: string) => windows.find((window) => own(window) && window.kind === kind)?.ratio;
-	return { fiveHour: byLength?.ratio ?? byKind("session"), weekly: byKind("weekly") };
+  const own = (window: QuotaWindow) => window.shareOf === undefined;
+  const byLength = windows.find((window) => own(window) && window.windowSeconds === FIVE_HOURS_SECONDS);
+  const byKind = (kind: string) => windows.find((window) => own(window) && window.kind === kind)?.ratio;
+  return { fiveHour: byLength?.ratio ?? byKind("session"), weekly: byKind("weekly") };
 }

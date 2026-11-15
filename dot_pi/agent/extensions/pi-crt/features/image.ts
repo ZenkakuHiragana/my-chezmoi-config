@@ -26,76 +26,76 @@ const MAX_HEIGHT_CELLS = 24;
 const MAX_CACHED = 16;
 
 export function setupImages(pi: ExtensionAPI, env: FeatureEnv): void {
-	/**
-	 * The lines of each file, for the last width it was drawn at only. Lines kept for
-	 * an earlier width would place an image pi-tui counts as sent, and terminals on
-	 * libghostty-vt (herdr, Ghostty) free unplaced images when pi-tui clears the screen
-	 * for a new size: back at that width the image would stay blank. A new Image is
-	 * sent with its data.
-	 */
-	const cache = new Map<string, { width: number; lines: string[]; pass: number }>();
-	/** Counts the bodies rendered; an entry holds the count of the last body that drew it. */
-	let pass = 0;
+  /**
+   * The lines of each file, for the last width it was drawn at only. Lines kept for
+   * an earlier width would place an image pi-tui counts as sent, and terminals on
+   * libghostty-vt (herdr, Ghostty) free unplaced images when pi-tui clears the screen
+   * for a new size: back at that width the image would stay blank. A new Image is
+   * sent with its data.
+   */
+  const cache = new Map<string, { width: number; lines: string[]; pass: number }>();
+  /** Counts the bodies rendered; an entry holds the count of the last body that drew it. */
+  let pass = 0;
 
-	const renderImage = (path: string, width: number): string[] | undefined => {
-		if (width <= 0) return undefined;
-		let modified: number;
-		let size: number;
-		try {
-			const stats = statSync(path);
-			if (!stats.isFile()) return undefined;
-			modified = stats.mtimeMs;
-			size = stats.size;
-		} catch {
-			return undefined;
-		}
-		const key = `${path}\u0000${modified}\u0000${size}`;
-		const cached = cache.get(key);
-		if (cached?.width === width) {
-			// Last in the order: the entries dropped first are those drawn longest ago.
-			cache.delete(key);
-			cached.pass = pass;
-			cache.set(key, cached);
-			return cached.lines;
-		}
-		const mimeType = imageType(path);
-		if (!mimeType) return undefined;
-		const theme = env.context()?.ui.theme;
-		let lines: string[];
-		try {
-			const base64 = readFileSync(path).toString("base64");
-			const image = new Image(
-				base64,
-				mimeType,
-				{ fallbackColor: (text) => theme?.fg("muted", text) ?? text },
-				{ maxWidthCells: width, maxHeightCells: MAX_HEIGHT_CELLS, filename: path },
-			);
-			lines = image.render(width);
-		} catch {
-			return undefined;
-		}
-		if (lines.length === 0) return undefined;
-		cache.delete(key);
-		cache.set(key, { width, lines, pass });
-		return lines;
-	};
+  const renderImage = (path: string, width: number): string[] | undefined => {
+    if (width <= 0) return undefined;
+    let modified: number;
+    let size: number;
+    try {
+      const stats = statSync(path);
+      if (!stats.isFile()) return undefined;
+      modified = stats.mtimeMs;
+      size = stats.size;
+    } catch {
+      return undefined;
+    }
+    const key = `${path}\u0000${modified}\u0000${size}`;
+    const cached = cache.get(key);
+    if (cached?.width === width) {
+      // Last in the order: the entries dropped first are those drawn longest ago.
+      cache.delete(key);
+      cached.pass = pass;
+      cache.set(key, cached);
+      return cached.lines;
+    }
+    const mimeType = imageType(path);
+    if (!mimeType) return undefined;
+    const theme = env.context()?.ui.theme;
+    let lines: string[];
+    try {
+      const base64 = readFileSync(path).toString("base64");
+      const image = new Image(
+        base64,
+        mimeType,
+        { fallbackColor: (text) => theme?.fg("muted", text) ?? text },
+        { maxWidthCells: width, maxHeightCells: MAX_HEIGHT_CELLS, filename: path },
+      );
+      lines = image.render(width);
+    } catch {
+      return undefined;
+    }
+    if (lines.length === 0) return undefined;
+    cache.delete(key);
+    cache.set(key, { width, lines, pass });
+    return lines;
+  };
 
-	/** After a body: drop the oldest entries it did not draw, down to MAX_CACHED. */
-	const trim = () => {
-		for (const [key, entry] of cache) {
-			if (cache.size <= MAX_CACHED) return;
-			if (entry.pass !== pass) cache.delete(key);
-		}
-	};
+  /** After a body: drop the oldest entries it did not draw, down to MAX_CACHED. */
+  const trim = () => {
+    for (const [key, entry] of cache) {
+      if (cache.size <= MAX_CACHED) return;
+      if (entry.pass !== pass) cache.delete(key);
+    }
+  };
 
-	pi.registerMarkdownTransformer((markdown, context) => {
-		const cwd = env.context()?.cwd;
-		if (cwd === undefined) return markdown;
-		pass++;
-		try {
-			return replaceImageLinks(markdown, { width: context.availableWidth, cwd, renderImage });
-		} finally {
-			trim();
-		}
-	});
+  pi.registerMarkdownTransformer((markdown, context) => {
+    const cwd = env.context()?.cwd;
+    if (cwd === undefined) return markdown;
+    pass++;
+    try {
+      return replaceImageLinks(markdown, { width: context.availableWidth, cwd, renderImage });
+    } finally {
+      trim();
+    }
+  });
 }

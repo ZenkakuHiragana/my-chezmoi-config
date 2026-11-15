@@ -13,69 +13,69 @@ import { sanitize } from "./core.ts";
 
 /** One line of the TOOL LOG list. */
 export interface ToolEntry {
-	id: string;
-	name: string;
-	summary: string;
-	status: "running" | "ok" | "error";
-	nested: boolean;
-	durationMs?: number;
+  id: string;
+  name: string;
+  summary: string;
+  status: "running" | "ok" | "error";
+  nested: boolean;
+  durationMs?: number;
 }
 
 /** A tool result in the shape Pi's ToolExecutionComponent.updateResult takes. */
 export interface ToolResult {
-	content: Array<{ type: string; text?: string; data?: string; mimeType?: string }>;
-	details?: unknown;
-	isError: boolean;
-	durationMs?: number;
-	/**
-	 * Part of the details or of the non-text blocks was left out: clipValue cut
-	 * something, or there were more than CLIP_ITEMS non-text blocks. Cuts in the
-	 * text, including blocks left out between the first and last CLIP_ITEMS, are
-	 * marked in the text itself.
-	 */
-	cut?: boolean;
+  content: Array<{ type: string; text?: string; data?: string; mimeType?: string }>;
+  details?: unknown;
+  isError: boolean;
+  durationMs?: number;
+  /**
+   * Part of the details or of the non-text blocks was left out: clipValue cut
+   * something, or there were more than CLIP_ITEMS non-text blocks. Cuts in the
+   * text, including blocks left out between the first and last CLIP_ITEMS, are
+   * marked in the text itself.
+   */
+  cut?: boolean;
 }
 
 /** One call in the execution log, drawn with Pi's ToolExecutionComponent. */
 export interface LogItem {
-	id: string;
-	name: string;
-	args: unknown;
-	result?: ToolResult;
-	/** `result` is a streamed partial result. */
-	partial: boolean;
-	/** Part of the arguments was left out (see clipValue), or the result's `cut` is set. */
-	cut: boolean;
-	expanded: boolean;
-	/** Changes whenever `result` or `expanded` changes. */
-	version: number;
+  id: string;
+  name: string;
+  args: unknown;
+  result?: ToolResult;
+  /** `result` is a streamed partial result. */
+  partial: boolean;
+  /** Part of the arguments was left out (see clipValue), or the result's `cut` is set. */
+  cut: boolean;
+  expanded: boolean;
+  /** Changes whenever `result` or `expanded` changes. */
+  version: number;
 }
 
 export interface ToolData {
-	/** Tail of the latest thinking text (at most 2 × THINKING_TAIL characters). */
-	thinking: string;
-	/** The start of the latest thinking was dropped to keep only its tail. */
-	thinkingTrimmed: boolean;
-	tools: ToolEntry[];
-	/** Calls started in this session that have not finished. */
-	active: Set<string>;
-	/** Changes whenever `tools`, a tool's status or the thinking text changes. */
-	toolsVersion: number;
-	/** Older calls exist than `tools` holds. */
-	toolsTrimmed: boolean;
-	/** Top-level calls with their results, for the execution log. */
-	log: LogItem[];
-	/** Older calls exist than `log` holds. */
-	logTrimmed: boolean;
-	/** Successful and failed tool calls among `tools`. */
-	ok: number;
-	failed: number;
-	/** Time of the most recent live tool failure, for the STATUS logo. */
-	lastErrorAt?: number;
+  /** Tail of the latest thinking text (at most 2 × THINKING_TAIL characters). */
+  thinking: string;
+  /** The start of the latest thinking was dropped to keep only its tail. */
+  thinkingTrimmed: boolean;
+  tools: ToolEntry[];
+  /** Calls started in this session that have not finished. */
+  active: Set<string>;
+  /** Changes whenever `tools`, a tool's status or the thinking text changes. */
+  toolsVersion: number;
+  /** Older calls exist than `tools` holds. */
+  toolsTrimmed: boolean;
+  /** Top-level calls with their results, for the execution log. */
+  log: LogItem[];
+  /** Older calls exist than `log` holds. */
+  logTrimmed: boolean;
+  /** Successful and failed tool calls among `tools`. */
+  ok: number;
+  failed: number;
+  /** Time of the most recent live tool failure, for the STATUS logo. */
+  lastErrorAt?: number;
 }
 
 export function createToolData(): ToolData {
-	return { thinking: "", thinkingTrimmed: false, tools: [], active: new Set(), toolsVersion: 0, toolsTrimmed: false, log: [], logTrimmed: false, ok: 0, failed: 0 };
+  return { thinking: "", thinkingTrimmed: false, tools: [], active: new Set(), toolsVersion: 0, toolsTrimmed: false, log: [], logTrimmed: false, ok: 0, failed: 0 };
 }
 
 export const THINKING_TAIL = 4000;
@@ -113,12 +113,12 @@ const SUMMARY_KEYS = ["path", "file_path", "command", "pattern", "query", "url",
 
 /** Append streamed thinking text. Trimming in large steps keeps many small deltas linear. */
 export function appendThinking(data: ToolData, text: string): void {
-	data.thinking += sanitize(text);
-	if (data.thinking.length > THINKING_TAIL * 2) {
-		data.thinking = data.thinking.slice(-THINKING_TAIL);
-		data.thinkingTrimmed = true;
-	}
-	data.toolsVersion++;
+  data.thinking += sanitize(text);
+  if (data.thinking.length > THINKING_TAIL * 2) {
+    data.thinking = data.thinking.slice(-THINKING_TAIL);
+    data.thinkingTrimmed = true;
+  }
+  data.toolsVersion++;
 }
 
 /**
@@ -126,29 +126,29 @@ export function appendThinking(data: ToolData, text: string): void {
  * block backwards, and whether anything before them was left out.
  */
 export function thinkingTail(message: unknown): { text: string; trimmed: boolean } {
-	const msg = message as { role?: string; content?: unknown };
-	if (msg?.role !== "assistant" || !Array.isArray(msg.content)) return { text: "", trimmed: false };
-	let text = "";
-	let trimmed = false;
-	for (let index = msg.content.length - 1; index >= 0; index--) {
-		const block = msg.content[index] as Record<string, unknown> | undefined;
-		if (block?.type !== "thinking" || typeof block.thinking !== "string" || !block.thinking) continue;
-		if (text.length >= THINKING_TAIL) {
-			trimmed = true;
-			break;
-		}
-		const part = block.thinking.slice(-(THINKING_TAIL - text.length));
-		if (part.length < block.thinking.length) trimmed = true;
-		text = text ? `${part}\n\n${text}` : part;
-	}
-	return { text: sanitize(text).trim(), trimmed };
+  const msg = message as { role?: string; content?: unknown };
+  if (msg?.role !== "assistant" || !Array.isArray(msg.content)) return { text: "", trimmed: false };
+  let text = "";
+  let trimmed = false;
+  for (let index = msg.content.length - 1; index >= 0; index--) {
+    const block = msg.content[index] as Record<string, unknown> | undefined;
+    if (block?.type !== "thinking" || typeof block.thinking !== "string" || !block.thinking) continue;
+    if (text.length >= THINKING_TAIL) {
+      trimmed = true;
+      break;
+    }
+    const part = block.thinking.slice(-(THINKING_TAIL - text.length));
+    if (part.length < block.thinking.length) trimmed = true;
+    text = text ? `${part}\n\n${text}` : part;
+  }
+  return { text: sanitize(text).trim(), trimmed };
 }
 
 /* ---------------------------------------------------------------- clipping */
 
 /** A text clipped to its first and last CLIP_LINES lines; see clipParts. */
 export function clipText(text: string): string {
-	return clipParts([text]);
+  return clipParts([text]);
 }
 
 /**
@@ -161,22 +161,22 @@ export function clipText(text: string): string {
  * at most 2 × CLIP_ITEMS.
  */
 function clipParts(texts: readonly string[]): string {
-	let total = Math.max(0, texts.length - 1);
-	for (const text of texts) total += text.length;
-	if (total <= 2 * CLIP_WINDOW) {
-		const text = texts.join("\n");
-		// A text that fits in both parts together is kept whole, so the parts never overlap.
-		if (!truncateHead(text, { maxLines: 2 * CLIP_LINES, maxBytes: 2 * CLIP_BYTES }).truncated) return sanitize(text);
-		const head = headPart(text);
-		const tail = truncateTail(text, { maxLines: CLIP_LINES, maxBytes: CLIP_BYTES });
-		const omitted = head.totalLines - head.outputLines - tail.outputLines;
-		const marker = omitted > 0 ? `\u2026 ${omitted} lines omitted \u2026` : "\u2026 output cut \u2026";
-		return sanitize([head.content, marker, tail.content].filter(Boolean).join("\n"));
-	}
-	const head = headPart(edge(texts, "start"));
-	const tail = truncateTail(edge(texts, "end"), { maxLines: CLIP_LINES, maxBytes: CLIP_BYTES });
-	const omitted = total - head.content.length - tail.content.length;
-	return sanitize([head.content, `\u2026 ${omitted} characters omitted \u2026`, tail.content].filter(Boolean).join("\n"));
+  let total = Math.max(0, texts.length - 1);
+  for (const text of texts) total += text.length;
+  if (total <= 2 * CLIP_WINDOW) {
+    const text = texts.join("\n");
+    // A text that fits in both parts together is kept whole, so the parts never overlap.
+    if (!truncateHead(text, { maxLines: 2 * CLIP_LINES, maxBytes: 2 * CLIP_BYTES }).truncated) return sanitize(text);
+    const head = headPart(text);
+    const tail = truncateTail(text, { maxLines: CLIP_LINES, maxBytes: CLIP_BYTES });
+    const omitted = head.totalLines - head.outputLines - tail.outputLines;
+    const marker = omitted > 0 ? `\u2026 ${omitted} lines omitted \u2026` : "\u2026 output cut \u2026";
+    return sanitize([head.content, marker, tail.content].filter(Boolean).join("\n"));
+  }
+  const head = headPart(edge(texts, "start"));
+  const tail = truncateTail(edge(texts, "end"), { maxLines: CLIP_LINES, maxBytes: CLIP_BYTES });
+  const omitted = total - head.content.length - tail.content.length;
+  return sanitize([head.content, `\u2026 ${omitted} characters omitted \u2026`, tail.content].filter(Boolean).join("\n"));
 }
 
 /**
@@ -185,44 +185,44 @@ function clipParts(texts: readonly string[]): string {
  * blocks, so they never overlap.
  */
 function clipAround(before: readonly string[], after: readonly string[], dropped: number): string {
-	const head = before.length ? headPart(edge(before, "start")) : undefined;
-	const tail = after.length ? truncateTail(edge(after, "end"), { maxLines: CLIP_LINES, maxBytes: CLIP_BYTES }) : undefined;
-	const more = head?.truncated || tail?.truncated ? " and part of the text" : "";
-	return sanitize([head?.content, `\u2026 ${dropped} blocks${more} omitted \u2026`, tail?.content].filter(Boolean).join("\n"));
+  const head = before.length ? headPart(edge(before, "start")) : undefined;
+  const tail = after.length ? truncateTail(edge(after, "end"), { maxLines: CLIP_LINES, maxBytes: CLIP_BYTES }) : undefined;
+  const more = head?.truncated || tail?.truncated ? " and part of the text" : "";
+  return sanitize([head?.content, `\u2026 ${dropped} blocks${more} omitted \u2026`, tail?.content].filter(Boolean).join("\n"));
 }
 
 /** The first lines (truncateHead), or the start of the first line when that line alone is too long. */
 function headPart(text: string): { content: string; totalLines: number; outputLines: number; truncated: boolean } {
-	const head = truncateHead(text, { maxLines: CLIP_LINES, maxBytes: CLIP_BYTES });
-	if (!head.firstLineExceedsLimit) return head;
-	const end = text.indexOf("\n");
-	return { ...head, content: truncateLine(end < 0 ? text : text.slice(0, end), CLIP_LINE_CHARS).text, outputLines: 1 };
+  const head = truncateHead(text, { maxLines: CLIP_LINES, maxBytes: CLIP_BYTES });
+  if (!head.firstLineExceedsLimit) return head;
+  const end = text.indexOf("\n");
+  return { ...head, content: truncateLine(end < 0 ? text : text.slice(0, end), CLIP_LINE_CHARS).text, outputLines: 1 };
 }
 
 /** The first or last CLIP_WINDOW characters of texts joined with newlines, reading no more than that. */
 function edge(texts: readonly string[], side: "start" | "end"): string {
-	const parts: string[] = [];
-	let size = 0;
-	for (let i = 0; i < texts.length; i++) {
-		const text = texts[side === "start" ? i : texts.length - 1 - i]!;
-		if (parts.length) size += 1;
-		const room = CLIP_WINDOW - size;
-		if (room <= 0) break;
-		parts.push(text.length <= room ? text : side === "start" ? text.slice(0, room) : text.slice(-room));
-		size += Math.min(text.length, room);
-	}
-	return (side === "start" ? parts : parts.reverse()).join("\n");
+  const parts: string[] = [];
+  let size = 0;
+  for (let i = 0; i < texts.length; i++) {
+    const text = texts[side === "start" ? i : texts.length - 1 - i]!;
+    if (parts.length) size += 1;
+    const room = CLIP_WINDOW - size;
+    if (room <= 0) break;
+    parts.push(text.length <= room ? text : side === "start" ? text.slice(0, room) : text.slice(-room));
+    size += Math.min(text.length, room);
+  }
+  return (side === "start" ? parts : parts.reverse()).join("\n");
 }
 
 /** What clipValue may still keep of one value, and whether it left anything out. */
 export interface ClipBudget {
-	values: number;
-	chars: number;
-	cut: boolean;
+  values: number;
+  chars: number;
+  cut: boolean;
 }
 
 export function clipBudget(): ClipBudget {
-	return { values: CLIP_VALUES, chars: CLIP_VALUE_CHARS, cut: false };
+  return { values: CLIP_VALUES, chars: CLIP_VALUE_CHARS, cut: false };
 }
 
 /**
@@ -237,51 +237,51 @@ export function clipBudget(): ClipBudget {
  * so an object with very many properties costs time in proportion to them.
  */
 export function clipValue(value: unknown, budget: ClipBudget = clipBudget(), depth = 0): unknown {
-	if (budget.values <= 0) {
-		budget.cut = true;
-		return undefined;
-	}
-	budget.values--;
-	if (typeof value === "string") {
-		if (budget.chars <= 0) {
-			budget.cut = true;
-			return "\u2026";
-		}
-		let text = clipText(value);
-		if (text.length > budget.chars) {
-			budget.cut = true;
-			text = `${text.slice(0, budget.chars - 1)}\u2026`;
-		}
-		budget.chars -= text.length;
-		return text;
-	}
-	if (!value || typeof value !== "object") return value;
-	if (depth >= CLIP_DEPTH) {
-		budget.cut = true;
-		return undefined;
-	}
-	if (Array.isArray(value)) {
-		if (value.length > CLIP_ITEMS) budget.cut = true;
-		return value.slice(0, CLIP_ITEMS).map((item) => clipValue(item, budget, depth + 1));
-	}
-	const out: Record<string, unknown> = {};
-	let count = 0;
-	for (const key in value) {
-		if (!Object.hasOwn(value, key)) continue;
-		if (++count > CLIP_ITEMS) {
-			budget.cut = true;
-			break;
-		}
-		const short = sanitize(key.slice(0, CLIP_KEY_CHARS));
-		if (short.length < key.length) budget.cut = true;
-		// Keys that become the same keep the first value.
-		if (Object.hasOwn(out, short)) {
-			budget.cut = true;
-			continue;
-		}
-		out[short] = clipValue((value as Record<string, unknown>)[key], budget, depth + 1);
-	}
-	return out;
+  if (budget.values <= 0) {
+    budget.cut = true;
+    return undefined;
+  }
+  budget.values--;
+  if (typeof value === "string") {
+    if (budget.chars <= 0) {
+      budget.cut = true;
+      return "\u2026";
+    }
+    let text = clipText(value);
+    if (text.length > budget.chars) {
+      budget.cut = true;
+      text = `${text.slice(0, budget.chars - 1)}\u2026`;
+    }
+    budget.chars -= text.length;
+    return text;
+  }
+  if (!value || typeof value !== "object") return value;
+  if (depth >= CLIP_DEPTH) {
+    budget.cut = true;
+    return undefined;
+  }
+  if (Array.isArray(value)) {
+    if (value.length > CLIP_ITEMS) budget.cut = true;
+    return value.slice(0, CLIP_ITEMS).map((item) => clipValue(item, budget, depth + 1));
+  }
+  const out: Record<string, unknown> = {};
+  let count = 0;
+  for (const key in value) {
+    if (!Object.hasOwn(value, key)) continue;
+    if (++count > CLIP_ITEMS) {
+      budget.cut = true;
+      break;
+    }
+    const short = sanitize(key.slice(0, CLIP_KEY_CHARS));
+    if (short.length < key.length) budget.cut = true;
+    // Keys that become the same keep the first value.
+    if (Object.hasOwn(out, short)) {
+      budget.cut = true;
+      continue;
+    }
+    out[short] = clipValue((value as Record<string, unknown>)[key], budget, depth + 1);
+  }
+  return out;
 }
 
 /**
@@ -293,125 +293,125 @@ export function clipValue(value: unknown, budget: ClipBudget = clipBudget(), dep
  * details clipped with clipValue. `cut` tells whether clipValue left anything out.
  */
 export function clipResult(result: { content?: unknown; details?: unknown }, isError: boolean, durationMs?: number): ToolResult {
-	const blocks = Array.isArray(result?.content) ? (result.content as Array<Record<string, unknown>>) : [];
-	const dropped = Math.max(0, blocks.length - 2 * CLIP_ITEMS);
-	const budget = clipBudget();
-	const before: string[] = [];
-	const after: string[] = [];
-	const others: ToolResult["content"] = [];
-	const take = (block: Record<string, unknown> | undefined, texts: string[]) => {
-		if (typeof block?.text === "string" && (block.type === undefined || block.type === "text")) texts.push(block.text);
-		else if (others.length >= CLIP_ITEMS) budget.cut = true;
-		else if (block?.type === "image") {
-			others.push({ type: "image", data: "", mimeType: sanitize(String(block.mimeType ?? "").slice(0, CLIP_MIME_CHARS)) });
-		} else others.push(clipValue(block, budget) as ToolResult["content"][number]);
-	};
-	if (dropped) {
-		for (let i = 0; i < CLIP_ITEMS; i++) take(blocks[i], before);
-		for (let i = blocks.length - CLIP_ITEMS; i < blocks.length; i++) take(blocks[i], after);
-	} else {
-		for (const block of blocks) take(block, before);
-	}
-	const text = dropped ? clipAround(before, after, dropped) : before.length ? clipParts(before) : undefined;
-	const content: ToolResult["content"] = text === undefined ? others : [{ type: "text", text }, ...others];
-	const details = clipValue(result?.details, budget);
-	return { content, details, isError, durationMs, cut: budget.cut };
+  const blocks = Array.isArray(result?.content) ? (result.content as Array<Record<string, unknown>>) : [];
+  const dropped = Math.max(0, blocks.length - 2 * CLIP_ITEMS);
+  const budget = clipBudget();
+  const before: string[] = [];
+  const after: string[] = [];
+  const others: ToolResult["content"] = [];
+  const take = (block: Record<string, unknown> | undefined, texts: string[]) => {
+    if (typeof block?.text === "string" && (block.type === undefined || block.type === "text")) texts.push(block.text);
+    else if (others.length >= CLIP_ITEMS) budget.cut = true;
+    else if (block?.type === "image") {
+      others.push({ type: "image", data: "", mimeType: sanitize(String(block.mimeType ?? "").slice(0, CLIP_MIME_CHARS)) });
+    } else others.push(clipValue(block, budget) as ToolResult["content"][number]);
+  };
+  if (dropped) {
+    for (let i = 0; i < CLIP_ITEMS; i++) take(blocks[i], before);
+    for (let i = blocks.length - CLIP_ITEMS; i < blocks.length; i++) take(blocks[i], after);
+  } else {
+    for (const block of blocks) take(block, before);
+  }
+  const text = dropped ? clipAround(before, after, dropped) : before.length ? clipParts(before) : undefined;
+  const content: ToolResult["content"] = text === undefined ? others : [{ type: "text", text }, ...others];
+  const details = clipValue(result?.details, budget);
+  return { content, details, isError, durationMs, cut: budget.cut };
 }
 
 /* ---------------------------------------------------------------- tool lists */
 
 export function pushTool(data: ToolData, entry: ToolEntry): void {
-	data.tools.push(entry);
-	countTool(data, entry, 1);
-	while (data.tools.length > MAX_TOOLS) {
-		countTool(data, data.tools.shift()!, -1);
-		data.toolsTrimmed = true;
-	}
-	data.toolsVersion++;
+  data.tools.push(entry);
+  countTool(data, entry, 1);
+  while (data.tools.length > MAX_TOOLS) {
+    countTool(data, data.tools.shift()!, -1);
+    data.toolsTrimmed = true;
+  }
+  data.toolsVersion++;
 }
 
 export function finishTool(data: ToolData, id: string, isError: boolean, durationMs: number | undefined): void {
-	for (let index = data.tools.length - 1; index >= 0; index--) {
-		const entry = data.tools[index]!;
-		if (entry.id !== id) continue;
-		countTool(data, entry, -1);
-		entry.status = isError ? "error" : "ok";
-		entry.durationMs = durationMs;
-		countTool(data, entry, 1);
-		data.toolsVersion++;
-		return;
-	}
+  for (let index = data.tools.length - 1; index >= 0; index--) {
+    const entry = data.tools[index]!;
+    if (entry.id !== id) continue;
+    countTool(data, entry, -1);
+    entry.status = isError ? "error" : "ok";
+    entry.durationMs = durationMs;
+    countTool(data, entry, 1);
+    data.toolsVersion++;
+    return;
+  }
 }
 
 function countTool(data: ToolData, entry: ToolEntry, sign: 1 | -1): void {
-	if (entry.status === "ok") data.ok += sign;
-	else if (entry.status === "error") data.failed += sign;
+  if (entry.status === "ok") data.ok += sign;
+  else if (entry.status === "error") data.failed += sign;
 }
 
 export function pushLog(data: ToolData, id: string, name: string, args: unknown): void {
-	const budget = clipBudget();
-	data.log.push({ id, name, args: clipValue(args, budget), partial: false, cut: budget.cut, expanded: false, version: 0 });
-	if (data.log.length > MAX_TOOLS) {
-		data.log.splice(0, data.log.length - MAX_TOOLS);
-		data.logTrimmed = true;
-	}
+  const budget = clipBudget();
+  data.log.push({ id, name, args: clipValue(args, budget), partial: false, cut: budget.cut, expanded: false, version: 0 });
+  if (data.log.length > MAX_TOOLS) {
+    data.log.splice(0, data.log.length - MAX_TOOLS);
+    data.logTrimmed = true;
+  }
 }
 
 /** Store a (partial) result for a logged call; `result` is clipped with clipResult first. */
 export function updateLog(data: ToolData, id: string, result: ToolResult, partial: boolean): void {
-	for (let index = data.log.length - 1; index >= 0; index--) {
-		const item = data.log[index]!;
-		if (item.id !== id) continue;
-		item.result = result;
-		item.partial = partial;
-		if (result.cut) item.cut = true;
-		item.version++;
-		return;
-	}
+  for (let index = data.log.length - 1; index >= 0; index--) {
+    const item = data.log[index]!;
+    if (item.id !== id) continue;
+    item.result = result;
+    item.partial = partial;
+    if (result.cut) item.cut = true;
+    item.version++;
+    return;
+  }
 }
 
 /** Expand or collapse a logged call. */
 export function toggleLog(item: LogItem): void {
-	item.expanded = !item.expanded;
-	item.version++;
+  item.expanded = !item.expanded;
+  item.version++;
 }
 
 export function summarizeArgs(args: unknown): string {
-	if (!args || typeof args !== "object") return "";
-	const record = args as Record<string, unknown>;
-	for (const key of SUMMARY_KEYS) {
-		const value = record[key];
-		if (typeof value === "string" && /\S/.test(value.slice(0, SUMMARY_SCAN))) return firstLine(value);
-	}
-	for (const value of Object.values(record)) {
-		if (typeof value === "string" && /\S/.test(value.slice(0, SUMMARY_SCAN))) return firstLine(value);
-	}
-	return "";
+  if (!args || typeof args !== "object") return "";
+  const record = args as Record<string, unknown>;
+  for (const key of SUMMARY_KEYS) {
+    const value = record[key];
+    if (typeof value === "string" && /\S/.test(value.slice(0, SUMMARY_SCAN))) return firstLine(value);
+  }
+  for (const value of Object.values(record)) {
+    if (typeof value === "string" && /\S/.test(value.slice(0, SUMMARY_SCAN))) return firstLine(value);
+  }
+  return "";
 }
 
 function firstLine(text: string): string {
-	const head = text.slice(0, SUMMARY_SCAN).trimStart();
-	const line = sanitize(head.split(/\r?\n/, 1)[0] ?? "").trimEnd();
-	return line.length > 200 ? `${line.slice(0, 199)}…` : line;
+  const head = text.slice(0, SUMMARY_SCAN).trimStart();
+  const line = sanitize(head.split(/\r?\n/, 1)[0] ?? "").trimEnd();
+  return line.length > 200 ? `${line.slice(0, 199)}…` : line;
 }
 
 interface BranchEntry {
-	type: string;
-	parentId: string | null;
-	message?: unknown;
+  type: string;
+  parentId: string | null;
+  message?: unknown;
 }
 
 interface BranchReader {
-	getLeafEntry(): BranchEntry | undefined;
-	getEntry(id: string): BranchEntry | undefined;
+  getLeafEntry(): BranchEntry | undefined;
+  getEntry(id: string): BranchEntry | undefined;
 }
 
 type BranchMessage = {
-	role?: string;
-	content?: unknown;
-	details?: unknown;
-	toolCallId?: string;
-	isError?: boolean;
+  role?: string;
+  content?: unknown;
+  details?: unknown;
+  toolCallId?: string;
+  isError?: boolean;
 };
 
 /**
@@ -422,68 +422,68 @@ type BranchMessage = {
  * Arguments and results are clipped like those of new calls.
  */
 export function rebuildFromBranch(data: ToolData, session: BranchReader): void {
-	data.lastErrorAt = undefined;
-	data.active.clear();
-	const results = new Map<string, BranchMessage>();
-	const calls: ToolEntry[] = [];
-	const log: LogItem[] = [];
-	let thinking: { text: string; trimmed: boolean } | undefined;
-	let skipped = false;
-	let entry = session.getLeafEntry();
-	for (let visited = 0; entry && visited < MAX_WALK; visited++) {
-		if (entry.type === "message") {
-			const msg = entry.message as BranchMessage;
-			if (msg?.role === "toolResult" && typeof msg.toolCallId === "string") {
-				results.set(msg.toolCallId, msg);
-			} else if (msg?.role === "assistant") {
-				if (!thinking?.text) thinking = thinkingTail(msg);
-				const blocks = Array.isArray(msg.content) ? (msg.content as Array<Record<string, unknown>>) : [];
-				for (let index = blocks.length - 1; index >= 0; index--) {
-					const block = blocks[index];
-					if (block?.type !== "toolCall" || typeof block.id !== "string") continue;
-					if (calls.length >= MAX_TOOLS) {
-						skipped = true;
-						break;
-					}
-					const result = results.get(block.id);
-					const name = sanitize(String(block.name ?? "?"));
-					calls.push({
-						id: block.id,
-						name,
-						summary: summarizeArgs(block.arguments),
-						status: result === undefined ? "running" : result.isError ? "error" : "ok",
-						nested: false,
-					});
-					const budget = clipBudget();
-					const args = clipValue(block.arguments, budget);
-					const clipped = result && clipResult(result, Boolean(result.isError));
-					log.push({
-						id: block.id,
-						name,
-						args,
-						result: clipped,
-						partial: false,
-						cut: budget.cut || Boolean(clipped?.cut),
-						expanded: false,
-						version: 0,
-					});
-				}
-			}
-		}
-		// Past MAX_TOOLS calls, keep walking only until one more call shows that older calls exist.
-		if (calls.length >= MAX_TOOLS && thinking?.text && skipped) break;
-		entry = entry.parentId ? session.getEntry(entry.parentId) : undefined;
-	}
-	// Older calls were left out, or the walk stopped (MAX_WALK) before it could tell.
-	const trimmed = skipped || entry !== undefined;
-	data.thinking = thinking?.text ?? "";
-	data.thinkingTrimmed = thinking?.trimmed ?? false;
-	data.tools = calls.reverse();
-	data.toolsTrimmed = trimmed;
-	data.log = log.reverse();
-	data.logTrimmed = trimmed;
-	data.ok = 0;
-	data.failed = 0;
-	for (const call of data.tools) countTool(data, call, 1);
-	data.toolsVersion++;
+  data.lastErrorAt = undefined;
+  data.active.clear();
+  const results = new Map<string, BranchMessage>();
+  const calls: ToolEntry[] = [];
+  const log: LogItem[] = [];
+  let thinking: { text: string; trimmed: boolean } | undefined;
+  let skipped = false;
+  let entry = session.getLeafEntry();
+  for (let visited = 0; entry && visited < MAX_WALK; visited++) {
+    if (entry.type === "message") {
+      const msg = entry.message as BranchMessage;
+      if (msg?.role === "toolResult" && typeof msg.toolCallId === "string") {
+        results.set(msg.toolCallId, msg);
+      } else if (msg?.role === "assistant") {
+        if (!thinking?.text) thinking = thinkingTail(msg);
+        const blocks = Array.isArray(msg.content) ? (msg.content as Array<Record<string, unknown>>) : [];
+        for (let index = blocks.length - 1; index >= 0; index--) {
+          const block = blocks[index];
+          if (block?.type !== "toolCall" || typeof block.id !== "string") continue;
+          if (calls.length >= MAX_TOOLS) {
+            skipped = true;
+            break;
+          }
+          const result = results.get(block.id);
+          const name = sanitize(String(block.name ?? "?"));
+          calls.push({
+            id: block.id,
+            name,
+            summary: summarizeArgs(block.arguments),
+            status: result === undefined ? "running" : result.isError ? "error" : "ok",
+            nested: false,
+          });
+          const budget = clipBudget();
+          const args = clipValue(block.arguments, budget);
+          const clipped = result && clipResult(result, Boolean(result.isError));
+          log.push({
+            id: block.id,
+            name,
+            args,
+            result: clipped,
+            partial: false,
+            cut: budget.cut || Boolean(clipped?.cut),
+            expanded: false,
+            version: 0,
+          });
+        }
+      }
+    }
+    // Past MAX_TOOLS calls, keep walking only until one more call shows that older calls exist.
+    if (calls.length >= MAX_TOOLS && thinking?.text && skipped) break;
+    entry = entry.parentId ? session.getEntry(entry.parentId) : undefined;
+  }
+  // Older calls were left out, or the walk stopped (MAX_WALK) before it could tell.
+  const trimmed = skipped || entry !== undefined;
+  data.thinking = thinking?.text ?? "";
+  data.thinkingTrimmed = thinking?.trimmed ?? false;
+  data.tools = calls.reverse();
+  data.toolsTrimmed = trimmed;
+  data.log = log.reverse();
+  data.logTrimmed = trimmed;
+  data.ok = 0;
+  data.failed = 0;
+  for (const call of data.tools) countTool(data, call, 1);
+  data.toolsVersion++;
 }

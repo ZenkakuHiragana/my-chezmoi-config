@@ -122,8 +122,9 @@ class ReaderTests(TemporaryTestCase):
         errors = [r for r in results if isinstance(r, reader.ReadFailure)]
         self.assertEqual(len(errors), 2)
         [(origin, conv)] = [r for r in results if not isinstance(r, reader.ReadFailure)]
-        self.assertEqual((conv['title'], origin.source_path, origin.member, origin.project),
-                         ('new', str(archive.resolve()), 'new/conversation.json', 'project'))
+        self.assertEqual(
+            (conv['title'], origin.source_path, origin.member, origin.project),
+            ('new', str(archive.resolve()), 'new/conversation.json', 'project'))
         self.assertEqual(origin.load(), conv)
         self.assertEqual(origin.label, f'{archive.resolve()}!new/conversation.json')
 

@@ -142,7 +142,7 @@ function pathDecision(
   pathValue: string,
   cwd: string,
   rules: RuleConfig,
- ): ToolCallEventResult | undefined {
+): ToolCallEventResult | undefined {
   const candidates = pathCandidates(pathValue, cwd);
   if (matchesPathGlob(rules.allow, candidates)) return undefined;
   if (matchesPathGlob(rules.deny, candidates)) {

@@ -28,28 +28,28 @@ output=''
 writeout=''
 fail_mode=''
 while (($#)); do
-  case "$1" in
-    -f|--fail) fail_mode=fail; shift ;;
-    --fail-with-body) fail_mode=body; shift ;;
-    -o|--output) output=$2; shift 2 ;;
-    --output=*) output=${1#*=}; shift ;;
-    -w|--write-out) writeout=$2; shift 2 ;;
-    --write-out=*) writeout=${1#*=}; shift ;;
-    --data-urlencode|--data|--data-raw|-d|--url|--connect-timeout|--max-time|-H|--header|-X|--request|--retry|--retry-delay|--user-agent|-A)
-      shift 2 ;;
-    *) shift ;;
-  esac
+    case "$1" in
+        -f|--fail) fail_mode=fail; shift ;;
+        --fail-with-body) fail_mode=body; shift ;;
+        -o|--output) output=$2; shift 2 ;;
+        --output=*) output=${1#*=}; shift ;;
+        -w|--write-out) writeout=$2; shift 2 ;;
+        --write-out=*) writeout=${1#*=}; shift ;;
+        --data-urlencode|--data|--data-raw|-d|--url|--connect-timeout|--max-time|-H|--header|-X|--request|--retry|--retry-delay|--user-agent|-A)
+            shift 2 ;;
+        *) shift ;;
+    esac
 done
 if [[ ${FAKE_CURL_EXIT:-0} != 0 ]]; then
-  echo 'simulated curl error' >&2
-  exit "$FAKE_CURL_EXIT"
+    echo 'simulated curl error' >&2
+    exit "$FAKE_CURL_EXIT"
 fi
 if [[ $fail_mode != fail || $FAKE_CURL_STATUS -lt 400 ]]; then
-  if [[ -n $output && $output != - ]]; then
-    cat "$FAKE_CURL_BODY" > "$output"
-  else
-    cat "$FAKE_CURL_BODY"
-  fi
+    if [[ -n $output && $output != - ]]; then
+        cat "$FAKE_CURL_BODY" > "$output"
+    else
+        cat "$FAKE_CURL_BODY"
+    fi
 fi
 writeout=${writeout//'%{http_code}'/$FAKE_CURL_STATUS}
 writeout=${writeout//'%{response_code}'/$FAKE_CURL_STATUS}
@@ -136,9 +136,10 @@ class FxTwitterTest(unittest.TestCase):
         urls = []
         data = []
         # Options that consume their next argument, regardless of its contents.
-        valued = {"-o", "--output", "-w", "--write-out", "--connect-timeout",
-                  "--max-time", "-H", "--header", "-X", "--request", "--retry",
-                  "--retry-delay", "--user-agent", "-A"}
+        valued = {
+            "-o", "--output", "-w", "--write-out", "--connect-timeout",
+            "--max-time", "-H", "--header", "-X", "--request", "--retry",
+            "--retry-delay", "--user-agent", "-A"}
         i = 0
         while i < len(args):
             arg = args[i]
@@ -221,15 +222,19 @@ class FxTwitterTest(unittest.TestCase):
         cursor = 'x+y/= &%#日本語 "$(touch \"$FAKE_CURL_LOG.pwn\")"'
         query = '生成AI & a+b/=%# "$(touch \"$FAKE_CURL_LOG.pwn\")"'
         cases = [
-            (("search", query, "--feed", "media", "--count", "30", "--cursor", cursor),
-             "/2/search", [("q", query), ("feed", "media"), ("count", "30"), ("cursor", cursor)]),
+            (
+                ("search", query, "--feed", "media", "--count", "30", "--cursor", cursor),
+                "/2/search", [("q", query), ("feed", "media"), ("count", "30"), ("cursor", cursor)]),
             (("get", ID), f"/2/status/{ID}", []),
-            (("replies", ID, "--ranking", "recency", "--cursor", cursor),
-             f"/2/conversation/{ID}", [("ranking_mode", "recency"), ("cursor", cursor)]),
-            (("quotes", ID, "--count", "20", "--cursor", cursor),
-             f"/2/status/{ID}/quotes", [("count", "20"), ("cursor", cursor)]),
-            (("user-posts", "@example", "--with-replies", "--count", "20", "--cursor", cursor),
-             "/2/profile/example/statuses", [("with_replies", "1"), ("count", "20"), ("cursor", cursor)]),
+            (
+                ("replies", ID, "--ranking", "recency", "--cursor", cursor),
+                f"/2/conversation/{ID}", [("ranking_mode", "recency"), ("cursor", cursor)]),
+            (
+                ("quotes", ID, "--count", "20", "--cursor", cursor),
+                f"/2/status/{ID}/quotes", [("count", "20"), ("cursor", cursor)]),
+            (
+                ("user-posts", "@example", "--with-replies", "--count", "20", "--cursor", cursor),
+                "/2/profile/example/statuses", [("with_replies", "1"), ("count", "20"), ("cursor", cursor)]),
             (("user-posts", "id:783214"), "/2/profile/id:783214/statuses", []),
         ]
         for args, path, params in cases:
@@ -280,29 +285,31 @@ class FxTwitterTest(unittest.TestCase):
                     self.assertEqual(self.request(), (f"/2/status/{ID}", []))
 
     def test_bad_post_urls_and_ids_are_not_sent(self):
-        values = ["1", "123456789012345678901", "１２", "12x", "-12",
-                  f"http://x.com/u/status/{ID}", f"https://evil.example/u/status/{ID}",
-                  f"https://x.com.evil.example/u/status/{ID}", f"https://x.com@evil.example/u/status/{ID}",
-                  f"https://x.com:443/u/status/{ID}", f"https://x.com/u/status/{ID}/extra",
-                  f"https://x.com/u/status/{ID}oops", f"https://x.com/invalid-handle/status/{ID}",
-                  f"https://x.com/abcdefghijklmnop/status/{ID}", f"https://x.com/i/article/{ID}"]
+        values = [
+            "1", "123456789012345678901", "１２", "12x", "-12",
+            f"http://x.com/u/status/{ID}", f"https://evil.example/u/status/{ID}",
+            f"https://x.com.evil.example/u/status/{ID}", f"https://x.com@evil.example/u/status/{ID}",
+            f"https://x.com:443/u/status/{ID}", f"https://x.com/u/status/{ID}/extra",
+            f"https://x.com/u/status/{ID}oops", f"https://x.com/invalid-handle/status/{ID}",
+            f"https://x.com/abcdefghijklmnop/status/{ID}", f"https://x.com/i/article/{ID}"]
         for command in ("get", "replies", "quotes"):
             for value in values:
                 with self.subTest(command=command, value=value):
                     self.assert_usage_error(command, value)
 
     def test_invalid_inputs_options_and_counts(self):
-        cases = [(), ("post", "hello"), ("unknown",), ("search",), ("get",),
-                 ("search", ""), ("search", "topic", "extra"),
-                 ("search", "--feed", "latest"), ("search", "x", "--feed"),
-                 ("search", "x", "--feed", "bad"), ("search", "x", "--feed", "top", "--feed", "latest"),
-                 ("search", "x", "--cursor", ""), ("search", "x", "--unknown"),
-                 ("search", "x", "--ranking", "likes"),
-                 ("replies", ID, "--ranking", "bad"), ("get", ID, "--count", "1"),
-                 ("user-posts", ""), ("user-posts", "@"), ("user-posts", "bad-name"),
-                 ("user-posts", "abcdefghijklmnop"), ("user-posts", "id:"),
-                 ("user-posts", "id:12x"), ("user-posts", "@@example"),
-                 ("user-posts", "example", "--with-replies", "--with-replies")]
+        cases = [
+            (), ("post", "hello"), ("unknown",), ("search",), ("get",),
+            ("search", ""), ("search", "topic", "extra"),
+            ("search", "--feed", "latest"), ("search", "x", "--feed"),
+            ("search", "x", "--feed", "bad"), ("search", "x", "--feed", "top", "--feed", "latest"),
+            ("search", "x", "--cursor", ""), ("search", "x", "--unknown"),
+            ("search", "x", "--ranking", "likes"),
+            ("replies", ID, "--ranking", "bad"), ("get", ID, "--count", "1"),
+            ("user-posts", ""), ("user-posts", "@"), ("user-posts", "bad-name"),
+            ("user-posts", "abcdefghijklmnop"), ("user-posts", "id:"),
+            ("user-posts", "id:12x"), ("user-posts", "@@example"),
+            ("user-posts", "example", "--with-replies", "--with-replies")]
         for command, target in (("search", "x"), ("quotes", ID), ("user-posts", "example")):
             cases.extend((command, target, "--count", value) for value in ("", "0", "101", "-1", "1.0", "abc", "１００"))
             cases.append((command, target, "--count", "1", "--count", "2"))
@@ -418,10 +425,11 @@ class FxTwitterTest(unittest.TestCase):
         self.assertFalse(self.removed_temp_dir().exists())
 
     def test_invalid_success_responses_are_not_printed(self):
-        bodies = ["", "not JSON", "{}", "[]", "null", '"string"',
-                  '{"code":"200"}', '{"code":null}', '{"code":199}',
-                  '{"code":300}', '{"code":500}', '{"code":200}\n{"code":200}',
-                  '{"code":200}\nnull', '{"code":200} trailing garbage']
+        bodies = [
+            "", "not JSON", "{}", "[]", "null", '"string"',
+            '{"code":"200"}', '{"code":null}', '{"code":199}',
+            '{"code":300}', '{"code":500}', '{"code":200}\n{"code":200}',
+            '{"code":200}\nnull', '{"code":200} trailing garbage']
         for body in bodies:
             with self.subTest(body=body):
                 result = self.run_cli("get", ID, body=body)

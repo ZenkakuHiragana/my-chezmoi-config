@@ -24,16 +24,16 @@ import type { ExtensionContext } from "@earendil-works/pi-coding-agent";
 import type { CrtState, Versioned } from "../state/core.ts";
 
 export interface FeatureEnv {
-	/** The state the panels share. */
-	state: CrtState;
-	/** Pi's context of the current session; undefined before session_start and after shutdown. */
-	context(): ExtensionContext | undefined;
-	/** Ask Pi to draw the screen again. */
-	requestRender(): void;
-	/** `data` changed: give it a new version and draw the screen again. */
-	changed(data: Versioned): void;
-	/** Whether a panel is on screen now: the tabs are shown, and the page shows it at the current width. */
-	shows(panel: string): boolean;
-	/** Call `listener` whenever what `shows` answers may have changed: another page, a maximized panel, the tabs shown or hidden. */
-	onShownChange(listener: () => void): void;
+  /** The state the panels share. */
+  state: CrtState;
+  /** Pi's context of the current session; undefined before session_start and after shutdown. */
+  context(): ExtensionContext | undefined;
+  /** Ask Pi to draw the screen again. */
+  requestRender(): void;
+  /** `data` changed: give it a new version and draw the screen again. */
+  changed(data: Versioned): void;
+  /** Whether a panel is on screen now: the tabs are shown, and the page shows it at the current width. */
+  shows(panel: string): boolean;
+  /** Call `listener` whenever what `shows` answers may have changed: another page, a maximized panel, the tabs shown or hidden. */
+  onShownChange(listener: () => void): void;
 }

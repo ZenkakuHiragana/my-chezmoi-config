@@ -2,8 +2,8 @@
  * The smallest screen piece: a component that draws the lines a function returns.
  */
 import {
-	type Component,
-	truncateToWidth,
+  type Component,
+  truncateToWidth,
 } from "@earendil-works/pi-tui";
 import type { Theme } from "@earendil-works/pi-coding-agent";
 
@@ -17,24 +17,24 @@ export type ThemeRef = () => Theme;
  * not clipped again: clipping a long coloured line costs more than making it.
  */
 export class Lines implements Component {
-	private cache?: { width: number; key: unknown[]; lines: string[] };
-	constructor(
-		private readonly produce: (width: number) => string[],
-		private readonly key?: (width: number) => unknown[],
-		private readonly fitted = false,
-	) {}
-	render(width: number): string[] {
-		const key = this.key?.(width);
-		const cache = this.cache;
-		if (key && cache && cache.width === width && cache.key.length === key.length && cache.key.every((v, i) => v === key[i])) {
-			return cache.lines;
-		}
-		const produced = this.produce(width);
-		const lines = this.fitted ? produced : produced.map((line) => truncateToWidth(line, width));
-		if (key) this.cache = { width, key, lines };
-		return lines;
-	}
-	invalidate(): void {
-		this.cache = undefined;
-	}
+  private cache?: { width: number; key: unknown[]; lines: string[] };
+  constructor(
+    private readonly produce: (width: number) => string[],
+    private readonly key?: (width: number) => unknown[],
+    private readonly fitted = false,
+  ) {}
+  render(width: number): string[] {
+    const key = this.key?.(width);
+    const cache = this.cache;
+    if (key && cache && cache.width === width && cache.key.length === key.length && cache.key.every((v, i) => v === key[i])) {
+      return cache.lines;
+    }
+    const produced = this.produce(width);
+    const lines = this.fitted ? produced : produced.map((line) => truncateToWidth(line, width));
+    if (key) this.cache = { width, key, lines };
+    return lines;
+  }
+  invalidate(): void {
+    this.cache = undefined;
+  }
 }

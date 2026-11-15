@@ -32,64 +32,64 @@ import { type Color, colorToRgb, type Terminal } from "@earendil-works/pi-tui";
 const RESET = "\x1b]110\x07";
 
 export interface TerminalForeground {
-	/**
-	 * Set the default foreground to `color`, unless it was set to that already and Pi
-	 * has not drawn the whole screen again since (`redraws`: TUI.fullRedraws).
-	 */
-	follow(terminal: Terminal, color: Color, redraws: number): void;
-	/**
-	 * Give the terminal its default foreground back, if it was set. `sync` writes
-	 * straight to stdout: needed when Pi is about to exit, because a write to a
-	 * Windows TTY is asynchronous and would not get out.
-	 */
-	release(sync: boolean): void;
+  /**
+   * Set the default foreground to `color`, unless it was set to that already and Pi
+   * has not drawn the whole screen again since (`redraws`: TUI.fullRedraws).
+   */
+  follow(terminal: Terminal, color: Color, redraws: number): void;
+  /**
+   * Give the terminal its default foreground back, if it was set. `sync` writes
+   * straight to stdout: needed when Pi is about to exit, because a write to a
+   * Windows TTY is asynchronous and would not get out.
+   */
+  release(sync: boolean): void;
 }
 
 /** The theme's text colour, or undefined when the theme leaves it to the terminal. */
 export function themeText(theme: Theme): Color | undefined {
-	// Pi draws a token set to "" with the default foreground; getFgAnsi adds SGR 2 after it for a faint one.
-	return theme.getFgAnsi("text").startsWith("\x1b[39m") ? undefined : theme.colors.text;
+  // Pi draws a token set to "" with the default foreground; getFgAnsi adds SGR 2 after it for a faint one.
+  return theme.getFgAnsi("text").startsWith("\x1b[39m") ? undefined : theme.colors.text;
 }
 
 const hex = (value: number) => Math.round(value).toString(16).padStart(2, "0");
 
 export function terminalForeground(): TerminalForeground {
-	/** The colour spec last sent, where, and Pi's count of full redraws then. */
-	let sent: string | undefined;
-	let target: Terminal | undefined;
-	let sentAt = 0;
-	// Pi may exit without a session_shutdown (process.exit from elsewhere); the colour
-	// goes back then too. A hard kill or a native abort runs no JavaScript.
-	const onExit = () => release(true);
+  /** The colour spec last sent, where, and Pi's count of full redraws then. */
+  let sent: string | undefined;
+  let target: Terminal | undefined;
+  let sentAt = 0;
+  // Pi may exit without a session_shutdown (process.exit from elsewhere); the colour
+  // goes back then too. A hard kill or a native abort runs no JavaScript.
+  const onExit = () => release(true);
 
-	const release = (sync: boolean) => {
-		if (sent === undefined) return;
-		const terminal = target;
-		sent = undefined;
-		target = undefined;
-		process.off("exit", onExit);
-		if (!sync) {
-			terminal?.write(RESET);
-			return;
-		}
-		try {
-			writeSync(process.stdout.fd, RESET);
-		} catch {
-			// The terminal may already be gone.
-		}
-	};
+  const release = (sync: boolean) => {
+    if (sent === undefined) return;
+    const terminal = target;
+    sent = undefined;
+    target = undefined;
+    process.off("exit", onExit);
+    if (!sync) {
+      terminal?.write(RESET);
+      return;
+    }
+    try {
+      writeSync(process.stdout.fd, RESET);
+    } catch {
+      // The terminal may already be gone.
+    }
+  };
 
-	return {
-		follow(terminal, color, redraws) {
-			const { r, g, b } = colorToRgb(color);
-			const spec = `rgb:${hex(r)}/${hex(g)}/${hex(b)}`;
-			if (spec === sent && terminal === target && redraws === sentAt) return;
-			if (sent === undefined) process.on("exit", onExit);
-			sent = spec;
-			target = terminal;
-			sentAt = redraws;
-			terminal.write(`\x1b]10;${spec}\x07`);
-		},
-		release,
-	};
+  return {
+    follow(terminal, color, redraws) {
+      const { r, g, b } = colorToRgb(color);
+      const spec = `rgb:${hex(r)}/${hex(g)}/${hex(b)}`;
+      if (spec === sent && terminal === target && redraws === sentAt) return;
+      if (sent === undefined) process.on("exit", onExit);
+      sent = spec;
+      target = terminal;
+      sentAt = redraws;
+      terminal.write(`\x1b]10;${spec}\x07`);
+    },
+    release,
+  };
 }

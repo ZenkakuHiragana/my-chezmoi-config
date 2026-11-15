@@ -1,0 +1,7 @@
+# 上流 ctok v1.4.0 の ctok/data/ のコピーなので、原本のまま置く。
+[{pieces_v3.json,pieces_v4_7.json}]
+end_of_line = unset
+insert_final_newline = unset
+indent_style = unset
+indent_size = unset
+charset = unset

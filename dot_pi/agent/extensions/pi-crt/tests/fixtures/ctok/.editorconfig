@@ -1,0 +1,8 @@
+# 上流 ctok v1.4.0 の tests/fixtures/ のコピーなので、原本のまま置く。
+# 同じフォルダの frames.json は自前のファイルなので、ここには含めない。
+[{multipl_e_counts.json,rosetta_holdout_counts.json,multipl_e.jsonl.gz,rosetta_holdout.jsonl.gz}]
+end_of_line = unset
+insert_final_newline = unset
+indent_style = unset
+indent_size = unset
+charset = unset

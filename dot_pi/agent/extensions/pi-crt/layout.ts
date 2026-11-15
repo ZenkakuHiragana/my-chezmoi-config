@@ -45,144 +45,144 @@
 import type { TabDef } from "./screen/layout.ts";
 
 const tabs: TabDef[] = [
-	{
-		label: "TERM",
-		pages: [
-			{
-				label: "CHAT",
-				layout: {
-					minWidth: 160,
-					wide: {
-						row: [
-							{ column: [{ panel: "thinking", size: "20%" }, "transcript"] },
-							{ panel: "toollog", size: "43%" },
-						],
-					},
-					narrow: {
-						column: [{ row: ["thinking", { panel: "tools", size: "34%" }], size: "20%" }, "transcript"],
-					},
-				},
-			},
-			{ label: "LOG", layout: "toollog" },
-		],
-	},
-	{
-		label: "STAT",
-		pages: [
-			{ label: "STATUS", layout: "vitals" },
-			{
-				label: "DETAIL",
-				layout: {
-					minWidth: 120,
-					wide: { column: [{ row: ["context", { panel: "usage", size: "45%" }], size: "45%" }, "history"] },
-					narrow: { column: [{ panel: "context", size: "35%" }, { panel: "usage", size: "20%" }, "history"] },
-				},
-			},
-		],
-	},
-	{
-		label: "INV",
-		pages: [
-			{
-				label: "PROMPT",
-				layout: {
-					minWidth: 120,
-					wide: { row: [{ panel: "promptparts", size: "31%" }, "prompttext"] },
-					narrow: { column: [{ panel: "promptparts", size: "25%" }, "prompttext"] },
-				},
-				primary: "prompttext",
-			},
-			{
-				label: "TOOLS",
-				layout: {
-					minWidth: 120,
-					wide: { row: [{ panel: "toollist", size: "31%" }, "tooldetail"] },
-					narrow: { column: [{ panel: "toollist", size: "25%" }, "tooldetail"] },
-				},
-				primary: "tooldetail",
-			},
-			{
-				label: "SKILLS",
-				layout: {
-					minWidth: 120,
-					wide: { row: [{ panel: "skilllist", size: "31%" }, "skilltext"] },
-					narrow: { column: [{ panel: "skilllist", size: "25%" }, "skilltext"] },
-				},
-				primary: "skilltext",
-			},
-		],
-	},
-	{
-		label: "DATA",
-		pages: [
-			{
-				label: "GIT",
-				layout: {
-					minWidth: 120,
-					wide: { row: [{ column: ["gitfiles", { panel: "gitlog", size: "30%" }], size: "31%" }, "gitdiff"] },
-					narrow: { column: ["git", { panel: "gitlog", size: "20%" }] },
-				},
-				primary: ["gitdiff", "git"],
-			},
-			{
-				label: "MODELS",
-				layout: {
-					minWidth: 120,
-					wide: { row: [{ panel: "modellist", size: "40%" }, "modeldetail"] },
-					narrow: { column: [{ panel: "modellist", size: "50%" }, "modeldetail"] },
-				},
-				primary: "modellist",
-			},
-			{ label: "EXTENSIONS", layout: "extensions" },
-		],
-	},
-	{
-		label: "MAP",
-		pages: [
-			{
-				label: "TREE",
-				layout: {
-					minWidth: 120,
-					wide: { row: ["tree", { panel: "location", size: "36%" }] },
-					narrow: { column: ["tree", { panel: "location", size: "40%" }] },
-				},
-				primary: "tree",
-			},
-			{ label: "SESSIONS", layout: "sessions" },
-		],
-	},
-	{
-		label: "RADIO",
-		pages: [
-			{
-				label: "STATIONS",
-				layout: {
-					minWidth: 100,
-					wide: { row: [{ panel: "stations", size: "32%" }, "nowplaying"] },
-					narrow: { column: [{ panel: "stations", size: "40%" }, "nowplaying"] },
-				},
-				primary: "stations",
-			},
-			{
-				label: "SEARCH",
-				layout: {
-					minWidth: 100,
-					wide: { row: [{ panel: "radiosearch", size: "32%" }, "nowplaying"] },
-					narrow: { column: [{ panel: "radiosearch", size: "50%" }, "nowplaying"] },
-				},
-				primary: "radiosearch",
-			},
-			{
-				label: "OUTPUT",
-				layout: {
-					minWidth: 100,
-					wide: { row: [{ panel: "radiooutput", size: "32%" }, "nowplaying"] },
-					narrow: { column: [{ panel: "radiooutput", size: "40%" }, "nowplaying"] },
-				},
-				primary: "radiooutput",
-			},
-		],
-	},
+  {
+    label: "TERM",
+    pages: [
+      {
+        label: "CHAT",
+        layout: {
+          minWidth: 160,
+          wide: {
+            row: [
+              { column: [{ panel: "thinking", size: "20%" }, "transcript"] },
+              { panel: "toollog", size: "43%" },
+            ],
+          },
+          narrow: {
+            column: [{ row: ["thinking", { panel: "tools", size: "34%" }], size: "20%" }, "transcript"],
+          },
+        },
+      },
+      { label: "LOG", layout: "toollog" },
+    ],
+  },
+  {
+    label: "STAT",
+    pages: [
+      { label: "STATUS", layout: "vitals" },
+      {
+        label: "DETAIL",
+        layout: {
+          minWidth: 120,
+          wide: { column: [{ row: ["context", { panel: "usage", size: "45%" }], size: "45%" }, "history"] },
+          narrow: { column: [{ panel: "context", size: "35%" }, { panel: "usage", size: "20%" }, "history"] },
+        },
+      },
+    ],
+  },
+  {
+    label: "INV",
+    pages: [
+      {
+        label: "PROMPT",
+        layout: {
+          minWidth: 120,
+          wide: { row: [{ panel: "promptparts", size: "31%" }, "prompttext"] },
+          narrow: { column: [{ panel: "promptparts", size: "25%" }, "prompttext"] },
+        },
+        primary: "prompttext",
+      },
+      {
+        label: "TOOLS",
+        layout: {
+          minWidth: 120,
+          wide: { row: [{ panel: "toollist", size: "31%" }, "tooldetail"] },
+          narrow: { column: [{ panel: "toollist", size: "25%" }, "tooldetail"] },
+        },
+        primary: "tooldetail",
+      },
+      {
+        label: "SKILLS",
+        layout: {
+          minWidth: 120,
+          wide: { row: [{ panel: "skilllist", size: "31%" }, "skilltext"] },
+          narrow: { column: [{ panel: "skilllist", size: "25%" }, "skilltext"] },
+        },
+        primary: "skilltext",
+      },
+    ],
+  },
+  {
+    label: "DATA",
+    pages: [
+      {
+        label: "GIT",
+        layout: {
+          minWidth: 120,
+          wide: { row: [{ column: ["gitfiles", { panel: "gitlog", size: "30%" }], size: "31%" }, "gitdiff"] },
+          narrow: { column: ["git", { panel: "gitlog", size: "20%" }] },
+        },
+        primary: ["gitdiff", "git"],
+      },
+      {
+        label: "MODELS",
+        layout: {
+          minWidth: 120,
+          wide: { row: [{ panel: "modellist", size: "40%" }, "modeldetail"] },
+          narrow: { column: [{ panel: "modellist", size: "50%" }, "modeldetail"] },
+        },
+        primary: "modellist",
+      },
+      { label: "EXTENSIONS", layout: "extensions" },
+    ],
+  },
+  {
+    label: "MAP",
+    pages: [
+      {
+        label: "TREE",
+        layout: {
+          minWidth: 120,
+          wide: { row: ["tree", { panel: "location", size: "36%" }] },
+          narrow: { column: ["tree", { panel: "location", size: "40%" }] },
+        },
+        primary: "tree",
+      },
+      { label: "SESSIONS", layout: "sessions" },
+    ],
+  },
+  {
+    label: "RADIO",
+    pages: [
+      {
+        label: "STATIONS",
+        layout: {
+          minWidth: 100,
+          wide: { row: [{ panel: "stations", size: "32%" }, "nowplaying"] },
+          narrow: { column: [{ panel: "stations", size: "40%" }, "nowplaying"] },
+        },
+        primary: "stations",
+      },
+      {
+        label: "SEARCH",
+        layout: {
+          minWidth: 100,
+          wide: { row: [{ panel: "radiosearch", size: "32%" }, "nowplaying"] },
+          narrow: { column: [{ panel: "radiosearch", size: "50%" }, "nowplaying"] },
+        },
+        primary: "radiosearch",
+      },
+      {
+        label: "OUTPUT",
+        layout: {
+          minWidth: 100,
+          wide: { row: [{ panel: "radiooutput", size: "32%" }, "nowplaying"] },
+          narrow: { column: [{ panel: "radiooutput", size: "40%" }, "nowplaying"] },
+        },
+        primary: "radiooutput",
+      },
+    ],
+  },
 ];
 
 export default tabs;

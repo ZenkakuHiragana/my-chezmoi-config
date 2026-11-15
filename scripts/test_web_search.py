@@ -66,8 +66,9 @@ class WebSearchTests(unittest.TestCase):
         log = self.root / "calls.jsonl"
         log.write_text("", encoding="utf-8")
         env = os.environ.copy()
-        for name in ("WEB_SEARCH_RUSTXNG_URL", "WEB_SEARCH_CLAUDE_MODEL", "WEB_SEARCH_CODEX_MODEL",
-                     "FAKE_EXA", "FAKE_RUSTXNG", "FAKE_CLAUDE", "FAKE_CODEX", "FAKE_QUERY"):
+        for name in (
+            "WEB_SEARCH_RUSTXNG_URL", "WEB_SEARCH_CLAUDE_MODEL", "WEB_SEARCH_CODEX_MODEL",
+            "FAKE_EXA", "FAKE_RUSTXNG", "FAKE_CLAUDE", "FAKE_CODEX", "FAKE_QUERY"):
             env.pop(name, None)
         env.update(FAKE_PYTHON=sys.executable, FAKE_SCRIPT=str(self.fake), FAKE_LOG=str(log), WEB_SCRIPT=str(SCRIPT), TMPDIR="/outside-allowed-temp")
         for key, value in (responses or {}).items():

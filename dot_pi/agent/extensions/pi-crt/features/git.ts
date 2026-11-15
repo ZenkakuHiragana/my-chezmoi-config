@@ -33,88 +33,88 @@ const NONE: Readonly<GitData> = Object.freeze({ git: { files: [], diff: [] }, ve
 
 /** The last snapshot, the picked file and the line counts. */
 export function gitData(state: CrtState): Readonly<GitData> {
-	return collected.get(state) ?? NONE;
+  return collected.get(state) ?? NONE;
 }
 
 /** Show the diff of one file (by its gitPath), or of every file (`undefined`). */
 export function pickGitFile(state: CrtState, gitPath: string | undefined): void {
-	const data = collected.get(state);
-	if (data) pick(data, gitPath);
+  const data = collected.get(state);
+  if (data) pick(data, gitPath);
 }
 
 export function setupGit(pi: ExtensionAPI, env: FeatureEnv): void {
-	const data: GitData = { git: { files: [], diff: [] }, version: 0 };
-	collected.set(env.state, data);
-	const abort = new AbortController();
-	let timer: ReturnType<typeof setInterval> | undefined;
-	let busy = false;
-	let again = false;
-	/** The next read also reads the history (a git page was just opened). */
-	let freshLog = true;
+  const data: GitData = { git: { files: [], diff: [] }, version: 0 };
+  collected.set(env.state, data);
+  const abort = new AbortController();
+  let timer: ReturnType<typeof setInterval> | undefined;
+  let busy = false;
+  let again = false;
+  /** The next read also reads the history (a git page was just opened). */
+  let freshLog = true;
 
-	const showsGit = () => GIT_PANELS.some((id) => env.shows(id));
-	// STATUS: its DIFF card shows the line counts.
-	const showsCounts = () => env.shows(VITALS_PANEL);
+  const showsGit = () => GIT_PANELS.some((id) => env.shows(id));
+  // STATUS: its DIFF card shows the line counts.
+  const showsCounts = () => env.shows(VITALS_PANEL);
 
-	/** Re-read git while a git panel or STATUS is shown: what each of them shows. */
-	const refresh = async () => {
-		const ctx = env.context();
-		if (!ctx || !(showsGit() || showsCounts())) return;
-		if (busy) {
-			again = true;
-			return;
-		}
-		busy = true;
-		try {
-			do {
-				again = false;
-				if (showsGit()) {
-					const fresh = freshLog;
-					freshLog = false;
-					const snapshot = await readGit(pi, ctx.cwd, abort.signal, data.git, fresh);
-					if (abort.signal.aborted) return;
-					setGit(data, snapshot);
-				}
-				if (showsCounts()) {
-					const lines = await readLineCounts(pi, ctx.cwd, abort.signal);
-					if (abort.signal.aborted) return;
-					data.lines = lines;
-				}
-				// A refresh asked for while this one ran is dropped once neither is shown.
-			} while (again && (showsGit() || showsCounts()));
-		} catch (error) {
-			if (abort.signal.aborted) return;
-			const message = sanitize(error instanceof Error ? error.message : String(error));
-			setGit(data, { files: [], diff: [], error: message, updatedAt: Date.now() });
-		} finally {
-			busy = false;
-			env.changed(data);
-		}
-	};
+  /** Re-read git while a git panel or STATUS is shown: what each of them shows. */
+  const refresh = async () => {
+    const ctx = env.context();
+    if (!ctx || !(showsGit() || showsCounts())) return;
+    if (busy) {
+      again = true;
+      return;
+    }
+    busy = true;
+    try {
+      do {
+        again = false;
+        if (showsGit()) {
+          const fresh = freshLog;
+          freshLog = false;
+          const snapshot = await readGit(pi, ctx.cwd, abort.signal, data.git, fresh);
+          if (abort.signal.aborted) return;
+          setGit(data, snapshot);
+        }
+        if (showsCounts()) {
+          const lines = await readLineCounts(pi, ctx.cwd, abort.signal);
+          if (abort.signal.aborted) return;
+          data.lines = lines;
+        }
+        // A refresh asked for while this one ran is dropped once neither is shown.
+      } while (again && (showsGit() || showsCounts()));
+    } catch (error) {
+      if (abort.signal.aborted) return;
+      const message = sanitize(error instanceof Error ? error.message : String(error));
+      setGit(data, { files: [], diff: [], error: message, updatedAt: Date.now() });
+    } finally {
+      busy = false;
+      env.changed(data);
+    }
+  };
 
-	env.onShownChange(() => {
-		// Opening a git page reads the history again.
-		freshLog = true;
-		void refresh();
-	});
+  env.onShownChange(() => {
+    // Opening a git page reads the history again.
+    freshLog = true;
+    void refresh();
+  });
 
-	pi.on("session_start", (_event, ctx) => {
-		// The timer runs only for a session on screen; it reads git only while a git
-		// panel or STATUS is shown at the current width, which the width alone can change.
-		if (ctx.mode !== "tui" || !ctx.hasUI || timer) return;
-		timer = setInterval(() => void refresh(), GIT_REFRESH_MS);
-		timer.unref?.();
-	});
+  pi.on("session_start", (_event, ctx) => {
+    // The timer runs only for a session on screen; it reads git only while a git
+    // panel or STATUS is shown at the current width, which the width alone can change.
+    if (ctx.mode !== "tui" || !ctx.hasUI || timer) return;
+    timer = setInterval(() => void refresh(), GIT_REFRESH_MS);
+    timer.unref?.();
+  });
 
-	pi.on("agent_end", () => void refresh());
+  pi.on("agent_end", () => void refresh());
 
-	pi.on("tool_execution_end", (event) => {
-		if (EDIT_TOOLS.has(event.toolName)) void refresh();
-	});
+  pi.on("tool_execution_end", (event) => {
+    if (EDIT_TOOLS.has(event.toolName)) void refresh();
+  });
 
-	pi.on("session_shutdown", () => {
-		if (timer) clearInterval(timer);
-		timer = undefined;
-		abort.abort();
-	});
+  pi.on("session_shutdown", () => {
+    if (timer) clearInterval(timer);
+    timer = undefined;
+    abort.abort();
+  });
 }
