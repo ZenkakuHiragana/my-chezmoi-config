@@ -137,18 +137,46 @@ class Cdp {
   close() { try { this.ws.close(); } catch { /* 閉じられなくても結果は変わらない */ } }
 }
 
+// ブラウザの終了を待ってから一時フォルダを消す。終了前に消すと、ブラウザが掴んでいるファイルのせいで消えずに残る。
+// 消せなかったときは、残ったパスを標準エラーに書く。ページの確認結果は変えない。
+async function shutdown(proc, userDir, cdp) {
+  // pid が無いのは、プロセスを作れなかったとき
+  const exited = new Promise((r) => {
+    if (proc.pid === undefined || proc.exitCode !== null || proc.signalCode !== null) r();
+    else proc.once("exit", r);
+  });
+  const within = (ms) => Promise.race([exited.then(() => true), sleep(ms).then(() => false)]);
+  if (cdp?.ws.readyState === WebSocket.OPEN) cdp.ws.send(JSON.stringify({ id: 0, method: "Browser.close" }));
+  if (!(await within(5000))) {
+    proc.kill();
+    await within(5000);
+  }
+  cdp?.close();
+  try {
+    rmSync(userDir, { recursive: true, force: true, maxRetries: 10, retryDelay: 200 });
+  } catch (e) {
+    console.error(`一時フォルダを消せなかった: ${userDir}（${e.code ?? e.message}）`);
+  }
+}
+
 async function launch(browser, extraArgs) {
   const userDir = mkdtempSync(join(tmpdir(), "check-page-"));
+  // --disable-component-update: 起動中にコンポーネントを取りに行かせない。
+  // 取ってきたものの中には、利用者の権限では消せないフォルダ（OptimizationGuideModelsManifest の下）ができることがある。
   const args = ["--headless=new", "--disable-gpu", "--no-first-run", "--no-default-browser-check", "--hide-scrollbars",
-    "--remote-debugging-port=0", `--user-data-dir=${userDir}`, ...extraArgs, "about:blank"];
-  // Linux では、--user-data-dir を指定してもクラッシュ報告の設定がホームの設定フォルダに書かれる。
-  // 設定フォルダを一時フォルダに向け、確認の外に書き込みを残さない。
-  const env = process.platform === "linux" ? { ...process.env, XDG_CONFIG_HOME: userDir } : process.env;
+    "--disable-component-update", "--remote-debugging-port=0", `--user-data-dir=${userDir}`, ...extraArgs, "about:blank"];
+  // --user-data-dir を指定しても、Linux ではクラッシュ報告の設定がホームの設定フォルダに、
+  // Windows では組み込みの拡張機能の .crx が TEMP の直下に書かれる。
+  // これらを一時フォルダに向け、確認の外に書き込みを残さない。
+  const env = process.platform === "linux" ? { ...process.env, XDG_CONFIG_HOME: userDir }
+    : process.platform === "win32" ? { ...process.env, TEMP: userDir, TMP: userDir }
+    : process.env;
   const proc = spawn(browser, args, { stdio: ["ignore", "ignore", "pipe"], env });
   let stderr = "";
   proc.stderr.on("data", (d) => { stderr += d; });
   let exited = false;
   proc.on("exit", () => { exited = true; });
+  proc.on("error", (e) => { exited = true; stderr += `${e.message}\n`; });
   const portFile = join(userDir, "DevToolsActivePort");
   for (let i = 0; i < 150; i++) {
     if (existsSync(portFile)) {
@@ -158,7 +186,7 @@ async function launch(browser, extraArgs) {
     if (exited) break;
     await sleep(100);
   }
-  proc.kill();
+  await shutdown(proc, userDir, null);
   throw new Error(`ブラウザを起動できない: ${stderr.trim().split("\n").slice(-3).join(" / ")}`);
 }
 
@@ -247,11 +275,7 @@ async function main() {
   let session;
   try { session = await launch(browser, opt.browserArgs); } catch (e) { out(`確かめられなかった: ${e.message}`); finish(2); }
   const cdp = new Cdp(session.url);
-  const cleanup = () => {
-    cdp.close();
-    session.proc.kill();
-    try { rmSync(session.userDir, { recursive: true, force: true }); } catch { /* 一時フォルダが残っても結果は変わらない */ }
-  };
+  const cleanup = () => shutdown(session.proc, session.userDir, cdp);
 
   out(`ページ: ${pageUrl}`);
   out(`ブラウザ: ${browser}`);
@@ -317,7 +341,7 @@ async function main() {
           await load();
         } catch (e) {
           out(`確かめられなかった: ${e.message}`);
-          cleanup();
+          await cleanup();
           finish(2);
         }
         if (state.js) {
@@ -370,10 +394,10 @@ async function main() {
     for (const f of figureList) out(`  ${String(f.index).padStart(2, "0")}${f.id ? ` #${f.id}` : ""}: ${f.caption || "（説明文なし）"}`);
   } catch (e) {
     out(`確かめられなかった: ${e.message}`);
-    cleanup();
+    await cleanup();
     finish(2);
   }
-  cleanup();
+  await cleanup();
   out(`保存した画像（${outDir}）: ${shots.length} 枚`);
   for (const f of shots) out(`  ${f}`);
   if (problems.size) {
