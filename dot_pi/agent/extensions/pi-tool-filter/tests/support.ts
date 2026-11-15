@@ -17,11 +17,12 @@ export const extensionPath = join(extensionDir, "index.ts");
 export const configPath = join(extensionDir, "config.jsonc");
 export const packagePath = join(extensionDir, "package.json");
 export const lockPath = join(extensionDir, "package-lock.json");
+// Pi の管理された配置（~/.pi/agent/install/）で、今使っている版。
+const piInstall = join(homedir(), ".pi", "agent", "install");
 export const loaderPath = join(
-  homedir(),
-  "AppData",
-  "Roaming",
-  "npm",
+  piInstall,
+  "releases",
+  readFileSync(join(piInstall, "current-version"), "utf8").trim(),
   "node_modules",
   "@earendil-works",
   "pi-coding-agent",
