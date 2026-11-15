@@ -20,7 +20,7 @@ search QUERY [QUERY ...]
   複数クエリでは各検索をサービス設定の取得上限まで取得してから統合する。
   複数クエリの --limit と --offset は統合後の一覧に適用する。
 
-  --conversation ID   指定したやり取りと同じ会話に絞る。
+  --conversation ID   指定したやり取りと同じ会話に絞る。会話の ID（Pi の PI_SESSION_ID などの UUID）も渡せる。
                       QUERY に '' を渡すと、会話を古い順に表示する。
   --since YYYY-MM-DD  この日以降に絞る（ローカル日付）。
   --until YYYY-MM-DD  この日以前に絞る（指定した日を含む）。
@@ -179,10 +179,12 @@ async function search(options, args) {
     if (options.since) filter.push("timestamp >= " + dayStart(options.since, false));
     if (options.until) filter.push("timestamp < " + dayStart(options.until, true));
 
-    // 入力の ID はやり取りを指す。会話は文書の項目から取得する。
+    // 入力の ID はやり取りか会話を指す。UUID の形なら会話の ID で、
+    // それ以外（出典_会話_発言）はやり取りの ID として、会話を文書の項目から取得する。
     if (options.conversation) {
-        const target = await request("GET", "/documents/" + encodeURIComponent(options.conversation) + "?fields=conversation_id");
-        filter.push("conversation_id = " + JSON.stringify(target.conversation_id));
+        const conversation = /^[0-9a-f]{8}(-[0-9a-f]{4}){3}-[0-9a-f]{12}$/i.test(options.conversation) ? options.conversation
+            : (await request("GET", "/documents/" + encodeURIComponent(options.conversation) + "?fields=conversation_id")).conversation_id;
+        filter.push("conversation_id = " + JSON.stringify(conversation));
     } else if (process.env.PI_SESSION_ID) {
         filter.push("conversation_id != " + JSON.stringify(process.env.PI_SESSION_ID));
     }

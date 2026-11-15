@@ -344,6 +344,14 @@ class SessionTest(unittest.TestCase):
         self.assertEqual(body["hybrid"], {"embedder": "ruri", "semanticRatio": 0.5})
         self.assertNotIn("sort", body)
 
+    def test_conversation_by_its_own_id(self):
+        self.respond(found([hit(f"pi_{CONV}_a", "a")]))
+        code, out, err = self.run_cli("search", "", "--conversation", CONV)
+        self.assertEqual((code, err), (0, ""))
+        self.assertIn(f"pi_{CONV}_a", out)
+        self.assertEqual(len(self.fake.requests), 1)
+        self.assertEqual(self.bodies()[0]["filter"], [f'conversation_id = "{CONV}"'])
+
     def test_failures(self):
         self.respond((404, {"message": f"Document `{TARGET}` not found."}))
         code, out, err = self.run_cli("search", "", "--conversation", TARGET)
