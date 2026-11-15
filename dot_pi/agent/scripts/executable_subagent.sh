@@ -6,8 +6,8 @@
 # 依頼文を省略すると標準入力から読む。
 # 種類は、このスクリプトと同じ場所にある agents/<種類>.md で定義する。
 # 定義の先頭の欄（model、thinking、read_only）が起動条件で、欄より後ろがシステムプロンプトになる。
-# 子の記録は ~/.pi/agent/subagent-sessions/ の下に残る。フォルダ名は、Pi のセッションフォルダと同じ形に
-# 作業ディレクトリを符号化したもの（例: /home/user/project なら --home-user-project--）。
+# 子のセッションは保存しない。子の最終応答の出力と使用量の記録は、同じ場所にある subagent-usage.mjs が行う。
+# 使用量は ~/.pi/agent/subagent-usage.jsonl に 1 実行 1 行で追記する（項目と、行が残らない場合は subagent-usage.mjs の先頭にある）。
 
 set -u
 
@@ -41,6 +41,7 @@ body() {
 usage() {
     echo "使い方: $(basename "$0") <種類> [--name <説明>] [--timeout <秒>] [依頼文]"
     echo "依頼文を省略すると標準入力から読む。--timeout の既定は $default_timeout 秒。"
+    echo "使用量は ~/.pi/agent/subagent-usage.jsonl に 1 実行 1 行で記録する。項目と、行が残らない場合の説明は $script_dir/subagent-usage.mjs の先頭にある。"
     echo "種類:"
     local def
     for def in "$agents_dir"/*.md; do
@@ -105,19 +106,15 @@ if [ -z "$prompt" ]; then
     exit 2
 fi
 
-# Pi がセッションを置くフォルダ名と同じ形に、作業ディレクトリを符号化する。
-cwd=$(pwd -W 2> /dev/null || pwd)
-encoded=${cwd#/}
-encoded=${encoded//[\/\\:]/-}
-session_dir="$HOME/.pi/agent/subagent-sessions/--$encoded--"
-mkdir -p "$session_dir"
+model=$(field model "$def")
+thinking=$(field thinking "$def")
 
 args=(
-    -p
-    --session-dir "$session_dir"
-    --name "$type${description:+: $description}"
-    --model "$(field model "$def")"
-    --thinking "$(field thinking "$def")"
+    # 最終応答と使用量は、子の JSON イベントから集計器が作る。
+    --mode json
+    --no-session
+    --model "$model"
+    --thinking "$thinking"
     --system-prompt "$(body "$def")"
     # 追記を空で指定して、親と共通の追記用プロンプトを Pi に読ませない。
     --append-system-prompt ""
@@ -177,42 +174,61 @@ watch() {
     kill -TERM "$wrapper_pid" 2> /dev/null
 }
 
+# 集計器へ終了記録を渡し、集計器の終了を待って、その終了コードで終える。
+# 子が行の途中で止められていても終了記録が独立した行になるよう、先頭に改行を書く。
+# 集計器は最終応答を出し終えるまで終わらない。その間も制限時間と中断を効かせるため、見張りは最後に止める。
+finish() {
+    # 終了記録を送った後に finish がもう一度走らないよう、合図では集計器を止めて終えるだけにする。
+    trap 'kill "$collector_pid" 2> /dev/null; echo "サブエージェントを $timeout 秒で停止した。" >&2; exit 124' USR1
+    trap 'kill "$collector_pid" 2> /dev/null; echo "サブエージェントを中断した。" >&2; exit 130' INT TERM HUP
+    printf '\n{"type":"subagent_end","code":%d}\n' "$1" >&"$collector_fd"
+    exec {collector_fd}>&-
+    wait "$collector_pid"
+    local code=$?
+    [ -n "$watcher" ] && kill "$watcher" 2> /dev/null
+    exit "$code"
+}
+
 timed_out() {
     kill_run_processes
-    echo "サブエージェントを ${timeout} 秒で停止した。途中までの記録は $session_dir にある。" >&2
-    exit 124
+    echo "サブエージェントを ${timeout} 秒で停止した。" >&2
+    finish 124
 }
 
 interrupted() {
     kill_run_processes
-    kill "$watcher" 2> /dev/null
-    echo "サブエージェントを中断した。途中までの記録は $session_dir にある。" >&2
-    exit 130
+    [ -n "$watcher" ] && kill "$watcher" 2> /dev/null
+    echo "サブエージェントを中断した。" >&2
+    finish 130
 }
+
+run_id="$$-$RANDOM-$SECONDS"
+watcher=
+
+# 集計器は trap より先に起動し、trap が動く時点では必ず終了記録を受け取れるようにする。
+# 集計器は目印を持たないので、kill_run_processes では止まらない。
+exec {collector_fd}> >(exec node "$script_dir/subagent-usage.mjs" "$type" "$description" "$model" "$thinking")
+collector_pid=$!
 
 trap timed_out USR1
 trap interrupted INT TERM HUP
 
-run_id="$$-$RANDOM-$SECONDS"
-
 # 見張りは子より先に起動する。子を起動した直後に中断されても、見張りが子を止められる。
 # 呼び出し元の中断に巻き込まれないよう、使える環境では別のセッションで起動する。
+# 見張りには集計器への書き込み側を渡さない。渡すと、見張りが残る間は集計器に入力の終わりが届かない。
 watch_script="$(declare -f kill_run_processes watch); run_id='$run_id'; wrapper_pid=$$; caller_pid=$PPID; timeout=$timeout; watch"
 if command -v setsid > /dev/null 2>&1; then
-    setsid bash -c "$watch_script" < /dev/null > /dev/null 2>&1 &
+    setsid bash -c "$watch_script" < /dev/null > /dev/null 2>&1 {collector_fd}>&- &
 else
-    bash -c "$watch_script" < /dev/null > /dev/null 2>&1 &
+    bash -c "$watch_script" < /dev/null > /dev/null 2>&1 {collector_fd}>&- &
 fi
 watcher=$!
 
-PI_SUBAGENT_CHILD=1 PI_SUBAGENT_RUN=$run_id pi "${args[@]}" <<< "$prompt" &
+PI_SUBAGENT_CHILD=1 PI_SUBAGENT_RUN=$run_id pi "${args[@]}" <<< "$prompt" >&"$collector_fd" {collector_fd}>&- &
 child=$!
 
 wait "$child" 2> /dev/null
 status=$?
-# 子が自分で終わった後は、制限時間の合図を受けても止めない。
-trap '' USR1
 # 子が残したプロセスも止める。
 kill_run_processes
-kill "$watcher" 2> /dev/null
-exit "$status"
+finish "$status"
