@@ -62,6 +62,9 @@ pi:
       - npm:@foliox/transparent-compact-pi
       - git:github.com/jokerx0001/pi-model-system-prompt
       - git:github.com/johnnyshields/pi-keepalive
+      - git:github.com/ZenkakuHiragana/pi-edit-check
+      - git:github.com/ZenkakuHiragana/pi-tool-filter
+      - git:github.com/ZenkakuHiragana/pie-boy
       - source: git:github.com/rytswd/pi-agent-extensions
         extensions:
           - "-direnv/index.ts"
