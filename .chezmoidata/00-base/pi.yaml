@@ -30,6 +30,7 @@ pi:
         - "~/.config/opencode/knowledge-instructions/**"
         - "~/AppData/Local/Temp/opencode/**"
         - "~/AppData/Local/Temp/pi/**"
+        - "~/.local/state/agent/**"
         - "~/research/**"
         - "/tmp/opencode/**"
         - "/tmp/pi/**"
