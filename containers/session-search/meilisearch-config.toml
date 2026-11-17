@@ -3,5 +3,7 @@
 env = "development"
 # Meilisearch sends usage telemetry unless this is set.
 no_analytics = true
-# Allow the embedder to reach Ollama on the Docker host (host.docker.internal).
-experimental_allowed_ip_networks = ["192.168.0.0/16"]
+# Allow the embedders to reach embed-index and embed-search on the compose network.
+# Meilisearch rejects private addresses unless listed. Docker assigns the compose network from
+# 172.16.0.0/12 or 192.168.0.0/16 by default, and from other private ranges if the daemon is configured so.
+experimental_allowed_ip_networks = ["10.0.0.0/8", "172.16.0.0/12", "192.168.0.0/16"]

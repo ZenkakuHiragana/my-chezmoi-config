@@ -47,8 +47,9 @@ until curl -sf "$url/health" >/dev/null 2>&1; do
   sleep 1
 done
 
-# 埋め込みの indexingFragments / searchFragments は実験機能 multimodal が要る。
-request PATCH /experimental-features -d '{"multimodal":true}'
+# 埋め込みの indexingFragments / searchFragments は実験機能 multimodal が、
+# 索引用と検索用で接続先を分ける composite は実験機能 compositeEmbedders が要る。
+request PATCH /experimental-features -d '{"multimodal":true,"compositeEmbedders":true}'
 [ "$status" = 200 ] || fail "experimental-features: HTTP $status"
 
 # インデックスがなければ、設定の更新が作る。主キーは、文書を送る側が ?primaryKey=id で決める。

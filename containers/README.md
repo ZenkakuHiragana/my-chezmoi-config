@@ -49,4 +49,4 @@ docker compose config --no-interpolate    # 未展開のまま中身を見る
 | --- | --- | --- |
 | `rustxng/` | ローカル検索 | `rustxng/README.md` |
 | `hindsight/` | メモリバンク + 埋め込み + リランカー + Postgres | `hindsight/README.md` |
-| `session-search/` | 会話ログ検索の Meilisearch + 埋め込み用 Ollama（CPU） | `session-search/README.md` |
+| `session-search/` | 会話ログ検索の Meilisearch + 埋め込み用 Ollama | `session-search/README.md` |

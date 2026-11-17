@@ -8,7 +8,7 @@ Pi のセッションと ChatGPT の会話を、Meilisearch の1つのインデ�
 | Pi | 拡張 `dot_pi/agent/extensions/pi-session-index/` | 応答が終わるたびに今のセッションを送る。`cli.ts` で全セッションをまとめて送る |
 | ChatGPT | `scripts/import_chatgpt_meilisearch.py` | `chatgpt-local-backup-v0.4.0.user.js` が出力した ZIP、またはそれを展開したフォルダを送る |
 
-送る側は埋め込みを知らない。文書を送ると、Meilisearch が設定に従って Ollama を呼び、埋め込みを計算する。
+送る側は埋め込みを知らない。文書を送ると、Meilisearch が設定に従って Ollama に埋め込みを計算させる。
 
 接続先は、拡張・Pi の CLI・ChatGPT の取り込み・`session.sh` が共通で環境変数 `MEILISEARCH_URL`（既定 `http://127.0.0.1:7700`）と `MEILISEARCH_INDEX`（既定 `conversations`）を読む。compose の `.env` はこれらのプロセスには渡らない。インデックス名を変えるときは、compose 側（`.env` か、compose を起動するシェル）と、Pi などを起動する環境の両方で `MEILISEARCH_INDEX` を設定する。Meilisearch・Ollama の構成は `containers/session-search/README.md` を参照。
 
@@ -16,20 +16,20 @@ Pi のセッションと ChatGPT の会話を、Meilisearch の1つのインデ�
 
 設定の正本は `containers/session-search/meilisearch-settings.json`。`docker compose up -d` のたびに、サービス `meilisearch-settings` が次を行って終わる。
 
-1. 実験機能 `multimodal` を有効にする。
+1. 実験機能 `multimodal` と `compositeEmbedders` を有効にする。
 2. 設定を JSON の内容で上書きし、反映を待つ。インデックスがなければ、このとき作られる。
 
 失敗すると、このサービスは 0 以外の終了コードで終わり、理由をログに出す（`docker compose logs meilisearch-settings`）。設定が同じなら埋め込みは作り直されないので、毎回当ててよい。Meilisearch 側で同じ項目を手で変えても、次の `docker compose up` で戻る。
 
-主キーは、文書を送る側（拡張・CLI・ChatGPT の取り込み）が送信の URL に `?primaryKey=id` を付けて決める。インデックスに主キーがまだないときだけ効く。文書には `id` を含む項目が3つ（`id`、`conversation_id`、`message_id`）あり、主キーの推定に任せると失敗する。設定より先に文書が届いてインデックスができた場合も、後から設定を当てるときに埋め込みが作られる。ただし、そのとき Ollama にモデルが登録されていないと、設定のタスクが失敗する。モデルを登録してから `docker compose up meilisearch-settings` で当て直す。
+主キーは、文書を送る側（拡張・CLI・ChatGPT の取り込み）が送信の URL に `?primaryKey=id` を付けて決める。インデックスに主キーがまだないときだけ効く。文書には `id` を含む項目が3つ（`id`、`conversation_id`、`message_id`）あり、主キーの推定に任せると失敗する。設定より先に文書が届いてインデックスができた場合も、後から設定を当てるときに埋め込みが作られる。ただし、そのときモデルが登録されていないと、設定のタスクが失敗する。モデルを登録してから `docker compose up meilisearch-settings` で当て直す。
 
 ### 埋め込み
 
-Ruri v3 の使い方に合わせ、文書は「検索文書: 」、検索クエリは「検索クエリ: 」を先頭に付けて埋め込む。Meilisearch の通常の `documentTemplate` ではクエリに接頭辞を付けられないため、実験機能 `multimodal` の `indexingFragments` と `searchFragments` を使う。検索では組み込みの hybrid 検索をそのまま使える。`session.sh` は、使う埋め込み設定の名前（今は `ruri`）をインデックスの設定から読む。
+Ruri v3 の使い方に合わせ、文書は「検索文書: 」、検索クエリは「検索クエリ: 」を先頭に付けて埋め込む。Meilisearch の通常の `documentTemplate` ではクエリに接頭辞を付けられないため、実験機能 `multimodal` の `indexingFragments` と `searchFragments` を使う。文書と検索文で別の Ollama を呼ぶために、実験機能 `compositeEmbedders` の `composite` も使う。検索では組み込みの hybrid 検索をそのまま使える。`session.sh` は、使う埋め込み設定の名前（今は `ruri`）をインデックスの設定から読む。
 
 埋め込むのは返答の先頭12,000字と、質問の先頭2,000字。返答が長くても質問が埋め込みから消えないよう、別々に切り詰める。合計14,000字は、Ruri の上限8,192トークンに収めるための値である。測定したコードや記号の多い文章は1文字あたり約0.50〜0.54トークンで、14,000字なら約7,600トークンになる。base64 のようにこれより密な文字列が多いと上限を超えることがあり、その場合はその会話の文書がすべて失敗する。切り詰めは埋め込みだけで、文字検索は全文が対象になる。
 
-埋め込みの設定の `url`、`request`、`response` を変えると全文書の、`indexingFragments` を変えると出力が変わる文書の埋め込みを作り直す。CPU では数時間以上かかる（`containers/session-search/README.md` の「埋め込み設定を変えないこと」）。別のモデルに替えるときは、`request.model`、`dimensions`、両方の接頭辞、切り詰める字数をまとめて書き換える。
+`indexingEmbedder` の `url`、`request`、`response` を変えると全文書の、`indexingFragments` を変えると出力が変わる文書の埋め込みを作り直す。CPU では数時間以上かかる。`searchEmbedder` は変えても作り直さない（`containers/session-search/README.md` の「埋め込み設定を変えるとき」）。別のモデルに替えるときは、両方の `request.model` と `dimensions`、両方の接頭辞、切り詰める字数をまとめて書き換える。
 
 ## Pi
 

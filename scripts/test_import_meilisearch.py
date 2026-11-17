@@ -333,7 +333,7 @@ class RunTests(unittest.TestCase):
         self.assertEqual(summary['documents'], 4)
 
 class SettingsFileTests(unittest.TestCase):
-    """The index settings the compose service applies. Changing the embedder re-embeds every document."""
+    """The index settings the compose service applies. Changing the indexing embedder's url, request or response re-embeds every document."""
 
     def test_settings_contract(self):
         path = Path(__file__).resolve().parents[1] / 'containers' / 'session-search' / 'meilisearch-settings.json'
@@ -346,14 +346,22 @@ class SettingsFileTests(unittest.TestCase):
         self.assertEqual(settings['localizedAttributes'], [{'locales': ['jpn', 'eng'], 'attributePatterns': ['question', 'reply', 'title']}])
         self.assertEqual(list(settings['embedders']), ['ruri'])
         embedder = settings['embedders']['ruri']
-        self.assertEqual(set(embedder), {'source', 'url', 'dimensions', 'request', 'response', 'indexingFragments', 'searchFragments'})
-        self.assertEqual(embedder['source'], 'rest')
-        self.assertEqual(embedder['url'], 'http://host.docker.internal:11434/api/embed')
-        self.assertEqual(embedder['dimensions'], 768)
-        self.assertEqual(embedder['request'], {'model': 'ruri-v3-310m:q8_0', 'input': ['{{fragment}}', '{{..}}']})
-        self.assertEqual(embedder['response'], {'embeddings': ['{{embedding}}', '{{..}}']})
-        self.assertEqual(embedder['searchFragments'], {'query': {'value': '検索クエリ: {{q}}'}})
-        self.assertEqual(embedder['indexingFragments'], {'doc': {
+        self.assertEqual(set(embedder), {'source', 'indexingEmbedder', 'searchEmbedder'})
+        self.assertEqual(embedder['source'], 'composite')
+        indexing, search = embedder['indexingEmbedder'], embedder['searchEmbedder']
+        self.assertEqual(set(indexing), {'source', 'url', 'dimensions', 'request', 'response', 'indexingFragments'})
+        self.assertEqual(set(search), {'source', 'url', 'dimensions', 'request', 'response', 'searchFragments'})
+        # The two hosts are aliases of compose services. The indexing url is part of what identifies the stored vectors.
+        self.assertEqual(indexing['url'], 'http://embed-index.internal:11434/api/embed')
+        self.assertEqual(search['url'], 'http://embed-search.internal:11434/api/embed')
+        # Documents and queries must be embedded by the same model, so both sides carry the same request.
+        for side in (indexing, search):
+            self.assertEqual(side['source'], 'rest')
+            self.assertEqual(side['dimensions'], 768)
+            self.assertEqual(side['request'], {'model': 'ruri-v3-310m:q8_0', 'input': ['{{fragment}}', '{{..}}']})
+            self.assertEqual(side['response'], {'embeddings': ['{{embedding}}', '{{..}}']})
+        self.assertEqual(search['searchFragments'], {'query': {'value': '検索クエリ: {{q}}'}})
+        self.assertEqual(indexing['indexingFragments'], {'doc': {
             'value': '検索文書: {{ doc.reply | truncate: 12000 }}\n\n{{ doc.question | truncate: 2000 }}'}})
 
 

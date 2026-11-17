@@ -1,0 +1,12 @@
+# embed-index を、別の PC の Ollama へつなぐ転送に差し替える上書き。読ませ方は README の「別の PC の GPU を借りる」を参照。
+services:
+  embed-index: !override
+    image: alpine/socat:1.8.0.3
+    restart: unless-stopped
+    networks:
+      default:
+        aliases:
+          - embed-index.internal
+    command:
+      - TCP-LISTEN:11434,fork,reuseaddr
+      - TCP:${EMBED_INDEX_REMOTE:?.env に EMBED_INDEX_REMOTE（コンテナから届く ホスト:ポート）を設定する}

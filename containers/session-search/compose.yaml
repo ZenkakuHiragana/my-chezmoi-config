@@ -1,5 +1,11 @@
 name: session-search
 
+# プロキシを全コンテナへ注入する設定の PC でも、コンテナどうしの通信をプロキシへ流さない。
+# 0.0.0.0 は、Ollama のコンテナの中で ollama コマンドが自分のサーバーを呼ぶときの宛先。
+x-no-proxy: &no-proxy
+  NO_PROXY: &no-proxy-hosts meilisearch,embed-index.internal,embed-search.internal,localhost,127.0.0.1,0.0.0.0
+  no_proxy: *no-proxy-hosts
+
 services:
   meilisearch:
     image: &meilisearch-image getmeili/meilisearch:v1.56.2
@@ -8,7 +14,12 @@ services:
     ports:
       - "127.0.0.1:7700:7700"
     environment:
+      <<: *no-proxy
       MEILI_CONFIG_FILE_PATH: /etc/meilisearch/config.toml
+      # 埋め込みの 1 要求を待つ秒数（既定 30）。Meilisearch は 10 文書の要求を 40 本まで同時に送り、
+      # Ollama は 1 本ずつ計算するので、最後の要求は 400 文書ぶん待つ。上限の長さ（約 7,600 トークン）の
+      # 文書が 400 件並んでも、約 230 トークン/秒より速い CPU なら切れない。検索時の待ち時間には効かない。
+      MEILI_EXPERIMENTAL_REST_EMBEDDER_TIMEOUT_SECONDS: "14400"
     volumes:
       - ./meilisearch-config.toml:/etc/meilisearch/config.toml:ro
       - ${MEILISEARCH_DATA_DIR:?.env に MEILISEARCH_DATA_DIR を設定する}:/meili_data
@@ -22,24 +33,53 @@ services:
       - meilisearch
     entrypoint: ["/bin/sh", "/apply-settings.sh"]
     environment:
+      <<: *no-proxy
       INDEX: ${MEILISEARCH_INDEX:-conversations}
     volumes:
       - ./apply-settings.sh:/apply-settings.sh:ro
       - ./meilisearch-settings.json:/settings.json:ro
 
-  # Meilisearch の埋め込み設定は http://host.docker.internal:11434 を呼ぶ。
-  # ホストへ公開したこのポート経由で届くので、url を変えずに済む（README 参照）。
-  ollama:
-    image: ollama/ollama
-    container_name: ollama
+  # 検索文の埋め込み（1 件ずつ）を計算する Ollama。モデルの登録もここで行う。
+  # Meilisearch は .internal で終わる別名で呼ぶ。127.0.0.1 で待ち受ける Ollama は、要求の Host が
+  # localhost か .internal などで終わる名前でないと 403 で断るので、転送の先でも通る名前にしている。
+  embed-search:
+    image: &ollama-image ollama/ollama:0.40.16
     restart: unless-stopped
-    ports:
-      - "127.0.0.1:11434:11434"
-    environment:
+    networks:
+      default:
+        aliases:
+          - embed-search.internal
+    environment: &ollama-environment
+      <<: *no-proxy
       OLLAMA_KEEP_ALIVE: "-1"
+      # CPU で計算する。空にすると、GPU が見える PC でも CUDA は GPU を使わない。
+      CUDA_VISIBLE_DEVICES: ""
     volumes:
       - ollama:/root/.ollama
       - ./Modelfile:/Modelfile:ro
+
+  # 文書の埋め込み（まとめて届く）を計算する Ollama。検索文と列を分けるために別に置く。
+  # モデルは embed-search が登録したものを読むだけ。
+  # compose.gpu.yaml は GPU を足し、compose.remote.yaml は別の PC への転送に差し替える。
+  # ホストへの公開は、別の PC へ貸すとき（SSH トンネルの届け先）とホストからの確認に使う。Meilisearch は通らない。
+  embed-index:
+    image: *ollama-image
+    restart: unless-stopped
+    networks:
+      default:
+        aliases:
+          - embed-index.internal
+    # 鍵とモデルの置き場は embed-search が作る。
+    depends_on:
+      - embed-search
+    ports:
+      - "127.0.0.1:11434:11434"
+    environment:
+      <<: *ollama-environment
+      # 起動時の不要ファイルの掃除をしない。ボリュームを読み取り専用で持つので、掃除は書き込めずに起動が失敗する。
+      OLLAMA_NOPRUNE: "1"
+    volumes:
+      - ollama:/root/.ollama:ro
 
 volumes:
   ollama:

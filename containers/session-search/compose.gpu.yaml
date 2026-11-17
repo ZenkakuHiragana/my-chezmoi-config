@@ -1,0 +1,7 @@
+# embed-index に NVIDIA GPU を使わせる上書き。読ませ方は README の「GPU を使う」を参照。
+services:
+  embed-index:
+    gpus: all
+    environment:
+      # 使う GPU を UUID で 1 つ決める。compose.yaml の空の値（CPU で計算する）を置き換える。
+      CUDA_VISIBLE_DEVICES: ${EMBED_INDEX_GPU:?.env に EMBED_INDEX_GPU（nvidia-smi -L の UUID）を設定する}
