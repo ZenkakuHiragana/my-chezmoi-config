@@ -11,12 +11,15 @@ import { request as httpsRequest } from "node:https";
 export interface Target {
   url: string;
   index: string;
+  /** Meilisearch の API キー。あれば要求に付ける。 */
+  apiKey?: string;
 }
 
 export function targetFromEnv(env: NodeJS.ProcessEnv = process.env): Target {
   return {
     url: (env.MEILISEARCH_URL || "http://127.0.0.1:7700").replace(/\/+$/, ""),
     index: env.MEILISEARCH_INDEX || "conversations",
+    apiKey: env.MEILISEARCH_API_KEY || undefined,
   };
 }
 
@@ -29,9 +32,12 @@ export class TaskFailed extends MeiliError {}
 const REQUEST_TIMEOUT_MS = 60_000;
 
 /** 要求を1つ送り、応答の状態コードと本文を返す。接続や受信に失敗したら、その例外で失敗する。 */
-function send(url: URL, method: string, body: string | undefined, signal: AbortSignal): Promise<{ status: number; text: string }> {
+function send(url: URL, method: string, body: string | undefined, apiKey: string | undefined, signal: AbortSignal): Promise<{ status: number; text: string }> {
   return new Promise((resolve, reject) => {
-    const headers = body === undefined ? {} : { "Content-Type": "application/json", "Content-Length": Buffer.byteLength(body) };
+    const headers = {
+      ...(apiKey ? { Authorization: "Bearer " + apiKey } : {}),
+      ...(body === undefined ? {} : { "Content-Type": "application/json", "Content-Length": Buffer.byteLength(body) }),
+    };
     const outgoing = (url.protocol === "https:" ? httpsRequest : httpRequest)(url, { method, headers, signal }, (response) => {
       let text = "";
       response.setEncoding("utf8");
@@ -54,7 +60,7 @@ async function request(target: Target, method: string, path: string, body: unkno
   let text: string;
   try {
     ({ status, text } = await send(new URL(target.url + path), method, body === undefined ? undefined : JSON.stringify(body),
-      signal ? AbortSignal.any([signal, timeout]) : timeout));
+      target.apiKey, signal ? AbortSignal.any([signal, timeout]) : timeout));
   } catch (error) {
     // node:http は理由を cause に包んだ AbortError を投げる。呼び出し側が渡した理由をそのまま返す。
     if (signal?.aborted) throw signal.reason;

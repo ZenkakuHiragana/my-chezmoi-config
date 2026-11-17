@@ -59,10 +59,12 @@ show [--full] [--pick N,N,...] [ID ...]
 環境変数:
   MEILISEARCH_URL    Meilisearch の URL（既定: http://127.0.0.1:7700）。
   MEILISEARCH_INDEX  インデックス名（既定: conversations）。
+  MEILISEARCH_API_KEY  Meilisearch の API キー。設定してあれば要求に付ける。
   意味検索に使う埋め込み設定は、インデックスの設定から読む。
 `;
 const origin = (process.env.MEILISEARCH_URL || "http://127.0.0.1:7700").replace(/\/+$/, "");
 const indexUrl = origin + "/indexes/" + (process.env.MEILISEARCH_INDEX || "conversations");
+const authorization = process.env.MEILISEARCH_API_KEY ? { Authorization: "Bearer " + process.env.MEILISEARCH_API_KEY } : {};
 
 class UsageError extends Error {}
 const usage = (message) => { throw new UsageError(message + "。--help を参照してください。"); };
@@ -74,9 +76,8 @@ async function request(method, path, body) {
     try {
         response = await fetch(indexUrl + path, {
             method,
-            ...(body === undefined ? {} : {
-                headers: { "Content-Type": "application/json" }, body: JSON.stringify(body),
-            }),
+            headers: { ...authorization, ...(body === undefined ? {} : { "Content-Type": "application/json" }) },
+            ...(body === undefined ? {} : { body: JSON.stringify(body) }),
         });
     } catch {
         throw new Error("Meilisearch に接続できません: " + origin);

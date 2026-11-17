@@ -47,6 +47,7 @@ class FakeMeilisearch:
         self.pagination_response = (200, {"maxTotalHits": 7})
         self.embedders_response = (200, {"ruri": {"source": "rest"}})
         self.embedder_requests = []
+        self.authorizations = []
         self.lock = threading.Lock()
         fake = self
 
@@ -56,6 +57,7 @@ class FakeMeilisearch:
                 body = json.loads(self.rfile.read(length)) if length else None
                 url = urlsplit(self.path)
                 with fake.lock:
+                    fake.authorizations.append(self.headers.get("Authorization"))
                     q = body.get("q") if isinstance(body, dict) else None
                     if self.command == "GET" and url.path.endswith("/settings/embedders"):
                         # 埋め込み設定の読み取りは、検索の要求とは別に記録する
@@ -110,7 +112,7 @@ class SessionTest(unittest.TestCase):
     def setUp(self):
         self.fake = FakeMeilisearch()
         self.addCleanup(self.fake.close)
-        self.env = {k: v for k, v in os.environ.items() if k not in ("PI_SESSION_ID", "MEILISEARCH_INDEX")}
+        self.env = {k: v for k, v in os.environ.items() if k not in ("PI_SESSION_ID", "MEILISEARCH_INDEX", "MEILISEARCH_API_KEY")}
         self.env.update(MEILISEARCH_URL=self.fake.url, TZ="UTC")
 
     def respond(self, *responses):
@@ -294,6 +296,16 @@ class SessionTest(unittest.TestCase):
         code, _, err = self.run_cli("search", "q", env={"MEILISEARCH_URL": self.fake.url + "/"})
         self.assertEqual(code, 0, err)
         self.assertEqual(self.fake.requests[0][1], "/indexes/conversations/search")
+
+    def test_api_key_is_sent_only_when_set(self):
+        self.respond(found([]), found([]))
+        code, _, err = self.run_cli("search", "q", env={"MEILISEARCH_API_KEY": "secret"})
+        self.assertEqual(code, 0, err)
+        self.assertEqual(set(self.fake.authorizations), {"Bearer secret"})
+        self.fake.authorizations.clear()
+        code, _, err = self.run_cli("search", "q")
+        self.assertEqual(code, 0, err)
+        self.assertEqual(set(self.fake.authorizations), {None})
 
     def test_custom_index_environment(self):
         self.respond(found([]))

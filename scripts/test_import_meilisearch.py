@@ -370,6 +370,7 @@ class HttpClientTests(unittest.TestCase):
 
     def setUp(self):
         received = self.received = []
+        authorizations = self.authorizations = []
 
         class Handler(BaseHTTPRequestHandler):
             def do_POST(self):
@@ -379,6 +380,7 @@ class HttpClientTests(unittest.TestCase):
 
             def do_GET(self):
                 received.append((self.command, self.path, None, None))
+                authorizations.append(self.headers['Authorization'])
                 if self.path == '/garbage':
                     data = b'<html>proxy error</html>'
                     self.send_response(200)
@@ -412,6 +414,11 @@ class HttpClientTests(unittest.TestCase):
         response = self.client.request('POST', '/indexes/conversations/documents', [{'id': 'a', 'question': '日本語'}])
         self.assertEqual(response, {'taskUid': 7})
         self.assertEqual(self.received, [('POST', '/indexes/conversations/documents', 'application/json', [{'id': 'a', 'question': '日本語'}])])
+
+    def test_api_key_is_sent_only_when_given(self):
+        common.MeilisearchClient(self.client.url, api_key='secret').request('GET', '/tasks/7')
+        self.client.request('GET', '/tasks/7')
+        self.assertEqual(self.authorizations, ['Bearer secret', None])
 
     def test_non_json_response_is_an_error(self):
         with self.assertRaises(common.MeiliError):
@@ -464,7 +471,7 @@ class CommandLineTests(TemporaryTestCase):
         (folder / 'conversation.json').write_text(json.dumps(conversation()), encoding='utf-8')
         clients = []
 
-        def make_client(url):
+        def make_client(url, api_key=None):
             clients.append(FakeClient())
             clients[-1].url = url
             return clients[-1]

@@ -9,17 +9,17 @@ import { fileURLToPath } from "node:url";
 import { after, before, beforeEach, describe, it } from "node:test";
 import { batches, run, sessionsRoot, type Batch } from "./cli.ts";
 import type { SessionDocument } from "./documents.ts";
-import { waitTask, type Target } from "./meilisearch.ts";
+import { targetFromEnv, waitTask, type Target } from "./meilisearch.ts";
 
 type Reply = [number, unknown];
 class FakeMeilisearch {
-  requests: { method: string; url: string; body: unknown }[] = [];
+  requests: { method: string; url: string; body: unknown; authorization?: string }[] = [];
   replies: Reply[] = [];
   server = createServer((request, response) => {
     let text = "";
     request.on("data", (chunk) => text += chunk);
     request.on("end", () => {
-      this.requests.push({ method: request.method!, url: request.url!, body: text ? JSON.parse(text) : undefined });
+      this.requests.push({ method: request.method!, url: request.url!, body: text ? JSON.parse(text) : undefined, authorization: request.headers.authorization });
       const [status, body] = this.replies.shift() ?? [500, { message: "no reply queued" }];
       response.writeHead(status, { "Content-Type": "application/json" }).end(JSON.stringify(body));
     });
@@ -59,6 +59,17 @@ describe("cli", () => {
     assert.deepEqual(result.err, ["failed bad: broken", "failed a task=1: task 1 processing", "failed b task=2: task 2 canceled"]);
     assert.deepEqual(fake.requests.map((r) => r.method + " " + r.url), ["POST /indexes/conversations/documents?primaryKey=id",
       "POST /indexes/conversations/documents?primaryKey=id", "GET /tasks/2", "GET /tasks?uids=1,2&limit=2"]);
+  });
+
+  it("sends the API key with every request only when one is set", async () => {
+    assert.equal(targetFromEnv({ MEILISEARCH_API_KEY: "secret" }).apiKey, "secret");
+    assert.equal(targetFromEnv({ MEILISEARCH_API_KEY: "" }).apiKey, undefined);
+    for (const [apiKey, expected] of [["secret", "Bearer secret"], [undefined, undefined]] as const) {
+      fake.requests = [];
+      fake.replies.push(accepted(1), [200, { status: "succeeded" }], statuses({ uid: 1, status: "succeeded" }));
+      assert.equal((await capture([docs("a", "1")], { ...fake.target, apiKey })).code, 0);
+      assert.deepEqual(fake.requests.map((r) => r.authorization), [expected, expected, expected]);
+    }
   });
 
   it("continues after HTTP errors and reports last failed task", async () => {

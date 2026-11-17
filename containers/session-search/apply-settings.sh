@@ -6,13 +6,17 @@ set -eu
 url=http://meilisearch:7700
 index=${INDEX:-conversations}
 body=/tmp/response.json
+# compose.key.yaml を読ませた構成では、マスターキーを付けて送る。
+key_file=/run/secrets/meili_master_key
+auth=
+[ ! -f "$key_file" ] || auth="Authorization: Bearer $(cat "$key_file")"
 
 # request METHOD PATH [curl の引数...]: 応答を $body に、HTTP の応答コードを $status に置く。
 request() {
   method=$1
   path=$2
   shift 2
-  status=$(curl -sS -o "$body" -w '%{http_code}' -X "$method" -H 'Content-Type: application/json' "$@" "$url$path") ||
+  status=$(curl -sS -o "$body" -w '%{http_code}' -X "$method" -H 'Content-Type: application/json' ${auth:+-H "$auth"} "$@" "$url$path") ||
     fail "$method $path: Meilisearch に接続できない"
 }
 

@@ -36,14 +36,15 @@ class TaskFailed(MeiliError):
 
 
 class MeilisearchClient:
-    def __init__(self, url: str, timeout: float = 60, poll_seconds: float = 0.5):
+    def __init__(self, url: str, timeout: float = 60, poll_seconds: float = 0.5, api_key: str | None = None):
         self.url = url.rstrip('/')
         self.timeout = timeout
         self.poll_seconds = poll_seconds
+        self.headers = {'Content-Type': 'application/json', **({'Authorization': f'Bearer {api_key}'} if api_key else {})}
 
     def request(self, method: str, path: str, body: object = None) -> dict:
         data = None if body is None else json.dumps(body, ensure_ascii=False).encode('utf-8')
-        request = Request(self.url + path, data=data, method=method, headers={'Content-Type': 'application/json'})
+        request = Request(self.url + path, data=data, method=method, headers=self.headers)
         try:
             with urlopen(request, timeout=self.timeout) as response:
                 raw = response.read()
@@ -133,7 +134,7 @@ def run(args: argparse.Namespace, batches: Iterable[Batch], client: MeilisearchC
     current = 'start'  # what was in progress, for the abort message
     try:
         if not args.dry_run:
-            client = client or MeilisearchClient(args.meili_url)
+            client = client or MeilisearchClient(args.meili_url, api_key=os.environ.get('MEILISEARCH_API_KEY'))
         for batch in batches:
             if batch.skipped:
                 summary['skipped'] += 1

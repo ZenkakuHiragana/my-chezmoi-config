@@ -8,7 +8,7 @@ import { addDocuments, TaskFailed, taskError, targetFromEnv, taskStatuses, waitT
 
 const HELP = `使い方: node cli.ts [セッション.jsonl ...]
 引数を省くと Pi の sessions/<作業フォルダ>/*.jsonl をすべて送る。
-PI_CODING_AGENT_DIR、MEILISEARCH_URL、MEILISEARCH_INDEX で保存先と接続先を指定する。
+PI_CODING_AGENT_DIR、MEILISEARCH_URL、MEILISEARCH_INDEX、MEILISEARCH_API_KEY で保存先と接続先を指定する。
 終了コード: 0 失敗なし、1 失敗あり。
 `;
 

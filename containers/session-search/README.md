@@ -9,6 +9,7 @@
 | `compose.yaml` | 追跡 | サービス定義。絶対パスを含まない |
 | `compose.gpu.yaml` | 追跡 | `embed-index` に NVIDIA GPU を使わせる上書き |
 | `compose.remote.yaml` | 追跡 | `embed-index` を別の PC への転送に差し替える上書き |
+| `compose.key.yaml` | 追跡 | Meilisearch にマスターキーをかける上書き |
 | `meilisearch-config.toml` | 追跡 | Meilisearch 本体の設定。compose がマウントする |
 | `meilisearch-settings.json` | 追跡 | 会話インデックスの設定（検索項目と埋め込み）の正本 |
 | `apply-settings.sh` | 追跡 | `meilisearch-settings` サービスが実行する、設定を当てるスクリプト |
@@ -67,6 +68,12 @@ EMBED_INDEX_REMOTE=host.docker.internal:11435
 
 `EMBED_INDEX_REMOTE` はコンテナから届く `ホスト:ポート`。`host.docker.internal` は Docker Desktop だけの名前。
 戻すときは、足した行を外して `docker compose up -d`。
+
+## 鍵をかける
+
+1. `secrets/master_key.txt` に鍵を書く。
+2. `.env` の `COMPOSE_FILE` に `compose.key.yaml` を並べて（区切りは `COMPOSE_PATH_SEPARATOR=,`）`docker compose up -d` する。
+3. Pi、`session.sh`、取り込みを起動する環境で、`MEILISEARCH_API_KEY` に同じ鍵を設定する。
 
 ## 埋め込み設定を変えるとき
 

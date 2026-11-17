@@ -10,7 +10,7 @@ Pi のセッションと ChatGPT の会話を、Meilisearch の1つのインデ�
 
 送る側は埋め込みを知らない。文書を送ると、Meilisearch が設定に従って Ollama に埋め込みを計算させる。
 
-接続先は、拡張・Pi の CLI・ChatGPT の取り込み・`session.sh` が共通で環境変数 `MEILISEARCH_URL`（既定 `http://127.0.0.1:7700`）と `MEILISEARCH_INDEX`（既定 `conversations`）を読む。compose の `.env` はこれらのプロセスには渡らない。インデックス名を変えるときは、compose 側（`.env` か、compose を起動するシェル）と、Pi などを起動する環境の両方で `MEILISEARCH_INDEX` を設定する。Meilisearch・Ollama の構成は `containers/session-search/README.md` を参照。
+接続先は、拡張・Pi の CLI・ChatGPT の取り込み・`session.sh` が共通で環境変数 `MEILISEARCH_URL`（既定 `http://127.0.0.1:7700`）と `MEILISEARCH_INDEX`（既定 `conversations`）を読む。鍵をかけた Meilisearch につなぐときは、環境変数 `MEILISEARCH_API_KEY` に鍵を設定する。compose の `.env` はこれらのプロセスには渡らない。インデックス名を変えるときは、compose 側（`.env` か、compose を起動するシェル）と、Pi などを起動する環境の両方で `MEILISEARCH_INDEX` を設定する。Meilisearch・Ollama の構成は `containers/session-search/README.md` を参照。
 
 ## インデックスの設定
 
