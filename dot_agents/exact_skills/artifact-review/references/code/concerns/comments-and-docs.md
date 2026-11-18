@@ -1,7 +1,7 @@
 # コメントと文書
 
 コードを使う人と保守する人に必要な説明があり、その内容が実装と対応しているかを確認する。
-文章そのものの品質と文中の論理的整合性は「文書レビュー」（`references/documents/review.md`）で扱う。
+コメントの文面の品質もこの観点で扱う。文法と誤記の検査方法は「文法」（`references/documents/concerns/grammar.md`）と「誤記」（`references/documents/concerns/typo.md`）に従う。
 
 ## 説明する内容の正確さ
 

@@ -19,12 +19,16 @@
 検査観点が指定されている場合は、その検査に必要な観点資料を使う。
 指定されていない場合は、以下の観点資料をすべて読み、それぞれの適用条件に従って検査する。
 
-- 構成: `concerns/structure.md`
-- 文法: `concerns/grammar.md`
-- 文体: `concerns/style.md`
-- 誤記: `concerns/typo.md`
-- 表示: `concerns/rendering.md`
-- 参照と記載例: `concerns/references-and-examples.md`
+観点は2つの組に分けて示す。レビュー単位は組ごとに1つとする。
+
+- 語の水準
+  - 文法: `concerns/grammar.md`
+  - 誤記: `concerns/typo.md`
+  - 文体: `concerns/style.md`
+- 構成・参照・表示
+  - 構成: `concerns/structure.md`
+  - 表示: `concerns/rendering.md`
+  - 参照と記載例: `concerns/references-and-examples.md`
 
 検査方法と指摘の条件は、担当する観点の記載に従う。
 日本語に固有の基準は、日本語の箇所に適用する。

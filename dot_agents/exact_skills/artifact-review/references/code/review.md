@@ -23,23 +23,30 @@
 
 ## 検査観点
 
-- 正しさ: `concerns/correctness.md`
-- 仕様照合: `concerns/spec-conformance.md`
-- 資源寿命: `concerns/resource-lifecycle.md`
-- 並行処理と非同期: `concerns/concurrency-and-async.md`
-- セキュリティとプライバシー: `concerns/security.md`
-- 互換性と移行: `concerns/compatibility-and-migration.md`
-- 依存関係: `concerns/dependencies.md`
-- 複雑さ: `concerns/complexity.md`
-- 性能: `concerns/performance.md`
-- 観測性と運用性: `concerns/observability-and-operability.md`
-- 保守性と慣用表現: `concerns/maintainability-idioms.md`
-- 責務境界: `concerns/responsibility-boundaries.md`
-- コメントと文書: `concerns/comments-and-docs.md`
-- ビルドと配布: `concerns/build-and-distribution.md`
-- テスト品質: `concerns/test-quality.md`
-- テスト網羅: `concerns/tests.md`
-- 最小性と意図性: `concerns/minimality-and-intentionality.md`
+観点は5つの組に分けて示す。レビュー単位は組ごとに1つとする。
+
+- 動作
+  - 正しさ: `concerns/correctness.md`
+  - 仕様照合: `concerns/spec-conformance.md`
+  - 資源寿命: `concerns/resource-lifecycle.md`
+  - 並行処理と非同期: `concerns/concurrency-and-async.md`
+- 外部との境界
+  - セキュリティとプライバシー: `concerns/security.md`
+  - 互換性と移行: `concerns/compatibility-and-migration.md`
+  - 依存関係: `concerns/dependencies.md`
+  - ビルドと配布: `concerns/build-and-distribution.md`
+- 設計
+  - 複雑さ: `concerns/complexity.md`
+  - 保守性と慣用表現: `concerns/maintainability-idioms.md`
+  - 責務境界: `concerns/responsibility-boundaries.md`
+  - 最小性と意図性: `concerns/minimality-and-intentionality.md`
+  - コメントと文書: `concerns/comments-and-docs.md`
+- 運用
+  - 性能: `concerns/performance.md`
+  - 観測性と運用性: `concerns/observability-and-operability.md`
+- テスト
+  - テスト品質: `concerns/test-quality.md`
+  - テスト網羅: `concerns/tests.md`
 
 ## 言語・基盤別の補足
 

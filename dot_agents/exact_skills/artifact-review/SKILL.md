@@ -12,8 +12,8 @@ description: >
 レビュー全体で実行する検査を決めるときは、検査対象に当てはまるすべてのレビュー入口文書を読む。
 一つの検査対象が複数の種類に該当する場合は、それぞれを適用する。
 
-- `references/code/review.md`: 実行可能なソフトウェアコード
-- `references/documents/review.md`: 人間や LLM が読む自然言語で書かれた文章、コメント、プロンプト、スキルの本文
+- `references/code/review.md`: 実行可能なソフトウェアコードとそのコメント
+- `references/documents/review.md`: 人間や LLM が読む自然言語で書かれた文章、プロンプト、スキルの本文
 - `references/instructions/review.md`: スキルの本文、システムプロンプト、AGENTS.md など LLM への指示として用いられる文章
 
 各レビュー入口文書に従って、検査する観点、種類固有の検査方法、および該当する補足を決める。
