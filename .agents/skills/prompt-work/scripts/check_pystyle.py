@@ -6,21 +6,36 @@
 ここで調べるのは構文の形だけで、意味が原文や意図と合っているかは調べない。
 
 調べること:
-- frontmatter で始まり、その後に python のコードフェンスが 1 つだけあり、フェンスの外に文が無い
+- frontmatter で始まり、その後に python のコードフェンスが 1 つだけあり、フェンスの外に文が無い（frontmatter の中のフェンスは数えない）
 - フェンスの中が Python としてコンパイルできる（ast.parse だけでは見逃す誤りがあるので compile を使う）
-- 先頭に補助関数 condition、constraint、context、do の宣言が決まりの文面のままあり（デコレーターも付けない）、後で定義し直していない
+- 先頭に、本文で使う補助関数の宣言だけが、condition、constraint、context、do、define、whenever の順に、決まりの文面のままあり（デコレーターも付けない）、後で定義し直していない
 - 同じ名前の段階を二度定義していない
 - 末尾が、メインの段階を引数なしで呼ぶ 1 行になっている
-- 使わない構文（return、import、代入、引数、f 文字列、リスト・辞書・クラス、例外、ループの else、段階の中の def、コメント）が無い
+- do の文が 1 文で、箇条書きが無い。文は、かっこの外の「。」「！」「？」で数える。半角の ! と ? は、後ろが空白か文の終わりのときだけ数える。英文のピリオドでは数えない。箇条書きは、行頭の「- 」「* 」「・」「1. 」の形を見る
+- 補助関数に渡す文字列が、二重引用符で、1 文なら 1 行に、2 文以上なら三重引用符で 1 文 1 行に書いてある（三重引用符の中の行は 1 段深く字下げし、閉じる引用符は始めた行の字下げに置く）。箇条書きを含む文字列と、二重引用符かバックスラッシュを含む文字列は調べない
+- コメントが、段階の def か手順の直前にあり、コードと同じ行に無い。その手順だけを囲む with があるときは、その with の直前にある
+- 文に書いた、フォルダ付きの .md のパス（references/x.md など）が、スキルのフォルダの中にある。調べるのは、英数字と「.」「_」「-」でできたパスだけで、フォルダの付かないファイル名は調べない。空白や日本語を含むパスは、正しく調べられない
+- 使わない構文（elif、return、import、define による宣言以外の代入、名前以外の引数、f 文字列、リスト・辞書・クラス、例外、ループの else、whenever に渡す段階以外の段階の中の def、docstring）が無い
+- 名前の宣言が「名前 = define("…")」の形で、段階の外では補助関数の宣言と最初の段階の間に、段階の中ではその段階の先頭にあり、同じ名前を重ねて宣言しておらず、その段階の引数とも重なっていない
+- 段階の引数が名前だけで、呼び出しで渡すものが、その場所で使える名前（囲んでいる for のループ変数、段階の外かその段階の先頭で宣言した名前、その段階の引数）で、数が定義と合っている
+- 宣言した名前、段階の引数、for の名前が、段階や補助関数の名前と重なっていない
+- whenever が with にだけあり、文字列 1 つと、引数を取らない段階の名前 1 つを渡していて、渡す段階を段階として呼ばず、渡す段階の中では whenever を使っていない
+- 一つの段階でしか whenever に渡さない段階を、その段階の中に定義している。段階の中に定義した段階が、それを渡す with の直前にあり、その with でだけ渡され、その中に def や名前の宣言が無く、名前がほかの名前と重なっていない
+- 段階が、決まりの順に並んでいる。メインの後に、メインから呼び出しを書いてある順にたどって初めて出てくる順。いくつもの段階から呼ばれる段階は、メインからたどる呼び出しの数がいちばん少ない呼び出し元の所（同じ数なら、先に置く呼び出し元の所）。whenever に渡す段階の本文は、渡した所に書いてあるものとして数える。段階の外に定義して whenever に渡す段階は、それを渡す段階のうち、いちばん先に置くものの直前（いくつもあれば、渡す順）
 - for が「for 名前 in 名前:」の形になっている
 - if と while の条件が、condition と and / or / not だけでできていて、condition がそれ以外の場所に無い
 - and と or を混ぜるところに括弧がある
 - 入れ子のループの内側に break が無い
 - 効く範囲が同じ with が入れ子になっていない（with の中身が別の with だけ）
-- 定義した段階が、メインの段階から呼び出しをたどって届く
+- 定義した段階が、メインの段階から、呼び出しと whenever をたどって届く
+- 段階が、呼び出しをたどって自分へ戻らない（再帰が無い）。whenever に渡す段階の本文は、渡した段階が呼ぶものとして数える
 
-段階を呼ばれる順に置いているかは調べない。
+コメントの中身は調べない。
+宣言した名前が、文の中で宣言した意味のとおりに使われているかも調べない。
+for の対象の名前と、文の中の語が、その場所で使える名前を指しているかも調べない。
 condition の文の最初の一文が「ない」「ず」「ぬ」「なかった」で終わるものは、否定形かもしれないので注意として出す。
+宣言した名前が、使える範囲のどの文にも出てこず、引数や for の対象としても使っていないものも、注意として出す。
+ほかの段階の中で宣言した名前と同じ名前を for の対象にしているものも、注意として出す。同じものを指しているなら、その段階では使えない。
 注意は終了コードに関わらない。違反が 1 つでもあれば終了コード 1、無ければ 0 で終わる。
 """
 
@@ -31,19 +46,115 @@ import re
 import sys
 import tokenize
 
-HELPERS = ["condition", "constraint", "context", "do"]
+HELPERS = ["condition", "constraint", "context", "do", "define", "whenever"]
+ONE_STRING = ["condition", "constraint", "context", "do", "define"]
 DECLARATIONS = {
     "condition": "def condition(prompt: str) -> bool: ...",
     "constraint": "def constraint(prompt: str): ...",
     "context": "def context(prompt: str): ...",
     "do": "def do(prompt: str): ...",
+    "define": "def define(prompt: str): ...",
+    "whenever": "def whenever(prompt: str, stage): ...",
 }
 FENCE = re.compile(r"^\x60\x60\x60python\n(.*?)^\x60\x60\x60[ \t]*$", re.S | re.M)
 FRONTMATTER = re.compile(r"\A---\n.*?\n---\n", re.S)
 
 
+def callee_of(node):
+    """node が名前で呼ぶ呼び出しなら、呼ぶ名前を返す。そうでなければ None を返す。"""
+    return getattr(getattr(node, "func", None), "id", None) if isinstance(node, ast.Call) else None
+
+
+def is_declaration(node):
+    """node が「名前 = define(…)」の形の文かを返す。"""
+    return (
+        isinstance(node, ast.Assign)
+        and len(node.targets) == 1
+        and isinstance(node.targets[0], ast.Name)
+        and callee_of(node.value) == "define"
+    )
+
+
+def sentence_count(text):
+    """text の文の数を返す。かっこの中の句点では文を切らない。続けて並んだ句点や疑問符は、1 つと数える。"""
+    parts = string_lines(text)
+    if parts is not None:
+        return len([x for x in parts if x])
+    joined = " ".join(line.strip() for line in text.strip().splitlines())
+    depth = count = 0
+    pending = False
+    for i, ch in enumerate(joined):
+        if ch in "（(「『":
+            depth += 1
+        elif ch in "）)」』":
+            depth = max(0, depth - 1)
+        ends = ch in "。！？" or (ch in "!?" and (i + 1 == len(joined) or joined[i + 1].isspace()))
+        if ends and depth == 0:
+            count += 1
+            pending = False
+        elif not ch.isspace():
+            pending = True
+    return count + pending
+
+
+def string_lines(value):
+    """文字列を 1 文 1 行にした行の一覧を返す。箇条書きを含む文字列は、行の分け方を決められないので None を返す。
+
+    行をつなぐとき、英数字どうしの間には空白を入れる。かっこの中の句点では切らない。続けて並んだ句点や疑問符では、最後の 1 つで切る。
+    空行で分けた段落は、空の行を 1 つ挟んで残す。
+    """
+    found = []
+    for paragraph in re.split(r"\n[ \t]*\n", value.strip()):
+        rows = [x.strip() for x in paragraph.splitlines() if x.strip()]
+        if any(re.match(r"(- |\* |・|\d+[.)] )", x) for x in rows):
+            return None
+        joined = ""
+        for x in rows:
+            between_words = joined and joined[-1].isascii() and joined[-1].isalnum() and x[0].isascii() and x[0].isalnum()
+            if between_words or joined[-1:] in ("!", "?"):
+                joined += " "
+            joined += x
+        if found and joined:
+            found.append("")
+        current, depth = "", 0
+        for i, ch in enumerate(joined):
+            current += ch
+            if ch in "（(「『":
+                depth += 1
+            elif ch in "）)」』":
+                depth = max(0, depth - 1)
+            ends = ch in "。！？" or (ch in "!?" and (i + 1 == len(joined) or joined[i + 1].isspace()))
+            more = i + 1 < len(joined) and joined[i + 1] in "。！？!?"
+            if ends and depth == 0 and not more:
+                found.append(current.strip())
+                current = ""
+        if current.strip():
+            found.append(current.strip())
+    return found
+
+
+def expected_literal(value, indent):
+    """文字列 value を決まりの書き方にしたリテラルを返す。indent は、リテラルが始まる行の字下げ。箇条書きを含むとき、二重引用符かバックスラッシュを含むときは None を返す。"""
+    if '"' in value or "\\" in value:
+        return None
+    parts = string_lines(value)
+    if parts is None:
+        return None
+    if len(parts) <= 1:
+        return '"' + (parts[0] if parts else "") + '"'
+    return '"""\n' + "\n".join(" " * (indent + 4) + x if x else "" for x in parts) + "\n" + " " * indent + '"""'
+
+
+MD_PATH = re.compile(r"(?<![A-Za-z0-9_/.-])((?:[A-Za-z0-9_.-]+/)+[A-Za-z0-9_.-]+\.md)(?![A-Za-z0-9_-]|\.[A-Za-z0-9])")
+
+
+def is_string(node):
+    """node が文字列の定数かを返す。"""
+    return isinstance(node, ast.Constant) and isinstance(node.value, str)
+
+
 def check(path):
-    """path のスキル本文を調べ、(違反の一覧, 注意の一覧, 段階名の一覧, 呼び出し名の一覧) を返す。行番号はファイルの行番号。"""
+    """path のスキル本文を調べ、(違反の一覧, 注意の一覧, 段階名の一覧, 呼び出し名の一覧, whenever に渡した段階名の一覧) を返す。行番号はファイルの行番号。"""
     text = pathlib.Path(path).read_text(encoding="utf-8").replace("\r\n", "\n")
     errors = []
     notes = []
@@ -52,10 +163,10 @@ def check(path):
     if not front:
         errors.append("frontmatter で始まっていない")
     rest = text[front.end():] if front else text
-    blocks = list(FENCE.finditer(text))
+    blocks = list(FENCE.finditer(text, front.end() if front else 0))
     if len(blocks) != 1:
         errors.append(f"python のフェンスが {len(blocks)} 個")
-        return errors, notes, [], []
+        return errors, notes, [], [], []
     block = blocks[0]
     if FENCE.sub("", rest).strip():
         errors.append("フェンスの外に文がある")
@@ -69,21 +180,29 @@ def check(path):
         compile(code, str(path), "exec")
     except SyntaxError as e:
         errors.append(f"{at(e.lineno or 0)} 構文エラー: {e.msg}")
-        return errors, notes, [], []
+        return errors, notes, [], [], []
     tree = ast.parse(code)
 
     defs = [f for f in tree.body if isinstance(f, ast.FunctionDef)]
-    if [f.name for f in defs[:4]] != HELPERS:
-        errors.append("補助関数の宣言（condition、constraint、context、do）が先頭に無い")
-    for f in defs[:4]:
+    lead = []
+    for f in defs:
+        if f.name not in HELPERS:
+            break
+        lead.append(f)
+    declared = [f.name for f in lead]
+    if declared != [h for h in HELPERS if h in declared]:
+        errors.append("補助関数の宣言が、" + "、".join(HELPERS) + " の順に 1 つずつ並んでいない")
+    for f in lead:
         if f.decorator_list:
             errors.append(f"{at(f.lineno)} 補助関数 {f.name} にデコレーターがある")
-        if f.name in DECLARATIONS and (ast.get_source_segment(code, f) or "").strip() != DECLARATIONS[f.name]:
+        if (ast.get_source_segment(code, f) or "").strip() != DECLARATIONS[f.name]:
             errors.append(f"{at(f.lineno)} 補助関数 {f.name} の宣言が決まりの文面と違う: {DECLARATIONS[f.name]}")
-    for f in defs[4:]:
-        if f.name in HELPERS:
+    for f in defs[len(lead):]:
+        if f.name in declared:
             errors.append(f"{at(f.lineno)} 補助関数 {f.name} を定義し直している")
-    stages = [f for f in defs[4:] if f.name not in HELPERS]
+        elif f.name in HELPERS:
+            errors.append(f"{at(f.lineno)} 補助関数 {f.name} の宣言が先頭に無い")
+    stages = [f for f in defs[len(lead):] if f.name not in HELPERS]
     names = {f.name for f in stages}
     seen = set()
     for f in stages:
@@ -92,20 +211,77 @@ def check(path):
         seen.add(f.name)
     if not stages:
         errors.append("段階が無い")
-        return errors, notes, [], []
+        return errors, notes, [], [], []
+    params = {f.name: [a.arg for a in f.args.args] for f in stages}
+    by_name = {f.name: f for f in stages}
+    inner = {f.name: [n for n in ast.walk(f) if isinstance(n, ast.FunctionDef) and n is not f] for f in stages}
+    inner_names = {d.name for ds in inner.values() for d in ds}
 
-    tail = [n for n in tree.body if not isinstance(n, ast.FunctionDef)]
+    others = [n for n in tree.body if not isinstance(n, ast.FunctionDef)]
+    module_decls = [n for n in others if is_declaration(n)]
+    tail = [n for n in others if not is_declaration(n)]
     main_call = (
         len(tail) == 1
         and tree.body[-1] is tail[0]
         and isinstance(tail[0], ast.Expr)
-        and isinstance(tail[0].value, ast.Call)
-        and getattr(tail[0].value.func, "id", None) == stages[0].name
+        and callee_of(tail[0].value) in names
         and not tail[0].value.args
         and not tail[0].value.keywords
     )
     if not main_call:
         errors.append("末尾が、メインの段階を呼ぶ 1 行になっていない")
+    elif tail[0].lineno != tail[0].end_lineno:
+        errors.append(f"{at(tail[0].lineno)} 末尾のメインの段階の呼び出しが 1 行でない")
+    main_stage = by_name[callee_of(tail[0].value)] if main_call else stages[0]
+    if params[main_stage.name]:
+        errors.append(f"{at(main_stage.lineno)} メインの段階に引数がある")
+
+    position = {id(n): i for i, n in enumerate(tree.body)}
+    after_helpers = position[id(lead[-1])] if lead else -1
+    module_names = []
+    for n in module_decls:
+        name = n.targets[0].id
+        if not after_helpers < position[id(n)] < position[id(stages[0])]:
+            errors.append(f"{at(n.lineno)} 段階の外の宣言が、補助関数の宣言と最初の段階の間に無い: {name}")
+        if not (len(n.value.args) == 1 and not n.value.keywords and is_string(n.value.args[0])):
+            errors.append(f"{at(n.lineno)} define の引数が文字列 1 つでない")
+        if name in module_names:
+            errors.append(f"{at(n.lineno)} すでに宣言した名前をもう一度宣言している: {name}")
+        if name in names or name in HELPERS:
+            errors.append(f"{at(n.lineno)} 宣言した名前が、段階や補助関数の名前と同じ: {name}")
+        module_names.append(name)
+    local_decls = {}
+    for f in stages:
+        head = []
+        for s in f.body:
+            if not is_declaration(s):
+                break
+            head.append(s)
+        local_decls[f.name] = head
+        local_names = []
+        for s in head:
+            name = s.targets[0].id
+            if name in local_names or name in module_names:
+                errors.append(f"{at(s.lineno)} すでに宣言した名前をもう一度宣言している: {name}")
+            if name in params[f.name]:
+                errors.append(f"{at(s.lineno)} その段階の引数と同じ名前を宣言している: {name}")
+            if name in names or name in HELPERS:
+                errors.append(f"{at(s.lineno)} 宣言した名前が、段階や補助関数の名前と同じ: {name}")
+            local_names.append(name)
+        inner_decls = {id(x) for d in inner[f.name] for x in ast.walk(d) if is_declaration(x)}
+        for n in ast.walk(f):
+            if id(n) in inner_decls:
+                errors.append(f"{at(n.lineno)} 段階の中に定義した段階の中で、名前を宣言している: {n.targets[0].id}")
+            elif is_declaration(n) and not any(n is s for s in head):
+                errors.append(f"{at(n.lineno)} 段階の中の宣言が、その段階の先頭に無い: {n.targets[0].id}")
+    decl_calls = {id(n.value) for f in stages for n in ast.walk(f) if is_declaration(n)}
+    with_items = {
+        id(item.context_expr)
+        for f in stages
+        for n in ast.walk(f)
+        if isinstance(n, ast.With)
+        for item in n.items
+    }
 
     def is_test(e):
         if isinstance(e, ast.Call):
@@ -125,6 +301,60 @@ def check(path):
                 in_test |= {id(x) for x in ast.walk(n.test)}
 
     lines = code.splitlines()
+    skipped = (tokenize.COMMENT, tokenize.NL, tokenize.NEWLINE, tokenize.INDENT, tokenize.DEDENT)
+    all_tokens = list(tokenize.generate_tokens(io.StringIO(code).readline))
+    tokens = [t for t in all_tokens if t.type not in skipped]
+    for t in tokens:
+        if t.type == tokenize.NAME and t.string == "elif":
+            errors.append(f"{at(t.start[0])} elif を使っている")
+    step_lines = {f.lineno for f in stages}
+    for f in stages:
+        step_lines |= {n.lineno for n in ast.walk(f) if isinstance(n, ast.stmt) and not is_declaration(n)}
+    only_child_lines = {
+        n.body[0].lineno
+        for f in stages
+        for n in ast.walk(f)
+        if isinstance(n, ast.With) and len(n.body) == 1
+    }
+    for t in all_tokens:
+        if t.type != tokenize.COMMENT:
+            continue
+        row = t.start[0]
+        if lines[row - 1][: t.start[1]].strip():
+            errors.append(f"{at(row)} コードと同じ行にコメントがある")
+            continue
+        after = row
+        while after < len(lines) and lines[after].lstrip().startswith("#"):
+            after += 1
+        if after + 1 not in step_lines:
+            errors.append(f"{at(row)} コメントの直後に、段階の def も手順も無い")
+        elif after + 1 in only_child_lines:
+            errors.append(f"{at(row)} コメントが、その手順だけを囲む with の内側にある")
+    for n in ast.walk(tree):
+        if callee_of(n) in HELPERS and n.args and is_string(n.args[0]):
+            literal = n.args[0]
+            indent = len(lines[literal.lineno - 1]) - len(lines[literal.lineno - 1].lstrip())
+            expected = expected_literal(literal.value, indent)
+            if expected is not None and ast.get_source_segment(code, literal) != expected:
+                errors.append(f"{at(literal.lineno)} 文字列の書き方が決まりと違う（1 文は 1 行、2 文以上は三重引用符で 1 文 1 行）")
+    folder = pathlib.Path(path).parent
+    for n in ast.walk(tree):
+        if is_string(n):
+            for found in MD_PATH.findall(n.value):
+                target = (folder / found).resolve()
+                if not target.is_file() or folder.resolve() not in target.parents:
+                    errors.append(f"{at(n.lineno)} 文に書いたパスが、スキルのフォルダに無い: {found}")
+
+    def token_before(node):
+        """node の式の直前にある字句を返す。コメントと改行は飛ばす。"""
+        column = len(lines[node.lineno - 1].encode("utf-8")[: node.col_offset].decode("utf-8"))
+        before = ""
+        for t in tokens:
+            if t.start >= (node.lineno, column):
+                break
+            before = t.string
+        return before
+
     loop_names = {
         getattr(x, "id", None)
         for f in stages
@@ -132,20 +362,54 @@ def check(path):
         if isinstance(n, ast.For)
         for x in (n.target, n.iter)
     }
-    allowed_stmts = (ast.FunctionDef, ast.If, ast.While, ast.For, ast.Break, ast.With, ast.Expr)
+    known_names = (
+        set(HELPERS)
+        | names
+        | loop_names
+        | set(module_names)
+        | {s.targets[0].id for head in local_decls.values() for s in head}
+        | {p for ps in params.values() for p in ps}
+        | inner_names
+    )
+    local_only = {s.targets[0].id for head in local_decls.values() for s in head} - set(module_names)
+    allowed_stmts = (ast.FunctionDef, ast.If, ast.While, ast.For, ast.Break, ast.With, ast.Expr, ast.Assign)
     allowed_exprs = (ast.Call, ast.Name, ast.Constant, ast.BoolOp, ast.UnaryOp)
+    handlers = []
 
     for f in stages:
-        if f.args.posonlyargs or f.args.args or f.args.vararg or f.args.kwarg or f.args.kwonlyargs or f.decorator_list or f.returns:
-            errors.append(f"{at(f.lineno)} 段階 {f.name} に引数などがある")
+        a = f.args
+        plain = not (a.posonlyargs or a.vararg or a.kwarg or a.kwonlyargs or a.defaults or a.kw_defaults)
+        if not plain or any(x.annotation for x in a.args) or f.decorator_list or f.returns:
+            errors.append(f"{at(f.lineno)} 段階 {f.name} に、名前だけの引数以外のものがある")
+        for x in params[f.name]:
+            if x in names or x in HELPERS:
+                errors.append(f"{at(f.lineno)} 引数の名前が、段階や補助関数の名前と同じ: {x}")
         for n in ast.walk(f):
             line = at(getattr(n, "lineno", 0))
             if isinstance(n, ast.stmt) and not isinstance(n, allowed_stmts):
                 errors.append(f"{line} 使わない文: {type(n).__name__}")
-            if isinstance(n, (ast.FunctionDef, ast.AsyncFunctionDef)) and n is not f:
-                errors.append(f"{line} 段階の中に def がある")
+            if isinstance(n, ast.Assign) and not is_declaration(n):
+                errors.append(f"{line} define による宣言でない代入")
+            if isinstance(n, ast.FunctionDef) and n is not f:
+                a = n.args
+                if a.posonlyargs or a.args or a.vararg or a.kwarg or a.kwonlyargs or n.decorator_list or n.returns:
+                    errors.append(f"{line} 段階の中に定義した段階が引数を取る、またはデコレーターや戻り値の型を持つ: {n.name}")
+                if any(isinstance(x, ast.FunctionDef) and x is not n for x in ast.walk(n)):
+                    errors.append(f"{line} 段階の中に定義した段階の中に、さらに def がある: {n.name}")
+                loops_here = {getattr(x, "id", None) for m in ast.walk(f) if isinstance(m, ast.For) for x in (m.target, m.iter)}
+                others_named = (
+                    names | set(HELPERS) | loops_here | set(module_names) | set(params[f.name])
+                    | {s.targets[0].id for s in local_decls[f.name]}
+                    | {d.name for d in inner[f.name] if d is not n}
+                )
+                if n.name in others_named:
+                    errors.append(f"{line} 段階の中に定義した段階の名前が、ほかの名前と同じ: {n.name}")
             if isinstance(n, ast.For) and not (isinstance(n.target, ast.Name) and isinstance(n.iter, ast.Name)):
                 errors.append(f"{line} for が「for 名前 in 名前:」の形でない")
+            if isinstance(n, ast.For):
+                for x in (n.target, n.iter):
+                    if getattr(x, "id", None) in names or getattr(x, "id", None) in HELPERS:
+                        errors.append(f"{line} for の名前が、段階や補助関数の名前と同じ: {x.id}")
             if isinstance(n, ast.expr) and not isinstance(n, allowed_exprs):
                 errors.append(f"{line} 使わない式: {type(n).__name__}")
             if isinstance(n, ast.Constant) and not isinstance(n.value, str):
@@ -156,13 +420,8 @@ def check(path):
                     errors.append(f"{line} do や段階の呼び出しでない式文")
             if isinstance(n, ast.Call):
                 callee = getattr(n.func, "id", None)
-                if callee in HELPERS:
-                    one_string = (
-                        len(n.args) == 1
-                        and not n.keywords
-                        and isinstance(n.args[0], ast.Constant)
-                        and isinstance(n.args[0].value, str)
-                    )
+                if callee in ONE_STRING:
+                    one_string = len(n.args) == 1 and not n.keywords and is_string(n.args[0])
                     if not one_string:
                         errors.append(f"{line} {callee} の引数が文字列 1 つでない")
                     if callee == "condition" and id(n) not in in_test:
@@ -171,33 +430,101 @@ def check(path):
                         first = re.split(r"[。\n]", n.args[0].value.strip())[0]
                         if re.search(r"(ない|ず|ぬ|なかった)$", first):
                             notes.append(f"{line} condition の述語が否定形かもしれない: {first}")
+                    if callee == "do" and one_string:
+                        if sentence_count(n.args[0].value) != 1:
+                            errors.append(f"{line} do の文が 1 文でない（{sentence_count(n.args[0].value)} 文）")
+                        if any(re.match(r"(- |\* |・|\d+[.)] )", x.strip()) for x in n.args[0].value.splitlines()):
+                            errors.append(f"{line} do の文に箇条書きがある")
+                    if callee == "define" and id(n) not in decl_calls:
+                        errors.append(f"{line} define が「名前 = define(…)」の形の宣言になっていない")
+                elif callee == "whenever":
+                    if id(n) not in with_items:
+                        errors.append(f"{line} with の外に whenever がある")
+                    target = getattr(n.args[1], "id", None) if len(n.args) == 2 else None
+                    here = {d.name for d in inner[f.name]}
+                    takes_stage = not n.keywords and target is not None and is_string(n.args[0]) and (target in names or target in here)
+                    if not takes_stage:
+                        errors.append(f"{line} whenever の引数が、文字列 1 つと段階の名前 1 つでない")
+                    elif target not in here and params[target]:
+                        errors.append(f"{line} whenever に渡した段階が引数を取る: {target}")
+                    elif target not in handlers:
+                        handlers.append(target)
                 elif callee in names:
-                    if n.args or n.keywords:
-                        errors.append(f"{line} 段階の呼び出しに引数がある")
+                    if n.keywords or not all(isinstance(x, ast.Name) for x in n.args):
+                        errors.append(f"{line} 段階の呼び出しに、名前以外の引数がある")
+                    elif len(n.args) != len(params[callee]):
+                        errors.append(f"{line} 段階の呼び出しの引数の数が、定義と合わない: {callee}")
                 else:
                     errors.append(f"{line} 定義されていない呼び出し: {callee}")
             if isinstance(n, ast.With):
                 for item in n.items:
                     callee = getattr(getattr(item.context_expr, "func", None), "id", None)
-                    if callee not in ("constraint", "context") or item.optional_vars:
-                        errors.append(f"{line} with に constraint / context 以外がある")
+                    if callee not in ("constraint", "context", "whenever") or item.optional_vars:
+                        errors.append(f"{line} with に constraint / context / whenever 以外がある")
                 if len(n.body) == 1 and isinstance(n.body[0], ast.With):
                     errors.append(f"{line} 効く範囲が同じ with の入れ子")
             if isinstance(n, (ast.For, ast.While)) and n.orelse:
                 errors.append(f"{line} ループの else")
-            if isinstance(n, ast.Name) and n.id not in set(HELPERS) | names | loop_names:
+            if isinstance(n, ast.Name) and n.id not in known_names:
                 errors.append(f"{line} 定義されていない名前: {n.id}")
             if isinstance(n, ast.BoolOp):
                 for v in n.values:
                     if isinstance(v, ast.BoolOp):
-                        k = v.lineno - 1
-                        before = lines[k].encode("utf-8")[: v.col_offset].decode("utf-8").rstrip()
-                        while not before and k > 0:
-                            k -= 1
-                            before = lines[k].rstrip()
                         same_start = (v.lineno, v.col_offset) == (n.lineno, n.col_offset)
-                        if same_start or not before.endswith("("):
+                        if same_start or token_before(v) != "(":
                             errors.append(f"{at(v.lineno)} and と or を混ぜるところに括弧が無い")
+
+    def check_arguments(stmts, usable):
+        """stmts の中で、usable に無い名前を段階へ渡している呼び出しを違反にする。ほかの段階の中で宣言した名前と同じ名前を対象にする for は注意にする。"""
+        for s in stmts:
+            if isinstance(s, ast.Expr) and callee_of(s.value) in names:
+                for x in s.value.args:
+                    if isinstance(x, ast.Name) and x.id not in usable:
+                        errors.append(
+                            f"{at(s.lineno)} 渡した名前が、その場所で使える名前（ループ変数、宣言した名前、その段階の引数）でない: {x.id}"
+                        )
+            if isinstance(s, ast.For):
+                source = getattr(s.iter, "id", None)
+                if source in local_only and source not in usable:
+                    notes.append(f"{at(s.lineno)} for の対象が、ほかの段階の中で宣言した名前と同じ: {source}")
+                check_arguments(s.body, usable | {getattr(s.target, "id", None)})
+            elif isinstance(s, (ast.If, ast.While)):
+                check_arguments(s.body, usable)
+                check_arguments(s.orelse, usable)
+            elif isinstance(s, (ast.With, ast.FunctionDef)):
+                check_arguments(s.body, usable)
+
+    passed_right_after = set()
+
+    def check_inner(stmts):
+        """stmts の中の def が、それを whenever に渡す with の直前にあるかを調べ、その with の中の渡している所を passed_right_after に足す。"""
+        for i, s in enumerate(stmts):
+            if isinstance(s, ast.FunctionDef):
+                following = [x for x in stmts[i + 1:] if not isinstance(x, ast.FunctionDef)][:1]
+                between = stmts[i + 1: stmts.index(following[0])] if following else stmts[i + 1:]
+                passed = set()
+                if following and isinstance(following[0], ast.With) and all(isinstance(x, ast.FunctionDef) for x in between):
+                    for item in following[0].items:
+                        call = item.context_expr
+                        if callee_of(call) == "whenever" and len(call.args) == 2:
+                            passed.add(getattr(call.args[1], "id", None))
+                            if getattr(call.args[1], "id", None) == s.name:
+                                passed_right_after.add(id(call))
+                if s.name not in passed:
+                    errors.append(f"{at(s.lineno)} 段階の中の def が、それを whenever に渡す with の直前に無い: {s.name}")
+            else:
+                check_inner(getattr(s, "body", []))
+                check_inner(getattr(s, "orelse", []))
+
+    for f in stages:
+        check_inner(f.body)
+        here = {d.name for d in inner[f.name]}
+        for n in ast.walk(f):
+            if callee_of(n) == "whenever" and len(n.args) == 2 and id(n) not in passed_right_after:
+                if getattr(n.args[1], "id", None) in here:
+                    errors.append(f"{at(n.lineno)} 段階の中に定義した段階を、定義の直後の with 以外で渡している: {n.args[1].id}")
+        own = {s.targets[0].id for s in local_decls[f.name]}
+        check_arguments(f.body, set(module_names) | set(params[f.name]) | own)
 
     def walk_loops(node, depth):
         for c in ast.iter_child_nodes(node):
@@ -207,24 +534,157 @@ def check(path):
             walk_loops(c, next_depth)
 
     walk_loops(tree, 0)
-    for tok in tokenize.generate_tokens(io.StringIO(code).readline):
-        if tok.type == tokenize.COMMENT:
-            errors.append(f"{at(tok.start[0])} コメント")
+    calls = [callee_of(n) for f in stages for n in ast.walk(f) if isinstance(n, ast.Call)]
+    calls += ["define"] * len(module_decls)
+    for h in HELPERS:
+        if h in calls and h not in declared:
+            errors.append(f"{h} を使っているが、補助関数の宣言が無い")
+        if h in declared and h not in calls:
+            errors.append(f"補助関数 {h} を宣言しているが、使っていない")
 
-    calls = [getattr(n.func, "id", None) for f in stages for n in ast.walk(f) if isinstance(n, ast.Call)]
-    callees = {
-        f.name: {getattr(n.func, "id", None) for n in ast.walk(f) if isinstance(n, ast.Call)} & names
-        for f in stages
-    }
-    reached, todo = set(), [stages[0].name]
+    def strings_in(nodes):
+        return [c.value for n in nodes for c in ast.walk(n) if is_string(c)]
+
+    def loaded_in(nodes):
+        return {c.id for n in nodes for c in ast.walk(n) if isinstance(c, ast.Name) and isinstance(c.ctx, ast.Load)}
+
+    for n in module_decls:
+        name = n.targets[0].id
+        readers = stages + [d for d in module_decls if d is not n]
+        if not any(name in s for s in strings_in(readers)) and name not in loaded_in(stages):
+            notes.append(f"{at(n.lineno)} 宣言した名前が、どの文にも出てこない: {name}")
+    for f in stages:
+        for s in local_decls[f.name]:
+            name = s.targets[0].id
+            readers = [x for x in f.body if x is not s]
+            if not any(name in t for t in strings_in(readers)) and name not in loaded_in(readers):
+                notes.append(f"{at(s.lineno)} 宣言した名前が、その段階のどの文にも出てこない: {name}")
+
+    def reached_from(f):
+        """段階 f が呼ぶ段階と、whenever に渡す段階の名前を返す。"""
+        found = set()
+        for n in ast.walk(f):
+            callee = callee_of(n)
+            if callee in names:
+                found.add(callee)
+            if callee == "whenever" and len(n.args) == 2 and getattr(n.args[1], "id", None) in names:
+                found.add(n.args[1].id)
+        return found
+
+    reaches = {f.name: reached_from(f) for f in stages}
+    reached, todo = set(), [main_stage.name]
     while todo:
         name = todo.pop()
         if name not in reached:
             reached.add(name)
-            todo.extend(callees.get(name, ()))
+            todo.extend(reaches.get(name, ()))
     for name in sorted(names - reached):
         errors.append(f"メインの段階から届かない段階: {name}")
-    return errors, notes, [f.name for f in stages], calls
+
+    def events_of(f):
+        """段階 f の本文を書いてある順にたどり、("call", 呼ぶ段階の名前) と ("pass", whenever に渡す段階の外の段階の名前) を、出てくる順に返す。f の中に定義した段階の本文は、それを渡した所でたどる。"""
+        found = []
+        waiting = {d.name: d for d in inner[f.name]}
+
+        def visit(node):
+            if isinstance(node, ast.FunctionDef):
+                return
+            callee = callee_of(node)
+            if callee == "whenever":
+                target = getattr(node.args[1], "id", None) if len(node.args) == 2 else None
+                if target in waiting:
+                    for s in waiting.pop(target).body:
+                        visit(s)
+                elif target in names:
+                    found.append(("pass", target))
+            elif callee in names:
+                found.append(("call", callee))
+            for child in ast.iter_child_nodes(node):
+                visit(child)
+
+        for s in f.body:
+            visit(s)
+        return found
+
+    events = {f.name: events_of(f) for f in stages}
+    passers = {}
+    for f in stages:
+        inside = {id(n): d.name for d in inner[f.name] for n in ast.walk(d)}
+        for n in ast.walk(f):
+            target = getattr(n.args[1], "id", None) if callee_of(n) == "whenever" and len(n.args) == 2 else None
+            if target in names:
+                passers.setdefault(target, set()).add((f.name, inside.get(id(n))))
+    for f in stages:
+        inside = {id(n): d.name for d in inner[f.name] for n in ast.walk(d)}
+        for n in ast.walk(f):
+            if callee_of(n) == "whenever" and (f.name in passers or id(n) in inside):
+                errors.append(f"{at(n.lineno)} whenever に渡す段階の中で、whenever を使っている: {inside.get(id(n), f.name)}")
+    for handler, users in passers.items():
+        if handler == main_stage.name:
+            errors.append(f"whenever に渡す段階を、メインの段階として呼んでいる: {handler}")
+        if any(("call", handler) in events[f.name] for f in stages):
+            errors.append(f"whenever に渡す段階を、段階としても呼んでいる: {handler}")
+        if len(users) == 1:
+            user = next(iter(users))[0]
+            errors.append(f"{at(by_name[handler].lineno)} 一つの段階でしか whenever に渡さない段階を、その段階の外に定義している: {handler}（渡す段階: {user}）")
+
+    def written_in(name):
+        """段階 name の ("call", 名前) と ("pass", 名前) の並びを返す。whenever に渡した段階が呼ぶ段階は、渡した所に入れる。"""
+        result = []
+        for kind, target in events[name]:
+            result.append((kind, target))
+            if kind == "pass" and target != name:
+                result += [e for e in events[target] if e[0] == "call"]
+        return result
+
+    flow = names - set(passers)
+    written = {name: written_in(name) for name in flow}
+    calls_of = {name: list(dict.fromkeys(x for kind, x in written[name] if kind == "call" and x in flow)) for name in flow}
+    passes_of = {name: list(dict.fromkeys(x for kind, x in written[name] if kind == "pass")) for name in flow}
+
+    def distances(root):
+        """root から呼び出しをたどる回数を、届く段階について返す。"""
+        found, queue = {root: 0}, [root]
+        while queue:
+            name = queue.pop(0)
+            for callee in calls_of.get(name, ()):
+                if callee not in found:
+                    found[callee] = found[name] + 1
+                    queue.append(callee)
+        return found
+
+    for f in stages:
+        if f.name not in flow:
+            continue
+        seen, todo = set(), list(calls_of[f.name])
+        while todo:
+            name = todo.pop()
+            if name == f.name:
+                errors.append(f"{at(f.lineno)} 段階が、呼び出しをたどって自分へ戻る: {f.name}")
+                break
+            if name not in seen:
+                seen.add(name)
+                todo.extend(calls_of.get(name, ()))
+    from_main = distances(main_stage.name)
+    expected = []
+
+    def place(name):
+        """段階 name と、そこから置く段階を、決まりの順で expected に足す。"""
+        expected.extend(x for x in passes_of.get(name, ()) if x not in expected)
+        expected.append(name)
+        for callee in calls_of.get(name, ()):
+            if callee not in expected and from_main.get(callee) == from_main[name] + 1:
+                place(callee)
+
+    place(main_stage.name)
+    actual = [f.name for f in stages if f.name in expected]
+    if actual != expected and len(actual) == len(expected):
+        i = next(k for k in range(len(expected)) if actual[k] != expected[k])
+        errors.append(
+            f"{at(by_name[actual[i]].lineno)} 段階の並びが決まりの順と違う。{i + 1} 番目は {expected[i]} のはずが、{actual[i]} になっている。"
+            + "決まりの順: " + "、".join(expected)
+        )
+    return errors, notes, [f.name for f in stages], calls, handlers
 
 
 def main(paths):
@@ -233,11 +693,13 @@ def main(paths):
         return 2
     failed = False
     for path in paths:
-        errors, notes, stages, calls = check(path)
+        errors, notes, stages, calls, handlers = check(path)
         print(f"== {path}")
         if stages:
             print("段階:", "、".join(stages))
-            print(" / ".join(f"{h} {calls.count(h)}" for h in HELPERS))
+            if handlers:
+                print("whenever に渡す段階:", "、".join(handlers))
+            print(" / ".join(f"{h} {calls.count(h)}" for h in HELPERS if h in calls))
         print("違反: なし" if not errors else "違反:")
         for e in errors:
             print("  " + e)
