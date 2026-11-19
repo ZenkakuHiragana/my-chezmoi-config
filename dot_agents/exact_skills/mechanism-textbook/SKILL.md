@@ -8,14 +8,6 @@ description: >-
 ---
 
 ```python
-def condition(prompt: str) -> bool: ...
-def constraint(prompt: str): ...
-def context(prompt: str): ...
-def do(prompt: str): ...
-def define(prompt: str): ...
-def whenever(prompt: str, stage): ...
-
-
 教科書 = define("特定の問いへの答えに限らず、ある範囲の知識を読者が自分のものにするための説明。")
 工程 = define("""
     上流から順に、根拠と形の仮定、設計、章の図、章の本文、本全体の五つ。
@@ -84,7 +76,7 @@ def 教科書を書く():
             理解すること自体が目的なら、その後の設計判断や操作を無理に設定しない。
             関連があるというだけで範囲を広げない。
         """),
-        whenever("途中の成果を渡す", 読める範囲と未完成の範囲を明らかにする),
+        interrupt(when="途中の成果を渡す", run=読める範囲と未完成の範囲を明らかにする),
     ):
         理解の到達点と出発点を確かめる()
         with constraint("""
