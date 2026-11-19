@@ -8,27 +8,27 @@
 調べること:
 - frontmatter で始まり、その後に python のコードフェンスが 1 つだけあり、フェンスの外に文が無い（frontmatter の中のフェンスは数えない）
 - フェンスの中が Python としてコンパイルできる（ast.parse だけでは見逃す誤りがあるので compile を使う）
-- 先頭に、本文で使う補助関数の宣言だけが、condition、constraint、context、do、define、whenever の順に、決まりの文面のままあり（デコレーターも付けない）、後で定義し直していない
+- フェンスの中に、補助関数（condition、constraint、context、do、define、interrupt）と同じ名前の def が無い。補助関数の宣言は書き方の決まりにだけあり、本文には置かない
 - 同じ名前の段階を二度定義していない
 - 末尾が、メインの段階を引数なしで呼ぶ 1 行になっている
 - do の文が 1 文で、箇条書きが無い。文は、かっこの外の「。」「！」「？」で数える。半角の ! と ? は、後ろが空白か文の終わりのときだけ数える。英文のピリオドでは数えない。箇条書きは、行頭の「- 」「* 」「・」「1. 」の形を見る
 - 補助関数に渡す文字列が、二重引用符で、1 文なら 1 行に、2 文以上なら三重引用符で 1 文 1 行に書いてある（三重引用符の中の行は 1 段深く字下げし、閉じる引用符は始めた行の字下げに置く）。箇条書きを含む文字列と、二重引用符かバックスラッシュを含む文字列は調べない
 - コメントが、段階の def か手順の直前にあり、コードと同じ行に無い。その手順だけを囲む with があるときは、その with の直前にある
 - 文に書いた、フォルダ付きの .md のパス（references/x.md など）が、スキルのフォルダの中にある。調べるのは、英数字と「.」「_」「-」でできたパスだけで、フォルダの付かないファイル名は調べない。空白や日本語を含むパスは、正しく調べられない
-- 使わない構文（elif、return、import、define による宣言以外の代入、名前以外の引数、f 文字列、リスト・辞書・クラス、例外、ループの else、whenever に渡す段階以外の段階の中の def、docstring）が無い
-- 名前の宣言が「名前 = define("…")」の形で、段階の外では補助関数の宣言と最初の段階の間に、段階の中ではその段階の先頭にあり、同じ名前を重ねて宣言しておらず、その段階の引数とも重なっていない
+- 使わない構文（elif、return、import、define による宣言以外の代入、名前以外の引数、f 文字列、リスト・辞書・クラス、例外、ループの else、interrupt に渡す段階以外の段階の中の def、docstring）が無い
+- 名前の宣言が「名前 = define("…")」の形で、段階の外では最初の段階より前に、段階の中ではその段階の先頭にあり、同じ名前を重ねて宣言しておらず、その段階の引数とも重なっていない
 - 段階の引数が名前だけで、呼び出しで渡すものが、その場所で使える名前（囲んでいる for のループ変数、段階の外かその段階の先頭で宣言した名前、その段階の引数）で、数が定義と合っている
 - 宣言した名前、段階の引数、for の名前が、段階や補助関数の名前と重なっていない
-- whenever が with にだけあり、文字列 1 つと、引数を取らない段階の名前 1 つを渡していて、渡す段階を段階として呼ばず、渡す段階の中では whenever を使っていない
-- 一つの段階でしか whenever に渡さない段階を、その段階の中に定義している。段階の中に定義した段階が、それを渡す with の直前にあり、その with でだけ渡され、その中に def や名前の宣言が無く、名前がほかの名前と重なっていない
-- 段階が、決まりの順に並んでいる。メインの後に、メインから呼び出しを書いてある順にたどって初めて出てくる順。いくつもの段階から呼ばれる段階は、メインからたどる呼び出しの数がいちばん少ない呼び出し元の所（同じ数なら、先に置く呼び出し元の所）。whenever に渡す段階の本文は、渡した所に書いてあるものとして数える。段階の外に定義して whenever に渡す段階は、それを渡す段階のうち、いちばん先に置くものの直前（いくつもあれば、渡す順）
+- interrupt が with にだけあり、when= に文字列 1 つ、run= に引数を取らない段階の名前 1 つを、この順に名前を付けて渡していて（位置では渡さない）、渡す段階を段階として呼ばず、渡す段階の中では interrupt を使っていない
+- 一つの段階でしか interrupt に渡さない段階を、その段階の中に定義している。段階の中に定義した段階が、それを渡す with の直前にあり、その with でだけ渡され、その中に def や名前の宣言が無く、名前がほかの名前と重なっていない
+- 段階が、決まりの順に並んでいる。メインの後に、メインから呼び出しを書いてある順にたどって初めて出てくる順。いくつもの段階から呼ばれる段階は、メインからたどる呼び出しの数がいちばん少ない呼び出し元の所（同じ数なら、先に置く呼び出し元の所）。interrupt に渡す段階の本文は、渡した所に書いてあるものとして数える。段階の外に定義して interrupt に渡す段階は、それを渡す段階のうち、いちばん先に置くものの直前（いくつもあれば、渡す順）
 - for が「for 名前 in 名前:」の形になっている
 - if と while の条件が、condition と and / or / not だけでできていて、condition がそれ以外の場所に無い
 - and と or を混ぜるところに括弧がある
 - 入れ子のループの内側に break が無い
 - 効く範囲が同じ with が入れ子になっていない（with の中身が別の with だけ）
-- 定義した段階が、メインの段階から、呼び出しと whenever をたどって届く
-- 段階が、呼び出しをたどって自分へ戻らない（再帰が無い）。whenever に渡す段階の本文は、渡した段階が呼ぶものとして数える
+- 定義した段階が、メインの段階から、呼び出しと interrupt をたどって届く
+- 段階が、呼び出しをたどって自分へ戻らない（再帰が無い）。interrupt に渡す段階の本文は、渡した段階が呼ぶものとして数える
 
 コメントの中身は調べない。
 宣言した名前が、文の中で宣言した意味のとおりに使われているかも調べない。
@@ -46,16 +46,8 @@ import re
 import sys
 import tokenize
 
-HELPERS = ["condition", "constraint", "context", "do", "define", "whenever"]
+HELPERS = ["condition", "constraint", "context", "do", "define", "interrupt"]
 ONE_STRING = ["condition", "constraint", "context", "do", "define"]
-DECLARATIONS = {
-    "condition": "def condition(prompt: str) -> bool: ...",
-    "constraint": "def constraint(prompt: str): ...",
-    "context": "def context(prompt: str): ...",
-    "do": "def do(prompt: str): ...",
-    "define": "def define(prompt: str): ...",
-    "whenever": "def whenever(prompt: str, stage): ...",
-}
 FENCE = re.compile(r"^\x60\x60\x60python\n(.*?)^\x60\x60\x60[ \t]*$", re.S | re.M)
 FRONTMATTER = re.compile(r"\A---\n.*?\n---\n", re.S)
 
@@ -73,6 +65,19 @@ def is_declaration(node):
         and isinstance(node.targets[0], ast.Name)
         and callee_of(node.value) == "define"
     )
+
+
+def interrupt_parts(node):
+    """node が interrupt(when=…, run=…) の形の呼び出しなら、(when に渡した式, run に渡した式) を返す。形が違えば None を返す。"""
+    if callee_of(node) != "interrupt" or node.args or [k.arg for k in node.keywords] != ["when", "run"]:
+        return None
+    return node.keywords[0].value, node.keywords[1].value
+
+
+def interrupt_target(node):
+    """node が interrupt(when=…, run=名前) の形の呼び出しなら、run に渡した名前を返す。そうでなければ None を返す。"""
+    parts = interrupt_parts(node)
+    return getattr(parts[1], "id", None) if parts else None
 
 
 def sentence_count(text):
@@ -153,8 +158,20 @@ def is_string(node):
     return isinstance(node, ast.Constant) and isinstance(node.value, str)
 
 
+def helper_string(node):
+    """node が補助関数の呼び出しなら、渡した文字列のノードを返す。interrupt では when= に渡した文字列を返す。文字列を渡していなければ None を返す。"""
+    callee = callee_of(node)
+    if callee in ONE_STRING and node.args and is_string(node.args[0]):
+        return node.args[0]
+    if callee == "interrupt":
+        for k in node.keywords:
+            if k.arg == "when" and is_string(k.value):
+                return k.value
+    return None
+
+
 def check(path):
-    """path のスキル本文を調べ、(違反の一覧, 注意の一覧, 段階名の一覧, 呼び出し名の一覧, whenever に渡した段階名の一覧) を返す。行番号はファイルの行番号。"""
+    """path のスキル本文を調べ、(違反の一覧, 注意の一覧, 段階名の一覧, 呼び出し名の一覧, interrupt に渡した段階名の一覧) を返す。行番号はファイルの行番号。"""
     text = pathlib.Path(path).read_text(encoding="utf-8").replace("\r\n", "\n")
     errors = []
     notes = []
@@ -184,25 +201,10 @@ def check(path):
     tree = ast.parse(code)
 
     defs = [f for f in tree.body if isinstance(f, ast.FunctionDef)]
-    lead = []
     for f in defs:
-        if f.name not in HELPERS:
-            break
-        lead.append(f)
-    declared = [f.name for f in lead]
-    if declared != [h for h in HELPERS if h in declared]:
-        errors.append("補助関数の宣言が、" + "、".join(HELPERS) + " の順に 1 つずつ並んでいない")
-    for f in lead:
-        if f.decorator_list:
-            errors.append(f"{at(f.lineno)} 補助関数 {f.name} にデコレーターがある")
-        if (ast.get_source_segment(code, f) or "").strip() != DECLARATIONS[f.name]:
-            errors.append(f"{at(f.lineno)} 補助関数 {f.name} の宣言が決まりの文面と違う: {DECLARATIONS[f.name]}")
-    for f in defs[len(lead):]:
-        if f.name in declared:
-            errors.append(f"{at(f.lineno)} 補助関数 {f.name} を定義し直している")
-        elif f.name in HELPERS:
-            errors.append(f"{at(f.lineno)} 補助関数 {f.name} の宣言が先頭に無い")
-    stages = [f for f in defs[len(lead):] if f.name not in HELPERS]
+        if f.name in HELPERS:
+            errors.append(f"{at(f.lineno)} 補助関数と同じ名前の def がある（補助関数の宣言は、本文に置かない）: {f.name}")
+    stages = [f for f in defs if f.name not in HELPERS]
     names = {f.name for f in stages}
     seen = set()
     for f in stages:
@@ -237,12 +239,11 @@ def check(path):
         errors.append(f"{at(main_stage.lineno)} メインの段階に引数がある")
 
     position = {id(n): i for i, n in enumerate(tree.body)}
-    after_helpers = position[id(lead[-1])] if lead else -1
     module_names = []
     for n in module_decls:
         name = n.targets[0].id
-        if not after_helpers < position[id(n)] < position[id(stages[0])]:
-            errors.append(f"{at(n.lineno)} 段階の外の宣言が、補助関数の宣言と最初の段階の間に無い: {name}")
+        if not position[id(n)] < position[id(stages[0])]:
+            errors.append(f"{at(n.lineno)} 段階の外の宣言が、最初の段階より前に無い: {name}")
         if not (len(n.value.args) == 1 and not n.value.keywords and is_string(n.value.args[0])):
             errors.append(f"{at(n.lineno)} define の引数が文字列 1 つでない")
         if name in module_names:
@@ -331,8 +332,8 @@ def check(path):
         elif after + 1 in only_child_lines:
             errors.append(f"{at(row)} コメントが、その手順だけを囲む with の内側にある")
     for n in ast.walk(tree):
-        if callee_of(n) in HELPERS and n.args and is_string(n.args[0]):
-            literal = n.args[0]
+        literal = helper_string(n)
+        if literal is not None:
             indent = len(lines[literal.lineno - 1]) - len(lines[literal.lineno - 1].lstrip())
             expected = expected_literal(literal.value, indent)
             if expected is not None and ast.get_source_segment(code, literal) != expected:
@@ -437,16 +438,17 @@ def check(path):
                             errors.append(f"{line} do の文に箇条書きがある")
                     if callee == "define" and id(n) not in decl_calls:
                         errors.append(f"{line} define が「名前 = define(…)」の形の宣言になっていない")
-                elif callee == "whenever":
+                elif callee == "interrupt":
                     if id(n) not in with_items:
-                        errors.append(f"{line} with の外に whenever がある")
-                    target = getattr(n.args[1], "id", None) if len(n.args) == 2 else None
+                        errors.append(f"{line} with の外に interrupt がある")
+                    parts = interrupt_parts(n)
+                    target = interrupt_target(n)
                     here = {d.name for d in inner[f.name]}
-                    takes_stage = not n.keywords and target is not None and is_string(n.args[0]) and (target in names or target in here)
+                    takes_stage = parts is not None and is_string(parts[0]) and (target in names or target in here)
                     if not takes_stage:
-                        errors.append(f"{line} whenever の引数が、文字列 1 つと段階の名前 1 つでない")
+                        errors.append(f"{line} interrupt の引数が、この順に名前を付けて渡した、when= の文字列 1 つと run= の段階の名前 1 つでない")
                     elif target not in here and params[target]:
-                        errors.append(f"{line} whenever に渡した段階が引数を取る: {target}")
+                        errors.append(f"{line} interrupt に渡した段階が引数を取る: {target}")
                     elif target not in handlers:
                         handlers.append(target)
                 elif callee in names:
@@ -459,8 +461,8 @@ def check(path):
             if isinstance(n, ast.With):
                 for item in n.items:
                     callee = getattr(getattr(item.context_expr, "func", None), "id", None)
-                    if callee not in ("constraint", "context", "whenever") or item.optional_vars:
-                        errors.append(f"{line} with に constraint / context / whenever 以外がある")
+                    if callee not in ("constraint", "context", "interrupt") or item.optional_vars:
+                        errors.append(f"{line} with に constraint / context / interrupt 以外がある")
                 if len(n.body) == 1 and isinstance(n.body[0], ast.With):
                     errors.append(f"{line} 効く範囲が同じ with の入れ子")
             if isinstance(n, (ast.For, ast.While)) and n.orelse:
@@ -497,7 +499,7 @@ def check(path):
     passed_right_after = set()
 
     def check_inner(stmts):
-        """stmts の中の def が、それを whenever に渡す with の直前にあるかを調べ、その with の中の渡している所を passed_right_after に足す。"""
+        """stmts の中の def が、それを interrupt に渡す with の直前にあるかを調べ、その with の中の渡している所を passed_right_after に足す。"""
         for i, s in enumerate(stmts):
             if isinstance(s, ast.FunctionDef):
                 following = [x for x in stmts[i + 1:] if not isinstance(x, ast.FunctionDef)][:1]
@@ -506,12 +508,13 @@ def check(path):
                 if following and isinstance(following[0], ast.With) and all(isinstance(x, ast.FunctionDef) for x in between):
                     for item in following[0].items:
                         call = item.context_expr
-                        if callee_of(call) == "whenever" and len(call.args) == 2:
-                            passed.add(getattr(call.args[1], "id", None))
-                            if getattr(call.args[1], "id", None) == s.name:
+                        target = interrupt_target(call)
+                        if target is not None:
+                            passed.add(target)
+                            if target == s.name:
                                 passed_right_after.add(id(call))
                 if s.name not in passed:
-                    errors.append(f"{at(s.lineno)} 段階の中の def が、それを whenever に渡す with の直前に無い: {s.name}")
+                    errors.append(f"{at(s.lineno)} 段階の中の def が、それを interrupt に渡す with の直前に無い: {s.name}")
             else:
                 check_inner(getattr(s, "body", []))
                 check_inner(getattr(s, "orelse", []))
@@ -520,9 +523,9 @@ def check(path):
         check_inner(f.body)
         here = {d.name for d in inner[f.name]}
         for n in ast.walk(f):
-            if callee_of(n) == "whenever" and len(n.args) == 2 and id(n) not in passed_right_after:
-                if getattr(n.args[1], "id", None) in here:
-                    errors.append(f"{at(n.lineno)} 段階の中に定義した段階を、定義の直後の with 以外で渡している: {n.args[1].id}")
+            target = interrupt_target(n)
+            if target in here and id(n) not in passed_right_after:
+                errors.append(f"{at(n.lineno)} 段階の中に定義した段階を、定義の直後の with 以外で渡している: {target}")
         own = {s.targets[0].id for s in local_decls[f.name]}
         check_arguments(f.body, set(module_names) | set(params[f.name]) | own)
 
@@ -536,11 +539,6 @@ def check(path):
     walk_loops(tree, 0)
     calls = [callee_of(n) for f in stages for n in ast.walk(f) if isinstance(n, ast.Call)]
     calls += ["define"] * len(module_decls)
-    for h in HELPERS:
-        if h in calls and h not in declared:
-            errors.append(f"{h} を使っているが、補助関数の宣言が無い")
-        if h in declared and h not in calls:
-            errors.append(f"補助関数 {h} を宣言しているが、使っていない")
 
     def strings_in(nodes):
         return [c.value for n in nodes for c in ast.walk(n) if is_string(c)]
@@ -561,14 +559,14 @@ def check(path):
                 notes.append(f"{at(s.lineno)} 宣言した名前が、その段階のどの文にも出てこない: {name}")
 
     def reached_from(f):
-        """段階 f が呼ぶ段階と、whenever に渡す段階の名前を返す。"""
+        """段階 f が呼ぶ段階と、interrupt に渡す段階の名前を返す。"""
         found = set()
         for n in ast.walk(f):
             callee = callee_of(n)
             if callee in names:
                 found.add(callee)
-            if callee == "whenever" and len(n.args) == 2 and getattr(n.args[1], "id", None) in names:
-                found.add(n.args[1].id)
+            if interrupt_target(n) in names:
+                found.add(interrupt_target(n))
         return found
 
     reaches = {f.name: reached_from(f) for f in stages}
@@ -582,7 +580,7 @@ def check(path):
         errors.append(f"メインの段階から届かない段階: {name}")
 
     def events_of(f):
-        """段階 f の本文を書いてある順にたどり、("call", 呼ぶ段階の名前) と ("pass", whenever に渡す段階の外の段階の名前) を、出てくる順に返す。f の中に定義した段階の本文は、それを渡した所でたどる。"""
+        """段階 f の本文を書いてある順にたどり、("call", 呼ぶ段階の名前) と ("pass", interrupt に渡す段階の外の段階の名前) を、出てくる順に返す。f の中に定義した段階の本文は、それを渡した所でたどる。"""
         found = []
         waiting = {d.name: d for d in inner[f.name]}
 
@@ -590,8 +588,8 @@ def check(path):
             if isinstance(node, ast.FunctionDef):
                 return
             callee = callee_of(node)
-            if callee == "whenever":
-                target = getattr(node.args[1], "id", None) if len(node.args) == 2 else None
+            if callee == "interrupt":
+                target = interrupt_target(node)
                 if target in waiting:
                     for s in waiting.pop(target).body:
                         visit(s)
@@ -611,25 +609,25 @@ def check(path):
     for f in stages:
         inside = {id(n): d.name for d in inner[f.name] for n in ast.walk(d)}
         for n in ast.walk(f):
-            target = getattr(n.args[1], "id", None) if callee_of(n) == "whenever" and len(n.args) == 2 else None
+            target = interrupt_target(n)
             if target in names:
                 passers.setdefault(target, set()).add((f.name, inside.get(id(n))))
     for f in stages:
         inside = {id(n): d.name for d in inner[f.name] for n in ast.walk(d)}
         for n in ast.walk(f):
-            if callee_of(n) == "whenever" and (f.name in passers or id(n) in inside):
-                errors.append(f"{at(n.lineno)} whenever に渡す段階の中で、whenever を使っている: {inside.get(id(n), f.name)}")
+            if callee_of(n) == "interrupt" and (f.name in passers or id(n) in inside):
+                errors.append(f"{at(n.lineno)} interrupt に渡す段階の中で、interrupt を使っている: {inside.get(id(n), f.name)}")
     for handler, users in passers.items():
         if handler == main_stage.name:
-            errors.append(f"whenever に渡す段階を、メインの段階として呼んでいる: {handler}")
+            errors.append(f"interrupt に渡す段階を、メインの段階として呼んでいる: {handler}")
         if any(("call", handler) in events[f.name] for f in stages):
-            errors.append(f"whenever に渡す段階を、段階としても呼んでいる: {handler}")
+            errors.append(f"interrupt に渡す段階を、段階としても呼んでいる: {handler}")
         if len(users) == 1:
             user = next(iter(users))[0]
-            errors.append(f"{at(by_name[handler].lineno)} 一つの段階でしか whenever に渡さない段階を、その段階の外に定義している: {handler}（渡す段階: {user}）")
+            errors.append(f"{at(by_name[handler].lineno)} 一つの段階でしか interrupt に渡さない段階を、その段階の外に定義している: {handler}（渡す段階: {user}）")
 
     def written_in(name):
-        """段階 name の ("call", 名前) と ("pass", 名前) の並びを返す。whenever に渡した段階が呼ぶ段階は、渡した所に入れる。"""
+        """段階 name の ("call", 名前) と ("pass", 名前) の並びを返す。interrupt に渡した段階が呼ぶ段階は、渡した所に入れる。"""
         result = []
         for kind, target in events[name]:
             result.append((kind, target))
@@ -698,7 +696,7 @@ def main(paths):
         if stages:
             print("段階:", "、".join(stages))
             if handlers:
-                print("whenever に渡す段階:", "、".join(handlers))
+                print("interrupt に渡す段階:", "、".join(handlers))
             print(" / ".join(f"{h} {calls.count(h)}" for h in HELPERS if h in calls))
         print("違反: なし" if not errors else "違反:")
         for e in errors:

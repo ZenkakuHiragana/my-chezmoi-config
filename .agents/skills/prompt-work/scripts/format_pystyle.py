@@ -21,8 +21,9 @@ def helper_strings(code):
     """code の中の、補助関数に渡した文字列のノードを返す。"""
     found = []
     for n in ast.walk(ast.parse(code)):
-        if check_pystyle.callee_of(n) in check_pystyle.HELPERS and n.args and check_pystyle.is_string(n.args[0]):
-            found.append(n.args[0])
+        literal = check_pystyle.helper_string(n)
+        if literal is not None:
+            found.append(literal)
     return found
 
 
